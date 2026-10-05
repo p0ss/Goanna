@@ -3,6 +3,7 @@
 
 #include "goanna_client.h"
 #include "goanna_ripples.h"
+#include "goanna_speech_input.h"
 #include "iris/goanna_iris_effect.h"
 
 #include <gdextension_interface.h>
@@ -18,6 +19,7 @@ static void initialize_goanna(ModuleInitializationLevel p_level) {
     GDREGISTER_CLASS(goanna::GoannaClient);
     GDREGISTER_CLASS(goanna::GoannaIrisEffect);
     GDREGISTER_CLASS(goanna::GoannaRipples);
+    GDREGISTER_CLASS(goanna::GoannaSpeechInput);
 }
 
 static void uninitialize_goanna(ModuleInitializationLevel p_level) {

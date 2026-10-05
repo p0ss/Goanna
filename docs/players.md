@@ -145,7 +145,9 @@ material updates turns all of it off.
 WASD moves, the mouse looks, Space jumps, Shift sneaks, and the left and right
 mouse buttons dig and place. Number keys select the hotbar. `I` opens the
 inventory; so does `E`, unless something is pointed, in which case `E` uses
-it instead, the same as a right click. `T` opens chat, `F` toggles the free
+it instead, the same as a right click. `T` opens chat, and holding `T`
+lets you speak a chat line instead of typing it (see
+[accessibility.md](accessibility.md)). `F` toggles the free
 camera, and Escape opens the pause menu. The exact bindings and camera
 options can be changed in Settings.
 

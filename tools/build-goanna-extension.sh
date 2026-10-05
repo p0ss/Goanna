@@ -37,7 +37,7 @@ rev=$(git rev-parse --short HEAD)
 rm -rf "$cache/src"
 mkdir -p "$cache/src" "$cache/build" "$out"
 git archive HEAD | tar -x -C "$cache/src"
-for sub in godot-cpp luanti; do
+for sub in godot-cpp luanti whisper.cpp; do
 	mkdir -p "$cache/src/$sub"
 	git -C "$sub" archive HEAD | tar -x -C "$cache/src/$sub"
 done

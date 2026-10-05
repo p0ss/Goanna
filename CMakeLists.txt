@@ -35,6 +35,32 @@ add_subdirectory(godot-cpp EXCLUDE_FROM_ALL)
 
 include(cmake/luanti_core.cmake)
 
+# Speech to text for voice typing (src/goanna_speech_input.cpp): whisper.cpp,
+# a submodule pinned to a release, linked statically on the CPU. ggml builds
+# for the machine compiling it by default, which would crash another CPU, so
+# the instruction set is fixed instead: AVX2 with FMA and F16C, which every
+# x86-64 PC since about 2013 and the Steam Deck have. OpenMP is off so the
+# release carries no extra runtime library; ggml uses its own thread pool.
+set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(WHISPER_ALL_WARNINGS OFF CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+if(GOANNA_ARCH STREQUAL "x86_64")
+    foreach(_goanna_ggml_isa GGML_AVX GGML_AVX2 GGML_FMA GGML_F16C)
+        set(${_goanna_ggml_isa} ON CACHE BOOL "" FORCE)
+    endforeach()
+endif()
+# Static: whisper.cpp and ggml declare BUILD_SHARED_LIBS with option(), which
+# under their older policy settings ignores a value set here unless CMP0077
+# is NEW, and a shared libwhisper is a file the release would not carry.
+set(_goanna_shared_libs ${BUILD_SHARED_LIBS})
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(whisper.cpp EXCLUDE_FROM_ALL)
+set(BUILD_SHARED_LIBS ${_goanna_shared_libs})
+
 add_library(goanna SHARED
     src/register_types.cpp
     src/goanna_client.cpp
@@ -80,6 +106,7 @@ add_library(goanna SHARED
     src/transplant/client/wieldmesh.cpp
     src/transplant/client/item_visuals_manager.cpp
     src/luanti_shims.cpp
+    src/goanna_speech_input.cpp
 )
 target_include_directories(goanna PRIVATE src)
 
@@ -184,7 +211,7 @@ set_source_files_properties(
     src/transplant/client/content_cao.cpp src/transplant/client/wieldmesh.cpp
     src/transplant/client/item_visuals_manager.cpp
     PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src;${CMAKE_SOURCE_DIR}/luanti/src/client")
-target_link_libraries(goanna PRIVATE godot::cpp luanti_core)
+target_link_libraries(goanna PRIVATE godot::cpp luanti_core whisper)
 # GNU ld only. MSVC's link.exe rejects both, and godot-cpp already adds
 # --no-undefined itself on the toolchains that understand it.
 if(NOT MSVC)

@@ -92,6 +92,7 @@ var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
 var audio: Node              # ui/audio.gd, sound
 var narrator: Node           # ui/narrator.gd, read aloud
+var voice_input: Node        # ui/voice_input.gd, voice typing
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
@@ -189,6 +190,10 @@ func _ready() -> void:
 	narrator.client = client
 	narrator.ui = self
 	add_child(narrator)
+	voice_input = preload("res://ui/voice_input.gd").new()
+	voice_input.client = client
+	voice_input.ui = self
+	add_child(voice_input)
 	cursor_ctl = Control.new()
 	cursor_ctl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cursor_ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -492,8 +497,22 @@ func _main_names() -> Array:
 var _last_toggle_keycode := -1
 var _last_toggle_frame := -1
 
+# Escape closes chat in one press. A focused LineEdit takes the first Escape
+# to end its editing (Godot 4.4 and later), so from _unhandled_input it took
+# two.
+func _input(event: InputEvent) -> void:
+	if chat_open and event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_ESCAPE:
+		_close_chat()
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if client == null:
+		return
+	if event is InputEventKey and not event.pressed and event.keycode == KEY_T \
+			and voice_input != null:
+		if voice_input.key_up() and window == null and not chat_open:
+			_open_chat("")
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		# Some Linux input backends (seen under Wayland/XWayland) have
@@ -533,7 +552,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open_inventory()
 				get_viewport().set_input_as_handled()
 			KEY_T:
-				_open_chat("")
+				# Held, T is voice typing (ui/voice_input.gd); a tap opens
+				# chat when it is let go.
+				if voice_input != null and voice_input.available():
+					voice_input.key_down()
+				else:
+					_open_chat("")
 				get_viewport().set_input_as_handled()
 			KEY_SLASH:
 				_open_chat("/")
@@ -911,6 +935,9 @@ const SETTINGS := [
 	["Audio", "speech_rate", "slider", "Speech rate", "How fast read aloud speaks. 1 is the voice's normal rate.", 0.5, 4.0, 0.25],
 	["Audio", "speech_volume", "slider", "Speech volume", "How loud read aloud speaks.", 0.0, 1.0, 0.05],
 	["Audio", "speech_voice", "choice", "Speech voice", "Which of the system's voices read aloud uses. System default follows your screen reader's or desktop's choice.", "voices"],
+	["Audio", "voice_typing", "toggle", "Voice typing", "Hold T and speak to write a chat line, let go, then press Enter to send it. A quick tap of T still opens chat for typing. Speech is turned into text on this computer and is never recorded or sent anywhere. The first time, it downloads a speech model."],
+	["Audio", "voice_model", "choice", "Voice typing model", "Base is quicker. Small makes fewer mistakes, especially with accents and young voices, but takes longer and is a bigger download.", [["base", "Base, 57 MB"], ["small", "Small, 181 MB"]]],
+	["Audio", "voice_language", "choice", "Voice typing language", "The language you speak. Work it out lets the model guess each time, which is a little slower and sometimes wrong for a short line.", [["auto", "Work it out"], ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["nl", "Dutch"], ["pl", "Polish"], ["ru", "Russian"], ["uk", "Ukrainian"], ["tr", "Turkish"], ["ar", "Arabic"], ["hi", "Hindi"], ["id", "Indonesian"], ["vi", "Vietnamese"], ["zh", "Chinese"], ["ja", "Japanese"], ["ko", "Korean"]]],
 	["Audio", "read_chat", "toggle", "Read chat", "Read chat lines as they arrive."],
 	["Audio", "read_hud", "toggle", "Read on screen text", "Read text the game puts on the screen, once it has stopped changing."],
 	["Audio", "read_pointed", "toggle", "Read what you point at", "Read the description of the block or creature under the crosshair."],
@@ -938,7 +965,7 @@ const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "volume", "muted",
-	"read_aloud", "speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed",
+	"read_aloud", "speech_rate", "speech_volume", "voice_typing", "read_chat", "read_hud", "read_pointed",
 	"read_held", "read_health", "read_menus",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
@@ -1026,6 +1053,8 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			if audio != null: audio.volume = value
 		"muted":
 			if audio != null: audio.muted = on
+		"voice_typing":
+			if voice_input != null: voice_input.enabled = on
 		"read_aloud":
 			# A launch with GOANNA_READ_ALOUD=1 is not undone by a saved off.
 			if narrator != null and narrator.enabled != on and not (narrator.launched_on() and not on):
@@ -1062,6 +1091,7 @@ func _local_value(key: String) -> float:
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
 		"read_aloud": return 1.0 if (narrator != null and narrator.enabled) else 0.0
+		"voice_typing": return 1.0 if (voice_input == null or voice_input.enabled) else 0.0
 		"speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed", "read_held", \
 				"read_health", "read_menus":
 			if narrator == null:
@@ -1341,7 +1371,11 @@ func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
 		else:
 			_save_setting_text(key, value)
 		if key == "speech_voice" and narrator != null:
-			narrator.voice_id = value)
+			narrator.voice_id = value
+		if key == "voice_model" and voice_input != null:
+			voice_input.model_size = value
+		if key == "voice_language" and voice_input != null:
+			voice_input.language = value)
 	row.add_child(picker)
 
 func _setting_text(key: String) -> String:

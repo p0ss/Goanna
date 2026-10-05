@@ -73,6 +73,26 @@ On Linux it needs speech-dispatcher and a voice, such as espeak-ng. Most
 desktops with a screen reader have them. Without them Read aloud stays
 silent and Goanna's log says why.
 
+## Voice typing
+
+Hold `T`, say your chat line, and let go. What you said goes into the chat
+box without being sent, and Read aloud says it back if it is on; press
+`Enter` to send it, or `Escape` to throw it away. A quick tap of `T` still
+opens the chat box to type in.
+
+The speech is turned into text on your computer by a Whisper model. The
+microphone is open only while `T` is held, and what it hears is turned into
+text and dropped: nothing is recorded or sent anywhere. The first time you
+hold `T`, Goanna downloads the speech model, 57 MB, and checks it before
+using it.
+
+Settings, Audio, has Voice typing to turn it off, Voice typing model, where
+Small (181 MB) makes fewer mistakes than Base but takes longer, and Voice
+typing language, which can be left to work out the language each time.
+Speech recognition makes more mistakes with children's voices and with
+strong accents than with an adult reading clearly; Small helps, and it is
+always worth checking the line before sending it.
+
 ## Sound
 
 Every sound the game plays is placed where it comes from: footsteps and

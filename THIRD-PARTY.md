@@ -7,9 +7,9 @@ This file lists everything that ends up in a built
 `libgoanna.linux.template_debug.x86_64.so`, and the runtime components shipped
 beside it, where they come from, and under what terms.
 
-The engine dependencies are not copied into Goanna: `luanti/` and
-`godot-cpp/` are git submodules pinned to release tags, so upstream's own
-notices travel with the source. The optional Terrain Diffusion runtime is a
+The engine dependencies are not copied into Goanna: `luanti/`,
+`godot-cpp/` and `whisper.cpp/` are git submodules pinned to release tags,
+so upstream's own notices travel with the source. The optional Terrain Diffusion runtime is a
 small vendored worldmod and is called out separately below.
 
 ## Summary
@@ -25,6 +25,8 @@ small vendored worldmod and is called out separately below.
 | Zstandard | system library, static if available | static | BSD-3-Clause or GPL-2.0, at your option |
 | zlib | system library | dynamic | zlib licence |
 | godot-cpp | `godot-cpp/`, submodule on branch 4.5 | static | MIT, Copyright (c) 2017-present Godot Engine contributors |
+| whisper.cpp, with ggml | `whisper.cpp/`, submodule at v1.9.4 | static | MIT, Copyright (c) 2023-2026 The ggml authors |
+| Whisper speech models | downloaded on first use of voice typing, from a pinned revision of `ggerganov/whisper.cpp` on Hugging Face, checked by SHA-256 | loaded at run time, not shipped | MIT, Copyright (c) 2022 OpenAI |
 | Terrain Diffusion for Luanti runtime | `project/vendor/terrain_diffusion` | deployed as an optional worldmod | MIT, Copyright (c) 2026 p0ss |
 | Terrain Diffusion default output | optional [versioned download](https://github.com/p0ss/terrain-diffusion-luanti/releases/tag/default-1m-v3) | copied from the shared cache into new local worlds | generated data from MIT-licensed generator and model |
 | Goanna Minetest Game PBR materials | `pbr_packs/minetest_game/` | served by default in local Minetest Game worlds | derivative material maps; per-mod source terms and attribution are recorded in the pack |
