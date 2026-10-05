@@ -70,6 +70,13 @@
       "release": 33518,
       "repository": "https://github.com/adrido/darkage"
     },
+    "draconis": {
+      "archive_sha256": "e4305c5165b9bc862beb33d1976b2bc920ccf7b1720840cbb2fc017986a39f57",
+      "contentdb": "https://content.luanti.org/packages/ElCeejo/draconis/",
+      "declared_media_license": "MIT",
+      "release": 34129,
+      "repository": "https://github.com/ElCeejo/draconis"
+    },
     "drummyfish": {
       "archive_sha256": "eff185a1ad3eb92eb62fd437126b7cae82140401d2e92e24f68574d7e5032b70",
       "contentdb": "https://content.luanti.org/packages/drummyfish/drummyfish/",
@@ -237,6 +244,13 @@
       "declared_media_license": "CC0-1.0",
       "release": 32908,
       "repository": "https://gitlab.com/alerikaisattera/stainedglass"
+    },
+    "sum_airship": {
+      "archive_sha256": "bd59f3259a072dfbfebc59e37bdda29d9126b9e5286a6a26348ed3eb4d46a5c9",
+      "contentdb": "https://content.luanti.org/packages/Sumianvoice/sum_airship/",
+      "declared_media_license": "CC-BY-4.0",
+      "release": 30601,
+      "repository": "https://codeberg.org/SumianVoice/sum_airship.git"
     },
     "techage_modpack": {
       "archive_sha256": "4ebe8bdccf1ce34987e2c63cd3db3a4ddcf9ffd01bbdb01caf124f1dded6d13d",

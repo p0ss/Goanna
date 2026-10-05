@@ -10,9 +10,7 @@
       "goblins_goblin_gold1.png",
       "goblins_goblin_gold2.png",
       "goblins_goblin_iron1.png",
-      "goblins_goblin_iron2.png",
-      "goblins_molten_gold_flowing_animated.png",
-      "goblins_molten_gold_source_animated.png"
+      "goblins_goblin_iron2.png"
     ]
   },
   {
@@ -35,9 +33,7 @@
       "goblins_mushroom_brown.png",
       "goblins_mushroom_brown2.png",
       "goblins_mushroom_brown3.png",
-      "goblins_mushroom_brown4.png",
-      "mtg_grass_1.png",
-      "mtg_moss.png"
+      "goblins_mushroom_brown4.png"
     ]
   },
   {
@@ -148,10 +144,6 @@
       "animalia_wolf_2.png",
       "animalia_wolf_3.png",
       "animalia_wolf_4.png",
-      "goblins_blood.png",
-      "goblins_exclam.png",
-      "goblins_goblin_bone.png",
-      "goblins_goblin_bone_meaty.png",
       "goblins_goblin_coal1.png",
       "goblins_goblin_coal2.png",
       "goblins_goblin_cobble1.png",
@@ -163,11 +155,7 @@
       "goblins_goblin_fungler1.png",
       "goblins_goblin_fungler2.png",
       "goblins_goblin_hoarder.png",
-      "goblins_goblin_snuffer.png",
-      "goblins_heart_g2.png",
-      "goblins_lightning.png",
-      "goblins_negative.png",
-      "mtg_lava.png"
+      "goblins_goblin_snuffer.png"
     ]
   }
 ]

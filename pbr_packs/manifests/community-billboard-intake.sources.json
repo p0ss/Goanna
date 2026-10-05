@@ -1607,39 +1607,31 @@
     "package": "ethereal",
     "source": "ethereal/ethereal/textures/farming_orange.png"
   },
-  "goblins_goblin_bone": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone.png"
-  },
-  "goblins_goblin_bone_meaty": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone_meaty.png"
-  },
   "goblins_mushroom_brown": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown.png"
   },
   "goblins_mushroom_brown2": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown2.png"
   },
   "goblins_mushroom_brown3": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown3.png"
   },
   "goblins_mushroom_brown4": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown4.png"
   },

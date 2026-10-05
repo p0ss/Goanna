@@ -80,6 +80,21 @@
       "decision": "eligible",
       "evidence": "Release 38585 LEGAL.md is a mixed notice (Pixel Perfection CC-BY-SA-4.0 unless noted, named CC-BY-SA-4.0 works, other files CC-BY-SA-3.0) and mods carry their own notices, so it qualifies per file. tools/pbr_audit_voxelibre.py recorded all 902 authored stems on 2026-10-05: 722 CC-BY-SA-4.0, 132 CC-BY-SA-3.0, 10 CC0-1.0 and 38 GPL-3.0. The GPL-3.0 stems are 7 mcl_fences textures under a 'source code and textures: GNU GPLv3' notice and 31 mcl_flowers textures under an unscoped 'GNU GPLv3' line, read as covering them.",
       "media_license": "CC-BY-SA-3.0/4.0, CC0-1.0 and GPL-3.0 per file"
+    },
+    "draconis": {
+      "decision": "eligible",
+      "evidence": "Release 34129 carries one notice, an MIT LICENSE by ElCeejo, and no credits or media notice naming other authors or terms. ContentDB declares the media MIT, agreeing with it, unlike Darkage, where the archive and ContentDB disagreed. Read on 2026-10-05.",
+      "media_license": "MIT"
+    },
+    "sum_airship": {
+      "decision": "eligible",
+      "evidence": "Release 30601 license.txt opens 'Media contained within is under CC-BY-4.0', by Sumi (SumianVoice), above the MIT code licence. Read on 2026-10-05.",
+      "media_license": "CC-BY-4.0"
+    },
+    "goblins": {
+      "decision": "eligible",
+      "evidence": "Release 32959 README.md licenses the goblin and goblin dog skins (written 'goblins_goblins*.png', which is the goblin skins' own prefix), the models and the mushroom textures CC-BY-SA-3.0 by FreeLikeGNU, and goblins_goblin_king.png CC-BY-SA-3.0 from the SummerFields texture pack. The molten gold (credited to Wikimedia Commons and VanessaE with no licence) and the lightning (openclipart, no licence stated) are excluded, as are icons the notices do not name. The LICENSE file is MIT for code. Read on 2026-10-05.",
+      "media_license": "CC-BY-SA-3.0 per file"
     }
   }
 }

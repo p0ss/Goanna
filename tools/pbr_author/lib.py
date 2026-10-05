@@ -109,6 +109,18 @@ GAMES = {
         "excluded": REPO / "pbr_packs/manifests/voxelibre-pack-v1.excluded.json",
     },
 }
+
+# Community mods author like games: their art is the pinned release as
+# tools/pbr_stage_sources.py stages it from pbr_packs/COMMUNITY_LOCK.json,
+# and each has its own pack, since a mod runs under several games.
+COMMUNITY_SRC = Path(os.environ.get("GOANNA_AUDIT_ROOT",
+                                    os.path.expanduser("~/.local/share/goanna-pbr-audit"))) / "src"
+for _mod in ("draconis", "goblins", "sum_airship"):
+    GAMES[_mod] = {
+        "art": COMMUNITY_SRC / _mod / _mod,
+        "pack": REPO / "pbr_packs" / _mod / "textures",
+        "install": REPO / "pbr_packs" / _mod / "textures",
+    }
 DEFAULT_GAME = "mineclonia"
 GAME_TEXTURES = GAMES[DEFAULT_GAME]["art"]
 PACK_TEXTURES = GAMES[DEFAULT_GAME]["pack"]

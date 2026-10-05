@@ -1859,48 +1859,6 @@
     "package": "cottages",
     "source": "cottages/cottages/textures/glooptest_tool_steelhammer.png"
   },
-  "goblins_blood": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_blood.png"
-  },
-  "goblins_exclam": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_exclam.png"
-  },
-  "goblins_goblin_bone": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone.png"
-  },
-  "goblins_goblin_bone_meaty": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone_meaty.png"
-  },
-  "goblins_heart_g2": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_heart_g2.png"
-  },
-  "goblins_lightning": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_lightning.png"
-  },
-  "goblins_negative": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_negative.png"
-  },
   "hammer_layout": {
     "class": "stone",
     "collisions": [],
@@ -2766,12 +2724,6 @@
     "collisions": [],
     "package": "ethereal",
     "source": "ethereal/ethereal/textures/moretrees_palm_trunk_top.png"
-  },
-  "mtg_lava": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/mtg_lava.png"
   },
   "naturalbiomes__banana_trunk": {
     "class": "wood",

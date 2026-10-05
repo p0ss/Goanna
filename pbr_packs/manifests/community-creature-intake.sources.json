@@ -629,208 +629,158 @@
     "package": "animalia",
     "source": "animalia/animalia/textures/wolf/animalia_wolf_4.png"
   },
-  "goblins_blood": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_blood.png"
-  },
-  "goblins_exclam": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_exclam.png"
-  },
-  "goblins_goblin_bone": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone.png"
-  },
-  "goblins_goblin_bone_meaty": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_goblin_bone_meaty.png"
-  },
   "goblins_goblin_coal1": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_coal1.png"
   },
   "goblins_goblin_coal2": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_coal2.png"
   },
   "goblins_goblin_cobble1": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_cobble1.png"
   },
   "goblins_goblin_cobble2": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_cobble2.png"
   },
   "goblins_goblin_copper1": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_copper1.png"
   },
   "goblins_goblin_copper2": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_copper2.png"
   },
   "goblins_goblin_diamond1": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_diamond1.png"
   },
   "goblins_goblin_diamond2": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_diamond2.png"
   },
   "goblins_goblin_digger": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_digger.png"
   },
   "goblins_goblin_dog": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_dog.png"
   },
   "goblins_goblin_fungler1": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_fungler1.png"
   },
   "goblins_goblin_fungler2": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_fungler2.png"
   },
   "goblins_goblin_gold1": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_gold1.png"
   },
   "goblins_goblin_gold2": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_gold2.png"
   },
   "goblins_goblin_hoarder": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_hoarder.png"
   },
   "goblins_goblin_iron1": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_iron1.png"
   },
   "goblins_goblin_iron2": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_iron2.png"
   },
   "goblins_goblin_snuffer": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_goblin_snuffer.png"
-  },
-  "goblins_heart_g2": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_heart_g2.png"
-  },
-  "goblins_lightning": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_lightning.png"
-  },
-  "goblins_molten_gold_flowing_animated": {
-    "class": "metal",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_molten_gold_flowing_animated.png"
-  },
-  "goblins_molten_gold_source_animated": {
-    "class": "metal",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_molten_gold_source_animated.png"
   },
   "goblins_mushroom_brown": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown.png"
   },
   "goblins_mushroom_brown2": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown2.png"
   },
   "goblins_mushroom_brown3": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown3.png"
   },
   "goblins_mushroom_brown4": {
     "class": "organic",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "goblins",
     "source": "goblins/goblins/textures/goblins_mushroom_brown4.png"
-  },
-  "goblins_negative": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/goblins_negative.png"
-  },
-  "mtg_grass_1": {
-    "class": "organic",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/mtg_grass_1.png"
-  },
-  "mtg_lava": {
-    "class": "stone",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/mtg_lava.png"
-  },
-  "mtg_moss": {
-    "class": "organic",
-    "collisions": [],
-    "package": "goblins",
-    "source": "goblins/goblins/textures/mtg_moss.png"
   }
 }
