@@ -1343,23 +1343,53 @@ proof. Players are told it is active from then, not before.
 ### MCP tools
 
 `tools/goanna-director-mcp --world <world>` reads the url and token from the
-world's `goanna_director.conf` and serves:
+world's `goanna_director.conf` and serves 17 tools. They were reworked on 5
+October 2026 for a model's sake: a menu of tools each with an exact schema
+is easier to call correctly than a few tools whose arguments depend on one
+another.
 
 | Tool | Message |
 | --- | --- |
-| `director_status` | `status` query, plus the connection and the hello |
+| `director_status` | a short brief: connection, game, which features are on, budgets left, players' phases, characters and their orders, the catalogue fingerprint; `detail: true` gives the full `status` query and the hello |
 | `director_events` | the events buffered since the model last asked, waiting up to `wait_s`, with results of queued intents that landed later |
 | `director_player` | `player` query: the summary, with its region summary |
+| `director_catalogue` | `catalogue` query, cached by fingerprint |
+| `director_memory` | `memory` query |
 | `director_stage_encounter` | `stage_encounter` |
-| `director_cast_npc` | `cast_npc` (new, below) |
+| `director_cast_npc` | `cast_npc` |
+| `director_move` | `order` with a goal: hold, watch, go_to, stay, patrol, follow |
+| `director_attack` | `order` attack |
+| `director_build` | `order` build |
+| `director_interact` | `order` hold_item or offer_trade |
 | `director_speak` | `speak` |
 | `director_remember` | `remember` |
-| `director_memory` | `memory` query |
-| `director_catalogue` | `catalogue` query, cached by fingerprint |
 | `director_grant_reward` | `grant_reward` |
 | `director_place_structure` | `place_structure` |
 | `director_undo` | `undo` |
 | `director_stop` | `stop` |
+
+- **One vocabulary.** `npc` is the character who acts, `player` is whom it
+  concerns, `target` is whom an act is aimed at, `at` is always a point
+  `[x, y, z]`, and `near` with `distance` (`[min, max]`) always means "find
+  a place near this player". A follow range is `range`. A character's
+  `speak` to `all` means everyone within its earshot, as the narrator's
+  means everyone.
+- **Follow ups.** An act that is `accepted` or `queued` comes back with
+  `follow_up`, naming the event its outcome will arrive as and the act id to
+  match (`npc_order`, `structure_placed` or `structure_failed`,
+  `encounter_started`, `encounter_ended`). A standing goal (hold, watch,
+  stay, patrol, follow) says it reports only when it fails or is replaced.
+- **Instructions.** The service's MCP `initialize` answer carries a short
+  guide for the role: start with the brief, search the catalogue rather than
+  guess names, read events before and after acting.
+- **Roles.** `--role gm` (the default) offers every tool. `--role voice`
+  offers status, events, player, memory, speak and remember, for an agent
+  that only speaks for characters; `--role watcher` offers only the reading
+  tools. The role is the menu, not the authority: every act still carries
+  the `gm` scope and the server mod checks it, so per scope limits on the
+  server side remain part of the sub-director work.
+  `tools/goanna-director-cli --role voice` serves a role on a socket of
+  its own.
 
 An act carries `based_on`, the last event sequence returned to the model.
 
@@ -1405,8 +1435,10 @@ An act carries `based_on`, the last event sequence returned to the model.
 
 ### Orders for characters
 
-`director_order` gives a cast character a goal it carries out by itself
-(`goanna_server_mod/director/orders.lua`), so the model says what and the
+An order gives a cast character a goal it carries out by itself
+(`goanna_server_mod/director/orders.lua`; the tools are `director_move`,
+`director_attack`, `director_build` and `director_interact`), so the model
+says what and the
 character works out how: `hold`, `watch` a target, `go_to` a point or a
 target and then `stay`, `stay` at a point and walk back when moved,
 `patrol` up to twelve points with a pause at each, `follow` within a

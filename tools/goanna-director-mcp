@@ -22,7 +22,9 @@ dependencies beyond the standard library. Register it with:
         -- /path/to/goanna/tools/goanna-director-mcp --world ~/.var/app/org.luanti.luanti/.minetest/worlds/<world>
 
 Options: --world PATH (or GOANNA_DIRECTOR_WORLD), --port N to override the
-port in the conf file. It binds to 127.0.0.1 only. Nothing may print to
+port in the conf file, --role gm|voice|watcher for the tools offered (gm, all
+of them, by default; voice speaks and remembers for characters; watcher only
+reads). It binds to 127.0.0.1 only. Nothing may print to
 stdout except protocol messages; diagnostics go to stderr.
 """
 
@@ -329,79 +331,43 @@ LAYERS = {"type": "array", "items": {"type": "array", "items": S},
           "description": "Layers from the bottom up; each a list of rows along z, each row a "
                          "string along x. A space leaves the world's node."}
 
+PLAYER = {"type": "string", "description": "A player's name."}
+NPC = {"type": "string", "description": "The cast character who acts, by its name."}
+POINT = {"type": "array", "items": N, "description": "A point [x, y, z]."}
+NEAR = {"type": "string", "description": "Find a place near this player (with distance)."}
+DISTANCE = {"type": "array", "items": N,
+            "description": "[min, max] nodes from the near player, for finding a place."}
+TARGET = {"type": "string", "description": "A player's name, a cast character's name or an "
+                                           "entity guid."}
+
+# The vocabulary every tool keeps to: npc is the character who acts, player
+# is whom it concerns, at is always a point, near with distance always means
+# "find a place near this player", target is whom an act is aimed at.
+
 TOOLS = [
     {"name": "director_status",
-     "description": "Whether a server is connected, its session and capabilities, and its live "
-                    "status: budgets left, stop state, pacing phase per player, queued intents, "
-                    "live encounters and cast characters.",
-     "inputSchema": schema({})},
+     "description": "Start here. A short brief: whether a server is connected, the game, which "
+                    "features are on in this world (rewards, enchantments, structures, "
+                    "characters), budgets left, players and their pacing phase, characters and "
+                    "their orders, live encounters, and the catalogue fingerprint. detail: true "
+                    "gives the full status instead.",
+     "inputSchema": schema({"detail": B})},
     {"name": "director_events",
-     "description": "What happened since you last asked: player joins, hurts, deaths, kills, "
-                    "pacing phase changes, encounters starting and ending, and lines players "
+     "description": "What happened since you last asked: joins, hurts, deaths, kills, pacing "
+                    "phase changes, encounters starting and ending, orders finishing "
+                    "(npc_order), structures landing (structure_placed), and lines players "
                     "addressed to your characters (npc_addressed, with that character's memory "
-                    "of the player). Waits up to wait_s for something new. Results of queued "
-                    "intents that landed later come back in late_results.",
+                    "of the player). Waits up to wait_s for something new. An accepted act's "
+                    "follow_up names the event to wait for here.",
      "inputSchema": schema({"after": {"type": "integer", "description": "Sequence to read after; "
                                       "default is the last one returned to you."},
                             "wait_s": N, "limit": {"type": "integer"}})},
     {"name": "director_player",
-     "description": "A player's summary: position, biome, health, gear and gear score, the "
+     "description": "One player's summary: position, biome, health, gear and gear score, the "
                     "largest encounter their gear allows (encounter_ceiling), the last ten "
                     "minutes, pacing phase and intensity, and their region. A player who opted "
                     "out shows only that.",
-     "inputSchema": schema({"name": S}, ["name"])},
-    {"name": "director_stage_encounter",
-     "description": "Stage hostile mobs near a player, sized to their gear: budget is capped at "
-                    "the player's encounter_ceiling and comes out of the hourly points budget "
-                    "(a zombie costs 5, a skeleton 4). Mobs come from the player's biome's "
-                    "fauna for theme (a mob category, default monster) or from an explicit mobs "
-                    "list. when: next_build_up (default, queued until the pacing layer's build "
-                    "up) or now (refused outside a build up). Placed out of sight by default, "
-                    "persistent, targeted at the player, and removed after leash_s.",
-     "inputSchema": schema({"near": S, "budget": N, "theme": S,
-                            "mobs": {"type": "array", "items": S},
-                            "when": {"type": "string", "enum": ["now", "next_build_up"]},
-                            "distance": {"type": "array", "items": N},
-                            "hidden": B, "leash_s": N, "valid_for_s": N, "reason": REASON},
-                           ["near", "reason"])},
-    {"name": "director_cast_npc",
-     "description": "Give a character a body so it can speak: either spawn a peaceful mob "
-                    "(default mobs_mc:villager) a few nodes from a player, named and held in "
-                    "place facing them, or name an existing mob by guid. The name may not be a "
-                    "player's.",
-     "inputSchema": schema({"near": S, "name": S, "mob": S, "guid": S, "hold": B,
-                            "armed": {"type": "boolean", "description":
-                                      "Allow a monster (a vindicator, a pillager) as a character "
-                                      "that can be ordered to attack. Charged and paced as an "
-                                      "encounter on the near player; held until ordered."},
-                            "distance": N, "reason": REASON}, ["near", "name", "reason"])},
-    {"name": "director_order",
-     "description": "Give a cast character a goal it carries out by itself until it is done, "
-                    "fails or is replaced; an npc_order event reports how it went. Orders: "
-                    "hold (stand, optionally facing target), watch (keep turning to face target), "
-                    "go_to (walk to at [x,y,z] or to target, then stay there), stay (keep to at, "
-                    "default where it stands, walking back if moved), patrol (loop through points "
-                    "[[x,y,z],...], pausing pause_s at each), follow (keep within distance [min,max] "
-                    "of target; a larger range hangs back), attack (fight target, a player or a "
-                    "creature's guid, until it dies, is lost or leash_s ends; only a mob that can "
-                    "fight, and attacking a player is charged and paced as an encounter), "
-                    "hold_item (show item in hand, empty to clear), offer_trade (open a villager's "
-                    "trades for the target player, setting profession if given), build (lay a "
-                    "structure node by node, bottom up: a game structure by name or an authored "
-                    "palette and layers as for director_place_structure, at [x,y,z] or near the "
-                    "target player; same checks, budget and undo as placing it). A target is a "
-                    "player name, a cast character's name or an entity guid.",
-     "inputSchema": schema({"npc": S,
-                            "order": {"type": "string", "enum": [
-                                "hold", "watch", "go_to", "stay", "patrol", "follow", "attack",
-                                "hold_item", "offer_trade", "build"]},
-                            "target": S, "at": {"type": "array", "items": N},
-                            "points": {"type": "array", "items": {"type": "array", "items": N}},
-                            "distance": {"type": "array", "items": N}, "pause_s": N,
-                            "item": S, "profession": S, "leash_s": N,
-                            "structure": S, "palette": PALETTE, "layers": LAYERS,
-                            "reason": REASON},
-                           ["npc", "order", "reason"])},
+     "inputSchema": schema({"player": PLAYER}, ["player"])},
     {"name": "director_catalogue",
      "description": "What this world contains, searched rather than listed. With no arguments: "
                     "the game, its mods, counts by kind and a fingerprint. With kind (item, node, "
@@ -412,55 +378,121 @@ TOOLS = [
      "inputSchema": schema({"kind": S, "text": S, "group": S, "mod": S,
                             "limit": {"type": "integer"}, "cursor": {"type": "integer"},
                             "detail": B, "hidden": B})},
+    {"name": "director_memory",
+     "description": "What a character remembers of a player (or of every player, without "
+                    "player): when they met, how often it spoke and was addressed, its "
+                    "disposition, and its facts.",
+     "inputSchema": schema({"npc": NPC, "player": PLAYER}, ["npc"])},
+    {"name": "director_stage_encounter",
+     "description": "Stage hostile creatures near a player, sized to their gear: budget is "
+                    "capped at the player's encounter_ceiling and comes out of the hourly "
+                    "encounter points (a zombie costs 5, a skeleton 4). Creatures come from the "
+                    "player's biome for theme (a creature category, default monster) or from "
+                    "an explicit mobs list. when: next_build_up (default, queued until the "
+                    "pacing layer's build up) or now (refused outside a build up). Out of sight "
+                    "by default, aimed at the player, removed after leash_s.",
+     "inputSchema": schema({"near": NEAR, "budget": N, "theme": S,
+                            "mobs": {"type": "array", "items": S},
+                            "when": {"type": "string", "enum": ["now", "next_build_up"]},
+                            "distance": DISTANCE, "hidden": B, "leash_s": N, "valid_for_s": N,
+                            "reason": REASON}, ["near", "reason"])},
+    {"name": "director_cast_npc",
+     "description": "Give a character a body so it can speak and take orders: spawn a peaceful "
+                    "creature (default mobs_mc:villager) near a player, named and held in place, "
+                    "or name an existing creature by guid. The name may not be a player's.",
+     "inputSchema": schema({"name": {"type": "string", "description": "The character's name."},
+                            "near": NEAR, "distance": DISTANCE, "mob": S, "guid": S, "hold": B,
+                            "armed": {"type": "boolean", "description":
+                                      "Allow a monster (a vindicator, a pillager) as a character "
+                                      "that can be ordered to attack. Charged and paced as an "
+                                      "encounter on the near player; held until ordered."},
+                            "reason": REASON}, ["near", "name", "reason"])},
+    {"name": "director_move",
+     "description": "Tell a character where to be; it carries the goal out by itself until "
+                    "it fails or another order replaces it. goal: hold (stand still, facing "
+                    "target if given), watch (keep turning to face target), go_to (walk to at, "
+                    "or to target, then stay), stay (keep to at, default where it stands, "
+                    "walking back if moved), patrol (loop through points, pausing pause_s at "
+                    "each), follow (keep within range [min, max] of target; a larger range "
+                    "hangs back).",
+     "inputSchema": schema({"npc": NPC,
+                            "goal": {"type": "string", "enum": ["hold", "watch", "go_to", "stay",
+                                                                "patrol", "follow"]},
+                            "target": TARGET, "at": POINT,
+                            "points": {"type": "array", "items": POINT, "description":
+                                       "Up to 12 points for patrol."},
+                            "range": {"type": "array", "items": N, "description":
+                                      "[min, max] nodes from target, for follow."},
+                            "pause_s": N, "reason": REASON}, ["npc", "goal", "reason"])},
+    {"name": "director_attack",
+     "description": "Have a character fight target until it dies, is lost or leash_s ends; "
+                    "then it stands down where it is. Only a character that can fight (cast "
+                    "with armed). Attacking a player is charged and paced as an encounter on "
+                    "them: their gear ceiling, the hourly points, the build up phase, opt out.",
+     "inputSchema": schema({"npc": NPC, "target": TARGET, "leash_s": N, "reason": REASON},
+                           ["npc", "target", "reason"])},
+    {"name": "director_build",
+     "description": "Have a character put up a building node by node, bottom up: a game "
+                    "structure by name (catalogue kind structure) or one you author as palette "
+                    "and layers, at a point or near a player within distance. The same checks, "
+                    "build budget and undo as director_place_structure, all taken when "
+                    "accepted. Built from the schematic only, so no loot.",
+     "inputSchema": schema({"npc": NPC, "structure": S, "palette": PALETTE, "layers": LAYERS,
+                            "at": POINT, "near": NEAR, "distance": DISTANCE, "reason": REASON},
+                           ["npc", "reason"])},
+    {"name": "director_interact",
+     "description": "A character's small acts: hold_item (show item in hand; empty to put it "
+                    "away) or offer_trade (open a villager's trades on player's screen, setting "
+                    "profession first if given; at most three a minute per player).",
+     "inputSchema": schema({"npc": NPC,
+                            "action": {"type": "string", "enum": ["hold_item", "offer_trade"]},
+                            "item": S, "player": PLAYER, "profession": S, "reason": REASON},
+                           ["npc", "action", "reason"])},
+    {"name": "director_speak",
+     "description": "Say a line in chat, always attributed. as: a character's name or "
+                    "\"narrator\". to: a player's name, or \"all\" (for a character, everyone "
+                    "within earshot of it; for the narrator, everyone). At most 280 characters, "
+                    "rate limited per speaker and per listener. Players who opted out never "
+                    "hear it.",
+     "inputSchema": schema({"as": S, "to": S, "text": S, "reason": REASON}, ["as", "to", "text"])},
+    {"name": "director_remember",
+     "description": "Add a short fact to what a character remembers of a player, or set its "
+                    "disposition (-100 to 100). Lasts for the server session. Facts are capped "
+                    "in length and number, and every one goes in the audit log.",
+     "inputSchema": schema({"npc": NPC, "player": PLAYER, "fact": S, "disposition": N,
+                            "reason": REASON}, ["npc", "player"])},
     {"name": "director_grant_reward",
      "description": "Make an item and put it where a player can choose to take it: dropped near "
-                    "them (delivery drop), in a container placed near them (container), or "
-                    "carried to them by a cast character (npc). Optional name (up to 40 "
-                    "characters), up to four lines of description, and enchantments "
+                    "them (delivery drop, the default), in a container placed near them "
+                    "(container), or carried to them by a character (npc). Optional name (up to "
+                    "40 characters), up to four lines of description, and enchantments "
                     "[{name, level}] from the catalogue. Costs reward points (the item's value "
                     "plus each enchantment's level), separate from encounter points, and each "
                     "reward is capped. Never put into an inventory. Undo takes it back if nobody "
                     "has picked it up.",
-     "inputSchema": schema({"near": S, "item": S, "count": {"type": "integer"}, "name": S,
+     "inputSchema": schema({"near": NEAR, "item": S, "count": {"type": "integer"}, "name": S,
                             "lines": {"type": "array", "items": S},
                             "enchantments": {"type": "array", "items": {
                                 "type": "object", "properties": {"name": S, "level": N}}},
                             "delivery": {"type": "string", "enum": ["drop", "container", "npc"]},
-                            "npc": S, "reason": REASON}, ["near", "item", "reason"])},
+                            "npc": NPC, "reason": REASON}, ["near", "item", "reason"])},
     {"name": "director_place_structure",
-     "description": "Put a building in the world, if the operator allows it "
-                    "(goanna_director_structures): a game structure by name (catalogue kind "
-                    "structure), placed with the game's own loot, or one you author as palette "
-                    "and layers. at [x,y,z] is the centre of the footprint on the ground; or near "
-                    "a player, within distance [min,max]. Refused on protected ground, where "
-                    "players have dug or built, on anyone standing there, near spawn. Costs "
-                    "nodes from the hourly build budget. Undo puts the ground back, keeping "
-                    "anything players changed since.",
+     "description": "Put a building in the world at once, if this world allows structures (see "
+                    "director_status): a game structure by name (catalogue kind structure; "
+                    "those with loot: true come with the game's loot), or one you author as "
+                    "palette and layers. at is the point it stands on, the centre of its "
+                    "footprint; or near a player within distance. Refused on protected ground, "
+                    "where players have dug or built, on anyone standing there, near spawn. "
+                    "Costs nodes from the hourly build budget. Undo puts the ground back, "
+                    "keeping anything players changed since.",
      "inputSchema": schema({"structure": S, "palette": PALETTE, "layers": LAYERS,
-                            "at": {"type": "array", "items": N}, "near": S,
-                            "distance": {"type": "array", "items": N}, "reason": REASON},
+                            "at": POINT, "near": NEAR, "distance": DISTANCE, "reason": REASON},
                            ["reason"])},
-    {"name": "director_speak",
-     "description": "Say a line in chat, always attributed: as a cast character (to a player "
-                    "within earshot, or \"near\" for everyone within earshot), or as "
-                    "\"narrator\" (to a player, or \"all\"). At most 280 characters, rate "
-                    "limited per speaker and per listener. Players who opted out never hear it.",
-     "inputSchema": schema({"as": S, "to": S, "text": S, "reason": REASON}, ["as", "to", "text"])},
-    {"name": "director_remember",
-     "description": "Add a short line to what a character remembers of a player, or set its "
-                    "disposition (-100 to 100). Lasts for the server session. Lines are capped "
-                    "in length and number, and every one goes in the audit log.",
-     "inputSchema": schema({"npc": S, "player": S, "fact": S, "disposition": N, "reason": REASON},
-                           ["npc", "player"])},
-    {"name": "director_memory",
-     "description": "What a character remembers of a player (or of every player): when they "
-                    "met, how often it spoke and was addressed, its disposition, and its facts, "
-                    "both from events and from director_remember.",
-     "inputSchema": schema({"npc": S, "player": S}, ["npc"])},
     {"name": "director_undo",
-     "description": "Reverse one of your actions by its id (a1, a2, ...): an encounter's "
-                    "remaining mobs are removed, a cast character is removed or unnamed, a "
-                    "remembered line is forgotten. Speech cannot be unsaid.",
+     "description": "Reverse one of your acts by its id (a1, a2, ...): an encounter's remaining "
+                    "creatures removed, a character removed or unnamed, an order stopped, a "
+                    "fact forgotten, an untaken reward taken back, a building taken down. "
+                    "Speech cannot be unsaid.",
      "inputSchema": schema({"id": S, "reason": REASON}, ["id"])},
     {"name": "director_stop",
      "description": "Stop the director: every creature it placed is removed, every queued "
@@ -469,27 +501,118 @@ TOOLS = [
      "inputSchema": schema({"reason": REASON}, ["reason"])},
 ]
 
-ACTS = {
-    "director_stage_encounter": ("stage_encounter",
-                                 ["near", "budget", "theme", "mobs", "when", "distance", "hidden",
-                                  "leash_s", "valid_for_s"]),
-    "director_cast_npc": ("cast_npc", ["near", "name", "mob", "guid", "hold", "armed", "distance"]),
-    "director_order": ("order", ["npc", "order", "target", "at", "points", "distance", "pause_s",
-                                 "item", "profession", "leash_s", "structure", "palette",
-                                 "layers"]),
-    "director_grant_reward": ("grant_reward", ["near", "item", "count", "name", "lines",
-                                               "enchantments", "delivery", "npc"]),
-    "director_place_structure": ("place_structure", ["structure", "palette", "layers", "at",
-                                                     "near", "distance"]),
-    "director_speak": ("speak", ["as", "to", "text"]),
-    "director_remember": ("remember", ["npc", "player", "fact", "disposition"]),
-    "director_undo": ("undo", ["id"]),
-    "director_stop": ("stop", []),
+# Which tools each role sees. A role's agent is offered only its own tools,
+# so its choice stays small however much the director grows. The server mod
+# still checks every act; this is the menu, not the authority.
+ROLES = {
+    "gm": None,
+    "voice": {"director_status", "director_events", "director_player", "director_memory",
+              "director_speak", "director_remember"},
+    "watcher": {"director_status", "director_events", "director_player", "director_catalogue",
+                "director_memory"},
 }
 
 
-def call_tool(director, name, args):
+def tools_for(role):
+    allowed = ROLES[role]
+    return [t for t in TOOLS if allowed is None or t["name"] in allowed]
+
+
+# tool -> (intent, {tool argument: intent argument}, fixed intent arguments)
+ACTS = {
+    "director_stage_encounter": ("stage_encounter", {k: k for k in [
+        "near", "budget", "theme", "mobs", "when", "distance", "hidden", "leash_s",
+        "valid_for_s"]}, {}),
+    "director_cast_npc": ("cast_npc", {k: k for k in [
+        "near", "name", "mob", "guid", "hold", "armed", "distance"]}, {}),
+    "director_move": ("order", {"npc": "npc", "goal": "order", "target": "target", "at": "at",
+                                "points": "points", "range": "distance",
+                                "pause_s": "pause_s"}, {}),
+    "director_attack": ("order", {"npc": "npc", "target": "target", "leash_s": "leash_s"},
+                        {"order": "attack"}),
+    "director_build": ("order", {k: k for k in [
+        "npc", "structure", "palette", "layers", "at", "near", "distance"]}, {"order": "build"}),
+    "director_interact": ("order", {"npc": "npc", "action": "order", "item": "item",
+                                    "player": "target", "profession": "profession"}, {}),
+    "director_grant_reward": ("grant_reward", {k: k for k in [
+        "near", "item", "count", "name", "lines", "enchantments", "delivery", "npc"]}, {}),
+    "director_place_structure": ("place_structure", {k: k for k in [
+        "structure", "palette", "layers", "at", "near", "distance"]}, {}),
+    "director_speak": ("speak", {"as": "as", "to": "to", "text": "text"}, {}),
+    "director_remember": ("remember", {k: k for k in ["npc", "player", "fact",
+                                                       "disposition"]}, {}),
+    "director_undo": ("undo", {"id": "id"}, {}),
+    "director_stop": ("stop", {}, {}),
+}
+
+# Goals that run until something ends them, rather than finishing.
+STANDING_GOALS = {"hold", "watch", "stay", "patrol", "follow"}
+
+
+def follow_up(name, args, body):
+    """What an accepted or queued act's outcome will arrive as, so the model
+    knows to watch director_events for it rather than guess."""
+    status, act = body.get("status"), body.get("id")
+    if status not in ("accepted", "queued"):
+        return None
+    if name == "director_stage_encounter":
+        if status == "queued":
+            return {"event": "encounter_started", "act": act,
+                    "then": "encounter_ended when it is over"}
+        return {"event": "encounter_ended", "act": act}
+    if name == "director_place_structure":
+        return {"event": "structure_placed or structure_failed", "act": act}
+    if name == "director_move" and args.get("goal") in STANDING_GOALS:
+        return {"event": "npc_order", "act": act,
+                "when": "only if the goal fails or is replaced; it holds until then"}
+    if name in ("director_move", "director_attack", "director_build", "director_grant_reward"):
+        return {"event": "npc_order", "act": act}
+    return None
+
+
+def brief(director):
+    """The short status: what is on in this world and what is left."""
+    caps = (director.hello or {}).get("capabilities") or {}
+    out = {"connected": director.connected(), "session": director.known_session,
+           "game": caps.get("game")}
+    if not director.connected():
+        return out
+    s = director.request("query", "status", {}).get("body") or {}
+    b = s.get("budgets") or {}
+    adapters = caps.get("adapters") or {}
+    out.update({
+        "stopped": s.get("stopped"),
+        "features": {
+            "encounters_and_characters": adapters.get("mobs", "none") != "none",
+            "rewards": True,
+            "enchantments": adapters.get("items", "none") != "none",
+            "structures": bool(b.get("structures")),
+            "game_structures": adapters.get("structures", "none") != "none",
+        },
+        "left": {"encounter_points": b.get("points_left"),
+                 "reward_points": b.get("reward_points_left"),
+                 "largest_reward": b.get("reward_max"),
+                 "build_nodes": b.get("build_nodes_left"),
+                 "creatures": "%s of %s live" % (b.get("live_entities"), b.get("max_entities"))},
+        "players": s.get("pacing"),
+        "npcs": [{"name": n.get("name"), "order": n.get("order"), "built": n.get("built")}
+                 for n in s.get("npcs") or []],
+        "encounters_live": len(s.get("encounters") or []),
+        "queued": len(s.get("queued") or []),
+        "catalogue": s.get("catalogue"),
+        "events_waiting": sum(1 for e in director.events
+                              if int(e.get("seq", 0)) > director.model_seq),
+    })
+    return out
+
+
+def call_tool(director, name, args, role="gm"):
+    allowed = ROLES[role]
+    if allowed is not None and name not in allowed:
+        raise ToolError("'%s' is not a tool of the %s role" % (name, role))
     if name == "director_status":
+        if not args.get("detail"):
+            return brief(director)
         out = {"connected": director.connected(), "session": director.known_session,
                "capabilities": (director.hello or {}).get("capabilities"),
                "events_buffered": len(director.events), "last_seq": director.last_seq}
@@ -500,7 +623,8 @@ def call_tool(director, name, args):
         return director.take_events(args.get("after"), float(args.get("wait_s", 0)),
                                     max(1, min(int(args.get("limit", 200)), 1000)))
     if name == "director_player":
-        return director.request("query", "player", {"name": args.get("name", "")}).get("body")
+        who = args.get("player") or args.get("name") or ""
+        return director.request("query", "player", {"name": who}).get("body")
     if name == "director_catalogue":
         return director.catalogue(args)
     if name == "director_memory":
@@ -509,10 +633,44 @@ def call_tool(director, name, args):
             q["player"] = args["player"]
         return director.request("query", "memory", q).get("body")
     if name in ACTS:
-        mtype, keys = ACTS[name]
-        payload = {k: args[k] for k in keys if k in args}
-        return director.request("act", mtype, payload, reason=args.get("reason"))
+        mtype, mapping, fixed = ACTS[name]
+        payload = dict(fixed)
+        for key, to in mapping.items():
+            if key in args:
+                payload[to] = args[key]
+        body = director.request("act", mtype, payload, reason=args.get("reason"))
+        nxt = follow_up(name, args, body) if isinstance(body, dict) else None
+        if nxt:
+            body = dict(body, follow_up=nxt)
+        return body
     raise ToolError("no such tool '%s'" % name)
+
+
+GM_INSTRUCTIONS = """You are the game master of a Luanti world. The game decides: every act
+you take is checked against the operator's budgets, the players' opt outs and pacing, and
+the world, and a refusal names its reason and usually the fix.
+
+Start with director_status for the brief: what is on in this world and what is left. Use
+director_catalogue to find items, creatures and structures by search; do not guess names.
+Read director_events before you act, and again after: an accepted act carries follow_up,
+naming the event its outcome will arrive as. Every act needs a reason, and returns an id
+director_undo can reverse.
+
+Words mean the same in every tool: npc is the character who acts, player is whom it
+concerns, target is whom an act is aimed at, at is a point [x, y, z], and near with
+distance means find a place near that player."""
+
+INSTRUCTIONS = {
+    "gm": GM_INSTRUCTIONS,
+    "voice": """You speak for characters in a Luanti world that a game master has cast.
+Read director_events for lines players address to your characters (npc_addressed, with what
+the character remembers of the player), answer with director_speak as that character, and
+keep what matters with director_remember. Lines are short, rate limited and always shown as
+the character's. You cannot move characters or change the world; the game master does.""",
+    "watcher": """You watch a Luanti world for a game master and change nothing. Read
+director_status for the brief, director_events for what happens, director_player for one
+player, and director_catalogue to name what you see.""",
+}
 
 
 def reply(msg_id, result=None, error=None):
@@ -528,6 +686,7 @@ def reply(msg_id, result=None, error=None):
 def parse_args(argv):
     world = os.environ.get("GOANNA_DIRECTOR_WORLD", "")
     port = None
+    role = "gm"
     i = 1
     while i < len(argv):
         if argv[i] == "--world" and i + 1 < len(argv):
@@ -536,14 +695,20 @@ def parse_args(argv):
         elif argv[i] == "--port" and i + 1 < len(argv):
             port = int(argv[i + 1])
             i += 2
+        elif argv[i] == "--role" and i + 1 < len(argv):
+            role = argv[i + 1]
+            i += 2
         else:
             log("unknown argument", argv[i])
             i += 1
-    return world, port
+    if role not in ROLES:
+        log("unknown role %r; the roles are %s" % (role, ", ".join(sorted(ROLES))))
+        sys.exit(2)
+    return world, port, role
 
 
 def main(argv):
-    world, port_override = parse_args(argv)
+    world, port_override, role = parse_args(argv)
     conf = os.path.join(os.path.expanduser(world), "goanna_director.conf") if world else ""
     director = Director(conf, port_override)
     port = director.reload()
@@ -569,15 +734,16 @@ def main(argv):
             reply(msg_id, {
                 "protocolVersion": asked if asked in KNOWN_PROTOCOLS else PROTOCOL,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "goanna-director", "version": "0.1.0"},
+                "serverInfo": {"name": "goanna-director", "version": "0.2.0"},
+                "instructions": INSTRUCTIONS[role],
             })
         elif method == "tools/list":
-            reply(msg_id, {"tools": TOOLS})
+            reply(msg_id, {"tools": tools_for(role)})
         elif method == "tools/call":
             name = params.get("name", "")
             args = params.get("arguments") or {}
             try:
-                result = call_tool(director, name, args)
+                result = call_tool(director, name, args, role)
                 reply(msg_id, {"content": [{"type": "text",
                                             "text": json.dumps(result, indent=2, default=str)}]})
             except ToolError as exc:

@@ -164,11 +164,14 @@ tried yet.
 
 ## A starting brief
 
-A model does better with a short brief than with none. For example:
+The service already sends a short guide when a model connects (its MCP
+`instructions`). A brief of your own sets the tone on top of that. For
+example:
 
-> You are the game master of a Mineclonia world. Call `director_events`
-> regularly to see what players are doing, and `director_player` before
-> acting on anyone. Keep encounters fair: they are sized to each player's
+> You are the game master of a Mineclonia world. Start with
+> `director_status` for what is on and what is left. Call
+> `director_events` regularly to see what players are doing, and
+> `director_player` before acting on anyone. Keep encounters fair: they are sized to each player's
 > gear, and the pacing rules will tell you when to hold back. Speak through
 > characters you cast with `director_cast_npc`, keep each line short, and
 > remember what players tell them with `director_remember`. Never act on a

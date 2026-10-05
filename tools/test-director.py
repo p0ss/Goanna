@@ -293,7 +293,7 @@ def main(argv):
               "and none of the developer tools")
         check(wait_log(log, "a director answered at", 30), "the server reached the MCP endpoint")
         time.sleep(1.5)
-        status = mcp.call("director_status")
+        status = mcp.call("director_status", detail=True)
         check(status.get("connected") and (status.get("capabilities") or {}).get("adapters", {})
               .get("mobs") == "mcl_mobs", "director_status: connected, mcl_mobs adapter",
               status)
@@ -306,7 +306,7 @@ def main(argv):
               "alice is told when the director connects: what it sees, and how to opt out",
               notice or chat_lines(CONTROL["alice"]))
 
-        summary = mcp.call("director_player", name="alice")
+        summary = mcp.call("director_player", player="alice")
         check(summary.get("pos") and "gear" in summary and "encounter_ceiling" in summary,
               "director_player gives position, gear and a ceiling", summary)
         bare = summary.get("encounter_ceiling")
@@ -315,7 +315,7 @@ def main(argv):
 
         say(CONTROL["alice"], "/giveme mcl_tools:sword_diamond")
         time.sleep(2)
-        armed = mcp.call("director_player", name="alice")
+        armed = mcp.call("director_player", player="alice")
         note("with a diamond sword:", json.dumps(armed.get("gear")), "ceiling",
              armed.get("encounter_ceiling"))
         check(armed.get("encounter_ceiling", 0) > (bare or 0),
@@ -331,7 +331,7 @@ def main(argv):
         # arrive), the relax after a death has to run out first.
         deadline = time.time() + 90
         while time.time() < deadline:
-            phase = mcp.call("director_player", name="alice").get("pacing", {}).get("phase")
+            phase = mcp.call("director_player", player="alice").get("pacing", {}).get("phase")
             if phase == "build_up":
                 break
             time.sleep(2)
@@ -358,17 +358,17 @@ def main(argv):
         # Targeting: mcl_mobs itself picks alice as the target, and the mobs
         # close on her.
         first, closest, target, hurt = None, None, None, 0
-        hurt0 = mcp.call("director_player", name="alice").get("last_10_min", {}).get("hurt", 0)
+        hurt0 = mcp.call("director_player", player="alice").get("last_10_min", {}).get("hurt", 0)
         deadline = time.time() + 30
         while time.time() < deadline:
-            st = mcp.call("director_status").get("server", {})
+            st = mcp.call("director_status", detail=True).get("server", {})
             live = [m for e in st.get("encounters") or [] for m in e.get("mobs") or []]
             dists = [m["distance"] for m in live if m.get("distance") is not None]
             if dists:
                 first = first if first is not None else min(dists)
                 closest = min(dists) if closest is None else min(closest, min(dists))
             target = target or next((m.get("target") for m in live if m.get("target")), None)
-            hurt = mcp.call("director_player", name="alice").get("last_10_min", {}).get("hurt",
+            hurt = mcp.call("director_player", player="alice").get("last_10_min", {}).get("hurt",
                                                                                      0) - hurt0
             if target == "alice" and (hurt > 0 or (first and closest < first - 3)):
                 break
@@ -391,7 +391,7 @@ def main(argv):
         phase = None
         deadline = time.time() + 40
         while time.time() < deadline:
-            phase = mcp.call("director_player", name="alice").get("pacing", {}).get("phase")
+            phase = mcp.call("director_player", player="alice").get("pacing", {}).get("phase")
             if phase != "build_up":
                 break
             time.sleep(1)
@@ -412,7 +412,7 @@ def main(argv):
         ev, _ = events_of(mcp, "encounter_ended", 10)
         check(ev is not None and ev["data"].get("outcome") in ("undone", "defeated", "player_died"),
               "encounter_ended reports the outcome", ev)
-        st = mcp.call("director_status")
+        st = mcp.call("director_status", detail=True)
         check(not st.get("server", {}).get("encounters"), "no live encounter is left", st)
 
         landed = None
@@ -531,7 +531,7 @@ def main(argv):
             r = mcp.call("director_speak", **{"as": "Grimbold", "to": "alice", "text": "Ugh."})
             check(r.get("status") == "refused" and r.get("reason") == "unknown_speaker",
                   "a dead character no longer speaks", r)
-            region = mcp.call("director_player", name="alice").get("region_summary") or {}
+            region = mcp.call("director_player", player="alice").get("region_summary") or {}
             note("region:", json.dumps(region)[:400])
             check(sum((region.get("kills") or {}).values()) >= 1, "the region counts the kill",
                   region)
@@ -563,7 +563,7 @@ def main(argv):
               "bob opts out", chat_lines(CONTROL["bob"])[-4:])
         time.sleep(1.5)
         drain(mcp)
-        bs = mcp.call("director_player", name="bob")
+        bs = mcp.call("director_player", player="bob")
         check(bs.get("opted_out") and "pos" not in bs and "gear" not in bs,
               "an opted out player's summary says only that", bs)
         r = mcp.call("director_speak", **{"as": "narrator", "to": "bob", "text": "Psst."})
@@ -600,13 +600,13 @@ def main(argv):
         deadline = time.time() + 40
         status = {}
         while time.time() < deadline:
-            status = mcp.call("director_status")
+            status = mcp.call("director_status", detail=True)
             if status.get("connected") and status.get("capabilities"):
                 break
             time.sleep(1)
         check(status.get("connected") and status.get("capabilities"),
               "a restarted MCP service gets a fresh hello", status)
-        r = mcp.call("director_player", name="alice")
+        r = mcp.call("director_player", player="alice")
         check(r.get("online") and r.get("pos"), "and can query again", r)
 
         # Stop, refuse, start.
@@ -616,11 +616,11 @@ def main(argv):
         check(r.get("status") == "refused" and r.get("reason") == "stopped",
               "everything is refused while stopped", r)
         r = mcp.call("director_speak", **{"as": "Grimbold", "to": "alice", "text": "Hello?"})
-        st = mcp.call("director_status")
+        st = mcp.call("director_status", detail=True)
         check(not st.get("server", {}).get("npcs"), "stop removed the cast character", st)
         out = say(CONTROL["alice"], "/director start")
         note("alice:", out.get("server_said"))
-        st = mcp.call("director_status")
+        st = mcp.call("director_status", detail=True)
         check(st.get("server", {}).get("stopped") is False, "/director start by the operator", st)
         say(CONTROL["alice"], "/director")
         check(wait_chat(CONTROL["alice"], "is a language model acting as game master", 5),

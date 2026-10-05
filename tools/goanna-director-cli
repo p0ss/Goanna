@@ -18,7 +18,9 @@ This keeps one service running and hands it tool calls from a socket:
     goanna-director-cli --world <world> speak \\
         '{"as": "narrator", "to": "all", "text": "A cold wind rises."}'
 
-A tool name may drop its director_ prefix. Arguments are one JSON object.
+A tool name may drop its director_ prefix. --role voice or --role watcher
+serves a smaller set of tools on a socket of its own (see the service's
+--role). Arguments are one JSON object.
 The answer is printed as JSON; a tool's refusal exits 1, a missing serve 2.
 
 The socket is private to the user who started serve, in $XDG_RUNTIME_DIR
@@ -44,19 +46,21 @@ TOOLS = pathlib.Path(__file__).resolve().parent
 SERVICE = TOOLS / "goanna-director-mcp"
 
 
-def socket_path(world):
+def socket_path(world, role="gm"):
     # A unix socket path is limited to about 108 bytes, so it is named by a
     # short hash of the world rather than by the world's own path.
     base = os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir()
     key = hashlib.sha256(str(pathlib.Path(world).resolve()).encode()).hexdigest()[:12]
-    return os.path.join(base, "goanna-director-%s.sock" % key)
+    suffix = "" if role == "gm" else "-" + role
+    return os.path.join(base, "goanna-director-%s%s.sock" % (key, suffix))
 
 
 class Service:
     """The director service, spoken to over its stdio JSON-RPC."""
 
-    def __init__(self, world, log):
-        self.proc = subprocess.Popen([sys.executable, str(SERVICE), "--world", str(world)],
+    def __init__(self, world, log, role="gm"):
+        self.proc = subprocess.Popen([sys.executable, str(SERVICE), "--world", str(world),
+                                      "--role", role],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=log, text=True)
         self.lock = threading.Lock()
@@ -76,8 +80,8 @@ class Service:
         return json.loads(line)
 
 
-def serve(world):
-    path = socket_path(world)
+def serve(world, role="gm"):
+    path = socket_path(world, role)
     if os.path.exists(path):
         try:
             probe = socket.socket(socket.AF_UNIX)
@@ -87,7 +91,7 @@ def serve(world):
         except OSError:
             os.unlink(path)
     log = open(path + ".log", "a")
-    service = Service(world, log)
+    service = Service(world, log, role)
     # A plain SIGTERM would end Python without running the finally below,
     # leaving the socket file behind.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
@@ -123,13 +127,14 @@ def serve(world):
         service.proc.terminate()
 
 
-def call(world, tool, args):
-    path = socket_path(world)
+def call(world, tool, args, role="gm"):
+    path = socket_path(world, role)
     conn = socket.socket(socket.AF_UNIX)
     try:
         conn.connect(path)
     except OSError:
-        print("nothing is serving %s; run: %s --world %s serve" % (world, sys.argv[0], world),
+        print("nothing is serving %s; run: %s --world %s%s serve"
+              % (world, sys.argv[0], world, "" if role == "gm" else " --role " + role),
               file=sys.stderr)
         return 2
     with conn:
@@ -167,18 +172,20 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--world", default=os.environ.get("GOANNA_DIRECTOR_WORLD"),
                     help="the world folder (or GOANNA_DIRECTOR_WORLD)")
+    ap.add_argument("--role", default="gm",
+                    help="gm (every tool), voice or watcher; serve and call with the same one")
     ap.add_argument("command", help="serve, tools, or a director tool name")
     ap.add_argument("args", nargs="?", default="{}", help="the tool's arguments, one JSON object")
     a = ap.parse_args(argv[1:])
     if not a.world:
         ap.error("--world is required")
     if a.command == "serve":
-        serve(a.world)
+        serve(a.world, a.role)
         return 0
     tool = a.command
     if tool != "tools" and not tool.startswith("director_"):
         tool = "director_" + tool
-    return call(a.world, tool, json.loads(a.args))
+    return call(a.world, tool, json.loads(a.args), a.role)
 
 
 if __name__ == "__main__":

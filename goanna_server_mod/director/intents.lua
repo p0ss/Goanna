@@ -421,8 +421,12 @@ return function(D)
 					or D.live_owned(near) >= D.cfg.max_entities_per_player then
 				return refuse(msg, "entity_cap")
 			end
-			local d = math.max(2, math.min(tonumber(args.distance) or 4, 12))
-			local pos, why = find_place(player, mob, d, d + 3, false, nil)
+			-- distance is [min, max] as everywhere else; a bare number is
+			-- still taken as the near edge.
+			local dist = type(args.distance) == "table" and args.distance or {args.distance}
+			local d = math.max(2, math.min(tonumber(dist[1]) or 4, 12))
+			local dmax = math.max(d + 1, math.min(tonumber(dist[2]) or d + 3, 16))
+			local pos, why = find_place(player, mob, d, dmax, false, nil)
 			if not pos then
 				return refuse(msg, "no_place", {last = why})
 			end
@@ -533,8 +537,10 @@ return function(D)
 			end
 			line = core.colorize(SPEAKER, npc.name .. " (NPC):") .. " " .. text
 			local spos = obj:get_pos()
+			-- "all" from a character means everyone within its earshot, the
+			-- same word as the narrator's; "near" is kept as its old name.
 			if to == "all" then
-				return refuse(msg, "schema", {detail = "a character speaks to a player or \"near\""})
+				to = "near"
 			end
 			for name, p in pairs(D.players) do
 				local player = core.get_player_by_name(name)

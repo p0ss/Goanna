@@ -327,8 +327,9 @@ return function(D)
 				eta_s = math.ceil(#o.queue / o.rate)},
 				{effects = {at = D.vec(plan.at), source = plan.source, nodes = #o.queue}})
 		else
-			return refuse(msg, "schema", {detail = "order: hold, watch, go_to, stay, patrol, "
-				.. "follow, attack, hold_item, offer_trade or build"})
+			return refuse(msg, "schema", {detail = "order (a director_move goal, attack, build, "
+				.. "hold_item or offer_trade): hold, watch, go_to, stay, patrol, follow, attack, "
+				.. "build, hold_item, offer_trade"})
 		end
 		set_order(npc, o)
 		D.undo[msg.req] = {type = "order", key = npc.name:lower()}
