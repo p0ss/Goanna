@@ -397,15 +397,17 @@ art texel keeps its resolution over 64 or 128 pixel art
   crack) takes the companions of the image before its first `^`, as every
   entity texture did before.
 
-**Sampling.** `_n` is linear with mipmaps, like the node path. At a
-companion resolution of four or more map texels per art texel the half
-texel a linear filter reaches across a UV island's edge is an eighth of an
-art texel or less; at the art's own resolution it is half a texel and
-shows as a soft rim along box edges up close. Mipmaps average across
-islands at a distance, where the relief is below a pixel anyway. `_s` is
-nearest with mipmaps, because a linear filter between a metal and a cloth
-texel passes through values that decode as a dielectric at the largest
-specular, a shiny rim round every metal plate.
+**Sampling.** `_n` is nearest with mipmaps, like the albedo
+(`entity_common.gdshaderinc`). A skin with no `_n` takes the relief inferred
+from its own 64 pixel art, and a linear filter spread each texel's tilt
+across its neighbours: the shading ran in soft bands across the texel grid
+and the mob looked out of focus beside the same mob with maps. An authored
+map at eight map texels per art texel loses nothing by it. Mipmaps average
+across islands at a distance, where the relief is below a pixel anyway.
+`_s` is nearest with mipmaps too, because a linear filter between a metal
+and a cloth texel passes through values that decode as a dielectric at the
+largest specular, a shiny rim round every metal plate. (This paragraph said
+`_n` was linear until 2026-10-06; the shader had already been changed.)
 
 **Parallax occlusion.** A mesh entity with an authored `_n` gets the node
 tile's parallax march and self shadow (`entity_common.gdshaderinc`, the
@@ -971,17 +973,6 @@ hand worked pixels, the depth measure, and the cap through the texture
 source with server media and a pack inserted as a join inserts them,
 including a companion ahead of its art, one with no art, a skin part and
 a node layer enlarged to the cap and no further.
-
-**Sprites.** A sprite or upright sprite draws through a plain
-`StandardMaterial3D` with no companions. A camera facing sprite could take
-a `_n`, but its tangent frame turns with the camera, so the relief would
-swing as the player walks round it. An upright sprite is a different case:
-in Luanti it is a fixed pair of quads turned only by the object's yaw
-(`GenericCAO::addToScene`), which could take the entity shader and its
-companions like any mesh. Goanna draws it as a billboard locked to the Y
-axis instead, which is itself a divergence from the vanilla client, and the
-decorated pot faces and the fishing bobber wait on that being drawn as
-Luanti draws it.
 
 Tests: `goanna_overlay_companions_test` (the reader and the arithmetic,
 with the strings Mineclonia sends for the nylium, the bookshelf, the
