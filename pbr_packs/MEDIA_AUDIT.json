@@ -120,6 +120,16 @@
       "decision": "eligible",
       "evidence": "Release 20073 README.txt: code CC0, media 'StarNinjas (CC BY-SA 3.0)'; its six textures match nothing in Minetest Game. Read on 2026-10-05.",
       "media_license": "CC-BY-SA-3.0"
+    },
+    "mcl_decor": {
+      "decision": "eligible",
+      "evidence": "Release 35460 README.md: 'The media files are licensed under CC BY-SA 4.0'; its credits name the Pixel Perfection sources of each derivative (XSSheep, NovaWostra, SURV), all CC BY-SA 4.0. 12 world textures recorded per file on 2026-10-05. The README names rudzik8 as author; ContentDB lists EmoryNB.",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "steampunk_blimp": {
+      "decision": "eligible",
+      "evidence": "Release 38331 README.md: 'Blimp model and textures by APercy. CC BY-SA 3.0', with the deed; LICENSE is MIT for code. 13 textures recorded on 2026-10-05.",
+      "media_license": "CC-BY-SA-3.0"
     }
   }
 }

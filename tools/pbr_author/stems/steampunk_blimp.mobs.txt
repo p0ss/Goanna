@@ -1,0 +1,14 @@
+# Skins and model textures built by atlas.py, not extrude.py: a UV atlas of
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+steampunk_blimp_engine steampunk_blimp.b3d 14
+steampunk_blimp_compass steampunk_blimp.b3d 11
+steampunk_blimp_cannon steampunk_blimp_cannons.b3d 0
+steampunk_hsa_glasses steampunk_hsa.b3d 0
+steampunk_hsa_front_windows steampunk_hsa.b3d 0
+blimp_clover steampunk_blimp.b3d 17
+blimp_jack steampunk_blimp.b3d 17
+blimp_liz steampunk_blimp.b3d 17
+blimp_shotting_star steampunk_blimp.b3d 17
+blimp_skull steampunk_blimp.b3d 17
+blimp_xmas steampunk_blimp.b3d 17

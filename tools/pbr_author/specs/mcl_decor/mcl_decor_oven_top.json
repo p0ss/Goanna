@@ -1,0 +1,49 @@
+{
+ "class": "metal",
+ "micro": "glass",
+ "micro_strength": 1.2,
+ "materials": {
+  "hob": {
+   "mode": "shade",
+   "metal": false,
+   "base": 0.8,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.86,
+   "smooth_spread": 0.02
+  },
+  "burner": {
+   "mode": "flat",
+   "base": 0.98,
+   "span": 0.0,
+   "micro": 0,
+   "metal": true,
+   "smooth": 0.45,
+   "smooth_spread": 0.0
+  }
+ },
+ "legend": {
+  "H": "hob",
+  "R": "burner"
+ },
+ "grid": [
+  "HHHHHHHHHHHHHHHH",
+  "HRRRRRRHHRRRRRRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRRRRRRHHRRRRRRH",
+  "HHHHHHHHHHHHHHHH",
+  "HHHHHHHHHHHHHHHH",
+  "HRRRRRRHHRRRRRRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRHHHHRHHRHHHHRH",
+  "HRRRRRRHHRRRRRRH",
+  "HHHHHHHHHHHHHHHH"
+ ]
+}

@@ -59,7 +59,7 @@ The current audit groups are:
 | --- | --- | --- |
 | Advtrains, Glass Stained, Lanterns, Mesecons, Moreblocks, Morelights, Nether, Pipeworks, Stainedglass | archive-wide media terms found | Derivatives are permitted with the named attribution/share-alike terms. |
 | Animalia, Dungeons Plus, Natural Biomes | single-project terms found | The included notice covers the project; Dungeons Plus has no qualifying node textures. |
-| Ebiomes, Ethereal, Everness, Fachwerk, `mcl_decor`, Techage, X-Decor | per-file audit required | Their notices identify multiple authors, licences, imported works or submods. |
+| Ebiomes, Ethereal, Everness, Fachwerk, Techage, X-Decor | per-file audit required | Their notices identify multiple authors, licences, imported works or submods. |
 | Darkage | excluded | ContentDB declares CC0 media while the archive contains an MIT notice without a clear media scope; it is absent from every intake manifest. |
 | Draconis | archive-wide media terms found | Release 34129's only notice is MIT by ElCeejo, with no other author or term named, and ContentDB's MIT media label agrees. |
 | Simple Airship | archive-wide media terms found | Release 30601's `license.txt` puts all media under CC BY 4.0. |
@@ -68,6 +68,8 @@ The current audit groups are:
 | Basic Materials | archive-wide media terms found | Release 38908 puts all media under CC BY-SA 4.0. |
 | DF Caverns | per-file mapping recorded | Release 22198's submods each carry a `textures/license.txt`; 185 node textures are recorded, derivatives of Minetest Game and caverealms under those sources' licences. The tunnel tube (moretrees), big webs, dripstone streaks and unnamed files are excluded. |
 | Nextgen Fungi | archive-wide media terms found | Release 20073 credits its six textures to StarNinjas, CC BY-SA 3.0. |
+| Mineclonia Furniture and Decorations (`mcl_decor`) | archive-wide media terms found | Release 35460 puts its media under CC BY-SA 4.0 and credits each Pixel Perfection source. |
+| Steampunk Blimp | archive-wide media terms found | Release 38331 gives its model and textures as APercy's, CC BY-SA 3.0. |
 | Goblins | per-file mapping recorded | Release 32959's README names the skins, models and mushrooms CC BY-SA 3.0 (the king from the SummerFields pack); molten gold, lightning and unnamed icons are excluded. |
 | VoxeLibre | per-file mapping recorded | Release 38585's `LEGAL.md` is mixed and mods carry their own notices. `tools/pbr_audit_voxelibre.py` records the most specific notice for each of the 902 authored stems in `pbr_packs/manifests/voxelibre-pack-v1.sources.json`. 38 are GPL-3.0: `mcl_fences` places its textures under GPLv3 and `mcl_flowers` has an unscoped GPLv3 line, read as covering them. Mineclonia's copies of both notices say WTFPL. |
 | Asuna | excluded | Its own LICENSE opens "this game as a whole is released under GPLv3", because it aggregates GPL works. ContentDB's CC BY-SA 4.0 label is the corroborating metadata that cannot stand in for that. It does enumerate every included work with its licence file, so a work may still be admitted through its own upstream package. |

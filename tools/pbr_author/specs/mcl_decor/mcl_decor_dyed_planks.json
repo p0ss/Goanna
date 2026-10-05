@@ -1,0 +1,45 @@
+{
+ "class": "wood",
+ "micro": "wood",
+ "materials": {
+  "board": {
+   "mode": "parts",
+   "base": 0.55,
+   "span": 0.4,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.34
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.2,
+   "smooth_spread": 0.0
+  }
+ },
+ "legend": {
+  "P": "board",
+  "J": "joint",
+  "j": "joint"
+ },
+ "grid": [
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "JJJJJJJJJJJJJJJJ",
+  "PPPjPPPPPPPPPPPP",
+  "PPPjPPPPPPPPPPPP",
+  "PPPjPPPPPPPPPPPP",
+  "JJJJJJJJJJJJJJJJ",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "PPPPPPPPPPPPPPPP",
+  "JJJJJJJJJJJJJJJJ",
+  "PPPPPPPPPPPPPjPP",
+  "PPPPPPPPPPPPPjPP",
+  "PPPPPPPPPPPPPjPP",
+  "JJJJJJJJJJJJJJJJ"
+ ]
+}

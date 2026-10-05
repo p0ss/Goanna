@@ -1,0 +1,26 @@
+{
+ "texel_px": 8,
+ "strength": 18.0,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 2,
+ "bevel_depth": 0.1,
+ "micro": "none",
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": true,
+   "metal": false,
+   "smooth": 0.46,
+   "smooth_spread": 0.06,
+   "micro": "metal_worn",
+   "micro_strength": 1.0,
+   "wear": 0.08
+  }
+ }
+}

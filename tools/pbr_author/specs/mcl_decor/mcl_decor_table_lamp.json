@@ -1,0 +1,100 @@
+{
+ "class": "cloth",
+ "texel_px": 8,
+ "strength": 16.0,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 2,
+ "bevel_depth": 0.09,
+ "micro": "none",
+ "materials": {
+  "shade": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0.0,
+   "smooth": 0.14,
+   "smooth_spread": 0.0,
+   "micro": "linen",
+   "micro_dir": "down",
+   "micro_strength": 1.2,
+   "scatter": 0.35
+  },
+  "lining": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0.0,
+   "smooth": 0.1,
+   "smooth_spread": 0.0,
+   "micro": "linen",
+   "micro_strength": 1.0
+  },
+  "bulb": {
+   "mode": "flat",
+   "base": 0.98,
+   "span": 0.0,
+   "metal": false,
+   "smooth": 0.9,
+   "smooth_spread": 0.0,
+   "micro": "none",
+   "emission": 1.0,
+   "emission_shade": true
+  },
+  "stone": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.04,
+   "micro": "none"
+  },
+  "wood": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0.0,
+   "smooth": 0.32,
+   "smooth_spread": 0.02,
+   "micro": "wood",
+   "micro_dir": "down",
+   "micro_strength": 0.8
+  }
+ },
+ "legend": {
+  "C": "shade",
+  "I": "lining",
+  "L": "bulb",
+  "S": "stone",
+  "W": "wood",
+  ".": "shade"
+ },
+ "grid": [
+  "..........CCCCCCCCCCCCCCCCCCCC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIIIIIIIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIIIIIIIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIILLLLIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIILLLLIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIILLLLIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIILLLLIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIIIIIIIIC..........SSSSSSSSSSSSSSSS........",
+  "..........CCCCCCCCCCCIIIIIIIIC..CCCCCCCCSSSSSSSSSSSSSSSSSSSSSSSS",
+  "..........CCCCCCCCCCCCCCCCCCCC..CCCCCCCCSSSSSSSSSSSSSSSSSSSSSSSS",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........................",
+  "..WWWW..........................................................",
+  "..WWWW..........................................................",
+  "WWWWWWWW........................................................",
+  "WWWWWWWW........................................................",
+  "WWWWWWWW........................................................",
+  "WWWWWWWW........................................................",
+  "WWWWWWWW........................................................",
+  "WWWWWWWW........................................................"
+ ]
+}

@@ -1,0 +1,47 @@
+{
+ "class": "stone",
+ "micro": "none",
+ "materials": {
+  "plate": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.42,
+   "smooth_spread": 0.03
+  },
+  "button": {
+   "mode": "flat",
+   "base": 0.98,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.7,
+   "smooth_spread": 0.0
+  }
+ },
+ "legend": {
+  "P": "plate",
+  "B": "button",
+  ".": "plate"
+ },
+ "grid": [
+  "......PPPP......",
+  "......PPPP......",
+  "................",
+  "................",
+  "................",
+  "................",
+  "PP....PPPP....PP",
+  "PP....PBBP....PP",
+  "PP....PBBP....PP",
+  "PP....PPPP....PP",
+  "................",
+  "................",
+  "................",
+  "................",
+  "......PPPP......",
+  "......PPPP......"
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "class": "stone",
+ "micro": "glass",
+ "micro_strength": 1.5,
+ "materials": {
+  "quartz": {
+   "mode": "shade",
+   "base": 0.82,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.72,
+   "smooth_spread": 0.04
+  },
+  "black": {
+   "mode": "shade",
+   "base": 0.82,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.68,
+   "smooth_spread": 0.04
+  },
+  "grout": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.28,
+   "smooth_spread": 0.0
+  },
+  "grout_dark": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.28,
+   "smooth_spread": 0.0
+  }
+ },
+ "legend": {
+  "Q": "quartz",
+  "q": "grout",
+  "B": "black",
+  "b": "grout_dark"
+ },
+ "grid": [
+  "bbbbbbbbqqqqqqqq",
+  "bBBBBBBbqQQQQQQq",
+  "bBBBBBBbqQQQQQQq",
+  "bBBBBBBbqQQQQQQq",
+  "bBBBBBBbqQQQQQQq",
+  "bBBBBBBbqQQQQQQq",
+  "bBBBBBBbqQQQQQQq",
+  "bbbbbbbbqqqqqqqq",
+  "qqqqqqqqbbbbbbbb",
+  "qQQQQQQqbBBBBBBb",
+  "qQQQQQQqbBBBBBBb",
+  "qQQQQQQqbBBBBBBb",
+  "qQQQQQQqbBBBBBBb",
+  "qQQQQQQqbBBBBBBb",
+  "qQQQQQQqbBBBBBBb",
+  "qqqqqqqqbbbbbbbb"
+ ]
+}

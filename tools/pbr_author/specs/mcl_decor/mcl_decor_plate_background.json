@@ -1,0 +1,58 @@
+{
+ "class": "stone",
+ "micro": "glass",
+ "micro_strength": 1.2,
+ "materials": {
+  "rim": {
+   "mode": "shade",
+   "base": 0.9,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.76,
+   "smooth_spread": 0.03
+  },
+  "wall": {
+   "mode": "flat",
+   "base": 0.76,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.74,
+   "smooth_spread": 0.0
+  },
+  "floor": {
+   "mode": "shade",
+   "base": 0.64,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.78,
+   "smooth_spread": 0.03
+  }
+ },
+ "legend": {
+  "R": "rim",
+  "W": "wall",
+  "F": "floor"
+ },
+ "grid": [
+  "RRRRRRRRRRRRRRRR",
+  "RRRRRRRRRRRRRRRR",
+  "RRRRRRRRRRRRRRRR",
+  "RRRWWWWWWWWWWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWFFFFFFFFWRRR",
+  "RRRWWWWWWWWWWRRR",
+  "RRRRRRRRRRRRRRRR",
+  "RRRRRRRRRRRRRRRR",
+  "RRRRRRRRRRRRRRRR"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "micro_strength": 1.5,
+ "strength": 10,
+ "materials": {
+  "rope": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.6,
+   "levels": 3,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.14,
+   "smooth_spread": 0.06
+  }
+ }
+}

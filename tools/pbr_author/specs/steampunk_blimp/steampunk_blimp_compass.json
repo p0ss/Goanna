@@ -1,0 +1,19 @@
+{
+ "class": "glass",
+ "texel_px": 1,
+ "strength": 4.0,
+ "chamfer": 0,
+ "face_edge": "flat",
+ "micro": "none",
+ "materials": {
+  "glass": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.93,
+   "smooth_spread": 0.0,
+   "f0": 0.04
+  }
+ }
+}

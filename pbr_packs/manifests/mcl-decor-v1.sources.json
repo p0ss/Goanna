@@ -1,0 +1,98 @@
+{
+  "mcl_decor_coalquartz_tile": {
+    "author": "XSSheep (coal block, quartz block side), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_coalquartz_tile.png"
+  },
+  "mcl_decor_curtain_overlay": {
+    "author": "XSSheep (top iron pane), resized by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_curtain_overlay.png"
+  },
+  "mcl_decor_doorbell": {
+    "author": "XSSheep and NovaWostra (quartz block top, polished deepslate), cropped and overlaid by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits: \"Doorbell texture (+ all other mcl_decor_doorbell_*.png textures, excluding mcl_decor_doorbell_alpha.png)\"",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_doorbell.png"
+  },
+  "mcl_decor_dyed_planks": {
+    "author": "XSSheep (oak planks), desaturated by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_dyed_planks.png"
+  },
+  "mcl_decor_fridge": {
+    "author": "XSSheep and NovaWostra (quartz, polished blackstone, smooth basalt), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_fridge.png"
+  },
+  "mcl_decor_oven_front": {
+    "author": "XSSheep (quartz, obsidian, glass), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_oven_front.png"
+  },
+  "mcl_decor_oven_front_active": {
+    "author": "XSSheep (quartz, obsidian, glass), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_oven_front_active.png"
+  },
+  "mcl_decor_oven_side": {
+    "author": "XSSheep (quartz, obsidian), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_oven_side.png"
+  },
+  "mcl_decor_oven_top": {
+    "author": "XSSheep (obsidian), modified by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_oven_top.png"
+  },
+  "mcl_decor_plate_background": {
+    "author": "XSSheep (quartz block top and bottom), sampled and edited by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_plate_background.png"
+  },
+  "mcl_decor_table_lamp": {
+    "author": "XSSheep (wool, torch, smooth stone, oak tree), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_table_lamp.png"
+  },
+  "mcl_decor_table_lamp_off": {
+    "author": "XSSheep (wool, torch, smooth stone, oak tree), combined by rudzik8",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md: \"The media files are licensed under CC BY-SA 4.0\"; Credits line for this file",
+    "package": "mcl_decor",
+    "release": 35460,
+    "source": "mcl_decor/mcl_decor/textures/mcl_decor_table_lamp_off.png"
+  }
+}

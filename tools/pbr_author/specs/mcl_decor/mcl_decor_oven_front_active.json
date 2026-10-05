@@ -1,0 +1,93 @@
+{
+ "class": "metal",
+ "micro": "glass",
+ "micro_strength": 1.2,
+ "materials": {
+  "enamel": {
+   "mode": "shade",
+   "metal": false,
+   "base": 0.84,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.25,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.03
+  },
+  "hob": {
+   "mode": "shade",
+   "metal": false,
+   "base": 0.86,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.86,
+   "smooth_spread": 0.02
+  },
+  "seam": {
+   "mode": "flat",
+   "metal": false,
+   "base": 0.66,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.5,
+   "smooth_spread": 0.0
+  },
+  "knob": {
+   "mode": "flat",
+   "metal": false,
+   "base": 0.98,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.62,
+   "smooth_spread": 0.0
+  },
+  "glass": {
+   "mode": "flat",
+   "metal": false,
+   "base": 0.72,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.92,
+   "smooth_spread": 0.0
+  },
+  "glass_lit": {
+   "mode": "flat",
+   "metal": false,
+   "base": 0.72,
+   "span": 0.0,
+   "micro": 0,
+   "smooth": 0.92,
+   "smooth_spread": 0.0,
+   "emission": 0.85,
+   "emission_shade": true
+  }
+ },
+ "legend": {
+  "E": "enamel",
+  "H": "hob",
+  "s": "seam",
+  "K": "knob",
+  "G": "glass",
+  "F": "glass_lit"
+ },
+ "grid": [
+  "HHHHHHHHHHHHHHHH",
+  "HHHHHHHHHHHHHHHH",
+  "EEEEEEEEEEEEEEEs",
+  "EEKKEKKEEKKEKKEs",
+  "EEKKEKKEEKKEKKEs",
+  "EEEEEEEEEEEEEEEs",
+  "EEEEEEEEEEEEEEEs",
+  "EEEEGGGGGFGGEEEs",
+  "EEEEGFFFFFFGEEEs",
+  "EEEEFFFGFFFGEEEs",
+  "EEEEGFGFFFFGEEEs",
+  "EEEEFFFFFGFGEEEs",
+  "EEEEGFFFGFFFEEEs",
+  "EEEEGFFFFFFGEEEs",
+  "EEEEGGFGGFGGEEEs",
+  "ssssssssssssssss"
+ ]
+}

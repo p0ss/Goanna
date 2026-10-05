@@ -1,0 +1,9 @@
+mcl_decor_coalquartz_tile
+mcl_decor_oven_top
+mcl_decor_oven_side
+mcl_decor_oven_front
+mcl_decor_oven_front_active
+mcl_decor_doorbell
+mcl_decor_plate_background
+mcl_decor_dyed_planks
+mcl_decor_curtain_overlay

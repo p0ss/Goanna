@@ -1,0 +1,106 @@
+{
+  "blimp_clover": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_clover.png"
+  },
+  "blimp_jack": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_jack.png"
+  },
+  "blimp_liz": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_liz.png"
+  },
+  "blimp_shotting_star": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_shotting_star.png"
+  },
+  "blimp_skull": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_skull.png"
+  },
+  "blimp_xmas": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/blimp_xmas.png"
+  },
+  "steampunk_blimp_cannon": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_blimp_cannon.png"
+  },
+  "steampunk_blimp_compass": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_blimp_compass.png"
+  },
+  "steampunk_blimp_engine": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_blimp_engine.png"
+  },
+  "steampunk_blimp_rope": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_blimp_rope.png"
+  },
+  "steampunk_blimp_steel": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_blimp_steel.png"
+  },
+  "steampunk_hsa_front_windows": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_hsa_front_windows.png"
+  },
+  "steampunk_hsa_glasses": {
+    "author": "APercy (Alexsandro Percy)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md: \"Blimp model and textures by APercy. CC BY-SA 3.0\"",
+    "package": "steampunk_blimp",
+    "release": 38331,
+    "source": "steampunk_blimp/steampunk_blimp/textures/steampunk_hsa_glasses.png"
+  }
+}
