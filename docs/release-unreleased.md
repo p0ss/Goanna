@@ -75,6 +75,12 @@
   creatures, what the crosshair is on, and the sounds you hear with their
   direction, and can ask for a picture of the screen. See
   `docs/agent-interfaces.md`.
+- **The game master's characters can act.** Besides speaking, a cast
+  character can now be told to watch someone, walk somewhere and stay,
+  patrol a few points, follow someone or keep its distance, hold an item,
+  open its trades to a player, or, if it can fight and was cast armed,
+  attack, with the same fairness limits as an encounter. It carries each
+  order out by itself. See `docs/director.md`.
 - **The game master from a shell.** `tools/goanna-director-cli` runs the
   AI game master from a terminal or a script, one command per call, with
   the same checks as the MCP service. See `docs/director-setup.md`.

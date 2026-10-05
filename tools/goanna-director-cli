@@ -33,6 +33,7 @@ import hashlib
 import json
 import os
 import pathlib
+import signal
 import socket
 import subprocess
 import sys
@@ -87,6 +88,9 @@ def serve(world):
             os.unlink(path)
     log = open(path + ".log", "a")
     service = Service(world, log)
+    # A plain SIGTERM would end Python without running the finally below,
+    # leaving the socket file behind.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     old_umask = os.umask(0o177)
     listener = socket.socket(socket.AF_UNIX)
     listener.bind(path)

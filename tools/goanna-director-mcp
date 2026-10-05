@@ -347,7 +347,33 @@ TOOLS = [
                     "place facing them, or name an existing mob by guid. The name may not be a "
                     "player's.",
      "inputSchema": schema({"near": S, "name": S, "mob": S, "guid": S, "hold": B,
+                            "armed": {"type": "boolean", "description":
+                                      "Allow a monster (a vindicator, a pillager) as a character "
+                                      "that can be ordered to attack. Charged and paced as an "
+                                      "encounter on the near player; held until ordered."},
                             "distance": N, "reason": REASON}, ["near", "name", "reason"])},
+    {"name": "director_order",
+     "description": "Give a cast character a goal it carries out by itself until it is done, "
+                    "fails or is replaced; an npc_order event reports how it went. Orders: "
+                    "hold (stand, optionally facing target), watch (keep turning to face target), "
+                    "go_to (walk to at [x,y,z] or to target, then stay there), stay (keep to at, "
+                    "default where it stands, walking back if moved), patrol (loop through points "
+                    "[[x,y,z],...], pausing pause_s at each), follow (keep within distance [min,max] "
+                    "of target; a larger range hangs back), attack (fight target, a player or a "
+                    "creature's guid, until it dies, is lost or leash_s ends; only a mob that can "
+                    "fight, and attacking a player is charged and paced as an encounter), "
+                    "hold_item (show item in hand, empty to clear), offer_trade (open a villager's "
+                    "trades for the target player, setting profession if given). A target is a "
+                    "player name, a cast character's name or an entity guid.",
+     "inputSchema": schema({"npc": S,
+                            "order": {"type": "string", "enum": [
+                                "hold", "watch", "go_to", "stay", "patrol", "follow", "attack",
+                                "hold_item", "offer_trade"]},
+                            "target": S, "at": {"type": "array", "items": N},
+                            "points": {"type": "array", "items": {"type": "array", "items": N}},
+                            "distance": {"type": "array", "items": N}, "pause_s": N,
+                            "item": S, "profession": S, "leash_s": N, "reason": REASON},
+                           ["npc", "order", "reason"])},
     {"name": "director_speak",
      "description": "Say a line in chat, always attributed: as a cast character (to a player "
                     "within earshot, or \"near\" for everyone within earshot), or as "
@@ -381,7 +407,9 @@ ACTS = {
     "director_stage_encounter": ("stage_encounter",
                                  ["near", "budget", "theme", "mobs", "when", "distance", "hidden",
                                   "leash_s", "valid_for_s"]),
-    "director_cast_npc": ("cast_npc", ["near", "name", "mob", "guid", "hold", "distance"]),
+    "director_cast_npc": ("cast_npc", ["near", "name", "mob", "guid", "hold", "armed", "distance"]),
+    "director_order": ("order", ["npc", "order", "target", "at", "points", "distance", "pause_s",
+                                 "item", "profession", "leash_s"]),
     "director_speak": ("speak", ["as", "to", "text"]),
     "director_remember": ("remember", ["npc", "player", "fact", "disposition"]),
     "director_undo": ("undo", ["id"]),

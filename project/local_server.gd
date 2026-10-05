@@ -39,7 +39,7 @@ const TERRAIN_DIFFUSION_FILES := [
 	"settingtypes.txt", "mod.conf", "LICENSE",
 ]
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "dig_progress.lua", "mod.conf", "settingtypes.txt", "README.md",
-	"director/init.lua", "director/logic.lua", "director/audit.lua", "director/events.lua",
+	"director/init.lua", "director/logic.lua", "director/orders.lua", "director/audit.lua", "director/events.lua",
 	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
 	"director/adapters/mcl_mobs.lua"]
 # Games that keep a block's dig progress themselves, so the server mod's

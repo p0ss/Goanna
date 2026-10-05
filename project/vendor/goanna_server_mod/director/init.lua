@@ -199,6 +199,7 @@ return function(http)
 	dofile(MODPATH .. "/events.lua")(D)
 	dofile(MODPATH .. "/summaries.lua")(D)
 	dofile(MODPATH .. "/intents.lua")(D)
+	dofile(MODPATH .. "/orders.lua")(D)
 	dofile(MODPATH .. "/commands.lua")(D)
 	dofile(MODPATH .. "/http.lua")(D)
 

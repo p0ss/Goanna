@@ -390,8 +390,26 @@ return function(D)
 			if D.cfg.deny[mob] then
 				return refuse(msg, "denied", {mob = mob})
 			end
+			-- A monster is never a character, except an armed one, which is
+			-- an encounter by another name and is charged and paced as one:
+			-- held until ordered to attack, and only then dangerous.
+			local armed_cost
 			if D.mobs.category(mob) == "monster" then
-				return refuse(msg, "hostile_npc", {mob = mob})
+				if args.armed ~= true then
+					return refuse(msg, "hostile_npc", {mob = mob})
+				end
+				if p.pacing.phase ~= "build_up" then
+					return refuse(msg, "pacing", {phase = p.pacing.phase})
+				end
+				armed_cost = logic.mob_cost(D.mobs.cost_parts(mob))
+				local ceiling = D.encounter_ceiling(player)
+				if armed_cost > ceiling then
+					return refuse(msg, "over_ceiling", {cost = armed_cost, ceiling = ceiling})
+				end
+				local left = D.cfg.points_per_hour - logic.window_sum(D.points, now)
+				if armed_cost > left then
+					return refuse(msg, "budget", {cost = armed_cost, points_left = left})
+				end
 			end
 			if D.live_owned() >= D.cfg.max_entities
 					or D.live_owned(near) >= D.cfg.max_entities_per_player then
@@ -408,9 +426,13 @@ return function(D)
 			end
 			npc.guid, npc.mob = obj:get_guid(), mob
 			D.owned[npc.guid] = {kind = "npc", guid = npc.guid, act = msg.req, name = name, near = near,
-				mob = mob, region = D.region_id(pos), spawned_at = now}
+				mob = mob, region = D.region_id(pos), spawned_at = now, may_target = D.may_target}
+			if armed_cost then
+				logic.window_add(D.points, now, armed_cost)
+				npc.armed, npc.cost = true, armed_cost
+			end
 			D.mobs.set_name(obj, name)
-			if args.hold ~= false then
+			if args.hold ~= false or armed_cost then
 				D.mobs.freeze(obj)
 				local to = vector.subtract(player:get_pos(), pos)
 				obj:set_yaw(math.atan2(-to.x, to.z))
@@ -424,7 +446,8 @@ return function(D)
 			{npc = name, guid = npc.guid, mob = npc.mob, bound = npc.bound or false},
 			obj and obj:get_pos())
 		return result(msg, "accepted", {npc = name, guid = npc.guid, mob = npc.mob,
-			pos = obj and D.vec(obj:get_pos()), held = npc.held or false},
+			pos = obj and D.vec(obj:get_pos()), held = npc.held or false,
+			armed = npc.armed or nil, cost = npc.cost},
 			{effects = {npc = name, guid = npc.guid}})
 	end
 
@@ -432,6 +455,9 @@ return function(D)
 		local npc = D.npcs[key]
 		if not npc then
 			return false
+		end
+		if D.cancel_order then
+			D.cancel_order(key)
 		end
 		local obj = npc_obj(npc)
 		if npc.bound then
@@ -677,6 +703,9 @@ return function(D)
 		elseif u.type == "npc" then
 			fields.npc = u.key
 			uncast(u.key)
+		elseif u.type == "order" then
+			fields.npc = u.key
+			D.cancel_order(u.key)
 		elseif u.type == "memory" then
 			local rec = logic.memory_get(D.memory, u.npc, u.player)
 			if rec then
@@ -731,6 +760,9 @@ return function(D)
 	local INTENTS = {
 		stage_encounter = stage_encounter,
 		cast_npc = cast_npc,
+		order = function(msg)
+			return D.order_intent(msg, result, refuse)
+		end,
 		speak = speak,
 		remember = remember,
 		undo = undo,

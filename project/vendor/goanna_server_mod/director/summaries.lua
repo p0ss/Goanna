@@ -199,7 +199,12 @@ return function(D)
 			end
 		end
 		for _, n in pairs(D.npcs) do
-			npcs[#npcs + 1] = {name = n.name, guid = n.guid, mob = n.mob}
+			local obj = D.obj_by_guid(n.guid)
+			local o = n.order
+			npcs[#npcs + 1] = {name = n.name, guid = n.guid, mob = n.mob,
+				pos = obj and D.vec(obj:get_pos()), armed = n.armed or nil,
+				order = o and o.kind or nil, target = o and o.target or nil,
+				at = o and o.at and D.vec(o.at) or nil}
 		end
 		return {
 			session = D.session,

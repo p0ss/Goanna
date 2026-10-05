@@ -96,7 +96,18 @@ return function(owned_lookup)
 	local RULE
 	local function director_rule(self)
 		local rec = owned_lookup(self)
-		if not rec or not rec.target then
+		if not rec then
+			return nil
+		end
+		-- A creature the director ordered this mob to attack (orders.lua).
+		if rec.target_guid then
+			local obj = core.objects_by_guid[rec.target_guid]
+			if obj and obj:is_valid() and obj:get_pos() then
+				return obj
+			end
+			return nil
+		end
+		if not rec.target then
 			return nil
 		end
 		local player = core.get_player_by_name(rec.target)
@@ -219,6 +230,154 @@ return function(owned_lookup)
 		if e then
 			e.stupefied = nil
 		end
+	end
+
+	-- Character orders (orders.lua). A held mob's own AI is off, but
+	-- mcl_mobs still turns it and walks it along waypoints it already has,
+	-- so movement goes through mcl_mobs' own pathfinder: gopath sets up a
+	-- search, and pump_path advances that search, which a held mob's
+	-- on_step skips until the waypoints exist.
+
+	function A.face(obj, pos)
+		local e = obj:get_luaentity()
+		local here = obj:get_pos()
+		if not e or not here then
+			return
+		end
+		local yaw = math.atan2(-(pos.x - here.x), pos.z - here.z)
+		if e.set_yaw then
+			e:set_yaw(yaw)
+		else
+			obj:set_yaw(yaw)
+		end
+	end
+
+	function A.walk_to(obj, pos, tolerance)
+		local e = obj:get_luaentity()
+		if not e or not e.gopath then
+			return false
+		end
+		local ok = pcall(e.gopath, e, vector.round(pos), 1, "walk", tolerance or 1)
+		return ok
+	end
+
+	function A.pump_path(obj, dtime)
+		local e = obj:get_luaentity()
+		if e and e.pathfinding_context and not e.waypoints and e.next_waypoint then
+			pcall(e.next_waypoint, e, dtime)
+		end
+	end
+
+	function A.moving(obj)
+		local e = obj:get_luaentity()
+		return e ~= nil and (e.waypoints ~= nil or e.pathfinding_context ~= nil)
+	end
+
+	function A.halt(obj)
+		local e = obj:get_luaentity()
+		if not e then
+			return
+		end
+		if e.cancel_navigation then
+			pcall(e.cancel_navigation, e)
+		end
+		if e.halt_in_tracks then
+			pcall(e.halt_in_tracks, e)
+		end
+		if e.set_animation then
+			pcall(e.set_animation, e, "stand")
+		end
+	end
+
+	-- Whether this mob fights at all: villagers have no attack type and no
+	-- damage, so ordering one to attack would do nothing.
+	function A.can_attack(name)
+		local def = def_of(name)
+		return def ~= nil and def.attack_type ~= nil and (tonumber(def.damage) or 0) > 0
+	end
+
+	-- Let the mob's AI run with the director's rule as its only target
+	-- source, so it fights whom it was ordered to and nobody else nearby.
+	function A.attack_mode(obj, on)
+		local e = obj:get_luaentity()
+		if not e then
+			return false
+		end
+		if on then
+			if not RULE then
+				RULE = mcl_mobs.build_target_rule({fn = director_rule})
+			end
+			e._targeting_rules = {RULE}
+			if not rawget(e, "get_staticdata_table") then
+				e.get_staticdata_table = function(self)
+					local data = mcl_mobs.mob_class.get_staticdata_table(self)
+					if data then
+						data._targeting_rules = nil
+					end
+					return data
+				end
+			end
+			e.stupefied = nil
+		else
+			e._targeting_rules = nil
+			e.get_staticdata_table = nil
+			e._active_target = nil
+			e.attack = nil
+			e.stupefied = true
+			A.halt(obj)
+		end
+		return true
+	end
+
+	function A.can_wield(obj)
+		local e = obj:get_luaentity()
+		return e ~= nil and e.can_wield_items == true and e.set_wielditem ~= nil
+	end
+
+	function A.wield(obj, item)
+		local e = obj:get_luaentity()
+		if not e or not e.set_wielditem then
+			return false
+		end
+		local ok = pcall(e.set_wielditem, e, ItemStack(item or ""), 0)
+		return ok
+	end
+
+	function A.can_trade(obj)
+		local e = obj:get_luaentity()
+		return e ~= nil and e.show_trade_formspec ~= nil and e.set_profession ~= nil
+	end
+
+	A.professions = {"armorer", "butcher", "cartographer", "cleric", "farmer", "fisherman",
+		"fletcher", "leatherworker", "librarian", "mason", "shepherd", "toolsmith",
+		"weaponsmith"}
+
+	-- Open this villager's trades for a player. A profession is set first
+	-- when it has none (or another is asked for), and it is given a little
+	-- experience so mobs_mc does not take the profession back for want of a
+	-- job site.
+	function A.open_trade(obj, player, profession)
+		local e = obj:get_luaentity()
+		if not e or not e.show_trade_formspec then
+			return false, "cannot_trade"
+		end
+		if profession and profession ~= e._profession then
+			local ok = pcall(e.set_profession, e, profession)
+			if not ok then
+				return false, "bad_profession"
+			end
+		elseif not e._profession or e._profession == "unemployed" or e._profession == "nitwit" then
+			pcall(e.set_profession, e, "farmer")
+		end
+		e._xp = math.max(tonumber(e._xp) or 0, 1)
+		if e.reload_trades and (not e._trades or #e._trades == 0) then
+			pcall(e.reload_trades, e)
+		end
+		local ok, shown = pcall(e.show_trade_formspec, e, player, 0)
+		if not ok or shown == false then
+			return false, "busy"
+		end
+		return true, e._profession
 	end
 
 	-- Whom the mob is after now, as mcl_mobs itself decided this step.

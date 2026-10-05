@@ -1400,6 +1400,39 @@ An act carries `based_on`, the last event sequence returned to the model.
   creates. A held character now uses mcl_mobs' own `stupefied` state, which
   keeps physics, damage and death running and only stops the AI.
 
+### Orders for characters
+
+`director_order` gives a cast character a goal it carries out by itself
+(`goanna_server_mod/director/orders.lua`), so the model says what and the
+character works out how: `hold`, `watch` a target, `go_to` a point or a
+target and then `stay`, `stay` at a point and walk back when moved,
+`patrol` up to twelve points with a pause at each, `follow` within a
+distance range (a larger range hangs back), `attack`, `hold_item` and
+`offer_trade`. Each ends with an `npc_order` event (arrived, lost, leash,
+failed, replaced). Movement uses mcl_mobs' own pathfinder with the
+character's AI still off, so it never wanders from an order; a held mob
+walks waypoints but skips the path search itself, so the adapter advances
+the search. `director_status` reports each character's position and order.
+
+Attacking is for a mob that can fight: a villager has no attack and is
+refused. A monster can only be a character when cast with `armed: true`,
+which charges and paces it as an encounter on the player it is cast near
+(ceiling, hourly points, build up). An attack on a player passes the same
+checks again; the attacker's AI runs with the director's rule as its only
+target source, so it fights whom it was ordered to and nobody else, and it
+is held again when the target is gone, the player opts out or `leash_s`
+ends. Trading sets a profession when asked (or farmer when it has none),
+gives the villager a little experience so mobs_mc does not take the
+profession back for want of a job site, and opens its trades on the
+player's screen, at most three times a minute per player.
+
+Tested on 5 October 2026 (Mineclonia, Luanti 5.17, a CPU rendered Goanna
+client as the player): watch, hold_item, go_to with arrival reported and
+stay after it, patrol visiting both points, follow after a teleport,
+offer_trade opening the trading form on the player's screen, and a
+villager refused as `cannot_attack`. An armed vindicator was refused as
+`over_ceiling` (cost 14 against the player's 10), as it should be.
+
 ### What the first test showed
 
 `tools/test-director.py` on 1 October 2026: the Luanti 5.17.0 Flatpak
