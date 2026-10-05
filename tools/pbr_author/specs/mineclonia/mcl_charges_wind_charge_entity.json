@@ -1,0 +1,35 @@
+{
+ "texel_px": 16,
+ "strength": 24.0,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.07,
+ "micro": "none",
+ "class": "glass",
+ "overlay": true,
+ "surface": 0.97,
+ "materials": {
+  "thin": {"mode": "flat", "base": 0.97, "span": 0.0, "micro": "none", "smooth": 0.5, "smooth_spread": 0.0},
+  "dense": {"mode": "flat", "base": 0.97, "span": 0.0, "micro": "none", "smooth": 0.62, "smooth_spread": 0.0}
+ },
+ "grid": [
+  "......aa........",
+  "..aa.......a....",
+  "aa.aa..aa..aaaaa",
+  ".......a......a.",
+  "..a.a..a.a..aaa.",
+  ".aa.a...aaaaa...",
+  "..aa..aaaa.aa...",
+  "..aa...aaa.aaaa.",
+  "..aa..a..a..a...",
+  ".aa...aa.a.aa...",
+  "..aaaa......a...",
+  "...aa.a..a......",
+  "....aa.a..aaa...",
+  "..aa...aa...a.a.",
+  "..aa.aa.a...a...",
+  "......a.....a..."
+ ],
+ "legend": {"a": "dense"}
+}

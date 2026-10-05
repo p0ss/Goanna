@@ -1,0 +1,11 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
+  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78},
+  "string": {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04},
+  "food": {"mode": "flat", "base": 0.8, "span": 0.0, "smooth": 0.5},
+  "leaf": {"mode": "flat", "base": 0.88, "span": 0.0, "smooth": 0.35}
+ },
+ "palette": {"#6b635e": "metal", "#847e77": "metal", "#938e88": "metal", "#afaca5": "metal", "#c9c7c1": "metal", "#e5e4e0": "metal", "#b7a892": "string", "#c8bfaa": "string", "#d6ceb9": "string", "#973b2d": "food", "#a94d39": "food", "#b05d3a": "food", "#b56c40": "food", "#d1925a": "food", "#dda769": "food", "#2f4c23": "leaf", "#305a2c": "leaf", "#4b703d": "leaf", "#617537": "leaf"}
+}

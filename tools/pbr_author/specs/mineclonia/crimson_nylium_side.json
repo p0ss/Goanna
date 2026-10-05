@@ -1,0 +1,6 @@
+{
+ "class": "stone",
+ "materials": {
+  "nylium": {"mode": "shade", "base": 0.62, "span": 0.36, "levels": 3, "detail": 0.3, "joints": false, "smooth": 0.3}
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "texel_px": 16,
+ "strength": 16.0,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.07,
+ "micro": "none",
+ "class": "wood",
+ "faces": [[0, 0, 4, 6]],
+ "materials": {
+  "spine": {"mode": "shade", "base": 0.74, "span": 0.12, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.38, "smooth_spread": 0.03, "micro": "leather", "micro_strength": 0.5, "wear": 0.1}
+ },
+ "grid": [
+  "....",
+  "....",
+  "....",
+  "....",
+  "....",
+  "...."
+ ],
+ "legend": {}
+}

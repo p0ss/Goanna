@@ -1,0 +1,12 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {"mode": "shade", "base": 0.5, "span": 0.35},
+  "metal": {"mode": "shade", "base": 0.6, "span": 0.35, "metal": true, "smooth": 0.78},
+  "string": {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04},
+  "fungus": {"mode": "flat", "base": 0.84, "span": 0.0, "smooth": 0.35},
+  "stalk": {"mode": "flat", "base": 0.78, "span": 0.0, "smooth": 0.25},
+  "fleck": {"mode": "flat", "base": 0.88, "span": 0.0, "smooth": 0.4}
+ },
+ "palette": {"#6b635e": "metal", "#847e77": "metal", "#938e88": "metal", "#afaca5": "metal", "#c9c7c1": "metal", "#e5e4e0": "metal", "#b7a892": "string", "#c8bfaa": "string", "#d6ceb9": "string", "#00584b": "fungus", "#006255": "fungus", "#007062": "fungus", "#008172": "fungus", "#009180": "fungus", "#1e1b1e": "stalk", "#242124": "stalk", "#2a272a": "stalk", "#30282f": "stalk", "#382f39": "stalk", "#e87b55": "fleck", "#f28762": "fleck"}
+}

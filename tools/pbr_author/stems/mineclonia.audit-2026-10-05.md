@@ -812,6 +812,14 @@ tileCompanion), and the redstone cross's line rotated by `[transformR90` gets
 its maps turned with it. Author these by their own names, at the art's grid
 (the composite takes the finer of the base's and the overlay's scales).
 
+Authored 2026-10-05 (`seen_gaps.py`, "overlays"), tiles for
+`stems/mineclonia.txt`: the nylium sides stand over the netherrack (the
+warped side draws its own netherrack under the fringe, on netherrack's
+rule), the comparator's front torch is unlit in compare mode and lit and
+glowing in subtract mode as the "off" and "on" faces draw theirs, the slab
+rows of the sides and ends take the base's materials, and the cross's
+second line takes the first line's rule. Judged offline only.
+
 - `crimson_nylium_side` (mcl_crimson): node tile (normal).
 - `mcl_comparators_comp` (mcl_comparators): node tile (nodebox).
 - `mcl_comparators_ends_sub` (mcl_comparators): node tile (nodebox).
@@ -842,6 +850,10 @@ Resolved 2026-10-05: the client transforms the companions as the art is
 transformed, and turns the `_n` tangent with it (the table is in
 docs/materials.md). Author these unrotated, as the inventory image draws them.
 
+Authored 2026-10-05 (`seen_gaps.py`, "held"), tiles on the fishing rod's
+materials, with the carrot's and the warped fungus's own. Judged offline
+only.
+
 - `mcl_mobitems_carrot_on_a_stick` (mcl_mobitems): held/dropped item.
 - `mcl_mobitems_warped_fungus_on_a_stick` (mcl_mobitems): held/dropped item.
 - `screwdriver` (screwdriver): held/dropped item.
@@ -856,6 +868,15 @@ Resolved 2026-10-05: each part's companions are placed at its offset in the
 `mcl_books_chiseled_bookshelf_empty`: Luanti blits a `[combine` part at its
 own size, so an albedo at map size shows only its top left corner in the 16
 texel canvas (the pack as shipped does this to the empty shelf).
+
+Authored 2026-10-05 (`seen_gaps.py`, "books"): leather spines a little
+behind the shelf's frame, built by atlas.py with one face each at 16 map
+pixels per texel, the empty shelf's density (extrude.py would make a 4
+texel part 64 per texel, and the composed front would follow it to 1024
+pixels). Maps only. In a node array the client sizes the layer by the
+albedo, the 16 texel canvas, so these maps and the empty shelf's reach the
+screen at 16 pixels until the client sizes a layer by its companions.
+Judged offline only.
 
 - `mcl_books_book_0` (mcl_books): node tile (normal).
 - `mcl_books_book_1` (mcl_books): node tile (normal).
@@ -887,6 +908,13 @@ Map item preview of the player model.
 ### Mesh entity (9)
 
 Mesh entity, a model atlas for atlas.py and the mobs list.
+
+Authored 2026-10-05 (`seen_gaps.py`, "entities"): the wind charge on
+wind_charge.obj, the carved pumpkin and jack o'lantern on pumpkin_head.obj
+(the head armour entity), the evoker's fangs, the llama's spit and the
+plain villager on the villager base's spec. The conduit, the enchanting
+table's book and the End crystal are end_objects.py's. Judged offline
+only.
 
 - `mcl_charges_wind_charge_entity` (mcl_charges): entity.
 - `mcl_conduit_conduit` (mcl_conduits): entity.
@@ -1281,7 +1309,9 @@ rods, the dragon head).
   runtime.
 - `mcl_fishing_bobber` (mcl_fishing): entity.
 - `mcl_fishing_fishing_rod` (mcl_fishing): held/dropped item.
-- `mcl_heads_dragon` (mcl_heads): node tile (mesh).
+- `mcl_heads_dragon` (mcl_heads): node tile (mesh). Authored 2026-10-05
+  (`seen_gaps.py`, "dragon") by atlas.py on mcl_heads_dragon_floor.obj, on
+  the ender dragon's materials.
 - `mcl_inventory_empty_armor_slot_shield` (mcl_inventory): worn or entity
   texture set at runtime.
 - `mcl_itemframes_glow_item_frame` (mcl_itemframes): held/dropped item.

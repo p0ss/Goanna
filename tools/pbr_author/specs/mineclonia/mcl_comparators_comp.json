@@ -1,0 +1,6 @@
+{
+ "class": "stone",
+ "materials": {
+  "indicator": {"mode": "flat", "base": 0.3, "span": 0, "smooth": 0.3}
+ }
+}

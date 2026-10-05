@@ -1,0 +1,8 @@
+{
+ "class": "stone",
+ "materials": {
+  "nylium": {"mode": "shade", "base": 0.62, "span": 0.36, "levels": 3, "detail": 0.3, "joints": false, "smooth": 0.3},
+  "rack": {"mode": "shade", "base": 0.35, "span": 0.65}
+ },
+ "palette": {"#542b21": "rack", "#662d28": "rack", "#772b28": "rack", "#7a2c29": "rack", "#902d1e": "rack", "#a34332": "rack", "#ad5941": "rack"}
+}
