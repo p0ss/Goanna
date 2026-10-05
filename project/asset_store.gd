@@ -87,6 +87,18 @@ static func installed_for_game(game: String, store_root := "") -> Array:
 	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.id) < str(b.id))
 	return result
 
+# A folder beside the project: in a source checkout, beside project/; in a
+# release, beside the Goanna folder that holds the program (where
+# package-release.sh puts assets/ and luanti/). An exported game cannot
+# globalize res://: "res://../assets" came back as the relative "../assets",
+# found only when Goanna was started from its own folder, so a release
+# started any other way (a desktop shortcut, Steam) never installed its
+# bundled materials (found 2026-10-05).
+static func beside_project(name: String) -> String:
+	if OS.has_feature("template"):
+		return OS.get_executable_path().get_base_dir().path_join("..").path_join(name).simplify_path()
+	return ProjectSettings.globalize_path("res://..").path_join(name).simplify_path()
+
 static func profile_texture_path(game: String, store_root := "") -> String:
 	var base: String = store_root if store_root != "" else root()
 	var path := base.path_join("profiles").path_join(game).path_join("textures")

@@ -43,6 +43,7 @@
 #include <SMesh.h>
 #include <CMeshBuffer.h>
 #include <SMaterial.h>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
@@ -1340,8 +1341,14 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_primed_regions.clear();
     m_mesh_pool.stop();
     surfaceClear();
-    // Luanti's base texture pack lives in the luanti/ checkout next to project/.
-    String share = ProjectSettings::get_singleton()->globalize_path("res://../luanti");
+    // Luanti's base texture pack lives in the luanti/ checkout next to project/,
+    // or in a release beside the Goanna folder. An exported game cannot
+    // globalize res://: it comes back as the relative "../luanti", which
+    // resolved against whatever folder the player started Goanna from, so
+    // the base textures were found only when that was the program's own.
+    String share = OS::get_singleton()->has_feature("template")
+            ? OS::get_singleton()->get_executable_path().get_base_dir().path_join("../luanti").simplify_path()
+            : ProjectSettings::get_singleton()->globalize_path("res://../luanti");
     GoannaSession::setSharePath(share.utf8().get_data());
     nearClear();
     // Materials retain the outgoing session's texture objects. Texture ids

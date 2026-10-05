@@ -103,7 +103,7 @@ static func install_bootstrap() -> void:
 	if bootstrap is not Dictionary:
 		return
 	for row in bootstrap.get("bundles", []):
-		var archive := ProjectSettings.globalize_path("res://../assets").path_join(str(row.file))
+		var archive := AssetStore.beside_project("assets").path_join(str(row.file))
 		if FileAccess.file_exists(archive):
 			var error := AssetStore.install_archive(archive, str(row.sha256))
 			if error != "":

@@ -1057,7 +1057,7 @@ static func bundled_pbr_texture_path(game: String) -> String:
 	var installed := AssetStore.profile_texture_path(game)
 	if installed != "":
 		return installed
-	if not PBR_GAME_DIRS.has(game):
+	if not PBR_GAME_DIRS.has(game) or OS.has_feature("template"):
 		return ""
 	# Transitional development fallback. Release archives no longer contain
 	# pbr_packs; installed versioned bundles are the production path.
@@ -1335,8 +1335,11 @@ func _prepare_terrain_diffusion_meta(world: String) -> String:
 # not a link: the flatpak sandbox sees the world directory and not the
 # checkout.
 func _install_server_mod(world: String) -> String:
-	var src := ProjectSettings.globalize_path("res://../goanna_server_mod")
-	if not FileAccess.file_exists(src.path_join("init.lua")):
+	# A release has no checkout beside it, and the relative path an exported
+	# game makes of res://.. could find some other folder's copy.
+	var src := "" if OS.has_feature("template") \
+		else ProjectSettings.globalize_path("res://../goanna_server_mod")
+	if src == "" or not FileAccess.file_exists(src.path_join("init.lua")):
 		src = "res://vendor/goanna_server_mod"
 	var dst := world.path_join("worldmods").path_join("goanna_server_mod")
 	DirAccess.make_dir_recursive_absolute(dst)
@@ -1362,7 +1365,7 @@ func _install_pbr_mod(world: String, game: String) -> String:
 		init.store_string("-- Versioned Goanna material assets; textures only.\n")
 		conf.store_string("name = goanna_pbr\ntitle = Goanna PBR materials\n")
 		return ""
-	if not PBR_GAME_DIRS.has(game):
+	if not PBR_GAME_DIRS.has(game) or OS.has_feature("template"):
 		return ""
 	var pack_dir := str(PBR_GAME_DIRS[game])
 	var src := ProjectSettings.globalize_path("res://../pbr_packs").path_join(pack_dir)
