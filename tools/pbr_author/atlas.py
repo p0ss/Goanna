@@ -506,13 +506,22 @@ def texel_px(spec):
 
 def chamfer_islands(h, isl, px=1):
     """extrude.chamfer's box blur, reading only the pixel's own island and
-    never wrapping, so a face runs flat to its edge."""
+    never wrapping, so a face runs flat to its edge. Each pass is
+    lib._island_shift's sum, with the island masks found once and the
+    field padded once a pass rather than once a neighbour: the soft
+    skins' wide blurs made this most of a 512 build's time (170 s of a
+    horse's 200), and the sums are the same, value for value."""
     out = h.copy()
+    if px <= 0:
+        return out
+    same = {(dy, dx): lib._island_same(isl, dy, dx) for dy in (-1, 0, 1) for dx in (-1, 0, 1)}
+    hh, ww = out.shape
     for _ in range(px):
+        pad = np.pad(out, 1, mode="edge")
         acc = np.zeros_like(out)
         for dy in (-1, 0, 1):
             for dx in (-1, 0, 1):
-                acc += lib._island_shift(out, isl, dy, dx)
+                acc += np.where(same[(dy, dx)], pad[1 + dy:1 + dy + hh, 1 + dx:1 + dx + ww], out)
         out = acc / 9.0
     return out
 

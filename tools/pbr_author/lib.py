@@ -416,9 +416,19 @@ def normal_from_height(height, strength):
     return n[..., :2]
 
 
+# The horizon test reads a rise per map pixel, so at 128, where a step
+# spans half the pixels, the same step read twice as steep and every joint
+# came out darker than at 256 (seen on the GPU, 2026-10-05: stone's joints
+# black at 128 against grey at 256). AO_SCALE takes the rise per 256 px map
+# pixel instead. At 256 it is 1 and nothing changes; the 512 build keeps its
+# own reading, lighter than 256's, as it was reviewed.
+AO_SCALE = PX if PX < 1.0 else 1.0
+
+
 def ao_from_height(height, radius_px=6):
     img = Image.fromarray((np.clip(height, 0, 1) * 255.0 + 0.5).astype(np.uint8), "L")
-    return np.clip(pbr_bake.ao_from_height(img, radius_px=radius_px, wrap=True), 0.0, 1.0).astype(np.float32)
+    return np.clip(pbr_bake.ao_from_height(img, strength=AO_SCALE, radius_px=radius_px, wrap=True),
+                   0.0, 1.0).astype(np.float32)
 
 
 # --- atlases ----------------------------------------------------------------
@@ -490,7 +500,7 @@ def ao_from_height_islands(height, islands, radius_px=6, directions=8):
             horizon = np.maximum(horizon, (_island_shift(h, islands, sy, sx) - h) / float(r))
         occ += np.clip(horizon, 0.0, None)
     occ = occ / float(directions)
-    return np.clip(1.0 - occ * 4.0, 0.0, 1.0).astype(np.float32)
+    return np.clip(1.0 - occ * AO_SCALE * 4.0, 0.0, 1.0).astype(np.float32)
 
 
 def class_of(stem, game=DEFAULT_GAME):
