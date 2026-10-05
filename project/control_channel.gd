@@ -221,7 +221,24 @@ func _run(req: Dictionary) -> void:
 func _send(conn: Dictionary, msg: Dictionary) -> void:
 	var peer: StreamPeerTCP = conn["peer"]
 	if peer.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-		peer.put_data((JSON.stringify(msg) + "\n").to_utf8_buffer())
+		peer.put_data((json_line(msg) + "\n").to_utf8_buffer())
+
+# One reply as strict JSON. Godot's JSON.stringify escapes only \b, \f, \n,
+# \r and \t, and passes the other control characters through raw, which
+# JSON forbids inside a string. Luanti's coloured text carries them: a
+# nametag or infotext with core.colorize is "\u001b(c@#ff0000)...", and an
+# entity list holding one could not be parsed by tools/goanna-control
+# ("Invalid control character"). JSON.stringify has already escaped every
+# control character outside a string, and there are none in its structure,
+# so each one left is inside a string and becomes \u00XX.
+static func json_line(msg) -> String:
+	var text := JSON.stringify(msg)
+	# From 1: char(0) is the empty string, which every string contains.
+	for code in range(1, 32):
+		var c := char(code)
+		if text.contains(c):
+			text = text.replace(c, "\\u%04x" % code)
+	return text
 
 static func _err(what: String) -> Dictionary:
 	return {"__error": what}
