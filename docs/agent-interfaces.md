@@ -126,12 +126,28 @@ copy of `goanna_server_mod` as worldmods. The server runs with
 `time_speed = 0`, Mineclonia's weather cycle off, mob spawning off and
 movement anticheat off (poses move the player thousands of nodes a second
 as far as anticheat can tell, and it then reset the player and streamed
-blocks around the wrong place). `--world-from NAME` copies an existing
-world instead, for a scene with real terrain (`frame: world` in the job).
+blocks around the wrong place). The far field is not granted on the
+fixture, which has nothing past the stage (`--far` grants it): on the first
+GPU run it kept every pose waiting out the settle timeout. `--world-from
+NAME` copies an existing world instead, for a scene with real terrain
+(`frame: world` in the job), and grants the far field.
 
-Between jobs the player waits 1200 nodes from the stage, so a job's nodes
-reach the client in blocks sent fresh rather than as edits to blocks it
-already holds.
+The player starts, and waits between jobs, 1200 nodes from the stage, so
+a job's nodes reach the client in blocks sent fresh rather than as edits
+to blocks it already holds. Every teleport puts the camera at the target
+first: the client's `tp` streams blocks with the camera still where it was
+and tiers them against it, and on the first GPU run the stage arrived with
+0 to 5 blocks meshed and stayed that way, so the frames were sky. An
+arrival now also requires at least one block meshed.
+
+`GOANNA_RENDER_STATE=DIR` gives a service its own queue and record, for a
+second service on another world or game. The two still share the one GPU
+lock, so one waits while the other renders; jobs go to whichever service
+the shell's `GOANNA_RENDER_STATE` names. Each world has its own server
+files under `~/.var/app/org.luanti.luanti/goanna-render/<world>/`. A
+service that is yielded when its own sources change starts again in place
+with the new ones (the queue is on disk), because one left yielded for
+hours kept yielding to lavapipe clients after `gpu-free` was fixed.
 
 #### A job
 
@@ -153,8 +169,16 @@ up; `pos` is the eye.
   "profile": {"mat_micro_shadow": 1},
   "time": 0.5,
   "weather": "clear",
-  "nodes": [{"box": [[-2, 0, 5], [2, 2, 5]], "node": "mcl_core:stonebrick"}],
-  "statues": [{"entity": "mobs_mc:zombie", "pos": [0, 0, 3], "yaw": 180}],
+  "nodes": [{"box": [[-2, 0, 5], [2, 2, 5]], "node": "mcl_core:stonebrick"},
+            {"pos": [0, 0, 7], "node": "mcl_portals:portal", "param2": 0, "swap": true}],
+  "lua": ["local p = P(0, 0, 9); set(p, 'mcl_pottery_sherds:pot'); ..."],
+  "statues": [{"entity": "mobs_mc:zombie", "pos": [0, -0.5, 3], "yaw": 180},
+              {"entity": "goanna_render_fixture:figure", "pos": [2, -0.5, 3],
+               "props": {"textures": ["character.png", "mcl_armor_chestplate_iron.png",
+                                      "blank.png"]},
+               "attach": [{"entity": "mcl_wieldview:wieldview", "bone": "Wield_Item",
+                           "props": {"wield_item": "mcl_tools:pick_iron",
+                                     "is_visible": true}}]}],
   "verify": [{"pos": [0, -1, 0], "node": "mcl_core:stone"}],
   "poses": [{"name": "face", "pos": [0, 1.6, 0.8], "look_at": [0, 1.4, 3], "fov": 60}],
   "variants": [{"name": "maps_on", "maps": true},
@@ -173,15 +197,34 @@ overrides any of `build`, `pack`, `tier`, `size`, `env`, `maps`, `profile`
 (merged), `time` and `weather`, and every variant is shot at every pose.
 `frames: false` skips frames for a timing only job.
 
+A node entry may give `param2`, and `swap: true` places it with
+`swap_node`, so no constructor or destructor runs: a Nether portal set
+with `set_node` is destroyed by Mineclonia's own callbacks. `/rs_reset`
+puts every node back with `swap_node` and clears its meta. `lua` is a list
+of Lua chunks (a string, or a list of lines) run on the server after the
+boxes are placed, for node meta, a decorated pot's faces or a callback;
+their scope adds `S` (the stage), `P(x, y, z)` (stage relative to
+absolute), `set`, `swap` and `save` (each remembering the old node for the
+reset) and `track(obj)` (an object the reset removes). A statue may give
+`props` (object properties set after the entity activates), `animation`
+(`[from, to, speed]`), `attach` (entities attached to a bone, each with
+its own `props`) and `burn` (set on fire for good; its `on_step` is
+shadowed, so the burn never runs down). `goanna_render_fixture:figure` is
+a statue with the player's own model and texture slots (skin, armour, a
+third the game leaves blank), on Mineclonia only. An entity's position is
+the bottom of its collision box, so a statue standing on the floor is at y
+-0.5.
+
 What costs what:
 
 - `profile` (any key the settings panel has, `mat_*` included), `time`,
   `weather` and a pose's `fov` are applied live and put back after the
-  variant. There is no texture size setting: the size of the textures is
-  the pack directory's, so name a different `pack`.
-- `build`, `pack`, `tier`, `size`, `env` and `maps` are fixed at launch,
-  so a change restarts the client: 32 to 41 s on lavapipe (92 s the first
-  time, compiling shaders), not yet measured on the GPU, plus a one off import of a worktree that has
+  variant, except `texture_size`, which the client reads only when it
+  joins: an override of it is written into the profile at launch.
+- `build`, `pack`, `tier`, `size`, `env`, `maps` and `texture_size` are
+  fixed at launch, so a change restarts the client: 32 to 41 s on lavapipe
+  (92 s the first time, compiling shaders), 20 to 27 s on the RTX 3090,
+  plus a one off import of a worktree that has
   never been opened (`godot --headless --import`, no GPU, minutes). A
   rebuilt `project/bin` is seen by its hash and restarts the client too.
   Variants that share a launch run together, so maps on and off is one
@@ -195,9 +238,13 @@ and the files, and the hash, size and time of the library), the Godot,
 Goanna, server and game versions, the adapter, the tier and every value
 the client held at the shot read back from it, the overrides asked for,
 the pack, maps, environment, time, weather, both coordinate frames of the
-pose, the node and statue checks, the material counts with normal and
-specular arrays bound, and the entity materials built with and without a
-normal map. Crops are `<pose>.<name>.png`. `timing` writes
+pose, the node and statue checks (with the blocks meshed at arrival),
+whether the pose settled and how long it waited, the material counts with
+normal and specular arrays bound, and the entity materials built with and
+without a normal map. The material counts cover only the client's
+per texture material map, which node arrays do not use, so on a node scene
+they read 0 whether the maps are bound or not; the entity counts are the
+ones to trust. Crops are `<pose>.<name>.png`. `timing` writes
 `OUT/timing/timing.json` (median and p95 of per draw GPU time per variant
 and pose, with the range over rounds) and every round's draws as CSV.
 `OUT/result.json` repeats what `shoot` printed, with the wall time.
@@ -263,8 +310,19 @@ and came back 25 s after the process ended. Started without
 `--software` beside another agent's client, it took the lock, found the
 client, released the lock and waited without starting anything.
 
-Not yet run: anything on the GPU, so no GPU frame, timing or restart cost
-has been seen; a yield in the middle of a job, which puts the job back at
+On 2026-10-06 on the GPU (RTX 3090, NVIDIA driver, Godot 4.5.1, the same
+server and game, main's build at dec70408 and then 019bc7d1, each with two
+dirty files, profile High read back at every launch, adapter "NVIDIA
+GeForce RTX 3090", `mat_parallax` 1): the first runs drew sky, as above,
+and the fixes in this section came from them. After them the service came
+up in 20 to 21 s of client launch, and the same three jobs ran: the wall
+in 71 s with no restart, the zombie in 101 s with one 23 s restart (maps
+off verified, no entity material with a normal map), and the timing job in
+233 s with one 23 s restart. Per draw GPU time on the wall at 1280 by 720
+was 1.85 ms median with parallax on (1.85 to 1.85 over six rounds of 600)
+and 1.66 ms with it off.
+
+Not yet run: a yield in the middle of a job, which puts the job back at
 the front of the queue; `--world-from`; a `build` other than main's.
 
 ## 2. Player agent interface

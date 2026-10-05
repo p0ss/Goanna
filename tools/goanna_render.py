@@ -32,6 +32,7 @@ has a worked job. Everything here runs through tools/goanna_headless.py
 for the client, so the launcher's own checks and its PID bookkeeping apply.
 """
 
+import base64
 import fcntl
 import hashlib
 import json
@@ -72,7 +73,12 @@ TIERS = ("lowest", "low", "medium", "high", "ultra")
 DESKTOP_GPU_USERS = ("kwin_wayland", "xwayland", "plasmashell", "firefox", "freetube",
                      "chrome", "chromium", "electron", "steamwebhelper", "krunner",
                      "kded", "gnome-shell", "mutter", "discord", "code", "spectacle")
-LAUNCH_FIELDS = ("build", "pack", "tier", "size", "env", "maps")
+LAUNCH_FIELDS = ("build", "pack", "tier", "size", "env", "maps", "launch_profile")
+# Profile keys the client reads only when it joins (texture_size reduces the
+# pack's images as the session is built, 2f3f6c35): a job's override of one
+# goes into the written profile and restarts the client, rather than being
+# set live and silently doing nothing.
+LAUNCH_PROFILE_KEYS = ("texture_size",)
 # The caller's own GODOT_BIN. Each launch points GODOT_BIN at a wrapper
 # that adds --audio-driver Dummy; finding Godot again from that would wrap
 # the wrapper, and a second launch into the same directory execs itself.
@@ -90,17 +96,26 @@ class Yield(RuntimeError):
 # --- where things live -------------------------------------------------------
 
 def state_dir():
-    base = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
-    path = pathlib.Path(base) / "goanna-render"
+    """The queue and the service record. GOANNA_RENDER_STATE names another,
+    for a second service on another world or game: both still take the one
+    GPU lock, so only one of them renders at a time."""
+    if os.environ.get("GOANNA_RENDER_STATE"):
+        path = pathlib.Path(os.environ["GOANNA_RENDER_STATE"])
+    else:
+        path = pathlib.Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / "goanna-render"
     for sub in ("queue", "running", "done"):
         (path / sub).mkdir(mode=0o700, parents=True, exist_ok=True)
     return path
 
 
-def service_home():
+def service_home(world=None):
     """Inside the Flatpak's own directory, which the sandboxed server sees at
-    the same absolute path."""
+    the same absolute path. One directory per world: two services shared
+    one server.conf and one debug log, and the second deleted the first's
+    log, which its player checks read."""
     path = LUANTI_HOME / "goanna-render"
+    if world:
+        path = path / pathlib.Path(world).name
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -122,6 +137,18 @@ def main_checkout():
 
 def now():
     return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def code_stamp():
+    """The service's own sources, by size and time."""
+    out = []
+    for name in ("goanna_render.py", "goanna_headless.py", "render-fixture.lua"):
+        try:
+            st = (HERE / name).stat()
+            out.append((name, st.st_size, st.st_mtime_ns))
+        except OSError:
+            out.append((name, None, None))
+    return out
 
 
 def log(*parts):
@@ -450,8 +477,9 @@ def game_info(game):
 
 
 class Server:
-    def __init__(self, game, world_from, stage, floor, logdir):
+    def __init__(self, game, world_from, stage, floor, logdir, far=False):
         self.game = game
+        self.far = far
         self.world_from = world_from
         self.stage = stage
         self.floor = floor
@@ -505,7 +533,7 @@ class Server:
 
     def write_conf(self):
         s = self.stage
-        conf = service_home() / "server.conf"
+        conf = service_home(self.world) / "server.conf"
         lines = {
             "default_privs": "interact,shout,teleport,fly,fast,give,settime,debug,noclip,"
                              "weather_manager",
@@ -516,7 +544,9 @@ class Server:
             # singlenode world, which built floating terrain over the
             # stage floor on the first trial run.
             "mcl_singlenode_mapgen": "false",
-            "static_spawnpoint": "(%d,%d,%d)" % (s[0], s[1] + 2, s[2] - 6),
+            # At the parking place, so the stage's blocks are first sent
+            # when a job arrives rather than held from the client's start.
+            "static_spawnpoint": "(%d,%d,%d)" % tuple(s[i] + HOME_OFFSET[i] for i in range(3)),
             "max_block_send_distance": "16",
             # Poses move the player by thousands of nodes a second as far
             # as movement anticheat can tell; it then resets the position
@@ -529,7 +559,14 @@ class Server:
             "mcl_doWeatherCycle": "false", "mobs_spawn": "false",
             # The service places nodes and statues over chat.
             "chat_message_limit_per_10sec": "100000", "chat_message_max_size": "65535",
-            "goanna_far_rendering": "true", "goanna_far_rendering_distance": "512",
+            # The far field is off on the fixture, which has nothing past the
+            # stage. On the first GPU run (2026-10-06) it kept the client
+            # from settling (lod_storage_* never stayed at zero, so every
+            # pose waited out its 60 s), and after the player came back from
+            # parking only five of the stage's blocks had near meshes: the
+            # rest had been handed to the far renderer when pruned.
+            "goanna_far_rendering": "true" if self.far else "false",
+            "goanna_far_rendering_distance": "512",
             "goanna_render_stage": "(%d,%d,%d)" % s,
             "goanna_render_floor": self.floor or "",
         }
@@ -545,7 +582,7 @@ class Server:
                                           text=True, timeout=60).stdout.splitlines()[0]
         except (OSError, subprocess.SubprocessError, IndexError):
             self.version = "unknown"
-        debug = service_home() / "server-debug.log"
+        debug = service_home(self.world) / "server-debug.log"
         debug.unlink(missing_ok=True)
         out = open(self.logdir / "server.log", "wb")
         self.proc = subprocess.Popen(
@@ -584,7 +621,7 @@ class Server:
         stopped over the control channel can leave its peer behind until it
         times out, and the next client under the same name is refused."""
         try:
-            text = (service_home() / "server-debug.log").read_text(errors="replace")
+            text = (service_home(self.world) / "server-debug.log").read_text(errors="replace")
         except OSError:
             return False
         joins = len(re.findall(r"\b%s \[[^\]]*\] joins game" % re.escape(name), text))
@@ -930,7 +967,7 @@ class Service:
         self.status = "starting the server"
         self.publish()
         self.server = Server(self.opt.game, self.opt.world_from, self.stage, self.floor,
-                             self.logdir)
+                             self.logdir, far=self.opt.far or bool(self.opt.world_from))
         self.server.start()
         self.client = Client(self.logdir, self.server, self.opt.software)
         self.status = "starting the client"
@@ -972,12 +1009,24 @@ class Service:
             c.chat("/weather clear 1000000")
         return secs
 
+    def teleport(self, g):
+        """A tp with the camera put there first. main.teleport_to waits for
+        the blocks to stream in with the camera still where it was and only
+        then moves it, and the client tiers what arrives against the
+        camera: on the first GPU run (2026-10-06) the stage's blocks came in
+        while the camera was 1200 nodes away at the parking place and were
+        never meshed (0 to 5 of them, for minutes), so the frames were sky.
+        A pose first moves the camera and the player together."""
+        c = self.client.control
+        c.send("pose", {"x": g[0], "y": g[1], "z": g[2], "fly": True})
+        return c.send("tp", {"x": g[0], "y": g[1], "z": g[2]})
+
     def park(self):
         c = self.client.control
         home = [self.stage[i] + HOME_OFFSET[i] for i in range(3)]
         c.send("fly", {"on": True})
         try:
-            c.send("tp", {"x": home[0], "y": home[1], "z": -home[2]})
+            self.teleport([home[0], home[1], -home[2]])
         except RenderError as exc:
             log("park:", exc)
 
@@ -986,6 +1035,7 @@ class Service:
     def serve(self):
         for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
             signal.signal(sig, self._on_signal)
+        self._code_stamp = code_stamp()
         self.default = self.resolve_launch({})
         try:
             while not self.stop_requested:
@@ -1030,6 +1080,7 @@ class Service:
         self.publish(yield_reason=why)
         clear_since = None
         while not self.stop_requested:
+            self.reexec_if_changed()
             busy = foreign_gpu_users(self.own_pids(), self.opt.fake_gpu_user, self.opt.software)
             if busy:
                 clear_since = None
@@ -1044,6 +1095,24 @@ class Service:
                 self.stop_requested = True
                 return
             time.sleep(self.opt.poll_seconds)
+
+    def reexec_if_changed(self):
+        """A service yielded for hours runs the code it started with. On
+        2026-10-06 one kept yielding to lavapipe clients after gpu-free had
+        been fixed to ignore them (dec70408), because its copy of
+        goanna_headless was the old one. While yielded it holds no client,
+        server or lock, so it can start again in place: the queue is on
+        disk and the job it was running is back at the front."""
+        if getattr(self, "_code_stamp", None) is None:
+            return
+        if code_stamp() == self._code_stamp:
+            return
+        log("the service's own code changed while yielded; starting again with it")
+        self.status = "restarting"
+        self.publish()
+        sys.stdout.flush()
+        os.execv(sys.executable, [sys.executable, str(pathlib.Path(__file__).resolve()),
+                                  "serve"] + list(self.opt.argv))
 
     def idle_expired(self):
         queued = any((self.state / "queue").glob("*.json"))
@@ -1107,8 +1176,12 @@ class Service:
             raise RenderError("texture pack %s is not a directory" % pack)
         size = spec.get("size") or self.opt.size
         env = {str(k): str(v) for k, v in (spec.get("env") or {}).items()}
+        launch_profile = {k: float(v) for k, v in (spec.get("profile") or {}).items()
+                          if k in LAUNCH_PROFILE_KEYS}
+        table = dict(tables[tier], **launch_profile)
         return {"build": str(build), "build_root": build, "lib": lib_fingerprint(build)["sha256"],
-                "tier": tier, "tier_table": tables[tier], "pack": pack,
+                "tier": tier, "tier_table": table, "pack": pack,
+                "launch_profile": launch_profile,
                 "size": [int(size[0]), int(size[1])], "env": env,
                 "maps": bool(spec.get("maps", True))}
 
@@ -1252,19 +1325,17 @@ class Service:
                 a, b = self.place(n["box"][0]), self.place(n["box"][1])
             else:
                 a = b = self.place(n["pos"])
-            said, refused = c.chat("/rs_box %d %d %d %d %d %d %s" % (
+            extra = ""
+            if n.get("param2") is not None:
+                extra += " %d" % int(n["param2"])
+            if n.get("swap"):
+                extra += " swap"
+            said, refused = c.chat("/rs_box %d %d %d %d %d %d %s%s" % (
                 round(a[0]), round(a[1]), round(a[2]), round(b[0]), round(b[1]), round(b[2]),
-                n["node"]), expect="rs_box")
+                n["node"], extra), expect="rs_box")
             if refused or not any("rs_box queued" in s for s in said):
                 raise RenderError("placing %s failed: %s" % (n, said))
             sent += 1
-        for s in job.get("statues") or []:
-            p = self.place(s["pos"])
-            said, refused = c.chat("/rs_statue %s %.2f %.2f %.2f %.1f%s" % (
-                s["entity"], p[0], p[1], p[2], float(s.get("yaw", 0)),
-                " ai" if s.get("ai") else ""), expect="rs_statue")
-            if refused or not any("rs_statue" in x and " at " in x for x in said):
-                raise RenderError("statue %s failed: %s" % (s, said))
         if sent:
             deadline = time.time() + 120
             while time.time() < deadline:
@@ -1275,6 +1346,21 @@ class Service:
                 time.sleep(0.5)
             else:
                 raise RenderError("the server never finished placing the job's nodes")
+        # Lua chunks after the boxes, so they can set meta on placed nodes.
+        for i, src in enumerate(job.get("lua") or []):
+            if isinstance(src, list):
+                src = "\n".join(src)
+            said, refused = c.chat("/rs_lua " + base64.b64encode(src.encode()).decode(),
+                                   expect="rs_lua")
+            if refused or not any("rs_lua ok" in x for x in said):
+                raise RenderError("lua chunk %d failed: %s" % (i, said))
+        for s in job.get("statues") or []:
+            p = self.place(s["pos"])
+            body = dict(s, pos=p, yaw=float(s.get("yaw", 0)))
+            said, refused = c.chat("/rs_statue_json " + base64.b64encode(
+                json.dumps(body).encode()).decode(), expect="rs_statue")
+            if refused or not any("rs_statue" in x and " at " in x for x in said):
+                raise RenderError("statue %s failed: %s" % (s, said))
 
     def checks_for(self, job):
         """Node lookups that say the area has reached the client: every
@@ -1332,7 +1418,7 @@ class Service:
         anchor = job.get("anchor") or (job.get("poses") or [{"pos": [0, 2, -6]}])[0]["pos"]
         g = to_goanna(self.place(anchor))
         c.send("fly", {"on": True})
-        c.send("tp", {"x": g[0], "y": g[1], "z": g[2]})
+        self.teleport(g)
         # The server's answer to a tp can land after a pose and carry the
         # camera off with the player.
         time.sleep(3.0)
@@ -1343,9 +1429,13 @@ class Service:
             while True:
                 looked = self.look_up(checks)
                 statues = self.statue_check(job)
-                if all(x["ok"] for x in looked) and all(s["ok"] for s in statues):
+                # Node data is not meshes: the first GPU run had every lookup
+                # right and nothing drawn. The fixture's floor alone meshes.
+                meshed = int(c.send("status").get("blocks_meshed", 0))
+                if all(x["ok"] for x in looked) and all(s["ok"] for s in statues) and \
+                        (meshed > 0 or self.job_frame == "world"):
                     self.node_checks = {"nodes": looked, "statues": statues,
-                                        "attempts": attempt + 1}
+                                        "attempts": attempt + 1, "blocks_meshed": meshed}
                     return
                 if time.time() > deadline:
                     break
@@ -1355,7 +1445,7 @@ class Service:
             log("area not as placed (attempt %d); leaving and coming back" % (attempt + 1))
             self.park()
             time.sleep(3.0)
-            c.send("tp", {"x": g[0], "y": g[1], "z": g[2]})
+            self.teleport(g)
             time.sleep(3.0)
             c.send("wait", {"settle": True})
         self.node_checks = {"nodes": looked, "statues": statues, "attempts": 3}
@@ -1370,9 +1460,10 @@ class Service:
         held = self.client.settings()
         undo = {}
         for key, value in (merged.get("profile") or {}).items():
+            if key in LAUNCH_PROFILE_KEYS:
+                continue
             if key not in held:
-                raise RenderError("'%s' is not a client setting (texture size is the pack "
-                                  "directory, not a setting)" % key)
+                raise RenderError("'%s' is not a client setting" % key)
             undo.setdefault(key, held[key])
             c.send("set", {"key": key, "value": float(value)})
             c.send("wait", {"frames": 5})
@@ -1405,7 +1496,8 @@ class Service:
             t = to_goanna(self.place(p["look_at"]))
             c.send("look", {"x": t[0], "y": t[1], "z": t[2]})
         c.send("wait", {"settle": True})
-        self.wait_quiet(3.0, 60.0)
+        t0 = time.time()
+        self.settled = {"quiet": self.wait_quiet(3.0, 60.0), "waited_s": round(time.time() - t0, 1)}
 
     def wait_quiet(self, quiet, timeout):
         c = self.client.control
@@ -1472,7 +1564,8 @@ class Service:
                              "materials": {k: diag.get(k) for k in
                                            ("pbr_disabled", "materials", "built",
                                             "texture_path") if isinstance(diag, dict)},
-                             "entity_normals": normals, "taken": now()})
+                             "entity_normals": normals, "settled": getattr(self, "settled", None),
+                             "taken": now()})
                 if p.get("fov") is not None:
                     side["profile"] = dict(side["profile"], held=dict(side["profile"]["held"],
                                                                      fov=float(p["fov"])))
@@ -1613,10 +1706,13 @@ def cmd_serve(args):
                     help="how long the card must be clear before coming back after a yield")
     ap.add_argument("--fake-gpu-user", default=None,
                     help="test mode: a file of pid,name lines treated as nvidia-smi compute rows")
+    ap.add_argument("--far", action="store_true",
+                    help="grant the far field on the fixture world (always on with --world-from)")
     ap.add_argument("--software", action="store_true",
                     help="render on lavapipe, for testing the service itself; takes no lock")
     ap.add_argument("--foreground", action="store_true")
     opt = ap.parse_args(args)
+    opt.argv = [a for a in args if a != "--foreground"] + ["--foreground"]
     opt.stage = [int(v) for v in opt.stage.split(",")]
     opt.size = parse_size(opt.size)
     if service_record():

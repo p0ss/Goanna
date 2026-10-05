@@ -8,8 +8,16 @@
 -- afterwards. Coordinates in the commands are Luanti's, absolute; the
 -- service converts a job's stage relative ones before sending them.
 --
---   /rs_box x1 y1 z1 x2 y2 z2 node   fill a box, remembering what was there
+--   /rs_box x1 y1 z1 x2 y2 z2 node [param2] [swap]
+--                                    fill a box, remembering what was there;
+--                                    swap uses swap_node, so no on_construct
+--                                    or on_destruct runs (a portal set with
+--                                    set_node is destroyed by Mineclonia)
 --   /rs_statue entity x y z yaw [ai] a held entity; yaw in degrees
+--   /rs_statue_json BASE64           the same from a JSON object, with
+--                                    props, animation, attach and burn
+--   /rs_lua BASE64                   run a Lua chunk for a job (node meta,
+--                                    pots, books), with helpers in its scope
 --   /rs_status                       pending boxes, statues, saved nodes
 --   /rs_node x y z                   the node there, as the server holds it
 --   /rs_reset                        statues removed, every box put back
@@ -26,6 +34,7 @@ local MAX_VOLUME = 65536
 local pending = 0
 local saved = {}      -- hash -> {pos, node}, the node before the first box over it
 local statues = {}
+local tracked = {}    -- objects a job's Lua made, removed by /rs_reset
 
 local function num(word)
 	local v = tonumber(word)
@@ -50,7 +59,7 @@ end
 
 -- Emerged first: a node set in a block mapgen has not made yet is lost when
 -- mapgen makes it.
-local function fill(minp, maxp, name, remember, done)
+local function fill(minp, maxp, name, remember, done, param2, swap)
 	pending = pending + 1
 	core.emerge_area(minp, maxp, function(_, _, remaining)
 		if remaining ~= 0 then
@@ -66,7 +75,11 @@ local function fill(minp, maxp, name, remember, done)
 							saved[h] = {pos = pos, node = core.get_node(pos)}
 						end
 					end
-					core.set_node(pos, {name = name})
+					if swap then
+						core.swap_node(pos, {name = name, param2 = param2 or 0})
+					else
+						core.set_node(pos, {name = name, param2 = param2 or 0})
+					end
 				end
 			end
 		end
@@ -94,6 +107,24 @@ core.register_on_mods_loaded(function()
 	core.after(1, lay_floor)
 end)
 
+-- A figure with the player's own model and texture slots (skin, armour,
+-- a third the game leaves blank), for a job that dresses a player shaped
+-- statue: props.textures sets what it wears. Mineclonia's model, so only
+-- where that game is loaded.
+if core.get_modpath("mcl_armor") then
+	core.register_entity("goanna_render_fixture:figure", {
+		initial_properties = {
+			visual = "mesh", mesh = "mcl_armor_character.b3d",
+			textures = {"character.png", "blank.png", "blank.png"},
+			visual_size = {x = 1, y = 1}, collisionbox = {-0.3, 0, -0.3, 0.3, 1.8, 0.3},
+			physical = false, pointable = false, static_save = false,
+		},
+		on_activate = function(self)
+			self.object:set_animation({x = 0, y = 79}, 30, 0, true)
+		end,
+	})
+end
+
 core.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	local privs = core.get_player_privs(name)
@@ -113,13 +144,23 @@ core.register_on_joinplayer(function(player)
 end)
 
 core.register_chatcommand("rs_box", {
-	params = "<x1> <y1> <z1> <x2> <y2> <z2> <node>",
+	params = "<x1> <y1> <z1> <x2> <y2> <z2> <node> [param2] [swap]",
 	description = "Render service: fill a box, remembering what was there",
 	privs = {},
 	func = function(_, param)
 		local w = words(param)
-		if #w ~= 7 then
-			return false, "rs_box wants x1 y1 z1 x2 y2 z2 node"
+		if #w < 7 or #w > 9 then
+			return false, "rs_box wants x1 y1 z1 x2 y2 z2 node [param2] [swap]"
+		end
+		local param2, swap = 0, false
+		for i = 8, #w do
+			if w[i] == "swap" then
+				swap = true
+			elseif tonumber(w[i]) then
+				param2 = tonumber(w[i])
+			else
+				return false, "rs_box: " .. w[i] .. " is neither a param2 nor swap"
+			end
 		end
 		local ok, minp, maxp = pcall(function()
 			return sorted_box(num(w[1]), num(w[2]), num(w[3]), num(w[4]), num(w[5]), num(w[6]))
@@ -135,7 +176,7 @@ core.register_chatcommand("rs_box", {
 		if volume > MAX_VOLUME then
 			return false, "rs_box: " .. volume .. " nodes is more than " .. MAX_VOLUME
 		end
-		fill(minp, maxp, node, true)
+		fill(minp, maxp, node, true, nil, param2, swap)
 		return true, "rs_box queued " .. volume .. " " .. node
 	end,
 })
@@ -167,8 +208,50 @@ local function spawn(s)
 	obj:set_velocity({x = 0, y = 0, z = 0})
 	obj:set_acceleration({x = 0, y = 0, z = 0})
 	obj:set_yaw(s.yaw)
+	-- A job's own look for the statue: armour textures on a figure, a
+	-- mob's texture set, a pose frame. Applied after on_activate, which is
+	-- where mobs pick their textures.
+	if s.props then
+		obj:set_properties(s.props)
+	end
+	if s.animation then
+		obj:set_animation({x = s.animation[1], y = s.animation[2] or s.animation[1]},
+			s.animation[3] or 0, 0, true)
+	end
+	s.attached = {}
+	for _, a in ipairs(s.attach or {}) do
+		local child = core.add_entity(s.pos, a.entity)
+		if child then
+			child:set_properties({static_save = false})
+			if a.props then
+				child:set_properties(a.props)
+			end
+			child:set_attach(obj, a.bone or "", a.pos and vector.new(a.pos[1], a.pos[2], a.pos[3]),
+				a.rot and vector.new(a.rot[1], a.rot[2], a.rot[3]))
+			s.attached[#s.attached + 1] = child
+		end
+	end
+	if s.burn and mcl_burning then
+		-- The statue's on_step is shadowed, so mcl_burning.tick never runs
+		-- down this burn and the flame stays attached.
+		mcl_burning.set_on_fire(obj, 1000000)
+	end
 	s.obj = obj
 	return obj
+end
+
+local function remove_statue(s)
+	for _, child in ipairs(s.attached or {}) do
+		if child:get_pos() then
+			child:remove()
+		end
+	end
+	s.attached = {}
+	if s.obj and s.obj:get_pos() then
+		s.obj:remove()
+		return true
+	end
+	return false
 end
 
 local function block_active(pos)
@@ -176,6 +259,13 @@ local function block_active(pos)
 		return core.compare_block_status(pos, "active") == true
 	end
 	return core.get_node_or_nil(pos) ~= nil
+end
+
+local function add_statue(s)
+	statues[#statues + 1] = s
+	local now = block_active(s.pos) and spawn(s)
+	return true, "rs_statue " .. #statues .. " " .. s.name .. " at " ..
+		core.pos_to_string(s.pos) .. (now and " spawned" or " waiting for its block")
 end
 
 core.register_chatcommand("rs_statue", {
@@ -198,10 +288,35 @@ core.register_chatcommand("rs_statue", {
 			return false, "rs_statue: " .. tostring(pos)
 		end
 		local s = {name = name, pos = pos, yaw = math.rad(tonumber(w[5]) or 0), ai = w[6] == "ai"}
-		statues[#statues + 1] = s
-		local now = block_active(pos) and spawn(s)
-		return true, "rs_statue " .. #statues .. " " .. name .. " at " ..
-			core.pos_to_string(pos) .. (now and " spawned" or " waiting for its block")
+		return add_statue(s)
+	end,
+})
+
+-- The JSON form: {"entity", "pos": [x, y, z], "yaw" (degrees), "ai",
+-- "props" (object properties set after activation), "animation": [from,
+-- to, speed], "attach": [{"entity", "bone", "pos", "rot", "props"}], "burn"}.
+-- Base64, because chat is the channel.
+core.register_chatcommand("rs_statue_json", {
+	params = "<base64 json>",
+	description = "Render service: a held entity described by a JSON object",
+	privs = {},
+	func = function(_, param)
+		local text = core.decode_base64(param:match("%S+") or "")
+		local d = text and core.parse_json(text)
+		if type(d) ~= "table" or type(d.pos) ~= "table" then
+			return false, "rs_statue_json: not a statue object"
+		end
+		if not core.registered_entities[d.entity or ""] then
+			return false, "rs_statue_json: no entity " .. tostring(d.entity)
+		end
+		for _, a in ipairs(d.attach or {}) do
+			if not core.registered_entities[a.entity or ""] then
+				return false, "rs_statue_json: no entity " .. tostring(a.entity) .. " to attach"
+			end
+		end
+		return add_statue({name = d.entity, pos = {x = d.pos[1], y = d.pos[2], z = d.pos[3]},
+			yaw = math.rad(tonumber(d.yaw) or 0), ai = d.ai == true, props = d.props,
+			animation = d.animation, attach = d.attach, burn = d.burn == true})
 	end,
 })
 
@@ -212,7 +327,7 @@ core.register_globalstep(function()
 			s.obj:set_velocity({x = 0, y = 0, z = 0})
 			s.obj:set_yaw(s.yaw)
 			local ent = s.obj:get_luaentity()
-			if ent then
+			if ent and not s.burn then
 				ent.burn_time = 0
 			end
 		elseif block_active(s.pos) then
@@ -220,6 +335,71 @@ core.register_globalstep(function()
 		end
 	end
 end)
+
+-- A Lua chunk for what a box cannot say: node meta (a decorated pot's
+-- faces, a bookshelf's books), a callback a node needs after it is set.
+-- Its scope reads through to the global one and adds:
+--   S             the stage, absolute
+--   P(x, y, z)    a stage relative position, absolute
+--   save(pos)     remember the node there, so /rs_reset puts it back
+--   set(pos, node) and swap(pos, node), which save first
+--   track(obj)    an object /rs_reset removes
+-- It runs once the nodes queued before it are placed. Base64, because chat
+-- is the channel. Only the render service's own world has this mod.
+local function lua_scope()
+	local scope = {S = vector.new(stage.x, stage.y, stage.z)}
+	scope.P = function(x, y, z)
+		return vector.new(stage.x + x, stage.y + y, stage.z + z)
+	end
+	scope.save = function(pos)
+		pos = vector.round(pos)
+		local h = core.hash_node_position(pos)
+		if not saved[h] then
+			core.load_area(pos)
+			saved[h] = {pos = pos, node = core.get_node(pos)}
+		end
+	end
+	scope.set = function(pos, node)
+		scope.save(pos)
+		core.set_node(pos, type(node) == "string" and {name = node} or node)
+	end
+	scope.swap = function(pos, node)
+		scope.save(pos)
+		core.swap_node(pos, type(node) == "string" and {name = node} or node)
+	end
+	scope.track = function(obj)
+		if obj then
+			tracked[#tracked + 1] = obj
+		end
+		return obj
+	end
+	return setmetatable(scope, {__index = _G})
+end
+
+core.register_chatcommand("rs_lua", {
+	params = "<base64 lua>",
+	description = "Render service: run a job's Lua chunk",
+	privs = {},
+	func = function(name, param)
+		if name ~= "render" then
+			return false, "rs_lua: only the render service's own player"
+		end
+		local src = core.decode_base64(param:match("%S+") or "")
+		if not src then
+			return false, "rs_lua: not base64"
+		end
+		local fn, err = loadstring(src, "=rs_lua")
+		if not fn then
+			return false, "rs_lua error " .. tostring(err)
+		end
+		setfenv(fn, lua_scope())
+		local ok, got = pcall(fn)
+		if not ok then
+			return false, "rs_lua error " .. tostring(got)
+		end
+		return true, "rs_lua ok " .. tostring(got)
+	end,
+})
 
 core.register_chatcommand("rs_status", {
 	description = "Render service: what is pending, placed and held",
@@ -261,16 +441,27 @@ core.register_chatcommand("rs_reset", {
 	func = function()
 		local removed = 0
 		for _, s in ipairs(statues) do
-			if s.obj and s.obj:get_pos() then
-				s.obj:remove()
+			if remove_statue(s) then
 				removed = removed + 1
 			end
 		end
 		statues = {}
+		for _, obj in ipairs(tracked) do
+			if obj:get_pos() then
+				obj:remove()
+				removed = removed + 1
+			end
+		end
+		tracked = {}
 		local restored = 0
 		for _, entry in pairs(saved) do
 			core.load_area(entry.pos)
-			core.set_node(entry.pos, entry.node)
+			-- swap_node, so no destructor runs: a portal or obsidian set
+			-- back with set_node fires Mineclonia's destroy_portal, and a
+			-- pot's on_destruct would look for its faces. The meta a job
+			-- gave the node goes with it.
+			core.swap_node(entry.pos, entry.node)
+			core.get_meta(entry.pos):from_table(nil)
 			restored = restored + 1
 		end
 		saved = {}
