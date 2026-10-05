@@ -204,7 +204,199 @@ def minecart_specs():
                                 "dark_iron": CART_DARK, "iron": CART_IRON}, src, "metal")}
 
 
-FAMILIES = {"boats": boat_specs, "minecart": minecart_specs}
+# --- worn armour --------------------------------------------------------------------------
+# mcl_armor_character.b3d brush 1 ("Armor") draws (feet)^(legs)^(torso)^(head),
+# each piece a 64 x 32 image on the player's layout, the elytra in the torso
+# slot. Zombies, skeletons and the rest wear the same images on their own
+# armour brush. Leather is dyed by multiplying a grey copy
+# (*_leather_desat^[multiply:<colour>]), so the copy takes the leather's own
+# material map. Trims are drawn over a piece as
+# ^(<pattern>_<piece>.png^[colorize:<colour>:150): a raised metal inlay,
+# built as an overlay standing over the plate.
+
+ARMOUR_KINDS = ("leather", "leather_desat", "chain", "copper", "iron", "gold", "diamond",
+                "netherite")
+ARMOUR_PIECES = ("helmet", "chestplate", "leggings", "boots")
+TRIMS = ("bolt", "coast", "dune", "eye", "flow", "rib", "sentry", "silence", "snout", "spire",
+         "tide", "vex", "ward", "wayfinder", "wild")
+
+# Worn polished plate: lighter higher by a shallow step, the darkest
+# outline texels sunk a little as the seams between plates.
+ARM_PLATE = {"mode": "shade", "base": 0.86, "span": 0.12, "levels": 3, "detail": 0.3,
+             "joints": True, "joint": 0.12, "metal": True, "smooth": 0.72, "smooth_spread": 0.03,
+             "micro": "metal_worn", "wear": 0.12}
+# Diamond: gem plate, F0 0.17 and polished only on the gem.
+ARM_GEM = {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3,
+           "joints": False, "smooth": 0.9, "smooth_spread": 0.02, "f0": 0.17, "micro": "glass",
+           "micro_strength": 0.4, "wear": 0.06}
+# The dark frame a diamond piece is set in: dark iron, a dielectric.
+ARM_FRAME = {"mode": "shade", "base": 0.8, "span": 0.1, "levels": 2, "detail": 0.3,
+             "joints": False, "metal": False, "smooth": 0.5, "smooth_spread": 0.03,
+             "micro": "metal_worn", "wear": 0.1}
+# Netherite's dark plate: polished dark metal drawn near black, so a
+# dielectric; its lighter edging is the metal.
+ARM_DARK = {"mode": "shade", "base": 0.84, "span": 0.12, "levels": 3, "detail": 0.3,
+            "joints": False, "metal": False, "smooth": 0.64, "smooth_spread": 0.03,
+            "micro": "metal_worn", "wear": 0.12}
+# Mail: one height per shade band, the art's lighter texels the rings and
+# its darkest the gaps between, a ring of round wire per texel in the
+# normal. Rings at 0.2 luminance and over are metal; the gaps a dielectric.
+ARM_CHAIN = {"mode": "flat", "base": 0.9, "span": 0.0, "metal": True, "smooth": 0.66,
+             "smooth_spread": 0.0, "micro": "chain", "micro_strength": 1.0, "wear": 0.1}
+ARM_CHAIN_GAP = dict(ARM_CHAIN, base=0.87, metal=False, smooth=0.4)
+# Stitched leather, soft: lighter a little higher, steps rounded, the box
+# edges rolled rather than bevelled, stitching inside each piece's edge.
+ARM_LEATHER = {"mode": "soft", "base": 0.88, "span": 0.1, "detail": 0.25, "soft_edge": 0.3,
+               "round": 3, "edge_roll": 1.5, "edge_lean": 18, "roll_rough": 0.03,
+               "metal": False, "smooth": 0.36, "smooth_spread": 0.02, "micro": "leather",
+               "micro_strength": 0.5, "wear": 0.15,
+               "stitch": {"inset": 0.22, "length": 0.36, "gap": 0.18, "width": 0.07,
+                          "groove": 0.05, "depth": 0.03}}
+# Straps and belts under and between plates: leather, one height. Most are
+# a single texel wide, too thin for a rolled edge or a stitched one: a
+# roll there leaned inward at the face borders, and the stitch groove sat
+# on the border row.
+ARM_STRAP = {"mode": "flat", "base": 0.9, "span": 0.0, "metal": False, "micro": "leather",
+             "smooth": 0.38, "smooth_spread": 0.0, "micro_strength": 0.35, "wear": 0.12}
+ARM_BUCKLE = {"mode": "flat", "base": 0.94, "span": 0.0, "metal": True, "smooth": 0.7,
+              "smooth_spread": 0.0, "micro": "metal_worn", "wear": 0.1}
+# Padding and surcoats: one soft cloth whatever its check.
+ARM_CLOTH = {"mode": "soft", "base": 0.9, "span": 0.06, "detail": 0.25, "soft_edge": 0.3,
+             "round": 3, "edge_roll": 1.5, "edge_lean": 18, "roll_rough": 0.03, "metal": False,
+             "smooth": 0.16, "smooth_spread": 0.02, "micro": "canvas", "micro_strength": 0.7,
+             "wear": 0.1, "scatter": 0.25}
+# Small coloured accents (the gold helmet's violet band, netherite's red
+# studs): enamel, flat, a little proud and polished.
+ARM_ACCENT = {"mode": "flat", "base": 0.94, "span": 0.0, "metal": False, "smooth": 0.62,
+              "smooth_spread": 0.0, "micro": "none"}
+# The elytra: wing membrane, soft and satin, on dark ribs.
+ELYTRA_MEMBRANE = {"mode": "soft", "base": 0.86, "span": 0.08, "detail": 0.25, "soft_edge": 0.3,
+                   "round": 3, "edge_roll": 1.5, "edge_lean": 12, "roll_rough": 0.03,
+                   "metal": False, "smooth": 0.48, "smooth_spread": 0.02, "micro": "hide",
+                   "micro_params": {"cell": 0.6, "wrinkles": 0.8}, "micro_strength": 0.35,
+                   "scatter": 0.35}
+ELYTRA_EDGE = {"mode": "flat", "base": 0.96, "span": 0.0, "metal": False, "smooth": 0.48,
+               "smooth_spread": 0.0, "micro": "hide", "micro_params": {"cell": 0.6, "wrinkles": 0.8},
+               "micro_strength": 0.35, "scatter": 0.35}
+ELYTRA_RIB = {"mode": "flat", "base": 0.96, "span": 0.0, "metal": False, "micro": "bone",
+              "micro_strength": 0.4, "micro_params": {"cracks": 0.2}, "smooth": 0.42,
+              "smooth_spread": 0.0}
+# A trim: raised metal inlay over the plate, lighter a little higher; the
+# near black texels of a pattern a dielectric.
+TRIM_INLAY = {"mode": "shade", "base": 0.94, "span": 0.06, "levels": 2, "detail": 0.3,
+              "joints": False, "metal": True, "smooth": 0.74, "smooth_spread": 0.02,
+              "micro": "metal_worn", "wear": 0.08}
+TRIM_DARK = dict(TRIM_INLAY, metal=False, smooth=0.5)
+TRIM_COVER = 0.2
+
+
+def armour_material(kind, hh, s, L):
+    if kind in ("leather", "leather_desat"):
+        return "leather"
+    if 0.035 <= hh <= 0.07 and 0.4 <= s <= 0.52 and L < 0.36:
+        return "strap"
+    if kind != "gold" and 0.11 <= hh <= 0.14 and s > 0.5 and L > 0.6:
+        return "buckle"
+    if kind == "chain":
+        if 0.55 <= hh <= 0.66 and s >= 0.05 and L < 0.36:
+            return "chain" if L >= 0.2 else "chain_gap"
+        if s > 0.6 and (hh > 0.95 or hh < 0.03):
+            return "cloth"
+        if 0.08 <= hh <= 0.12 and 0.1 <= s <= 0.2 and L > 0.6:
+            return "cloth"
+        return "plate"
+    if kind == "copper":
+        return "plate" if L >= 0.21 else "dark"
+    if kind == "gold":
+        if 0.06 < hh < 0.16 and s > 0.5:
+            return "plate"
+        if 0.6 < hh < 0.85:
+            return "accent"
+        return "cloth"
+    if kind == "diamond":
+        return "gem" if s > 0.3 or L > 0.9 else "frame"
+    if kind == "netherite":
+        if s > 0.5 and (hh > 0.95 or hh < 0.03):
+            return "accent"
+        return "plate" if L >= 0.25 else "dark"
+    return "plate" if L >= 0.2 else "dark"
+
+
+ARMOUR_MATERIALS = {"plate": ARM_PLATE, "dark": ARM_DARK, "gem": ARM_GEM, "frame": ARM_FRAME,
+                    "chain": ARM_CHAIN, "chain_gap": ARM_CHAIN_GAP, "leather": ARM_LEATHER,
+                    "strap": ARM_STRAP, "buckle": ARM_BUCKLE, "cloth": ARM_CLOTH,
+                    "accent": ARM_ACCENT}
+
+
+def armour_specs():
+    out = {}
+    model = ("mcl_armor_character.b3d", 1)
+    for piece in ARMOUR_PIECES:
+        leather = None
+        for kind in ARMOUR_KINDS:
+            stem = "mcl_armor_%s_%s" % (piece, kind)
+            MODELS[stem] = model
+            src = lib.load_source(stem, GAME)
+            h, w = src.shape[:2]
+            mat = np.full((h, w), "plate", dtype=object)
+            for x, y, hh, s, L in texels(src):
+                mat[y, x] = armour_material(kind, hh, s, L)
+            mats = dict(ARMOUR_MATERIALS)
+            if kind == "netherite":
+                # Netherite's own dark plate and its edging, a little less
+                # polished than iron's.
+                mats["plate"] = dict(ARM_PLATE, smooth=0.66)
+            if kind == "leather":
+                leather = mat
+            if kind == "leather_desat" and leather is not None:
+                mat = leather.copy()
+            # Soft leather's rounded steps and rolled edges add to the
+            # march; a little less strength keeps it under the cap.
+            # The box bevel a little deeper than the boats' so it still
+            # leans outward where a plate's sunk seam or a belt reaches the
+            # face's border; gold's belted leggings need more.
+            extra = {"bevel_depth": 0.15 if stem == "mcl_armor_leggings_gold" else 0.12}
+            if kind.startswith("leather"):
+                extra["strength"] = 21.0
+            out[stem] = spec_of(mat, mats, src, "metal", extra)
+    stem = "mcl_armor_elytra"
+    MODELS[stem] = model
+    src = lib.load_source(stem, GAME)
+    mat = np.full(src.shape[:2], "membrane", dtype=object)
+    # A wing's edges are faces two texels across: one height there.
+    narrow = narrow_mask(model[0], model[1], src.shape[1], src.shape[0], most=2)
+    for x, y, hh, s, L in texels(src):
+        if s < 0.1:
+            mat[y, x] = "rib"
+        elif narrow[y, x]:
+            mat[y, x] = "edge"
+    out[stem] = spec_of(mat, {"membrane": ELYTRA_MEMBRANE, "rib": ELYTRA_RIB,
+                              "edge": ELYTRA_EDGE}, src, "cloth")
+    for trim in TRIMS:
+        for piece in ARMOUR_PIECES:
+            stem = "%s_%s" % (trim, piece)
+            MODELS[stem] = model
+            # Some patterns are drawn translucent (wayfinder's texels are
+            # all under half alpha, sentry's partly): "cover" counts a
+            # texel at a fifth alpha or more as inlay, and the client lays
+            # its maps over the plate by that alpha.
+            src = lib.load_source(stem, GAME).copy()
+            a = src[..., 3]
+            if not (a >= TRIM_COVER).any():
+                # wayfinder_leggings is an empty image: nothing to inlay.
+                del MODELS[stem]
+                continue
+            src[..., 3] = np.where(a >= TRIM_COVER, 1.0, a)
+            mat = np.full(src.shape[:2], "inlay", dtype=object)
+            for x, y, hh, s, L in texels(src):
+                if L < 0.2:
+                    mat[y, x] = "inlay_dark"
+            out[stem] = spec_of(mat, {"inlay": TRIM_INLAY, "inlay_dark": TRIM_DARK}, src,
+                                "metal", {"overlay": True, "surface": 0.9, "cover": TRIM_COVER})
+    return out
+
+
+FAMILIES = {"boats": boat_specs, "minecart": minecart_specs, "armour": armour_specs}
 
 
 def main():

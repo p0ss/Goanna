@@ -130,6 +130,13 @@ border:
   leaf     small overlapping leaves at random angles, each domed with a
            midrib, a dark gap where none covers, the later leaf on top.
            "size".
+  chain    mail, four rings through each: rings of round wire, "rings" to
+           a texel across, in rows half a ring apart, each row's rings
+           leaning the other way so each ring passes over two neighbours
+           and under two; the gaps between low and rough, the wire
+           smoother. Symmetric about the
+           direction, so right on mirrored limbs. Sized for 16 map pixels
+           to a texel (the player's armour layers).
   mix      several kinds summed: "layers", a list of {"kind", "strength",
            "swing", "params"}, each kind at its own amplitude and swing
            times strength and swing. A material takes one "micro", so a
@@ -1143,6 +1150,46 @@ def _leaf(c, p):
     return d, s
 
 
+def _chain(c, p):
+    """Mail, four rings through each: rings of round wire, "rings" to a
+    texel across, in rows half a ring apart along the direction, each row
+    shifted half a ring, so every ring overlaps the four rings diagonal to
+    it. Each ring is a torus of radius "radius" and wire half width "wire"
+    (both in ring spacings); a row's rings lean along the direction one
+    way and the next row's the other way ("lean"), so where two rings cross
+    the leaning one is on top and each ring passes over two neighbours and
+    under two. A pixel no wire covers is a gap, low and rough. The wire's
+    top is smoother than its sides."""
+    n = float(p.get("rings", 1.0))
+    rad = float(p.get("radius", 0.4))
+    wire = float(p.get("wire", 0.13))
+    lean = float(p.get("lean", 0.12))
+    a, b = c["u"] * n, c["v"] * n
+    row0 = np.floor(a * 2.0)
+    d = np.full(np.shape(a), -float(p.get("gap", 0.15)))
+    s = np.full(np.shape(a), -0.5)
+    top = np.full(np.shape(a), -np.inf)
+    for dr in (-2, -1, 0, 1, 2):
+        r = row0 + dr
+        odd = np.mod(r, 2.0)
+        off = 0.5 * odd
+        for dc in (-1, 0, 1):
+            col = np.floor(b - off) + dc
+            cu, cv = 0.5 * r + 0.25, col + 0.5 + off
+            du, dv = a - cu, b - cv
+            q = (np.hypot(du, dv) - rad) / wire
+            on = np.abs(q) < 1.0
+            prof = np.sqrt(np.clip(1.0 - q * q, 0.0, 1.0))
+            sign = np.where(odd < 0.5, 1.0, -1.0)
+            jit = 0.1 * (_hash(r.astype(np.int64), col.astype(np.int64), c["seed"] + 80) - 0.5)
+            h = 0.6 * prof + lean * sign * du + jit
+            hit = on & (h > top)
+            d = np.where(hit, h, d)
+            s = np.where(hit, 0.6 * prof - 0.2, s)
+            top = np.where(hit, h, top)
+    return d, s
+
+
 # --- block kinds --------------------------------------------------------------
 
 # Per block kind: the block class whose normal strength the block kind is
@@ -1255,6 +1302,7 @@ KINDS = {
     "rivets": (_rivets, 0.060, 0.15),
     "rust": (_rust, 0.050, 0.20),
     "leaf": (_leaf, 0.070, 0.12),
+    "chain": (_chain, 0.060, 0.20),
     "mix": (_mix, 1.0, 1.0),
     "paper": (_paper, 0.008, 0.04),
 }
