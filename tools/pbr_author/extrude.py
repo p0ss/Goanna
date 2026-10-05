@@ -56,8 +56,8 @@ joint sinks under the material's base, as a share of it), smooth
 f0 (dielectric reflectance, diamond 0.17), metal (true for metal
 texels), emission (0..1 glow), emission_shade (glow follows the
 shade, lighter texels brighter), micro (on a flat material, the per
-texel step, default 0.06; as a string, a micro surface kind for
-atlas.py, see micro.py), sss (the _s blue byte for the material in
+texel step, default 0.06; as a string, the material's own micro surface
+kind, see material_micro), sss (the _s blue byte for the material in
 place of the class's; a top level "sss" sets it for the whole stem),
 flush (stand each piece at the height of the material round it, see
 flush_features), merge (on a shade material, neighbouring close shades
@@ -574,6 +574,105 @@ def micro_kind(stem, spec, cls):
     return kind
 
 
+def own_micro(spec):
+    """The materials that name their own micro kind ("none" among them)."""
+    return [k for k, m in (spec.get("materials") or {}).items()
+            if isinstance(m.get("micro"), str)]
+
+
+def _micro_dir(how, sel, iy, ix):
+    """Per map pixel of a material, the direction its micro runs, (dx, dy)
+    in the image: "h" right, "v" down, a number an angle in degrees (0
+    right, 90 down), "along" the long axis of each 4 connected piece of
+    the material (a tool's handle drawn as a diagonal staircase), from the
+    piece's texel covariance as on a skin (atlas._piece_frames). A piece
+    too small or too round to have a long axis runs right. Also returns
+    the pieces' frames (centre and half size, texels) for the kinds that
+    read them."""
+    import atlas
+    right = np.array((1.0, 0.0))
+    cx, cy, hx, hy, ax = atlas._piece_frames(sel, np.zeros(sel.shape, int), lambda i: right)
+    k = len(ix)
+    if how == "along":
+        dvec = ax[iy, ix, 0].astype(np.float64), ax[iy, ix, 1].astype(np.float64)
+    elif how == "v":
+        dvec = np.zeros(k), np.ones(k)
+    elif isinstance(how, (int, float)):
+        a = np.radians(float(how))
+        dvec = np.full(k, np.cos(a)), np.full(k, np.sin(a))
+    elif how == "h":
+        dvec = np.ones(k), np.zeros(k)
+    else:
+        raise ValueError("micro_dir %r: a tile takes h, v, along or an angle" % (how,))
+    return dvec, (cx, cy, hx, hy)
+
+
+def material_micro(stem, spec, cls, mat, src, n):
+    """(detail, smooth swing) at the map's size for the materials of a tile
+    that name their own micro kind, the rest zero.
+
+    One micro kind for the whole stem was wrong wherever a stem mixes
+    materials: a hand tool's wooden handle carried the head's brushed metal
+    and no grain. A material may name its own kind, as on a skin:
+
+      "handle": {"mode": "shade", ..., "micro": "wood", "micro_dir": "along"}
+
+    The kind is any of micro.py's (wood, bark, glass, metal and metal_worn
+    read this module's block fields at one block texel per art texel and
+    at the block's rise, so a handle's grain is the planks' grain) or any
+    of MICRO_KINDS, the block field laid along the direction. "none" is no
+    micro at all. Keys: "micro_strength" (on the amplitude), "micro_swing"
+    (on the smoothness swing), "micro_params" (micro.py's), "micro_dir"
+    (_micro_dir; default the stem's "micro_dir", else "h", as the stem's
+    own micro). The kinds that need a skin's locks (micro.LOCK_KINDS,
+    SLOPE_KINDS) are atlas.py's only. Coordinates are in art texels, so on
+    a tile drawn at 32 px a texel of grain is half a planks texel."""
+    import micro
+    rows, cols = mat.shape
+    H, W = rows * n, cols * n
+    up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
+    alpha = src[..., 3] if src.shape[-1] == 4 else np.ones(mat.shape, np.float32)
+    drawn = alpha >= 0.5
+    xs = (np.arange(W) + 0.5) / n
+    ys = (np.arange(H) + 0.5) / n
+    detail = np.zeros((H, W), np.float32)
+    swing_out = np.zeros((H, W), np.float32)
+    strength = float(spec.get("strength", CLASS_STYLE.get(cls, DEFAULT_STYLE)[2]))
+    for name, m in (spec.get("materials") or {}).items():
+        kind = m.get("micro")
+        if not isinstance(kind, str) or kind == "none":
+            continue
+        sel = drawn & (mat == name)
+        if not sel.any():
+            continue
+        iy, ix = np.nonzero(up(sel))
+        ty, tx = iy // n, ix // n
+        (dx, dy), (cx, cy, hx, hy) = _micro_dir(m.get("micro_dir", spec.get("micro_dir", "h")),
+                                                sel, ty, tx)
+        x, y = xs[ix], ys[iy]
+        u = x * dx + y * dy
+        v = -x * dy + y * dx
+        seed = zlib.crc32((stem + "/" + name).encode()) & 0xffff
+        if kind in micro.LOCK_KINDS or kind in micro.SLOPE_KINDS:
+            raise ValueError("micro %r needs a skin's locks; atlas.py only" % kind)
+        if kind in micro.KINDS or kind in micro.PRESETS:
+            ctx = {"x": x, "y": y, "u": u, "v": v, "seed": seed, "cell": n,
+                   "strength": strength,
+                   "px": (x - cx[ty, tx]) / hx[ty, tx], "py": (y - cy[ty, tx]) / hy[ty, tx],
+                   "hx": hx[ty, tx], "hy": hy[ty, tx]}
+            d, s, amp, swing = micro.evaluate(kind, ctx, m.get("micro_params"))
+        elif kind in MICRO_KINDS:
+            amp, swing = MICRO_KINDS[kind]
+            fd, fs = micro_field(kind, seed, size=n * 16)
+            d = _sample(fd, v * n - 0.5, u * n - 0.5)
+            s = _sample(fs, v * n - 0.5, u * n - 0.5)
+        else:
+            raise ValueError("unknown micro kind %r on material %s" % (kind, name))
+        detail[iy, ix] += amp * float(m.get("micro_strength", 1.0)) * d
+        swing_out[iy, ix] += swing * float(m.get("micro_swing", 1.0)) * s
+    return detail, swing_out
+
+
 def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     """Write the stem's three maps to out_dir and return lib's metrics."""
     spec = load_spec(stem, game) if spec is None else spec
@@ -603,13 +702,21 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     kind = micro_kind(stem, spec, cls)
     detail = None
     smooth_hi = np.clip(up(sm), 0.0, lib.SMOOTH_CEILING)
+    # A material naming its own micro kind takes none of the stem's.
+    own = own_micro(spec)
+    keep = up((~np.isin(mat, own)).astype(np.float32)) if own else 1.0
     if kind in MICRO_KINDS:
         amp, swing = MICRO_KINDS[kind]
         amp *= float(spec.get("micro_strength", 1.0))
         d, dsm = micro_field(kind, zlib.crc32(stem.encode()) & 0xffff,
                              direction=spec.get("micro_dir", "h"))
-        detail = amp * _fit(d, hi.shape)
-        smooth_hi = np.clip(smooth_hi + swing * _fit(dsm, hi.shape), 0.0, lib.SMOOTH_CEILING)
+        detail = amp * _fit(d, hi.shape) * keep
+        smooth_hi = np.clip(smooth_hi + swing * _fit(dsm, hi.shape) * keep, 0.0,
+                            lib.SMOOTH_CEILING)
+    if own:
+        d2, s2 = material_micro(stem, spec, cls, mat, src, n)
+        detail = d2 if detail is None else detail + d2
+        smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     sss = sss_map(spec, cls, mat, n)
     albedo = np.kron(src, np.ones((n, n, 1), dtype=src.dtype))
     return lib.pack(stem, out_dir, albedo, hi, smooth_hi, cls,

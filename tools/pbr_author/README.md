@@ -22,6 +22,18 @@ own low material), glow, near uniform art, and wrong classes: the class
 `lib.class_of` reads back from the bake falls to wood for any stem the
 bake left unclassified.
 
+The stem's micro surface (one kind for the whole tile, from the class or
+the spec's `"micro"`) is wrong where a stem mixes materials: a hand
+tool's wooden handle carried the head's brushed metal. A material may
+name its own kind, as on a skin: `"micro": "wood"` with
+`"micro_dir": "along"` (the long axis of each piece of the material, so
+a diagonal handle's grain runs down the handle; also `"h"`, `"v"` or an
+angle), `"micro_strength"`, `"micro_swing"` and `"micro_params"`. Any of
+`micro.py`'s kinds or `extrude.MICRO_KINDS` will do, `"none"` is none,
+and a material with its own kind takes nothing from the stem's
+(`extrude.material_micro`). On a flat material a string `"micro"` turns
+the per texel step off, so give `"step"` to keep it.
+
 ```sh
 python3 tools/pbr_author/extrude.py --palette x <stem>   # palette and texel map
 python3 tools/pbr_author/extrude.py <out dir> <stem>...  # build and check
