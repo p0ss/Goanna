@@ -7,8 +7,8 @@ narrator. Everything it does is checked by the game first and written to an
 audit log. [The director layer](director.md) is the design and says what
 has been built and tested.
 
-It is new and experimental. So far it has only been driven by a test
-script; no model and no players have used it yet. Only Mineclonia has a
+It is new and experimental. It has been driven by a test script and, once,
+by a model in a short session with one player. Only Mineclonia has a
 creature adapter, so on other games it can talk but not stage encounters.
 
 ## How the pieces fit
@@ -113,6 +113,33 @@ read events and answer within a few seconds. Not tried yet.
 
 A local model uses your graphics card. If you play on the same computer,
 expect lower frame rates while it runs.
+
+### From a shell, or an agent that runs commands
+
+`tools/goanna-director-cli` keeps one director service running and takes
+tool calls as shell commands, so a person at a terminal, a script, or an
+agent that acts one command at a time can be the game master without an
+MCP app:
+
+```sh
+W=~/.var/app/org.luanti.luanti/.minetest/worlds/<world>
+tools/goanna-director-cli --world $W serve &        # keep this running
+tools/goanna-director-cli --world $W tools          # what it offers
+tools/goanna-director-cli --world $W events '{"wait_s": 20}'
+tools/goanna-director-cli --world $W player '{"name": "alice"}'
+tools/goanna-director-cli --world $W speak \
+    '{"as": "narrator", "to": "all", "text": "A cold wind rises."}'
+```
+
+A tool name may drop its `director_` prefix, and its arguments are one JSON
+object. The answer prints as JSON; a refusal exits 1. The socket is private
+to you, in `$XDG_RUNTIME_DIR`. Every call goes through the same checks,
+budgets and audit log as from an MCP app.
+
+Used on 5 October 2026 for a short session on a world started as Goanna's
+menu starts one, hosted on the LAN: a Claude Code session cast a herder
+who greeted the player, answered their public chat lines and remembered
+them, while the player played in Goanna.
 
 ## A server on another machine
 

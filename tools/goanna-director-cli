@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""Direct a world from a shell: the director's tools without an MCP app.
+
+tools/goanna-director-mcp is the director service, and it speaks MCP over
+stdin and stdout, so it lives exactly as long as the app that started it.
+That suits an MCP app. It does not suit a person at a terminal, a script, or
+an agent that acts one shell command at a time: each would start a fresh
+service, and a fresh service is a new endpoint the server has to find again.
+
+This keeps one service running and hands it tool calls from a socket:
+
+    goanna-director-cli --world <world> serve      # keep this running
+    goanna-director-cli --world <world> tools      # what it offers
+    goanna-director-cli --world <world> status
+    goanna-director-cli --world <world> events '{"wait_s": 20}'
+    goanna-director-cli --world <world> speak \\
+        '{"as": "narrator", "to": "all", "text": "A cold wind rises."}'
+
+A tool name may drop its director_ prefix. Arguments are one JSON object.
+The answer is printed as JSON; a tool's refusal exits 1, a missing serve 2.
+
+The socket is private to the user who started serve, in $XDG_RUNTIME_DIR
+(or the system temporary folder), named for the world, so the service and
+everything it may do stay with the operator who holds the world's token.
+Every call still goes through the server mod's checks, budgets and audit
+log, exactly as from an MCP app.
+"""
+
+import argparse
+import hashlib
+import json
+import os
+import pathlib
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+
+TOOLS = pathlib.Path(__file__).resolve().parent
+SERVICE = TOOLS / "goanna-director-mcp"
+
+
+def socket_path(world):
+    # A unix socket path is limited to about 108 bytes, so it is named by a
+    # short hash of the world rather than by the world's own path.
+    base = os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir()
+    key = hashlib.sha256(str(pathlib.Path(world).resolve()).encode()).hexdigest()[:12]
+    return os.path.join(base, "goanna-director-%s.sock" % key)
+
+
+class Service:
+    """The director service, spoken to over its stdio JSON-RPC."""
+
+    def __init__(self, world, log):
+        self.proc = subprocess.Popen([sys.executable, str(SERVICE), "--world", str(world)],
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                     stderr=log, text=True)
+        self.lock = threading.Lock()
+        self.next = 1
+        self.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
+                                "clientInfo": {"name": "goanna-director-cli", "version": "1"}})
+
+    def rpc(self, method, params):
+        with self.lock:
+            msg = {"jsonrpc": "2.0", "id": self.next, "method": method, "params": params}
+            self.next += 1
+            self.proc.stdin.write(json.dumps(msg) + "\n")
+            self.proc.stdin.flush()
+            line = self.proc.stdout.readline()
+        if not line:
+            raise RuntimeError("the director service stopped; its log is beside the socket")
+        return json.loads(line)
+
+
+def serve(world):
+    path = socket_path(world)
+    if os.path.exists(path):
+        try:
+            probe = socket.socket(socket.AF_UNIX)
+            probe.connect(path)
+            probe.close()
+            sys.exit("already serving %s at %s" % (world, path))
+        except OSError:
+            os.unlink(path)
+    log = open(path + ".log", "a")
+    service = Service(world, log)
+    old_umask = os.umask(0o177)
+    listener = socket.socket(socket.AF_UNIX)
+    listener.bind(path)
+    os.umask(old_umask)
+    listener.listen(8)
+    print("serving %s at %s" % (world, path), file=sys.stderr, flush=True)
+    try:
+        while True:
+            conn, _ = listener.accept()
+            with conn:
+                data = b""
+                while not data.endswith(b"\n"):
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        break
+                    data += chunk
+                try:
+                    req = json.loads(data)
+                    if req.get("tool") == "__list__":
+                        reply = service.rpc("tools/list", {})
+                    else:
+                        reply = service.rpc("tools/call", {"name": req["tool"],
+                                                           "arguments": req.get("args") or {}})
+                except Exception as exc:                       # noqa: BLE001
+                    reply = {"error": {"message": str(exc)}}
+                conn.sendall((json.dumps(reply) + "\n").encode())
+    finally:
+        listener.close()
+        os.unlink(path)
+        service.proc.terminate()
+
+
+def call(world, tool, args):
+    path = socket_path(world)
+    conn = socket.socket(socket.AF_UNIX)
+    try:
+        conn.connect(path)
+    except OSError:
+        print("nothing is serving %s; run: %s --world %s serve" % (world, sys.argv[0], world),
+              file=sys.stderr)
+        return 2
+    with conn:
+        req = {"tool": "__list__"} if tool == "tools" else {"tool": tool, "args": args}
+        conn.sendall((json.dumps(req) + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = conn.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    reply = json.loads(buf)
+    if "error" in reply:
+        print(json.dumps(reply["error"], indent=1), file=sys.stderr)
+        return 1
+    result = reply.get("result", {})
+    if tool == "tools":
+        for t in result.get("tools", []):
+            print("%-28s %s" % (t["name"], t.get("description", "").split("\n")[0]))
+        return 0
+    text = result["content"][0]["text"]
+    try:
+        print(json.dumps(json.loads(text), indent=1))
+    except ValueError:
+        print(text)
+    if result.get("isError"):
+        return 1
+    try:
+        return 1 if json.loads(text).get("status") == "refused" else 0
+    except (ValueError, AttributeError):
+        return 0
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--world", default=os.environ.get("GOANNA_DIRECTOR_WORLD"),
+                    help="the world folder (or GOANNA_DIRECTOR_WORLD)")
+    ap.add_argument("command", help="serve, tools, or a director tool name")
+    ap.add_argument("args", nargs="?", default="{}", help="the tool's arguments, one JSON object")
+    a = ap.parse_args(argv[1:])
+    if not a.world:
+        ap.error("--world is required")
+    if a.command == "serve":
+        serve(a.world)
+        return 0
+    tool = a.command
+    if tool != "tools" and not tool.startswith("director_"):
+        tool = "director_" + tool
+    return call(a.world, tool, json.loads(a.args))
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
