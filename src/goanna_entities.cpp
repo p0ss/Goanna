@@ -29,6 +29,7 @@
 #include <IMeshManipulator.h>
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/packed_vector3_array.hpp>
@@ -1011,20 +1012,35 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
             PackedInt32Array indices;
             for (int i : {0, 1, 2, 2, 3, 0})
                 indices.push_back(i);
+            // Each face is its whole texture, so its UV rectangle (CUSTOM0,
+            // which the parallax march clamps to, as on a model's faces in
+            // buildGodotModel) is the unit square.
+            PackedFloat32Array rects;
+            for (int v = 0; v < 4; ++v)
+                for (float r : {0.0f, 0.0f, 1.0f, 1.0f})
+                    rects.push_back(r);
             Array arrays;
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = verts;
             arrays[Mesh::ARRAY_NORMAL] = normals;
             arrays[Mesh::ARRAY_TEX_UV] = uvs;
+            arrays[Mesh::ARRAY_CUSTOM0] = rects;
             arrays[Mesh::ARRAY_INDEX] = indices;
-            am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+            am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, Array(), Dictionary(),
+                    Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT);
         }
         mi->set_mesh(am);
+        // Through the entity shader with the texture's companions, the node
+        // light and parallax, as a mesh visual's surfaces are. The plain
+        // material gave a Mineclonia painting, a cube entity, none of the
+        // three. Culling as GenericCAO sets it, from backface_culling.
+        static const std::vector<Rect2> whole{Rect2(0, 0, 1, 1)};
         for (int f = 0; f < 6; ++f) {
             std::string t = (int)p.textures.size() > f ? p.textures[f] : std::string("no_texture.png");
             if (!obj.textureModifier().empty())
                 t += obj.textureModifier();
-            mi->set_surface_override_material(f, materialForTexture(session, t, p.use_texture_alpha, false));
+            mi->set_surface_override_material(f, materialForMeshTexture(session, t,
+                    p.use_texture_alpha, !p.backface_culling, false, &whole));
         }
         en.visual = mi;
         break;
@@ -1443,7 +1459,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // mob, never reached it.
         const int vis = obj.props().visual;
         if (en.visual && (vis == OBJECTVISUAL_MESH || vis == OBJECTVISUAL_ITEM
-                || vis == OBJECTVISUAL_WIELDITEM)) {
+                || vis == OBJECTVISUAL_WIELDITEM || vis == OBJECTVISUAL_CUBE)) {
             const v3s16 np((s16)std::floor(pos.X / BS + 0.5f), (s16)std::floor(pos.Y / BS + 1.0f),
                     (s16)std::floor(pos.Z / BS + 0.5f));
             float sky = en.light_sky, block = en.light_block;

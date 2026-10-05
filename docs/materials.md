@@ -584,7 +584,10 @@ companions and no node light. A double sided surface draws through
 above, parallax included. Until 2026-10-02 it kept the plain path too, and
 Mineclonia draws its players double sided, so the local player's body and
 first person arms, the entity nearest the eye, had none of it while a
-statue of the same skin had all of it.
+statue of the same skin had all of it. A cube visual (a Mineclonia
+painting) goes the same way, each face with its own texture and the unit
+square as its UV rectangle for the parallax march; until 2026-10-05 it
+kept the plain material, so a painting had no maps and no node light.
 `GOANNA_NO_PBR=1` withholds companions (from `main.gd` it needs
 `GOANNA_PBR_SET=1` too, or the launcher clears it). With no `_n` in any
 layer, the relief inferred from the texture's brightness applies, as it
