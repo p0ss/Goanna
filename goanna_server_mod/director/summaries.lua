@@ -243,6 +243,9 @@ return function(D)
 			queries = {"capabilities", "status", "player", "players", "region", "memory",
 				"catalogue"},
 			catalogue = D.catalogue_fingerprint(),
+			-- Each ruleset's intents and queries with their schemas, which
+			-- the MCP service offers as tools of their own.
+			rulesets = D.rulesets_advert(),
 			structures = D.cfg.structures,
 			sees = D.cfg.sees,
 			chat = D.cfg.chat,

@@ -300,3 +300,11 @@ reaches the model.
 Only Mineclonia's `mcl_mobs` has an adapter so far (`director/adapters/`).
 On any other game the director starts, reports no adapter, and refuses
 encounters and characters.
+
+A game or mod can add its own intents, queries and characters with
+`goanna_director.register_ruleset` at load time (`director/rulesets.lua`).
+Its intents go through the same checks, budgets, undo and audit log as the
+director's own, and the MCP service offers each one as a tool. The table
+`goanna_director` exists only while the director is on, so such a mod
+declares `optional_depends = goanna_server_mod` and checks for it first.
+`docs/director.md`, "Rulesets as built", is the reference.

@@ -120,6 +120,7 @@ return function(D)
 				end
 				local out = verb == "optout"
 				player:get_meta():set_string("goanna_director_optout", out and "1" or "")
+				D.optout_seen[name] = out
 				local p = D.players[name]
 				if p then
 					p.optout = out

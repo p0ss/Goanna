@@ -203,6 +203,60 @@ do
 		"build bottom up, solid before air")
 end
 
+-- Ruleset names and the schema subset.
+do
+	check(L.ident_ok("fortress") and L.ident_ok("set_labours2"), "plain ruleset names pass")
+	check(not L.ident_ok("Fortress") and not L.ident_ok("2x") and not L.ident_ok("a-b")
+		and not L.ident_ok("") and not L.ident_ok(("a"):rep(33)) and not L.ident_ok(nil),
+		"capitals, a leading digit, hyphens, empty and long names are refused")
+	local s = {type = "object", required = {"fortress", "count"}, properties = {
+		fortress = {type = "string", maxLength = 8},
+		count = {type = "integer", minimum = 1, maximum = 64},
+		kind = {type = "string", enum = {"dig", "fill"}},
+		boxes = {type = "array", maxItems = 2, items = {type = "array", items = {type = "number"}}},
+		confirm = {type = "boolean"},
+		at = {type = "object", required = {"x"}, properties = {x = {type = "number"}}},
+	}}
+	check(L.schema_valid(s), "a schema in the subset is valid")
+	check(not L.schema_valid({type = "tuple"}), "an unknown type is not")
+	check(not L.schema_valid({type = "object", properties = {a = {type = "set"}}}),
+		"nor a property of an unknown type")
+	check(not L.schema_valid({type = "object", required = "a"}), "required must be a list")
+	check(L.schema_check(s, {fortress = "f1", count = 3}), "required arguments of the right type pass")
+	check(L.schema_check(s, {fortress = "f1", count = 3, kind = "dig", confirm = true,
+		boxes = {{1, 2, 3}, {4, 5, 6}}, at = {x = 1}}), "every kind of argument passes")
+	check(L.schema_check(s, {fortress = "f1", count = 3, extra = 1}),
+		"an argument outside the schema passes unless additionalProperties is false")
+	local ok, why = L.schema_check(s, {fortress = "f1"})
+	check(not ok and why == "args.count is required", "a missing argument is named")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 2.5})
+	check(not ok and why == "args.count: expected an integer", "a fraction is not an integer")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 65})
+	check(not ok and why == "args.count: above 64", "maximum")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 0})
+	check(not ok and why == "args.count: below 1", "minimum")
+	ok, why = L.schema_check(s, {fortress = "far too long", count = 1})
+	check(not ok and why == "args.fortress: longer than 8", "maxLength")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, kind = "flood"})
+	check(not ok and why == "args.kind: not one of the allowed values", "enum")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, boxes = {{1, 2}, {3}, {4}}})
+	check(not ok and why == "args.boxes: more than 2 items", "maxItems")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, boxes = {{1, "y"}}})
+	check(not ok and why == "args.boxes[1][2]: expected a number", "items are checked, nested")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, boxes = {a = 1}})
+	check(not ok and why == "args.boxes: expected a list", "a keyed table is not a list")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, at = {}})
+	check(not ok and why == "args.at.x is required", "nested objects check their own required")
+	ok, why = L.schema_check(s, {fortress = "f1", count = 1, confirm = "yes"})
+	check(not ok and why == "args.confirm: expected true or false", "boolean")
+	ok, why = L.schema_check({type = "object", additionalProperties = false,
+		properties = {a = {type = "string"}}}, {a = "x", b = 1})
+	check(not ok and why == "args.b is not an argument", "additionalProperties false refuses extras")
+	check(L.schema_check(nil, {anything = true}), "no schema accepts anything")
+	ok = L.schema_check({type = "number"}, 0 / 0)
+	check(not ok, "NaN is not a number")
+end
+
 if failures > 0 then
 	print(failures .. " failed")
 	os.exit(1)

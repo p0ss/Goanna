@@ -86,6 +86,7 @@ return function(D)
 			died_seq = 0,
 		}
 		D.players[name] = p
+		D.optout_seen[name] = p.optout
 		return p
 	end
 
@@ -257,7 +258,9 @@ return function(D)
 		if message:sub(1, 1) == "/" then
 			return false
 		end
+		-- The director's cast characters first, then each ruleset's own.
 		local addressed = D.npc_addressed and D.npc_addressed(name, message)
+			or D.ruleset_addressed(name, message)
 		if not addressed and D.cfg.chat == "all" then
 			local player = core.get_player_by_name(name)
 			D.emit("player_chat", {"player:" .. name}, {text = message:sub(1, 280)},

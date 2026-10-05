@@ -204,6 +204,7 @@ All are ordinary server settings; players can read them.
 | `goanna_director_sees` | `exact` | `coarse` gives it regions and a gear score instead of positions and items |
 | `goanna_director_chat` | `all` | `addressed` or `none` read less chat |
 | `goanna_director_memory_text` | true | Whether characters remember lines the model writes |
+| `goanna_director_<ruleset>_points_per_hour` | the ruleset's own | What a game's ruleset may spend an hour, in its own points (`docs/director.md`, "Rulesets as built") |
 
 `goanna_server_mod/settingtypes.txt` lists the rest.
 

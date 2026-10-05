@@ -505,7 +505,8 @@ return function(D)
 			return refuse(msg, "schema", {detail = "to: a player, \"near\" or \"all\""})
 		end
 		local listeners, line = {}, nil
-		local npc
+		local npc, ruleset_sp
+		local lines = {}  -- per listener, for a ruleset speaker near or far
 		if as:lower() == "narrator" then
 			line = core.colorize(NARRATOR, "[Narrator] " .. text)
 			if to == "all" then
@@ -526,11 +527,51 @@ return function(D)
 				end
 				listeners[1] = to
 			end
+		elseif not D.npcs[as:lower()] then
+			-- Not a cast character: a ruleset's own character, if one
+			-- knows the name (rulesets.lua). It reaches players within
+			-- earshot of its body, as a cast character does, and from afar
+			-- only the players its ruleset names in remote.
+			local sp, why = D.ruleset_speaker(as)
+			if not sp then
+				return refuse(msg, why or "unknown_speaker", {as = as})
+			end
+			ruleset_sp = sp
+			local near_line = core.colorize(SPEAKER, sp.name .. " (NPC):") .. " " .. text
+			local far_line = core.colorize(SPEAKER, sp.label .. " (NPC):") .. " " .. text
+			if to == "all" then
+				to = "near"
+			end
+			for name, p in pairs(D.players) do
+				local player = core.get_player_by_name(name)
+				if player and not p.optout and (to == "near" or to == name) then
+					if sp.pos and vector.distance(player:get_pos(), sp.pos) <= D.cfg.earshot then
+						listeners[#listeners + 1] = name
+						lines[name] = near_line
+					elseif sp.remote[name] then
+						listeners[#listeners + 1] = name
+						lines[name] = far_line
+					end
+				end
+			end
+			if to ~= "near" then
+				local p = D.players[to]
+				if not p then
+					return refuse(msg, "not_online", {to = to})
+				elseif p.optout then
+					return refuse(msg, "opted_out", {to = to})
+				elseif #listeners == 0 then
+					return refuse(msg, "out_of_earshot", {to = to, earshot = D.cfg.earshot})
+				end
+			end
+			if #listeners > 0 then
+				local ok, reason, detail = D.ruleset_speak_check(sp, text, listeners)
+				if not ok then
+					return refuse(msg, "rules", {rule = reason, detail = detail})
+				end
+			end
 		else
 			npc = D.npcs[as:lower()]
-			if not npc then
-				return refuse(msg, "unknown_speaker", {as = as})
-			end
 			local obj = npc_obj(npc)
 			if not obj then
 				return refuse(msg, "speaker_gone", {as = npc.name})
@@ -564,14 +605,14 @@ return function(D)
 		if #listeners == 0 then
 			return refuse(msg, "no_listeners")
 		end
-		local speaker_key = npc and npc.name or "narrator"
+		local speaker_key = npc and npc.name or ruleset_sp and ruleset_sp.name or "narrator"
 		if not logic.rate_allow(D.speech_rate, speaker_key, now) then
 			return refuse(msg, "rate", {per_minute = D.cfg.speech_per_minute, speaker = speaker_key})
 		end
 		local delivered, skipped = {}, {}
 		for _, name in ipairs(listeners) do
 			if logic.rate_allow(D.listener_rate, name, now) then
-				core.chat_send_player(name, line)
+				core.chat_send_player(name, lines[name] or line)
 				delivered[#delivered + 1] = name
 				if npc then
 					local rec = logic.memory_get(D.memory, npc.name, name, now)
@@ -585,8 +626,12 @@ return function(D)
 		if #delivered == 0 then
 			return refuse(msg, "rate", {per_minute = D.cfg.listener_per_minute, listeners = skipped})
 		end
-		return result(msg, "completed", {as = npc and npc.name or "narrator", delivered = delivered,
-			skipped_rate = #skipped > 0 and skipped or nil},
+		if ruleset_sp then
+			D.ruleset_spoken(ruleset_sp, text, delivered)
+		end
+		return result(msg, "completed", {as = npc and npc.name or ruleset_sp and ruleset_sp.name
+			or "narrator", ruleset = ruleset_sp and ruleset_sp.ruleset.name or nil,
+			delivered = delivered, skipped_rate = #skipped > 0 and skipped or nil},
 			{effects = {text = text, delivered = delivered}, players = delivered})
 	end
 
@@ -730,6 +775,10 @@ return function(D)
 			for k, v in pairs(D.undo_reward(u)) do
 				fields[k] = v
 			end
+		elseif u.type == "ruleset" then
+			for k, v in pairs(D.ruleset_undo(u)) do
+				fields[k] = v
+			end
 		elseif u.type == "memory" then
 			local rec = logic.memory_get(D.memory, u.npc, u.player)
 			if rec then
@@ -766,6 +815,8 @@ return function(D)
 				reason = "stopped"})
 		end
 		D.queue = {}
+		-- A ruleset ends what it started for the director.
+		D.rulesets_stop(by, why)
 		D.stopped = by
 		D.save_meta()
 		D.audit({kind = "stop", by = by, reason = why})
@@ -867,6 +918,19 @@ return function(D)
 		end,
 	}
 
+	-- The names a ruleset may not take (rulesets.lua).
+	D.builtin_intents, D.builtin_queries = {}, {}
+	for k in pairs(INTENTS) do
+		D.builtin_intents[k] = true
+	end
+	for k in pairs(QUERIES) do
+		D.builtin_queries[k] = true
+	end
+
+	local function ruleset_intent(msg)
+		return D.ruleset_act(msg, result, refuse)
+	end
+
 	-- msg: {id, kind = "act" | "query", req, type, args, based_on, reason}.
 	-- Returns the body of the result or reply.
 	function D.handle(msg)
@@ -874,12 +938,15 @@ return function(D)
 		msg.req = tostring(msg.req or msg.id)
 		if msg.kind == "query" then
 			local q = QUERIES[msg.type]
+			if not q and D.ruleset_queries[msg.type] then
+				return D.ruleset_query(msg)
+			end
 			if not q then
 				return {id = msg.req, type = msg.type, status = "error", reason = "unknown_query"}
 			end
 			return {id = msg.req, type = msg.type, status = "ok", body = q(msg.args)}
 		end
-		local intent = INTENTS[msg.type]
+		local intent = INTENTS[msg.type] or (D.ruleset_intents[msg.type] and ruleset_intent)
 		if not intent then
 			return refuse(msg, "unknown_intent")
 		end
@@ -954,8 +1021,9 @@ return function(D)
 			elseif not p then
 				D.send_result(q.msg, {id = q.id, type = q.type, status = "expired",
 					reason = "not_online"})
-			elseif p.pacing.phase == "build_up" and not D.stopped then
-				local out = stage_encounter(q.msg, true)
+			elseif not D.stopped and (q.ready and q.ready()
+					or not q.ready and p.pacing.phase == "build_up") then
+				local out = (q.run or stage_encounter)(q.msg, true)
 				D.send_result(q.msg, out)
 			else
 				keep[#keep + 1] = q

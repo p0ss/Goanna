@@ -40,8 +40,8 @@ const TERRAIN_DIFFUSION_FILES := [
 ]
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "dig_progress.lua", "mod.conf", "settingtypes.txt", "README.md",
 	"director/init.lua", "director/logic.lua", "director/orders.lua", "director/audit.lua", "director/events.lua",
-	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
-	"director/filelink.lua",
+	"director/summaries.lua", "director/intents.lua", "director/rulesets.lua", "director/commands.lua",
+	"director/http.lua", "director/filelink.lua",
 	"director/catalogue.lua", "director/structures.lua", "director/rewards.lua",
 	"director/adapters/mcl_mobs.lua", "director/adapters/mcl_items.lua",
 	"director/adapters/mcl_structures.lua"]

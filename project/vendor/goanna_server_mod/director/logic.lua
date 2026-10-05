@@ -465,4 +465,162 @@ function L.build_order(nodes)
 	return list
 end
 
+-- Rulesets (docs/director.md, "Lua hook API"). A ruleset's names become
+-- message types on the wire and parts of MCP tool names, so they are kept
+-- to lower case letters, digits and underscores.
+function L.ident_ok(s)
+	return type(s) == "string" and #s >= 1 and #s <= 32 and s:match("^[a-z][a-z0-9_]*$") ~= nil
+end
+
+-- The JSON Schema subset a ruleset describes its arguments with. The same
+-- table is checked here and handed to the model as the tool's input schema,
+-- so what the model is told and what the server accepts cannot drift apart.
+-- Supported: type (object, string, number, integer, boolean, array),
+-- properties, required, additionalProperties = false, enum, minimum,
+-- maximum, maxLength, items, maxItems, description.
+local SCHEMA_TYPES = {object = true, string = true, number = true, integer = true,
+	boolean = true, array = true}
+
+-- Whether a schema is one this subset understands. Returns true, or false
+-- and why.
+function L.schema_valid(s, depth)
+	depth = depth or 0
+	if depth > 8 then
+		return false, "nested too deep"
+	end
+	if type(s) ~= "table" then
+		return false, "a schema is a table"
+	end
+	if s.type ~= nil and not SCHEMA_TYPES[s.type] then
+		return false, "unknown type " .. tostring(s.type)
+	end
+	if s.properties ~= nil then
+		if type(s.properties) ~= "table" then
+			return false, "properties is a table"
+		end
+		for k, v in pairs(s.properties) do
+			if type(k) ~= "string" then
+				return false, "property names are strings"
+			end
+			local ok, why = L.schema_valid(v, depth + 1)
+			if not ok then
+				return false, k .. ": " .. why
+			end
+		end
+	end
+	if s.required ~= nil then
+		if type(s.required) ~= "table" then
+			return false, "required is a list"
+		end
+		for _, k in ipairs(s.required) do
+			if type(k) ~= "string" then
+				return false, "required names are strings"
+			end
+		end
+	end
+	if s.items ~= nil then
+		local ok, why = L.schema_valid(s.items, depth + 1)
+		if not ok then
+			return false, "items: " .. why
+		end
+	end
+	if s.enum ~= nil and type(s.enum) ~= "table" then
+		return false, "enum is a list"
+	end
+	return true
+end
+
+local function is_list(t)
+	local n = 0
+	for k in pairs(t) do
+		if type(k) ~= "number" or k < 1 or k % 1 ~= 0 then
+			return false
+		end
+		n = n + 1
+	end
+	return n == #t
+end
+
+-- Check a value against a schema. Returns true, or false and a short
+-- description of the first problem, naming where it is.
+function L.schema_check(s, v, where, depth)
+	where = where or "args"
+	depth = depth or 0
+	if s == nil then
+		return true
+	end
+	if depth > 8 then
+		return false, where .. ": nested too deep"
+	end
+	local t = s.type
+	if t == "string" then
+		if type(v) ~= "string" then
+			return false, where .. ": expected a string"
+		end
+		if s.maxLength and #v > s.maxLength then
+			return false, where .. ": longer than " .. s.maxLength
+		end
+	elseif t == "number" or t == "integer" then
+		if type(v) ~= "number" or v ~= v then
+			return false, where .. ": expected a number"
+		end
+		if t == "integer" and v % 1 ~= 0 then
+			return false, where .. ": expected an integer"
+		end
+		if s.minimum and v < s.minimum then
+			return false, where .. ": below " .. s.minimum
+		end
+		if s.maximum and v > s.maximum then
+			return false, where .. ": above " .. s.maximum
+		end
+	elseif t == "boolean" then
+		if type(v) ~= "boolean" then
+			return false, where .. ": expected true or false"
+		end
+	elseif t == "array" then
+		if type(v) ~= "table" or not is_list(v) then
+			return false, where .. ": expected a list"
+		end
+		if s.maxItems and #v > s.maxItems then
+			return false, where .. ": more than " .. s.maxItems .. " items"
+		end
+		for i, item in ipairs(v) do
+			local ok, why = L.schema_check(s.items, item, where .. "[" .. i .. "]", depth + 1)
+			if not ok then
+				return false, why
+			end
+		end
+	elseif t == "object" then
+		if type(v) ~= "table" then
+			return false, where .. ": expected an object"
+		end
+		local props = s.properties or {}
+		for _, k in ipairs(s.required or {}) do
+			if v[k] == nil then
+				return false, where .. "." .. k .. " is required"
+			end
+		end
+		for k, item in pairs(v) do
+			local p = props[k]
+			if p then
+				local ok, why = L.schema_check(p, item, where .. "." .. tostring(k), depth + 1)
+				if not ok then
+					return false, why
+				end
+			elseif s.additionalProperties == false then
+				return false, where .. "." .. tostring(k) .. " is not an argument"
+			end
+		end
+	end
+	if s.enum then
+		for _, e in ipairs(s.enum) do
+			if e == v then
+				return true
+			end
+		end
+		return false, where .. ": not one of the allowed values"
+	end
+	return true
+end
+
 return L

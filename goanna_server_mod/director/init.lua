@@ -213,15 +213,25 @@ return function(http)
 		end
 	end)
 
+	-- A player's opt out is kept in their own metadata, which can be read
+	-- only while they are online. It is remembered here for every player
+	-- seen this session, so that an event a ruleset emits about a player who
+	-- has since left is still dropped when they opted out. A player not seen
+	-- since the server started is unknown (nil).
+	D.optout_seen = {}
 	function D.opted_out(name)
 		local p = D.players[name]
-		return p ~= nil and p.optout == true
+		if p then
+			return p.optout == true
+		end
+		return D.optout_seen[name]
 	end
 
 	dofile(MODPATH .. "/audit.lua")(D)
 	dofile(MODPATH .. "/events.lua")(D)
 	dofile(MODPATH .. "/summaries.lua")(D)
 	dofile(MODPATH .. "/intents.lua")(D)
+	dofile(MODPATH .. "/rulesets.lua")(D)
 	dofile(MODPATH .. "/catalogue.lua")(D)
 	dofile(MODPATH .. "/structures.lua")(D)
 	dofile(MODPATH .. "/rewards.lua")(D)
@@ -237,20 +247,49 @@ return function(http)
 		dofile(MODPATH .. "/filelink.lua")(D)
 	end
 
-	-- The hook API for games and adapters (docs/director.md, "Lua hook API").
-	-- Only the parts phase 1 uses exist yet.
+	-- The hook API for games and adapters (docs/director.md, "Lua hook API",
+	-- and "Rulesets as built" for what exists).
 	rawset(_G, "goanna_director", {
 		register_adapter = function(name, def)
 			D.adapters[name] = def
 		end,
+		-- name, def -> true, or false and why. At load time only.
+		register_ruleset = function(name, def)
+			local ok, why = D.register_ruleset(name, def)
+			if not ok then
+				core.log("error", ("[goanna director] ruleset %s refused: %s"):format(
+					tostring(name), why))
+			end
+			return ok, why
+		end,
+		-- Returns the event's sequence number, or nil when it was dropped
+		-- because it names a player who opted out.
 		emit = function(ev)
 			if type(ev) == "table" and type(ev.type) == "string" then
-				D.emit(ev.type, ev.who, ev.data, ev.pos)
+				return D.emit(ev.type, ev.who, ev.data, ev.pos)
 			end
+			return nil
 		end,
 		owned = function(guid)
 			local rec = D.owned[guid]
 			return rec and {kind = rec.kind, act = rec.act, name = rec.name} or nil
+		end,
+		-- Whether a director is connected and not stopped by the operator.
+		connected = function()
+			return D.connected == true and not D.stopped
+		end,
+		-- true or false for a player seen this session, nil otherwise.
+		opted_out = function(name)
+			return D.opted_out(name)
+		end,
+		-- The player's pacing phase and intensity, or nil when they are
+		-- offline or opted out.
+		pacing = function(name)
+			local p = D.players[name]
+			if not p or p.optout then
+				return nil
+			end
+			return p.pacing.phase, math.floor(p.pacing.intensity * 100) / 100
 		end,
 	})
 
