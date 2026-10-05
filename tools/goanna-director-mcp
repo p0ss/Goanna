@@ -87,6 +87,7 @@ class Director:
         self.late = []
         self.waiting = set()
         self.last_contact = 0.0
+        self.catalogue_cache = {}
         # Message ids are this process's own. A server that last pulled
         # from another instance has acknowledged nothing of ours.
         self.instance = secrets.token_hex(8)
@@ -213,6 +214,23 @@ class Director:
                             "Check director_events for a late result." % (req, timeout))
         return body
 
+    def catalogue(self, args):
+        """A catalogue query, answered from the cache while the server's
+        catalogue fingerprint (sent in its hello) is unchanged."""
+        q = {k: args[k] for k in ("kind", "text", "group", "mod", "limit", "cursor", "detail",
+                                  "hidden") if k in args}
+        key = json.dumps(q, sort_keys=True)
+        fingerprint = ((self.hello or {}).get("capabilities") or {}).get("catalogue")
+        hit = self.catalogue_cache.get((fingerprint, key)) if fingerprint else None
+        if hit is not None:
+            return dict(hit, cached=True)
+        body = self.request("query", "catalogue", q).get("body")
+        if isinstance(body, dict) and body.get("fingerprint"):
+            if len(self.catalogue_cache) > 512:
+                self.catalogue_cache.clear()
+            self.catalogue_cache[(body["fingerprint"], key)] = body
+        return body
+
     def take_events(self, after, wait, limit):
         deadline = time.time() + max(0.0, min(wait, 30.0))
         with self.lock:
@@ -305,6 +323,11 @@ S = {"type": "string"}
 N = {"type": "number"}
 B = {"type": "boolean"}
 REASON = {"type": "string", "description": "Why, in a sentence. Stored in the audit log, never executed."}
+PALETTE = {"type": "object", "additionalProperties": S,
+           "description": "One character keys to node names from the catalogue; \"air\" clears."}
+LAYERS = {"type": "array", "items": {"type": "array", "items": S},
+          "description": "Layers from the bottom up; each a list of rows along z, each row a "
+                         "string along x. A space leaves the world's node."}
 
 TOOLS = [
     {"name": "director_status",
@@ -363,17 +386,60 @@ TOOLS = [
                     "creature's guid, until it dies, is lost or leash_s ends; only a mob that can "
                     "fight, and attacking a player is charged and paced as an encounter), "
                     "hold_item (show item in hand, empty to clear), offer_trade (open a villager's "
-                    "trades for the target player, setting profession if given). A target is a "
+                    "trades for the target player, setting profession if given), build (lay a "
+                    "structure node by node, bottom up: a game structure by name or an authored "
+                    "palette and layers as for director_place_structure, at [x,y,z] or near the "
+                    "target player; same checks, budget and undo as placing it). A target is a "
                     "player name, a cast character's name or an entity guid.",
      "inputSchema": schema({"npc": S,
                             "order": {"type": "string", "enum": [
                                 "hold", "watch", "go_to", "stay", "patrol", "follow", "attack",
-                                "hold_item", "offer_trade"]},
+                                "hold_item", "offer_trade", "build"]},
                             "target": S, "at": {"type": "array", "items": N},
                             "points": {"type": "array", "items": {"type": "array", "items": N}},
                             "distance": {"type": "array", "items": N}, "pause_s": N,
-                            "item": S, "profession": S, "leash_s": N, "reason": REASON},
+                            "item": S, "profession": S, "leash_s": N,
+                            "structure": S, "palette": PALETTE, "layers": LAYERS,
+                            "reason": REASON},
                            ["npc", "order", "reason"])},
+    {"name": "director_catalogue",
+     "description": "What this world contains, searched rather than listed. With no arguments: "
+                    "the game, its mods, counts by kind and a fingerprint. With kind (item, node, "
+                    "tool, creature, entity, enchantment, structure, mod), text, group or mod: "
+                    "one short record per match, in pages of limit (default 40) from cursor. "
+                    "Answers are cached until the fingerprint changes, so asking again is free. "
+                    "detail adds item groups; hidden includes items games hide from creative.",
+     "inputSchema": schema({"kind": S, "text": S, "group": S, "mod": S,
+                            "limit": {"type": "integer"}, "cursor": {"type": "integer"},
+                            "detail": B, "hidden": B})},
+    {"name": "director_grant_reward",
+     "description": "Make an item and put it where a player can choose to take it: dropped near "
+                    "them (delivery drop), in a container placed near them (container), or "
+                    "carried to them by a cast character (npc). Optional name (up to 40 "
+                    "characters), up to four lines of description, and enchantments "
+                    "[{name, level}] from the catalogue. Costs reward points (the item's value "
+                    "plus each enchantment's level), separate from encounter points, and each "
+                    "reward is capped. Never put into an inventory. Undo takes it back if nobody "
+                    "has picked it up.",
+     "inputSchema": schema({"near": S, "item": S, "count": {"type": "integer"}, "name": S,
+                            "lines": {"type": "array", "items": S},
+                            "enchantments": {"type": "array", "items": {
+                                "type": "object", "properties": {"name": S, "level": N}}},
+                            "delivery": {"type": "string", "enum": ["drop", "container", "npc"]},
+                            "npc": S, "reason": REASON}, ["near", "item", "reason"])},
+    {"name": "director_place_structure",
+     "description": "Put a building in the world, if the operator allows it "
+                    "(goanna_director_structures): a game structure by name (catalogue kind "
+                    "structure), placed with the game's own loot, or one you author as palette "
+                    "and layers. at [x,y,z] is the centre of the footprint on the ground; or near "
+                    "a player, within distance [min,max]. Refused on protected ground, where "
+                    "players have dug or built, on anyone standing there, near spawn. Costs "
+                    "nodes from the hourly build budget. Undo puts the ground back, keeping "
+                    "anything players changed since.",
+     "inputSchema": schema({"structure": S, "palette": PALETTE, "layers": LAYERS,
+                            "at": {"type": "array", "items": N}, "near": S,
+                            "distance": {"type": "array", "items": N}, "reason": REASON},
+                           ["reason"])},
     {"name": "director_speak",
      "description": "Say a line in chat, always attributed: as a cast character (to a player "
                     "within earshot, or \"near\" for everyone within earshot), or as "
@@ -409,7 +475,12 @@ ACTS = {
                                   "leash_s", "valid_for_s"]),
     "director_cast_npc": ("cast_npc", ["near", "name", "mob", "guid", "hold", "armed", "distance"]),
     "director_order": ("order", ["npc", "order", "target", "at", "points", "distance", "pause_s",
-                                 "item", "profession", "leash_s"]),
+                                 "item", "profession", "leash_s", "structure", "palette",
+                                 "layers"]),
+    "director_grant_reward": ("grant_reward", ["near", "item", "count", "name", "lines",
+                                               "enchantments", "delivery", "npc"]),
+    "director_place_structure": ("place_structure", ["structure", "palette", "layers", "at",
+                                                     "near", "distance"]),
     "director_speak": ("speak", ["as", "to", "text"]),
     "director_remember": ("remember", ["npc", "player", "fact", "disposition"]),
     "director_undo": ("undo", ["id"]),
@@ -430,6 +501,8 @@ def call_tool(director, name, args):
                                     max(1, min(int(args.get("limit", 200)), 1000)))
     if name == "director_player":
         return director.request("query", "player", {"name": args.get("name", "")}).get("body")
+    if name == "director_catalogue":
+        return director.catalogue(args)
     if name == "director_memory":
         q = {"npc": args.get("npc", "")}
         if args.get("player"):

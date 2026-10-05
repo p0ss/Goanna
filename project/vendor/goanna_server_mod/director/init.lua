@@ -79,6 +79,13 @@ return function(http)
 		memory_lines = setting("goanna_director_memory_lines", 8),
 		memory_chars = setting("goanna_director_memory_chars", 120),
 		info = setting("goanna_director_info", ""),
+		reward_points_per_hour = setting("goanna_director_reward_points_per_hour", 30),
+		reward_max = setting("goanna_director_reward_max", 12),
+		reward_deny = csv_set(setting("goanna_director_reward_deny", "")),
+		structures = setting("goanna_director_structures", false),
+		build_nodes_per_hour = setting("goanna_director_build_nodes_per_hour", 4000),
+		structure_max_volume = setting("goanna_director_structure_max_volume", 32768),
+		build_rate = setting("goanna_director_build_rate", 4),
 	}
 	D.pacing_cfg = {}
 	for k, v in pairs(logic.PACING_DEFAULTS) do
@@ -166,6 +173,8 @@ return function(http)
 	D.regions = {}        -- region id -> counters
 	D.undo = {}           -- act id -> undo record
 	D.points = logic.window(3600)
+	D.reward_points = logic.window(3600)
+	D.build_points = logic.window(3600)
 	D.speech_rate = logic.rate(D.cfg.speech_per_minute)
 	D.listener_rate = logic.rate(D.cfg.listener_per_minute)
 	D.connected = false
@@ -179,15 +188,29 @@ return function(http)
 		return guid and D.owned[guid]
 	end
 	D.adapters.mcl_mobs = dofile(MODPATH .. "/adapters/mcl_mobs.lua")(owned_lookup)
+	D.adapters.mcl_items = dofile(MODPATH .. "/adapters/mcl_items.lua")()
+	D.adapters.mcl_structures = dofile(MODPATH .. "/adapters/mcl_structures.lua")()
+	-- One adapter per kind, the highest priority that detects, each kept
+	-- as D.<kind>: D.mobs, D.items, D.structures. A kind with no adapter
+	-- is nil, and the core does what the engine alone allows.
+	D.KINDS = {"mobs", "items", "structures"}
+	D.on_adapters = {}
 	core.register_on_mods_loaded(function()
-		local best
-		for _, a in pairs(D.adapters) do
-			if a.kind == "mobs" and a.detect() and (not best or a.priority > best.priority) then
-				best = a
+		local names = {}
+		for _, kind in ipairs(D.KINDS) do
+			local best
+			for _, a in pairs(D.adapters) do
+				if a.kind == kind and a.detect() and (not best or a.priority > best.priority) then
+					best = a
+				end
 			end
+			D[kind] = best
+			names[#names + 1] = kind .. " " .. (best and best.name or "none")
 		end
-		D.mobs = best
-		core.log("action", "[goanna director] mob adapter: " .. (best and best.name or "none"))
+		core.log("action", "[goanna director] adapters: " .. table.concat(names, ", "))
+		for _, f in ipairs(D.on_adapters) do
+			f()
+		end
 	end)
 
 	function D.opted_out(name)
@@ -199,6 +222,9 @@ return function(http)
 	dofile(MODPATH .. "/events.lua")(D)
 	dofile(MODPATH .. "/summaries.lua")(D)
 	dofile(MODPATH .. "/intents.lua")(D)
+	dofile(MODPATH .. "/catalogue.lua")(D)
+	dofile(MODPATH .. "/structures.lua")(D)
+	dofile(MODPATH .. "/rewards.lua")(D)
 	dofile(MODPATH .. "/orders.lua")(D)
 	dofile(MODPATH .. "/commands.lua")(D)
 	dofile(MODPATH .. "/http.lua")(D)

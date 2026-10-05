@@ -109,7 +109,7 @@ def control(port, cmd, args=None, timeout=60.0):
             if not chunk:
                 raise RuntimeError("control channel closed")
             buf += chunk
-    reply = json.loads(buf.split(b"\n", 1)[0])
+    reply = json.loads(buf.split(b"\n", 1)[0], strict=False)
     if not reply.get("ok"):
         raise RuntimeError(reply.get("error"))
     return reply.get("result")

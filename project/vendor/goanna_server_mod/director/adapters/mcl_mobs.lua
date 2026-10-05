@@ -53,6 +53,17 @@ return function(owned_lookup)
 		return hp, tonumber(def.damage) or 0
 	end
 
+	-- Every registered mob, for the catalogue: name, description and
+	-- category.
+	function A.list()
+		local out = {}
+		for name, def in pairs(mcl_mobs.registered_mobs or {}) do
+			out[#out + 1] = {name = name, desc = def.description,
+				category = def._spawn_category or def.type}
+		end
+		return out
+	end
+
 	function A.collisionbox(name)
 		local def = def_of(name)
 		local props = def and def.initial_properties

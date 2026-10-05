@@ -93,7 +93,7 @@ class Channel:
                     raise ChannelError("the client on port %d closed the connection without "
                                        "replying" % self.port)
                 buf += chunk
-        reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+        reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"), strict=False)
         if not reply.get("ok"):
             raise ChannelError(str(reply.get("error", "the client refused the command")))
         return reply.get("result")

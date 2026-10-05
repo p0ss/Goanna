@@ -123,7 +123,9 @@ def main():
         if not chunk:
             sys.exit("the client closed the connection without replying")
         buf += chunk
-    reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+    # strict=False: an item description carries raw escape characters
+    # (Luanti colour and translation codes), which Godot does not escape.
+    reply = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"), strict=False)
 
     if opt.raw:
         print(json.dumps(reply, indent=2))

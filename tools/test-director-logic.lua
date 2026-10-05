@@ -148,6 +148,61 @@ do
 	check(not L.addressed_to("hello Grimbold", "Grimbold"), "the name later in a line is not address")
 end
 
+-- The catalogue's search pages by cursor and filters by kind, mod, group
+-- and text.
+do
+	local entries = {}
+	for i = 1, 5 do
+		entries[#entries + 1] = {name = "m:sword" .. i, kind = "tool", item = true, mod = "m",
+			desc = "Sword " .. i, groups = {sword = 1}}
+	end
+	entries[#entries + 1] = {name = "n:dirt", kind = "node", item = true, mod = "n", desc = "Dirt"}
+	entries[#entries + 1] = {name = "mobs:cow", kind = "creature", mod = "mobs", desc = "Cow"}
+	local page, total, cursor = L.search(entries, {kind = "tool", limit = 2})
+	check(#page == 2 and total == 5 and cursor == 2, "search pages tools two at a time")
+	page, total, cursor = L.search(entries, {kind = "tool", limit = 2, cursor = 4})
+	check(#page == 1 and page[1].name == "m:sword5" and cursor == nil, "search ends on the last page")
+	check(select(2, L.search(entries, {kind = "item"})) == 6, "item matches tools and nodes")
+	check(select(2, L.search(entries, {text = "DIRT"})) == 1, "text is case blind")
+	check(select(2, L.search(entries, {group = "sword"})) == 5, "search by group")
+	check(select(2, L.search(entries, {mod = "mobs"})) == 1, "search by mod")
+end
+
+-- Reward values.
+do
+	check(L.item_value({stack_max = 64}, 10) == 1, "a part stack is one point")
+	check(L.item_value({stack_max = 64}, 65) == 2, "a stack and one is two points")
+	check(L.item_value({tool = true, damage = 7, level = 3}, 1) == 7, "a diamond sword")
+	check(L.item_value({tool = true, damage = 4, level = 0}, 1) == 3, "a wooden sword")
+	check(L.item_value({armour = 8}, 1) == 5, "a chestplate")
+	check(L.item_value({value = 3, tool = true, damage = 9}, 2) == 6, "a game's own value wins")
+	check(L.reward_cost(7, {{name = "sharpness", level = 3}, {name = "unbreaking"}}) == 11,
+		"enchantments add their levels")
+end
+
+-- Authored schematics.
+do
+	local ok = function(name)
+		if name == "x:lava" then
+			return false, "harmful_node"
+		end
+		return true
+	end
+	local lim = {max_side = 8, max_volume = 200}
+	local s = L.parse_schematic({w = "x:wood", a = "air"}, {{"www", "w w", "www"}, {"waw"}}, ok, lim)
+	check(s and s.size[1] == 3 and s.size[2] == 2 and s.size[3] == 3, "schematic size")
+	check(s and s.count == 10 and #s.nodes == 11, "spaces are left alone and air is counted apart")
+	local bad, why = L.parse_schematic({l = "x:lava"}, {{"l"}}, ok, lim)
+	check(bad == nil and why == "harmful_node", "a harmful node is refused")
+	bad, why = L.parse_schematic({w = "x:wood"}, {{"wwwwwwwwww"}}, ok, lim)
+	check(bad == nil and why == "too_large", "a side over the limit is refused")
+	bad, why = L.parse_schematic({w = "x:wood"}, {{"wq"}}, ok, lim)
+	check(bad == nil and why == "schema", "a character missing from the palette is refused")
+	local order = L.build_order({{0, 1, 0, "x:wood"}, {0, 0, 0, "air"}, {1, 0, 0, "x:wood"}})
+	check(order[1][1] == 1 and order[2][4] == "air" and order[3][2] == 1,
+		"build bottom up, solid before air")
+end
+
 if failures > 0 then
 	print(failures .. " failed")
 	os.exit(1)

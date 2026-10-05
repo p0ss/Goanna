@@ -12,6 +12,10 @@
 --   attack       fight a target until it dies, is lost, or the leash ends
 --   hold_item    show an item in hand (mobs that can wield)
 --   offer_trade  open the character's trades for a player (villagers)
+--   build        put up a schematic node by node (structures.lua checks
+--                the site, charges the budget and keeps the undo snapshot)
+--   deliver      carry a reward to a player and drop it in front of them
+--                (given by grant_reward, not ordered directly)
 --
 -- Movement uses mcl_mobs' own pathfinder through the adapter, with the
 -- character's AI still off (held), so it never wanders off an order. An
@@ -89,10 +93,27 @@ return function(D)
 		end
 	end
 
+	local function put_down(npc)
+		local obj = obj_of(npc)
+		if obj and D.mobs.can_wield(obj) then
+			D.mobs.wield(obj, "")
+		end
+	end
+
+	-- After an order ends by itself: stay where it stands, with no
+	-- "replaced" event, since nothing replaced it.
+	local function settle(npc, obj, act, now)
+		npc.order = {kind = "stay", act = act, at = vector.round(obj:get_pos()), started = now,
+			last_progress = now, best = 0}
+	end
+
 	-- Replace whatever the character is doing.
 	local function set_order(npc, order)
 		if npc.order and npc.order.kind == "attack" then
 			end_attack(npc)
+		end
+		if npc.order and (npc.order.kind == "build" or npc.order.kind == "deliver") then
+			put_down(npc)
 		end
 		if npc.order then
 			finish(npc, "replaced", {by = order and order.kind})
@@ -277,13 +298,52 @@ return function(D)
 				return refuse(msg, what)
 			end
 			return result(msg, "completed", {npc = npc.name, to = name, profession = what})
+		elseif kind == "build" then
+			local build_args = {}
+			for k, v in pairs(args) do
+				build_args[k] = v
+			end
+			build_args.near = args.near or args.target
+			local plan, why, detail = D.plan_structure(build_args, D.random, true)
+			if not plan then
+				return refuse(msg, why, detail)
+			end
+			local snap, err = D.snapshot(plan.p1, plan.p2)
+			if not snap then
+				return refuse(msg, err, {hint = "the area is being loaded; try again in a few seconds"})
+			end
+			D.snapshots[msg.req] = snap
+			logic.window_add(D.build_points, now, plan.nodes)
+			o.queue, o.i, o.p1, o.snap = logic.build_order(plan.parsed.nodes), 1, plan.p1, msg.req
+			o.at, o.credit, o.placed = plan.at, 0, 0
+			o.rate = math.max(0.5, math.min(D.cfg.build_rate, 20))
+			o.last_progress, o.best = now, math.huge
+			set_order(npc, o)
+			D.undo[msg.req] = {type = "structure", snap = msg.req, npc = npc.name:lower()}
+			return result(msg, "accepted", {npc = npc.name, order = kind, source = plan.source,
+				structure = plan.structure, at = D.vec(plan.at),
+				box = {D.vec(plan.p1), D.vec(plan.p2)}, nodes = #o.queue,
+				nodes_left = D.build_nodes_left(),
+				eta_s = math.ceil(#o.queue / o.rate)},
+				{effects = {at = D.vec(plan.at), source = plan.source, nodes = #o.queue}})
 		else
 			return refuse(msg, "schema", {detail = "order: hold, watch, go_to, stay, patrol, "
-				.. "follow, attack, hold_item or offer_trade"})
+				.. "follow, attack, hold_item, offer_trade or build"})
 		end
 		set_order(npc, o)
 		D.undo[msg.req] = {type = "order", key = npc.name:lower()}
 		return result(msg, "accepted", {npc = npc.name, order = kind})
+	end
+
+	-- A reward carried to a player (rewards.lua). The character holds it
+	-- on the way where its body can.
+	function D.order_deliver(npc, player, stack, act)
+		local obj = obj_of(npc)
+		set_order(npc, {kind = "deliver", act = act, target = player, stack = stack:to_string(),
+			started = D.now(), last_progress = D.now(), best = math.huge})
+		if obj and D.mobs.can_wield(obj) then
+			D.mobs.wield(obj, stack:get_name())
+		end
 	end
 
 	-- Undo of an order: the character stops where it is.
@@ -400,6 +460,112 @@ return function(D)
 			if not D.mobs.moving(obj) then
 				D.mobs.face(obj, tp)
 			end
+		elseif kind == "deliver" then
+			local player = core.get_player_by_name(o.target)
+			local drop_at
+			if not player or D.opted_out(o.target) then
+				finish(npc, "lost")
+				D.rewards[o.act] = nil
+				put_down(npc)
+				settle(npc, obj, o.act, now)
+				return
+			end
+			local pp = player:get_pos()
+			local d = vector.distance(obj:get_pos(), pp)
+			if d <= 3 then
+				drop_at = vector.round(vector.add(obj:get_pos(), vector.multiply(
+					vector.direction(obj:get_pos(), pp), 1)))
+			elseif now - o.last_progress > STUCK then
+				drop_at = vector.round(obj:get_pos())
+			else
+				local dir = vector.direction(pp, obj:get_pos())
+				walk(obj, o, vector.add(pp, vector.multiply(dir, 2)), now, 2.5)
+				return
+			end
+			D.mobs.halt(obj)
+			D.mobs.face(obj, pp)
+			local guid = D.drop_reward(drop_at, ItemStack(o.stack), o.act, o.target)
+			finish(npc, guid and "delivered" or "failed", {to = o.target, at = D.vec(drop_at),
+				reached = d <= 3})
+			put_down(npc)
+			settle(npc, obj, o.act, now)
+		elseif kind == "build" then
+			local snap = D.snapshots[o.snap]
+			if not snap then
+				finish(npc, "failed", {why = "undone"})
+				put_down(npc)
+				settle(npc, obj, o.act, now)
+				return
+			end
+			local n = o.queue[o.i]
+			if not n then
+				finish(npc, "built", {placed = o.placed, at = D.vec(o.at)})
+				put_down(npc)
+				settle(npc, obj, o.act, now)
+				return
+			end
+			-- Walk to the next node until within reach, then lay nodes at
+			-- the build rate, facing each one. A node it cannot walk to is
+			-- laid from where it stands, as a builder on a ladder would.
+			local here = obj:get_pos()
+			local function reach(t)
+				return now < (o.anywhere_until or 0) or
+					vector.distance({x = here.x, y = 0, z = here.z}, {x = t.x, y = 0, z = t.z}) <= 6
+			end
+			local target = vector.offset(o.p1, n[1], n[2], n[3])
+			if not reach(target) then
+				o.credit = 0
+				if o.walking_for ~= o.i then
+					o.walking_for, o.best, o.last_progress = o.i, math.huge, now
+				end
+				local dir = vector.direction(target, here)
+				local stand = vector.add(target, vector.multiply(
+					vector.normalize({x = dir.x, y = 0, z = dir.z}), 3))
+				walk(obj, o, D.ground_at(stand.x, stand.z, here.y + 4, 2) or stand, now, 3)
+				if now - o.last_progress > STUCK then
+					o.anywhere_until = now + 10
+				end
+				return
+			end
+			if D.mobs.moving(obj) then
+				D.mobs.halt(obj)
+			end
+			o.credit = math.min(o.credit + o.rate * STEP, o.rate)
+			while o.credit >= 1 and o.queue[o.i] do
+				n = o.queue[o.i]
+				target = vector.offset(o.p1, n[1], n[2], n[3])
+				if not reach(target) then
+					break
+				end
+				-- Never lay a solid node where a player stands.
+				local blocked = false
+				if n[4] ~= "air" then
+					for _, pl in ipairs(core.get_connected_players()) do
+						local pp = vector.round(pl:get_pos())
+						if pp.x == target.x and pp.z == target.z
+								and (pp.y == target.y or pp.y + 1 == target.y) then
+							blocked = true
+						end
+					end
+				end
+				if blocked then
+					break
+				end
+				o.i = o.i + 1
+				local cur = core.get_node(target)
+				if not snap.changed[core.hash_node_position(target)] and cur.name ~= n[4]
+						and cur.name ~= "ignore" and not core.is_protected(target, "") then
+					core.set_node(target, {name = n[4], param2 = n[5] or 0})
+					o.placed = o.placed + 1
+					o.credit = o.credit - 1
+					D.mobs.face(obj, target)
+					if n[4] ~= "air" and o.wielding ~= n[4] and D.mobs.can_wield(obj) then
+						D.mobs.wield(obj, n[4])
+						o.wielding = n[4]
+					end
+				end
+			end
+			o.last_progress = now
 		elseif kind == "attack" then
 			local t = resolve(o.target)
 			local outcome

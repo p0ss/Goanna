@@ -34,6 +34,7 @@ return function(D)
 	local function random(n)
 		return rng:next(1, math.max(1, math.floor(n)))
 	end
+	D.random = random
 
 	local function result(msg, status, fields, audit_extra)
 		local body = fields or {}
@@ -88,6 +89,9 @@ return function(D)
 		return nil
 	end
 
+	D.excluded = excluded
+	D.walkable = walkable
+
 	local function ground_at(x, z, y0, height)
 		x, z = math.floor(x + 0.5), math.floor(z + 0.5)
 		for y = math.floor(y0 + 6), math.floor(y0 - 10), -1 do
@@ -108,6 +112,8 @@ return function(D)
 		end
 		return nil
 	end
+
+	D.ground_at = ground_at
 
 	-- Find a place for one mob. Returns the position, or nil and the last
 	-- reason a candidate was turned down. hidden is true (out of the
@@ -706,6 +712,18 @@ return function(D)
 		elseif u.type == "order" then
 			fields.npc = u.key
 			D.cancel_order(u.key)
+		elseif u.type == "structure" then
+			if u.npc then
+				fields.npc = u.npc
+				D.cancel_order(u.npc)
+			end
+			for k, v in pairs(D.undo_structure(u)) do
+				fields[k] = v
+			end
+		elseif u.type == "reward" then
+			for k, v in pairs(D.undo_reward(u)) do
+				fields[k] = v
+			end
 		elseif u.type == "memory" then
 			local rec = logic.memory_get(D.memory, u.npc, u.player)
 			if rec then
@@ -765,6 +783,12 @@ return function(D)
 		end,
 		speak = speak,
 		remember = remember,
+		grant_reward = function(msg)
+			return D.grant_reward_intent(msg, result, refuse)
+		end,
+		place_structure = function(msg)
+			return D.place_structure_intent(msg, result, refuse, random)
+		end,
 		undo = undo,
 		end_encounter = function(msg)
 			local id = msg.args.id
@@ -793,6 +817,7 @@ return function(D)
 
 	local QUERIES = {
 		capabilities = function() return D.capabilities() end,
+		catalogue = function(args) return D.catalogue(args) end,
 		status = function() return D.status() end,
 		player = function(args)
 			local name = player_name(args.name)

@@ -164,6 +164,12 @@ return function(D)
 			max_entities_per_player = D.cfg.max_entities_per_player,
 			speech_per_minute = D.cfg.speech_per_minute,
 			listener_per_minute = D.cfg.listener_per_minute,
+			reward_points_per_hour = D.cfg.reward_points_per_hour,
+			reward_points_left = D.reward_points_left(),
+			reward_max = D.cfg.reward_max,
+			structures = D.cfg.structures,
+			build_nodes_per_hour = D.cfg.build_nodes_per_hour,
+			build_nodes_left = D.build_nodes_left(),
 		}
 	end
 
@@ -204,7 +210,8 @@ return function(D)
 			npcs[#npcs + 1] = {name = n.name, guid = n.guid, mob = n.mob,
 				pos = obj and D.vec(obj:get_pos()), armed = n.armed or nil,
 				order = o and o.kind or nil, target = o and o.target or nil,
-				at = o and o.at and D.vec(o.at) or nil}
+				at = o and o.at and D.vec(o.at) or nil,
+				built = o and o.kind == "build" and {o.i - 1, #o.queue} or nil}
 		end
 		return {
 			session = D.session,
@@ -216,6 +223,7 @@ return function(D)
 			encounters = encounters,
 			npcs = npcs,
 			adapter = D.mobs and D.mobs.name or "none",
+			catalogue = D.catalogue_fingerprint(),
 		}
 	end
 
@@ -226,11 +234,16 @@ return function(D)
 			protocol = 1,
 			engine = version.project .. " " .. version.string,
 			game = game.id,
-			adapters = {mobs = D.mobs and D.mobs.name or "none"},
+			adapters = {mobs = D.mobs and D.mobs.name or "none",
+				items = D.items and D.items.name or "none",
+				structures = D.structures and D.structures.name or "none"},
 			scopes = {"gm"},
-			intents = {"stage_encounter", "end_encounter", "cast_npc", "speak", "remember",
-				"undo", "stop"},
-			queries = {"capabilities", "status", "player", "players", "region", "memory"},
+			intents = {"stage_encounter", "end_encounter", "cast_npc", "order", "speak",
+				"remember", "grant_reward", "place_structure", "undo", "stop"},
+			queries = {"capabilities", "status", "player", "players", "region", "memory",
+				"catalogue"},
+			catalogue = D.catalogue_fingerprint(),
+			structures = D.cfg.structures,
 			sees = D.cfg.sees,
 			chat = D.cfg.chat,
 			memory_text = D.cfg.memory_text,

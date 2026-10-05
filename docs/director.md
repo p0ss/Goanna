@@ -1355,6 +1355,9 @@ world's `goanna_director.conf` and serves:
 | `director_speak` | `speak` |
 | `director_remember` | `remember` |
 | `director_memory` | `memory` query |
+| `director_catalogue` | `catalogue` query, cached by fingerprint |
+| `director_grant_reward` | `grant_reward` |
+| `director_place_structure` | `place_structure` |
 | `director_undo` | `undo` |
 | `director_stop` | `stop` |
 
@@ -1428,13 +1431,22 @@ player's screen, at most three times a minute per player.
 
 Tested on 5 October 2026 (Mineclonia, Luanti 5.17, a CPU rendered Goanna
 client as the player): watch, hold_item, go_to with arrival reported and
-stay after it, patrol visiting both points, follow after a teleport,
+stay after it, patrol visiting both points, follow (see the correction
+below),
 offer_trade opening the trading form on the player's screen, and a
 villager refused as `cannot_attack`. An armed vindicator was refused as
 `over_ceiling` (cost 14 against the player's 10), as it should be; an armed
 husk (cost 5) was accepted, ordered to attack the player and took them
 from 20 health to 17, stood down when its 20 s leash ended, then killed a
 cast villager when ordered to, and was undone.
+
+Correction, found later the same day: that run moved the player with
+`/teleport tester x y z`, which Luanti refuses without saying so (it takes
+`x,y,z` with commas), so the player never moved and "follow" was only shown
+for a target already in range. The test in [Catalogue, rewards and
+structures](#catalogue-rewards-and-structures) teleports correctly, checks
+that the player really moved, and saw a cast villager follow the player over
+about 12 nodes to within its range.
 
 ### What the first test showed
 
@@ -1501,6 +1513,188 @@ death.
 - A server restart mid session, `stale` from a leave, and encounters ending
   by leash.
 - Mobs other than skeletons and villagers, and any game but Mineclonia.
+
+## Catalogue, rewards and structures
+
+Designed on 5 October 2026, after the orders. A director that only stages
+fights and speaks runs out of things to do. It also wants to know what the
+world contains, to give a player a named or enchanted item, to put a house or
+a ruin somewhere, and to have a character build one. This section is the
+design. What has been built and tested is recorded under each heading as it
+lands.
+
+The rule throughout is the one in [Framework adapters](#framework-adapters):
+the core works on the engine alone, and an adapter adds what only a framework
+knows. Every new part below has a core that runs in any game and degrades
+plainly where no adapter matched, and a Mineclonia adapter that adds the
+game's own enchantments, containers and structures. Adapters are chosen per
+kind (`mobs`, `items`, `structures`), each by `detect()` testing the tables
+it needs, so a VoxeLibre or Minetest Game adapter is a new file, not a change
+to the core.
+
+### What was built and tested
+
+Built and tested on 5 October 2026 against Mineclonia (Luanti 5.17 Flatpak
+server, a CPU rendered Goanna client as the player, the director driven
+through `tools/goanna-director-cli`): 46 checks, none failed.
+
+- **Files.** `director/catalogue.lua`, `director/rewards.lua` and
+  `director/structures.lua` are the cores; `adapters/mcl_items.lua` and
+  `adapters/mcl_structures.lua` are Mineclonia's. `init.lua` now picks one
+  adapter per kind (`mobs`, `items`, `structures`). The pure parts (search,
+  item value, schematic parsing, build order) are in `logic.lua` with unit
+  tests in `tools/test-director-logic.lua`.
+- **Catalogue.** All three adapters matched. 3,184 nodes, 512 items, 207
+  tools, 81 creatures, 203 other entities, 39 enchantments, 57 structures
+  and 219 mods; a repeated question came from the MCP service's cache.
+- **Rewards.** A diamond sword named "Thornbite", with Sharpness III and a
+  line of description, cost 12 points (9 for a diamond tier sword, 3 for the
+  enchantment) and was dropped by the player; the player picked it up and
+  their inventory showed the name, Sharpness III and the line in the game's
+  own tooltip. Undo then left it with them. Sharpness V with Unbreaking III
+  was refused as over the cap, and Sharpness on bread as `cannot_enchant`.
+  Bread in a chest appeared on the player's client, and undo removed the
+  untouched chest. A villager carried apples from 10 nodes away and dropped
+  them in front of the player.
+- **Structures.** A lava schematic was refused, and so was a hut on the
+  player's own position. An authored 5 by 5 hut appeared on the player's
+  client and undo took it away. The game's desert well was placed through
+  `mcl_structures.place_structure` (99 nodes changed) and undone, and so was
+  the igloo's top as a plain schematic (153 nodes). A witch hut was refused
+  as `not_flat` on hilly ground, which is the site check working.
+- **Building.** A villager walked to the site and laid a 3 by 3 by 5 cobble
+  tower (41 nodes, at the default four a second), reported `built`, and
+  undo took it down.
+- **Mineclonia's level generator.** With it on (the default in this
+  release), `mcl_structures` does not register the temples, huts, shipwrecks
+  and ruins, because the level generator places them inside map generation,
+  where nothing can call it at run time. The adapter offers their schematic
+  files instead, as plain buildings without loot (`loot: false` in the
+  catalogue). A desert temple placed this way stands on the ground with its
+  base showing, since map generation sinks it 12 nodes.
+
+Not tested: a world with `goanna_director_structures` off (the refusal is
+one line), a restart between placing and undoing (undo records last for the
+session only, as with every other undo), `player_built` refusals from a
+player's digging, and any game but Mineclonia. Goanna's launcher leaves
+structures off and rewrites the server's settings on every launch, so there
+is not yet a way to turn them on for a world started from Goanna's menu.
+
+### Catalogue
+
+The model should not be sent every item at every turn: Mineclonia registers
+about 3,000 items, 81 mobs and 50 structures. The catalogue is a query that
+answers in pages, and a fingerprint that tells the model when what it already
+knows is out of date.
+
+- **Built from the engine.** Items, nodes and tools come from
+  `core.registered_items`, with their mod, kind, description (first line,
+  escapes stripped) and groups. Mods come from `core.get_modnames()` and the
+  game from `core.get_game_info()`. Entities come from
+  `core.registered_entities`. Items hidden from the creative inventory
+  (`not_in_creative_inventory`) are left out unless asked for, because games
+  use them for technical nodes.
+- **Enriched by adapters.** The mob adapter marks which entities are
+  creatures, with category and cost. The items adapter lists enchantments
+  with their maximum level and whether they are a curse or treasure, and says
+  which items can carry them. The structures adapter lists the game's own
+  structures with their size.
+- **Query.** `catalogue` takes `kind` (`item`, `node`, `tool`, `creature`,
+  `enchantment`, `structure`, `mod`), `text` (matched against name and
+  description), `group`, `mod`, `limit` (default 40, at most 200) and
+  `cursor`. Each answer is one short record per entry, the total, and the
+  next cursor.
+- **Overview.** With no arguments it returns the game, the mods, the
+  fingerprint and counts by kind and by mod, so the model knows where to
+  look before it searches.
+- **Fingerprint.** A hash of the game, its mods and every registered name.
+  It is in the hello and in `status`. The MCP service caches answers by
+  fingerprint, so a repeated question costs the server nothing until a mod
+  changes.
+
+### Rewards
+
+`grant_reward` makes an item and puts it where a player can choose to take
+it. It is never put into a player's inventory, because a player has to be
+able to refuse a gift from a machine and an inventory can be full.
+
+- **The item.** Any catalogue item and count, an optional name, up to four
+  short lines of description, and, through the items adapter, enchantments
+  with levels. The core sets the name and lines through item metadata, which
+  every client shows. The Mineclonia adapter names an item the way its anvil
+  does (the `name` field, then `tt.reload_itemstack_description`) and
+  enchants it with `mcl_enchanting.enchant`, after `mcl_enchanting.can_enchant`
+  accepts each enchantment. Text is cleaned like speech.
+- **Delivery.** `drop` (the core: an item entity on the ground near the
+  player, made persistent until taken), `container` (a container node placed
+  on clear ground near the player and filled; the adapter names the node,
+  `mcl_chests:chest_small` in Mineclonia), or `npc` (a cast character walks
+  to the player and drops it in front of them, holding it on the way).
+- **Budget.** Rewards have their own hourly points
+  (`goanna_director_reward_points_per_hour`), separate from encounters, so
+  a generous director cannot buy fights and a violent one cannot buy loot.
+  The cost is the item's value times the count, plus each enchantment's
+  level. Value comes from the adapter where the game has a notion of it, and
+  otherwise from the engine: a tool by its damage and dig level, anything
+  else one point per full stack. Each reward is also capped at
+  `goanna_director_reward_max` points, and `goanna_director_reward_deny`
+  lists items that are never granted.
+- **Undo.** Removes the item or container if nobody has taken it, and
+  restores the ground under a container. Once a player has picked it up it is
+  theirs, and undo says so.
+
+### Structures
+
+`place_structure` puts a building in the world. It is the largest change a
+director can make, so it is off unless the operator sets
+`goanna_director_structures = true`.
+
+- **Two sources.**
+  - **The game's own** through the structures adapter: Mineclonia's
+    `mcl_structures.place_structure` with the game's loot and setup. Only
+    structures whose size the adapter can work out before placing are
+    offered, which in Mineclonia means those built from schematic files
+    (read with `core.read_schematic`); structures made by a function (the
+    igloo, geodes) are not.
+  - **Authored by the director** in the core: a palette of one character
+    keys to catalogue nodes, and layers from the bottom up, each a list of
+    rows along z, each a string along x. A space leaves the world's node, and
+    `air` clears it. Placed with `core.place_schematic`. Nodes that hurt
+    (`damage_per_second` above zero), explode (group `tnt`) or are hidden
+    from the creative inventory are refused, so an authored schematic cannot
+    be a trap.
+- **Where.** At a position or near a player, on ground that is loaded,
+  wholly unprotected (`core.is_area_protected`), clear of every player's body,
+  away from static spawn and from players who opted out, and in no mapblock a
+  player has dug or built in. The director records which mapblocks players
+  change, in mod storage, from the moment it is first switched on in a world;
+  changes from before then are not known to it, which is why protection is
+  checked as well.
+- **Budget.** `goanna_director_build_nodes_per_hour` counts nodes changed,
+  and `goanna_director_structure_max_volume` caps one placement's bounding
+  box.
+- **Undo.** Before placing, the box (plus a margin, since the game's
+  structures may lay a foundation) is read with a VoxelManip, with every
+  node's metadata. Undo writes it back, except nodes a player has changed
+  since, which stay as the player left them. Anything stored in a container
+  the structure created is dropped on the ground rather than deleted, so a
+  player loses nothing they put there. Creatures that appeared in the box
+  are removed. Undo lasts for the server session, like every other undo
+  record.
+
+### Building
+
+The `build` order has a cast character put up a schematic over time: the
+same two sources and the same checks, budget and undo snapshot as
+`place_structure`, all taken when the order is accepted. The character walks
+to the site and places a few nodes a second
+(`goanna_director_build_rate`), bottom layer first, holding the node it is
+placing, and skips any position a player has changed since the order began.
+It reports progress in `status` and ends with an `npc_order` event. A game
+structure is built from its schematic alone, so it has no loot. A character
+builds whatever its body is: a villager is a builder, but nothing here gives
+it an inventory to take the nodes from, so the director's budget is what the
+nodes cost.
 
 ## Open questions
 

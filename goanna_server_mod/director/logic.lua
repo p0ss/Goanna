@@ -309,4 +309,160 @@ function L.addressed_to(line, name)
 	return rest == "" or rest:match("^[%s,:!%?%.]") ~= nil
 end
 
+-- The catalogue's search. entries is a sorted list of records, each with
+-- `name`, `kind`, `mod`, `desc` and an optional `groups` set. filter has
+-- `kind`, `text` (plain, case blind, against name and description), `group`,
+-- `mod`, `limit` and `cursor` (the index to start after). Returns the page,
+-- the number that matched and the cursor for the next page, or nil at the
+-- end.
+function L.search(entries, filter)
+	local kind, mod, group = filter.kind, filter.mod, filter.group
+	local text = type(filter.text) == "string" and filter.text:lower() or nil
+	if text == "" then
+		text = nil
+	end
+	local limit = math.max(1, math.min(tonumber(filter.limit) or 40, 200))
+	local start = math.max(0, math.floor(tonumber(filter.cursor) or 0))
+	local page, total, next_cursor = {}, 0, nil
+	for _, e in ipairs(entries) do
+		local ok = (not kind or e.kind == kind or (kind == "item" and e.item))
+			and (not mod or e.mod == mod)
+			and (not group or (e.groups and e.groups[group]))
+		if ok and text then
+			ok = e.name:lower():find(text, 1, true) ~= nil
+				or (e.desc or ""):lower():find(text, 1, true) ~= nil
+		end
+		if ok then
+			total = total + 1
+			if total > start then
+				if #page < limit then
+					page[#page + 1] = e
+				elseif not next_cursor then
+					next_cursor = start + limit
+				end
+			end
+		end
+	end
+	return page, total, next_cursor
+end
+
+-- What an item is worth to the reward budget, from facts the caller reads
+-- off its definition: `tool` (true for a tool or weapon), `damage` (its
+-- largest damage group), `level` (its largest dig level), `armour` (its
+-- armour points, or 0), `stack_max`, and `value`, a game's own figure from
+-- an adapter, which wins when given. A tool or armour piece is worth more
+-- as it hits harder, digs deeper or protects more; anything else is one
+-- point per full stack, so a handful of food is cheap and a stack of
+-- diamonds is not free.
+function L.item_value(f, count)
+	count = math.max(1, math.floor(tonumber(count) or 1))
+	if tonumber(f.value) then
+		return math.max(0, tonumber(f.value)) * count
+	end
+	if f.tool or (tonumber(f.armour) or 0) > 0 then
+		local each = 1 + math.floor((tonumber(f.damage) or 0) / 2)
+			+ (tonumber(f.level) or 0) + math.floor((tonumber(f.armour) or 0) / 2)
+		return each * count
+	end
+	local stack = math.max(1, tonumber(f.stack_max) or 99)
+	return math.ceil(count / stack)
+end
+
+-- A reward's cost: the item's value plus each enchantment's level.
+function L.reward_cost(value, enchantments)
+	local cost = value
+	for _, e in ipairs(enchantments or {}) do
+		cost = cost + math.max(1, math.floor(tonumber(e.level) or 1))
+	end
+	return cost
+end
+
+-- An authored schematic: palette maps one character to a node name ("air"
+-- clears), and layers go from the bottom up, each a list of rows along z,
+-- each row a string along x. A space, or a character past the end of a
+-- short row, leaves the world's node. node_ok(name) says whether a node may
+-- be used, returning false and a reason when not. limits has max_side and
+-- max_volume. Returns {size = {x, y, z}, nodes = {{x, y, z, name}, ...},
+-- count = nodes that are not air} or nil, a reason and a detail.
+function L.parse_schematic(palette, layers, node_ok, limits)
+	if type(palette) ~= "table" or type(layers) ~= "table" or #layers == 0 then
+		return nil, "schema", "palette (an object) and layers (a list) are required"
+	end
+	for key, name in pairs(palette) do
+		if type(key) ~= "string" or #key ~= 1 or key == " " or type(name) ~= "string" then
+			return nil, "schema", "palette keys are single characters other than space"
+		end
+		if name ~= "air" then
+			local ok, why = node_ok(name)
+			if not ok then
+				return nil, why or "bad_node", name
+			end
+		end
+	end
+	local sx, sz = 0, 0
+	for _, layer in ipairs(layers) do
+		if type(layer) ~= "table" then
+			return nil, "schema", "each layer is a list of rows"
+		end
+		sz = math.max(sz, #layer)
+		for _, row in ipairs(layer) do
+			if type(row) ~= "string" then
+				return nil, "schema", "each row is a string"
+			end
+			sx = math.max(sx, #row)
+		end
+	end
+	local sy = #layers
+	local side = math.max(sx, sy, sz)
+	if side > limits.max_side or sx * sy * sz > limits.max_volume then
+		return nil, "too_large", ("%dx%dx%d"):format(sx, sy, sz)
+	end
+	if sx == 0 or sz == 0 then
+		return nil, "schema", "the schematic is empty"
+	end
+	local nodes, count = {}, 0
+	for y, layer in ipairs(layers) do
+		for z, row in ipairs(layer) do
+			for x = 1, #row do
+				local c = row:sub(x, x)
+				if c ~= " " then
+					local name = palette[c]
+					if not name then
+						return nil, "schema", ("character %q is not in the palette"):format(c)
+					end
+					nodes[#nodes + 1] = {x - 1, y - 1, z - 1, name}
+					if name ~= "air" then
+						count = count + 1
+					end
+				end
+			end
+		end
+	end
+	return {size = {sx, sy, sz}, nodes = nodes, count = count}
+end
+
+-- The order a character builds in: bottom layer first, and within a layer
+-- the solid nodes before air, so it digs out a room after raising its walls
+-- rather than before.
+function L.build_order(nodes)
+	local list = {}
+	for i, n in ipairs(nodes) do
+		list[i] = n
+	end
+	table.sort(list, function(a, b)
+		if a[2] ~= b[2] then
+			return a[2] < b[2]
+		end
+		local aa, ba = a[4] == "air", b[4] == "air"
+		if aa ~= ba then
+			return ba
+		end
+		if a[3] ~= b[3] then
+			return a[3] < b[3]
+		end
+		return a[1] < b[1]
+	end)
+	return list
+end
+
 return L
