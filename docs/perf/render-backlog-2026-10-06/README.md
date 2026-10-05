@@ -178,3 +178,32 @@ directory per item (`1-validate`, `2-portals`, `3-fire`, `4-objects`,
 `4-faces`; `4-faces-misframed` is the first faces shot), each with
 `sheet*.png`, every frame's sidecars and `result.json`. The jobs and the
 script that writes them are in `jobs/`.
+
+## The texture tier's 512 measurement
+
+After the backlog, the texture tier agent's own run
+(`docs/perf/texture-size-2026-10-05/run.py` in its worktree,
+`agent-a4e4283996a2ac7ac`, built at 02:42) ran once under the GPU lock,
+starting its clients through `tools/goanna-headless`: Medium at 1920 by
+1080, two rounds, each configuration its own session. 2101 s, exit 0.
+Results are in that worktree's `build/texsize/gpu2/results.json`.
+
+| configuration | vista ms | wall ms | texture MiB | video MiB |
+|---|---|---|---|---|
+| 256 pack reduced to 128 | 4.45 | 2.65 | 1290 | 1470 |
+| native 128 pack | 4.38 | 2.68 | 1297 | 1482 |
+| 256 | 4.20 | 2.70 | 2591 | 2778 |
+| 512 | 4.23 | 2.78 | 7743 | 8034 |
+
+GPU time is the median of eight bursts of 400 draws. The vista moved by up
+to 0.8 ms between the two rounds of one configuration (512: 3.83 and 4.66),
+more than the spread between configurations, so the vista times do not
+separate the tiers. The wall rises slightly with size (2.65 to 2.78 ms).
+Texture memory is the clear result: 512 holds three times what 256 does,
+7.7 GiB against 2.6 GiB. The 256 pack reduced in the client lands at the
+same memory as the native 128 pack.
+
+![texture size frames](texsize.jpg)
+
+At this distance the walls look alike at every size. The "zombie" frame
+has no zombie in it, in all four configurations.
