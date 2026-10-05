@@ -1,0 +1,27 @@
+{
+ "class": "stone",
+ "strength": 12,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.12,
+ "micro": "none",
+ "materials": {
+  "shell": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.2,
+   "levels": 3,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.52,
+   "smooth_spread": 0.06,
+   "micro": "scale",
+   "micro_strength": 0.45,
+   "micro_params": {
+    "length": 0.6,
+    "width": 0.6
+   }
+  }
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "micro": "stone",
+ "micro_strength": 0.6,
+ "materials": {
+  "gap": {
+   "mode": "shade",
+   "base": 0.12,
+   "span": 0.25,
+   "levels": 2,
+   "joints": false,
+   "smooth": 0.06,
+   "smooth_spread": 0.04
+  },
+  "bone": {
+   "mode": "parts",
+   "base": 0.62,
+   "span": 0.3,
+   "detail": 0.3,
+   "smooth": 0.24,
+   "smooth_spread": 0.06
+  }
+ },
+ "palette": {
+  "#2a2521": "bone",
+  "#302b26": "bone"
+ }
+}

@@ -1,0 +1,22 @@
+# Skins and model textures built by atlas.py, not extrude.py: a UV atlas of
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+goblins_goblin_coal1 goblins_goblin.b3d
+goblins_goblin_coal2 goblins_goblin.b3d
+goblins_goblin_cobble1 goblins_goblin.b3d
+goblins_goblin_cobble2 goblins_goblin.b3d
+goblins_goblin_copper1 goblins_goblin.b3d
+goblins_goblin_copper2 goblins_goblin.b3d
+goblins_goblin_diamond1 goblins_goblin.b3d
+goblins_goblin_diamond2 goblins_goblin.b3d
+goblins_goblin_digger goblins_goblin.b3d
+goblins_goblin_fungler1 goblins_goblin.b3d
+goblins_goblin_fungler2 goblins_goblin.b3d
+goblins_goblin_gold1 goblins_goblin.b3d
+goblins_goblin_gold2 goblins_goblin.b3d
+goblins_goblin_hoarder goblins_goblin.b3d
+goblins_goblin_iron1 goblins_goblin.b3d
+goblins_goblin_iron2 goblins_goblin.b3d
+goblins_goblin_king goblins_goblin.b3d
+goblins_goblin_snuffer goblins_goblin.b3d
+goblins_goblin_dog goblins_goblin_dog.b3d

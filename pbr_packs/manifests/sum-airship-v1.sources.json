@@ -1,0 +1,10 @@
+{
+  "sum_airship_texture": {
+    "author": "Sumi (SumianVoice)",
+    "media_license": "CC-BY-4.0",
+    "notice": "license.txt",
+    "package": "sum_airship",
+    "release": 30601,
+    "source": "sum_airship/textures/sum_airship_texture.png"
+  }
+}

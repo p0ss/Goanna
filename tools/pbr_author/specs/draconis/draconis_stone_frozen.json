@@ -1,0 +1,14 @@
+{
+ "class": "stone",
+ "micro": "stone",
+ "micro_strength": 0.8,
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.55,
+   "smooth": 0.4,
+   "smooth_spread": 0.08
+  }
+ }
+}

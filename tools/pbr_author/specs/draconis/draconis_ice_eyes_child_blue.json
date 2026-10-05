@@ -1,0 +1,37 @@
+{
+ "class": "cloth",
+ "texel_px": 4,
+ "strength": 16.0,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 2,
+ "bevel_depth": 0.08,
+ "micro": "none",
+ "overlay": true,
+ "surface": 0.84,
+ "materials": {
+  "iris": {
+   "mode": "flat",
+   "base": 0.83,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.8,
+   "smooth_spread": 0.0
+  },
+  "white": {
+   "mode": "flat",
+   "base": 0.84,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.6,
+   "smooth_spread": 0.0
+  }
+ },
+ "palette": {
+  "#000000": "iris",
+  "#43a5f3": "iris",
+  "#55c8f9": "iris",
+  "#63e5ff": "iris",
+  "#ffffff": "white"
+ }
+}

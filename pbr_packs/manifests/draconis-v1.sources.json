@@ -1,0 +1,602 @@
+{
+  "draconis_bone_pile_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_bone_pile_frozen.png"
+  },
+  "draconis_bone_pile_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_bone_pile_scorched.png"
+  },
+  "draconis_draconic_forge_fire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_draconic_forge_fire.png"
+  },
+  "draconis_draconic_forge_ice": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_draconic_forge_ice.png"
+  },
+  "draconis_dragon_ice": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_dragon_ice.png"
+  },
+  "draconis_dragonhide_block_black": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_black.png"
+  },
+  "draconis_dragonhide_block_black_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_black_top.png"
+  },
+  "draconis_dragonhide_block_bronze": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_bronze.png"
+  },
+  "draconis_dragonhide_block_bronze_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_bronze_top.png"
+  },
+  "draconis_dragonhide_block_gold": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_gold.png"
+  },
+  "draconis_dragonhide_block_gold_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_gold_top.png"
+  },
+  "draconis_dragonhide_block_green": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_green.png"
+  },
+  "draconis_dragonhide_block_green_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_green_top.png"
+  },
+  "draconis_dragonhide_block_light_blue": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_light_blue.png"
+  },
+  "draconis_dragonhide_block_light_blue_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_light_blue_top.png"
+  },
+  "draconis_dragonhide_block_red": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_red.png"
+  },
+  "draconis_dragonhide_block_red_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_red_top.png"
+  },
+  "draconis_dragonhide_block_sapphire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_sapphire.png"
+  },
+  "draconis_dragonhide_block_sapphire_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_sapphire_top.png"
+  },
+  "draconis_dragonhide_block_silver": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_silver.png"
+  },
+  "draconis_dragonhide_block_silver_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_silver_top.png"
+  },
+  "draconis_dragonhide_block_slate": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_slate.png"
+  },
+  "draconis_dragonhide_block_slate_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_slate_top.png"
+  },
+  "draconis_dragonhide_block_white": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_white.png"
+  },
+  "draconis_dragonhide_block_white_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/dragonhide/draconis_dragonhide_block_white_top.png"
+  },
+  "draconis_dragonstone_block_fire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_dragonstone_block_fire.png"
+  },
+  "draconis_dragonstone_block_ice": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_dragonstone_block_ice.png"
+  },
+  "draconis_dragonstone_bricks_fire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_dragonstone_bricks_fire.png"
+  },
+  "draconis_dragonstone_bricks_ice": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_dragonstone_bricks_ice.png"
+  },
+  "draconis_fire_dragon_black": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_dragon_black.png"
+  },
+  "draconis_fire_dragon_bronze": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_dragon_bronze.png"
+  },
+  "draconis_fire_dragon_egg_mesh_black": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_fire_dragon_egg_mesh_black.png"
+  },
+  "draconis_fire_dragon_egg_mesh_bronze": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_fire_dragon_egg_mesh_bronze.png"
+  },
+  "draconis_fire_dragon_egg_mesh_gold": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_fire_dragon_egg_mesh_gold.png"
+  },
+  "draconis_fire_dragon_egg_mesh_green": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_fire_dragon_egg_mesh_green.png"
+  },
+  "draconis_fire_dragon_egg_mesh_red": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_fire_dragon_egg_mesh_red.png"
+  },
+  "draconis_fire_dragon_gold": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_dragon_gold.png"
+  },
+  "draconis_fire_dragon_green": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_dragon_green.png"
+  },
+  "draconis_fire_dragon_red": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_dragon_red.png"
+  },
+  "draconis_fire_eyes_child_green": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_child_green.png"
+  },
+  "draconis_fire_eyes_child_orange": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_child_orange.png"
+  },
+  "draconis_fire_eyes_child_red": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_child_red.png"
+  },
+  "draconis_fire_eyes_green": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_green.png"
+  },
+  "draconis_fire_eyes_orange": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_orange.png"
+  },
+  "draconis_fire_eyes_red": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/fire_dragon/draconis_fire_eyes_red.png"
+  },
+  "draconis_ice_dragon_egg_mesh_light_blue": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_ice_dragon_egg_mesh_light_blue.png"
+  },
+  "draconis_ice_dragon_egg_mesh_sapphire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_ice_dragon_egg_mesh_sapphire.png"
+  },
+  "draconis_ice_dragon_egg_mesh_silver": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_ice_dragon_egg_mesh_silver.png"
+  },
+  "draconis_ice_dragon_egg_mesh_slate": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_ice_dragon_egg_mesh_slate.png"
+  },
+  "draconis_ice_dragon_egg_mesh_white": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/eggs/draconis_ice_dragon_egg_mesh_white.png"
+  },
+  "draconis_ice_dragon_light_blue": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_dragon_light_blue.png"
+  },
+  "draconis_ice_dragon_sapphire": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_dragon_sapphire.png"
+  },
+  "draconis_ice_dragon_silver": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_dragon_silver.png"
+  },
+  "draconis_ice_dragon_slate": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_dragon_slate.png"
+  },
+  "draconis_ice_dragon_white": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_dragon_white.png"
+  },
+  "draconis_ice_eyes_blue": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_eyes_blue.png"
+  },
+  "draconis_ice_eyes_child_blue": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_eyes_child_blue.png"
+  },
+  "draconis_ice_eyes_child_purple": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_eyes_child_purple.png"
+  },
+  "draconis_ice_eyes_purple": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/ice_dragon/draconis_ice_eyes_purple.png"
+  },
+  "draconis_jungle_wyvern_amber": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/jungle_wyvern/draconis_jungle_wyvern_amber.png"
+  },
+  "draconis_jungle_wyvern_aquamarine": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/jungle_wyvern/draconis_jungle_wyvern_aquamarine.png"
+  },
+  "draconis_jungle_wyvern_jade": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/jungle_wyvern/draconis_jungle_wyvern_jade.png"
+  },
+  "draconis_jungle_wyvern_ruby": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/jungle_wyvern/draconis_jungle_wyvern_ruby.png"
+  },
+  "draconis_log_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_log_frozen.png"
+  },
+  "draconis_log_frozen_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_log_frozen_top.png"
+  },
+  "draconis_log_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_log_scorched.png"
+  },
+  "draconis_log_scorched_top": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_log_scorched_top.png"
+  },
+  "draconis_soil_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_soil_frozen.png"
+  },
+  "draconis_soil_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_soil_scorched.png"
+  },
+  "draconis_stone_brick_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_stone_brick_frozen.png"
+  },
+  "draconis_stone_brick_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_stone_brick_scorched.png"
+  },
+  "draconis_stone_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_stone_frozen.png"
+  },
+  "draconis_stone_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_stone_scorched.png"
+  },
+  "draconis_wood_planks_frozen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_wood_planks_frozen.png"
+  },
+  "draconis_wood_planks_scorched": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE",
+    "package": "draconis",
+    "release": 34129,
+    "source": "draconis/textures/nodes/draconis_wood_planks_scorched.png"
+  }
+}

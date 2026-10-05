@@ -1,0 +1,44 @@
+{
+ "class": "stone",
+ "micro": "stone",
+ "micro_strength": 0.45,
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.25,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.62,
+   "smooth_spread": 0.06
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.1,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "grid": [
+  "MMMMMMMMMMMMMMMM",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "M..............M",
+  "MMMMMMMMMMMMMMMM"
+ ],
+ "legend": {
+  "M": "joint"
+ }
+}

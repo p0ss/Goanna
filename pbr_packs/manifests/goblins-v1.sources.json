@@ -1,0 +1,186 @@
+{
+  "goblins_goblin_coal1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_coal1.png"
+  },
+  "goblins_goblin_coal2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_coal2.png"
+  },
+  "goblins_goblin_cobble1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_cobble1.png"
+  },
+  "goblins_goblin_cobble2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_cobble2.png"
+  },
+  "goblins_goblin_copper1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_copper1.png"
+  },
+  "goblins_goblin_copper2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_copper2.png"
+  },
+  "goblins_goblin_diamond1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_diamond1.png"
+  },
+  "goblins_goblin_diamond2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_diamond2.png"
+  },
+  "goblins_goblin_digger": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_digger.png"
+  },
+  "goblins_goblin_dog": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_dog.png"
+  },
+  "goblins_goblin_fungler1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_fungler1.png"
+  },
+  "goblins_goblin_fungler2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_fungler2.png"
+  },
+  "goblins_goblin_gold1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_gold1.png"
+  },
+  "goblins_goblin_gold2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_gold2.png"
+  },
+  "goblins_goblin_hoarder": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_hoarder.png"
+  },
+  "goblins_goblin_iron1": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_iron1.png"
+  },
+  "goblins_goblin_iron2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_iron2.png"
+  },
+  "goblins_goblin_king": {
+    "author": "SummerFields texture pack, via Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_king.png"
+  },
+  "goblins_goblin_snuffer": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_goblin_snuffer.png"
+  },
+  "goblins_mushroom_brown": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_mushroom_brown.png"
+  },
+  "goblins_mushroom_brown2": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_mushroom_brown2.png"
+  },
+  "goblins_mushroom_brown3": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_mushroom_brown3.png"
+  },
+  "goblins_mushroom_brown4": {
+    "author": "Francisco \"FreeLikeGNU\" Athens",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "goblins",
+    "release": 32959,
+    "source": "goblins/textures/goblins_mushroom_brown4.png"
+  }
+}

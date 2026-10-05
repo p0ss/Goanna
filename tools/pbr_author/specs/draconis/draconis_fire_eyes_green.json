@@ -1,0 +1,49 @@
+{
+ "class": "cloth",
+ "texel_px": 4.0,
+ "strength": 16.0,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "bevel_px": 2,
+ "bevel_depth": 0.06,
+ "micro": "none",
+ "overlay": true,
+ "surface": 0.74,
+ "materials": {
+  "iris": {
+   "mode": "flat",
+   "base": 0.74,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "scatter": 0,
+   "emission": 0.6
+  },
+  "pupil": {
+   "mode": "flat",
+   "base": 0.73,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "scatter": 0
+  },
+  "glint": {
+   "mode": "flat",
+   "base": 0.74,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "scatter": 0,
+   "emission": 0.6
+  }
+ },
+ "palette": {
+  "#000000": "pupil",
+  "#18991d": "iris",
+  "#1bad21": "iris",
+  "#1ec325": "iris"
+ }
+}
