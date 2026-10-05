@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+"""The render service: one long lived server and headless client that own
+the GPU lock and take shot jobs. The work is in tools/goanna_render.py; run
+with no arguments for usage, and see docs/agent-interfaces.md, "The render
+service", for the job format."""
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import goanna_render  # noqa: E402
+
+sys.exit(goanna_render.main(sys.argv))

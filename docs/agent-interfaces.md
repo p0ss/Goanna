@@ -77,6 +77,196 @@ move a client's pointer with xdotool. So:
 The launcher and the MCP server are described in `docs/control-channel.md`,
 under "Starting it" and "Driving it from an agent".
 
+### The render service
+
+Use the render service for every rendered frame and every GPU timing. Do
+not start a GPU client of your own.
+
+Each agent used to build a worktree, import it, make a fixture world, start
+a server and a client, take a few frames and stop, and it held the one GPU
+lock for 30 to 60 minutes to do it, most of that setup. `tools/goanna-render`
+does the setup once and keeps it:
+
+- `goanna-render serve` takes the GPU lock
+  (`/tmp/claude-1000/goanna-gpu.lock`, the one every agent's `flock`
+  uses) and holds it for the service's whole life, so nothing else renders
+  beside it. Under the lock it requires the card clear: nothing
+  `goanna-headless gpu-free` names, no NVIDIA driver errors in the last 30
+  minutes, and no compute user in `nvidia-smi` that is not a desktop
+  program. It then starts one Luanti server (Mineclonia unless `--game`
+  says otherwise) on a fixture world it rebuilds every time it starts, and
+  one headless Goanna client on the GPU, through the launcher with
+  `--cpu-compositor`.
+- `goanna-render shoot JOB.json` queues a job and blocks until it is done,
+  printing the result. Jobs from any number of shells queue and run one at
+  a time, oldest first. With no service running, `shoot` starts one with
+  the defaults (`--no-start` refuses instead).
+- `goanna-render status` says what it is doing, what is queued, which
+  build and profile the client holds and why it last restarted;
+  `goanna-render stop` stops it.
+
+It gives the card back on its own. Between jobs, and between the variants
+and poses of a job, it polls the same checks. When the owner's own Godot, a python
+compute job or a driver fault appears, it stops its client and server,
+releases the lock, puts any interrupted job back at the front of the queue,
+and waits until the card has been clear for a minute before taking the
+lock again. It stops cleanly on SIGTERM, and after 20 minutes with no job
+(`--idle-minutes`), because a client left running costs the owner.
+
+`--software` runs the whole service on lavapipe, without the lock, for
+testing the service itself. Its frames are useless for judging a look.
+
+#### The world
+
+The fixture is a singlenode world with Mineclonia's own Lua level
+generator turned off (`mcl_singlenode_mapgen = false`, which otherwise
+builds floating terrain over the stage), a 49 by 49 stone floor at the
+stage, Luanti (1000, 31, 1000), and `tools/render-fixture.lua` and a fresh
+copy of `goanna_server_mod` as worldmods. The server runs with
+`time_speed = 0`, Mineclonia's weather cycle off, mob spawning off and
+movement anticheat off (poses move the player thousands of nodes a second
+as far as anticheat can tell, and it then reset the player and streamed
+blocks around the wrong place). `--world-from NAME` copies an existing
+world instead, for a scene with real terrain (`frame: world` in the job).
+
+Between jobs the player waits 1200 nodes from the stage, so a job's nodes
+reach the client in blocks sent fresh rather than as edits to blocks it
+already holds.
+
+#### A job
+
+Coordinates are Luanti's, relative to the stage (its floor is at y -1),
+unless `"frame": "world"` makes them absolute. The service negates z for
+Goanna itself. A pose takes `look_at` (a point) or `yaw` and `pitch` in
+degrees, yaw 0 looking along +z and 90 along -x, pitch positive looking
+up; `pos` is the eye.
+
+```json
+{
+  "label": "zombie, maps on and off",
+  "out": "/abs/path/to/output",
+  "tier": "high",
+  "size": [1280, 720],
+  "pack": "/abs/path/to/pbr_packs/mineclonia/textures",
+  "build": "/abs/path/to/a/worktree",
+  "env": {"GOANNA_DEBUG_LOD": "1"},
+  "profile": {"mat_micro_shadow": 1},
+  "time": 0.5,
+  "weather": "clear",
+  "nodes": [{"box": [[-2, 0, 5], [2, 2, 5]], "node": "mcl_core:stonebrick"}],
+  "statues": [{"entity": "mobs_mc:zombie", "pos": [0, 0, 3], "yaw": 180}],
+  "verify": [{"pos": [0, -1, 0], "node": "mcl_core:stone"}],
+  "poses": [{"name": "face", "pos": [0, 1.6, 0.8], "look_at": [0, 1.4, 3], "fov": 60}],
+  "variants": [{"name": "maps_on", "maps": true},
+               {"name": "maps_off", "maps": false},
+               {"name": "dusk", "time": 0.74}],
+  "crops": [{"name": "head", "rect": [540, 160, 200, 200]}],
+  "timing": {"rounds": 6, "burst": 600, "poses": ["face"]}
+}
+```
+
+Everything but `out` and `poses` may be left out. `build` defaults to
+main's checkout (`project/bin` there, and its GDScript as it stands);
+`pack` to that checkout's `pbr_packs/<game>/textures`; `tier` to `high`;
+`size` to 1280 by 720; `time` to 0.5 and `weather` to clear. Each variant
+overrides any of `build`, `pack`, `tier`, `size`, `env`, `maps`, `profile`
+(merged), `time` and `weather`, and every variant is shot at every pose.
+`frames: false` skips frames for a timing only job.
+
+What costs what:
+
+- `profile` (any key the settings panel has, `mat_*` included), `time`,
+  `weather` and a pose's `fov` are applied live and put back after the
+  variant. There is no texture size setting: the size of the textures is
+  the pack directory's, so name a different `pack`.
+- `build`, `pack`, `tier`, `size`, `env` and `maps` are fixed at launch,
+  so a change restarts the client: 32 to 41 s on lavapipe (92 s the first
+  time, compiling shaders), not yet measured on the GPU, plus a one off import of a worktree that has
+  never been opened (`godot --headless --import`, no GPU, minutes). A
+  rebuilt `project/bin` is seen by its hash and restarts the client too.
+  Variants that share a launch run together, so maps on and off is one
+  restart, not one per pose. The result lists every restart and its
+  seconds under `client_restarts`.
+
+Each frame is `OUT/<variant>/<pose>.png`, with the client's own sidecar
+(`<pose>.json`, which lists deviations) and the service's
+(`<pose>.settings.json`): the build (checkout, HEAD, branch, a dirty flag
+and the files, and the hash, size and time of the library), the Godot,
+Goanna, server and game versions, the adapter, the tier and every value
+the client held at the shot read back from it, the overrides asked for,
+the pack, maps, environment, time, weather, both coordinate frames of the
+pose, the node and statue checks, the material counts with normal and
+specular arrays bound, and the entity materials built with and without a
+normal map. Crops are `<pose>.<name>.png`. `timing` writes
+`OUT/timing/timing.json` (median and p95 of per draw GPU time per variant
+and pose, with the range over rounds) and every round's draws as CSV.
+`OUT/result.json` repeats what `shoot` printed, with the wall time.
+
+#### The traps it handles, so a job does not have to
+
+- **Stale profile.** A scratch profile first saved on lavapipe stayed on
+  Low with parallax off and invalidated three GPU reviews. Every launch
+  writes a fresh profile into a fresh `XDG_DATA_HOME`, with
+  `GOANNA_NO_HW_DEFAULTS=1`, then reads every value of the tier back from
+  the client and refuses to shoot if one differs (`far_distance` follows
+  the server's grant and is only recorded). It also refuses an adapter
+  that is not the card.
+- **Maps off.** `maps: false` launches with `GOANNA_NO_PBR=1` and
+  `GOANNA_AUTO_BUMP=0` and `auto_bump=0` in the profile, so no relief is
+  inferred either, and `GOANNA_DEBUG_ENTITY_PBR=1` always. A maps off frame
+  whose client log has any entity material built with `normal=true` fails
+  the job; the sidecar says `maps_off_verified`.
+- **Empty `luanti/` submodule.** A build whose checkout has no
+  `luanti/textures/base/pack/blank.png` is refused: players would draw
+  yellow.
+- **z negated.** Jobs are in Luanti coordinates; the service converts for
+  `tp`, `pose`, `look` and `node_name_at`.
+- **Presented frame timing.** Under headless gamescope the GPU idles at
+  low clocks between presents, so timing is back to back `force_draw`
+  bursts after 30 warm draws, variants rotated per round, as in
+  `docs/perf/low-tier-occlusion-2026-10-05/run.py`.
+- **Weather.** Mineclonia's cycle is off, and each variant sets its
+  weather for a million seconds and puts clear back.
+- **Missing meshes after teleports.** A job teleports once, to `anchor` or
+  its first pose, and then moves only the camera. Before any frame every
+  corner of every box, every `verify` entry and every statue is looked up
+  in the client; if one does not match within 30 s it leaves for the
+  parking place and comes back, up to three times, and fails the job
+  rather than photograph a hole.
+- **Statues.** `/rs_statue` holds the entity in place with its `on_step`
+  shadowed (no walking, burning or despawning) and spawns it again
+  whenever its block is active and it is gone, so placing one while the
+  player is away works.
+- **A held player name.** A stopped client can leave its player on the
+  server until it times out, and the next client under the name is
+  refused; the service waits for the server to log the player leaving.
+- **Clients left running.** SIGTERM, `stop`, the idle timeout and a yield
+  all stop the client through the launcher and the server by the PIDs
+  the service started.
+
+#### What has been run
+
+On 2026-10-06, only with `--software` (lavapipe, 640 by 360), because the
+card was never clear of other agents' clients while this was written:
+Luanti 5.17.0 server, Mineclonia (release 38561), Godot 4.5.1, main's
+build at 00c39896 with two dirty files. The service came up in 75 s (server
+19 s, client 41 s). Three jobs were sent from two shells at once and ran
+one at a time in order: a stone wall at noon and dusk (209 s, no
+restart), a zombie statue with maps on and off (259 s, one 37 s restart;
+the maps off sidecar had `pbr_disabled` true, no normal or specular arrays
+bound, `auto_bump` 0 and no entity material with a normal map), and a
+timing job of two parallax variants (442 s, one 32 s restart back to maps
+on; lavapipe's numbers are meaningless as timings). With `--fake-gpu-user`
+listing a live dummy `python3` process, the service yielded 5 s after the
+job in hand finished, stopped its client and server, released the lock,
+and came back 25 s after the process ended. Started without
+`--software` beside another agent's client, it took the lock, found the
+client, released the lock and waited without starting anything.
+
+Not yet run: anything on the GPU, so no GPU frame, timing or restart cost
+has been seen; a yield in the middle of a job, which puts the job back at
+the front of the queue; `--world-from`; a `build` other than main's.
+
 ## 2. Player agent interface
 
 The player agent interface represents an ordinary participant in a world. The
