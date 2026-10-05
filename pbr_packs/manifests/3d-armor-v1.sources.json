@@ -1,0 +1,418 @@
+{
+  "3d_armor_boots_admin": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_admin/textures/3d_armor_boots_admin.png"
+  },
+  "3d_armor_boots_bronze": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_bronze/textures/3d_armor_boots_bronze.png"
+  },
+  "3d_armor_boots_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_cactus/textures/3d_armor_boots_cactus.png"
+  },
+  "3d_armor_boots_crystal": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_crystal/textures/3d_armor_boots_crystal.png"
+  },
+  "3d_armor_boots_diamond": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_diamond/textures/3d_armor_boots_diamond.png"
+  },
+  "3d_armor_boots_gold": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_gold/textures/3d_armor_boots_gold.png"
+  },
+  "3d_armor_boots_mithril": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_mithril/textures/3d_armor_boots_mithril.png"
+  },
+  "3d_armor_boots_nether": {
+    "author": "davidthecreator (per LICENSE.md; see notice)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it; upstream history: added by lortas in minetest-mods/3d_armor PR #65 (2021-11-10), which names no other author, so the LICENSE.md class line is the only notice",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_nether/textures/3d_armor_boots_nether.png"
+  },
+  "3d_armor_boots_steel": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_steel/textures/3d_armor_boots_steel.png"
+  },
+  "3d_armor_boots_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_wood/textures/3d_armor_boots_wood.png"
+  },
+  "3d_armor_chestplate_admin": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_admin/textures/3d_armor_chestplate_admin.png"
+  },
+  "3d_armor_chestplate_bronze": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_bronze/textures/3d_armor_chestplate_bronze.png"
+  },
+  "3d_armor_chestplate_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_cactus/textures/3d_armor_chestplate_cactus.png"
+  },
+  "3d_armor_chestplate_crystal": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_crystal/textures/3d_armor_chestplate_crystal.png"
+  },
+  "3d_armor_chestplate_diamond": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_diamond/textures/3d_armor_chestplate_diamond.png"
+  },
+  "3d_armor_chestplate_gold": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_gold/textures/3d_armor_chestplate_gold.png"
+  },
+  "3d_armor_chestplate_mithril": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_mithril/textures/3d_armor_chestplate_mithril.png"
+  },
+  "3d_armor_chestplate_nether": {
+    "author": "davidthecreator (per LICENSE.md; see notice)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it; upstream history: added by lortas in minetest-mods/3d_armor PR #65 (2021-11-10), which names no other author, so the LICENSE.md class line is the only notice",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_nether/textures/3d_armor_chestplate_nether.png"
+  },
+  "3d_armor_chestplate_steel": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_steel/textures/3d_armor_chestplate_steel.png"
+  },
+  "3d_armor_chestplate_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_wood/textures/3d_armor_chestplate_wood.png"
+  },
+  "3d_armor_helmet_admin": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_admin/textures/3d_armor_helmet_admin.png"
+  },
+  "3d_armor_helmet_bronze": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_bronze/textures/3d_armor_helmet_bronze.png"
+  },
+  "3d_armor_helmet_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_cactus/textures/3d_armor_helmet_cactus.png"
+  },
+  "3d_armor_helmet_crystal": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_crystal/textures/3d_armor_helmet_crystal.png"
+  },
+  "3d_armor_helmet_diamond": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_diamond/textures/3d_armor_helmet_diamond.png"
+  },
+  "3d_armor_helmet_gold": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_gold/textures/3d_armor_helmet_gold.png"
+  },
+  "3d_armor_helmet_mithril": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_mithril/textures/3d_armor_helmet_mithril.png"
+  },
+  "3d_armor_helmet_nether": {
+    "author": "davidthecreator (per LICENSE.md; see notice)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it; upstream history: added by lortas in minetest-mods/3d_armor PR #65 (2021-11-10), which names no other author, so the LICENSE.md class line is the only notice",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_nether/textures/3d_armor_helmet_nether.png"
+  },
+  "3d_armor_helmet_steel": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_steel/textures/3d_armor_helmet_steel.png"
+  },
+  "3d_armor_helmet_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_wood/textures/3d_armor_helmet_wood.png"
+  },
+  "3d_armor_leggings_admin": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_admin/textures/3d_armor_leggings_admin.png"
+  },
+  "3d_armor_leggings_bronze": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_bronze/textures/3d_armor_leggings_bronze.png"
+  },
+  "3d_armor_leggings_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_cactus/textures/3d_armor_leggings_cactus.png"
+  },
+  "3d_armor_leggings_crystal": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_crystal/textures/3d_armor_leggings_crystal.png"
+  },
+  "3d_armor_leggings_diamond": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_diamond/textures/3d_armor_leggings_diamond.png"
+  },
+  "3d_armor_leggings_gold": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_gold/textures/3d_armor_leggings_gold.png"
+  },
+  "3d_armor_leggings_mithril": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_mithril/textures/3d_armor_leggings_mithril.png"
+  },
+  "3d_armor_leggings_nether": {
+    "author": "davidthecreator (per LICENSE.md; see notice)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it; upstream history: added by lortas in minetest-mods/3d_armor PR #65 (2021-11-10), which names no other author, so the LICENSE.md class line is the only notice",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_nether/textures/3d_armor_leggings_nether.png"
+  },
+  "3d_armor_leggings_steel": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_steel/textures/3d_armor_leggings_steel.png"
+  },
+  "3d_armor_leggings_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0\"; cc-by-sa-3.0.txt ships beside it",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/armor_wood/textures/3d_armor_leggings_wood.png"
+  },
+  "shields_shield_admin": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_admin.png"
+  },
+  "shields_shield_bronze": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_bronze.png"
+  },
+  "shields_shield_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_cactus.png"
+  },
+  "shields_shield_crystal": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_crystal.png"
+  },
+  "shields_shield_diamond": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_diamond.png"
+  },
+  "shields_shield_enhanced_cactus": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_enhanced_cactus.png"
+  },
+  "shields_shield_enhanced_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_enhanced_wood.png"
+  },
+  "shields_shield_gold": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_gold.png"
+  },
+  "shields_shield_mithril": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_mithril.png"
+  },
+  "shields_shield_nether": {
+    "author": "davidthecreator (per LICENSE.md; see notice)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"; upstream history: added by lortas in minetest-mods/3d_armor PR #65 (2021-11-10), which names no other author, so the LICENSE.md class line is the only notice",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_nether.png"
+  },
+  "shields_shield_steel": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_steel.png"
+  },
+  "shields_shield_wood": {
+    "author": "davidthecreator",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.md: \"New armor/shield textures CC-BY-SA 3.0 / davidthecreator / https://forum.minetest.net/viewtopic.php?f=11&t=4654&start=800#p356448\"",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/shields/textures/shields_shield_wood.png"
+  }
+}

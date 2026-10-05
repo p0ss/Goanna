@@ -130,6 +130,16 @@
       "decision": "eligible",
       "evidence": "Release 38331 README.md: 'Blimp model and textures by APercy. CC BY-SA 3.0', with the deed; LICENSE is MIT for code. 13 textures recorded on 2026-10-05.",
       "media_license": "CC-BY-SA-3.0"
+    },
+    "3d_armor": {
+      "decision": "eligible",
+      "evidence": "Release 37711 LICENSE.md: 'Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0' and 'New armor/shield textures CC-BY-SA 3.0 / davidthecreator'; no submod has its own notice. 52 worn armour and shield layers recorded on 2026-10-05; the nether set, added by lortas, falls under the same line. The armour stand textures, which no notice names, are excluded.",
+      "media_license": "CC-BY-SA-3.0"
+    },
+    "animalia": {
+      "decision": "eligible",
+      "evidence": "Release 34128 carries one notice, an MIT LICENSE by ElCeejo, with no credits naming other authors; ContentDB's MIT media label agrees. 70 creature skins recorded on 2026-10-05.",
+      "media_license": "MIT"
     }
   }
 }

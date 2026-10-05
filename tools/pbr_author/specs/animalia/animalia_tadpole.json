@@ -1,0 +1,33 @@
+{
+ "class": "cloth",
+ "strength": 20.0,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.08,
+ "micro": "none",
+ "texel_px": 16,
+ "materials": {
+  "skin": {"mode": "shade", "base": 0.87, "span": 0.1, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.6, "smooth_spread": 0.04, "micro": "hide", "micro_strength": 0.12, "micro_swing": 0.2, "micro_params": {"cell": 0.7, "wrinkles": 0.2}, "scatter": 0.4},
+  "eye": {"mode": "flat", "base": 0.92, "span": 0.0, "smooth": 0.8, "smooth_spread": 0.0, "micro": "none"}
+ },
+ "grid": [
+  "................",
+  "................",
+  "................",
+  "................",
+  "..bb.bb.........",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................"
+ ],
+ "legend": {"b": "eye"}
+}

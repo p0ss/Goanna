@@ -1,0 +1,562 @@
+{
+  "animalia_angelfish": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/fish/animalia_angelfish.png"
+  },
+  "animalia_bat_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/bat/animalia_bat_1.png"
+  },
+  "animalia_bat_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/bat/animalia_bat_2.png"
+  },
+  "animalia_bat_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/bat/animalia_bat_3.png"
+  },
+  "animalia_bear_grizzly": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/bear/animalia_bear_grizzly.png"
+  },
+  "animalia_blue_tang": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/fish/animalia_blue_tang.png"
+  },
+  "animalia_bluebird": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/birds/animalia_bluebird.png"
+  },
+  "animalia_bull_frog": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_bull_frog.png"
+  },
+  "animalia_cardinal": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/birds/animalia_cardinal.png"
+  },
+  "animalia_cat_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_1.png"
+  },
+  "animalia_cat_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_2.png"
+  },
+  "animalia_cat_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_3.png"
+  },
+  "animalia_cat_4": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_4.png"
+  },
+  "animalia_cat_5": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_5.png"
+  },
+  "animalia_cat_6": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_6.png"
+  },
+  "animalia_cat_7": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_7.png"
+  },
+  "animalia_cat_8": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_8.png"
+  },
+  "animalia_cat_9": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_9.png"
+  },
+  "animalia_cat_ash": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_ash.png"
+  },
+  "animalia_cat_birch": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cat/animalia_cat_birch.png"
+  },
+  "animalia_chicken_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_chicken_1.png"
+  },
+  "animalia_chicken_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_chicken_2.png"
+  },
+  "animalia_chicken_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_chicken_3.png"
+  },
+  "animalia_chicken_child": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_chicken_child.png"
+  },
+  "animalia_clownfish": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/fish/animalia_clownfish.png"
+  },
+  "animalia_cow_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_1.png"
+  },
+  "animalia_cow_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_2.png"
+  },
+  "animalia_cow_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_3.png"
+  },
+  "animalia_cow_4": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_4.png"
+  },
+  "animalia_cow_5": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_5.png"
+  },
+  "animalia_cow_udder": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/cow/animalia_cow_udder.png"
+  },
+  "animalia_dart_frog_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_dart_frog_1.png"
+  },
+  "animalia_dart_frog_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_dart_frog_2.png"
+  },
+  "animalia_dart_frog_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_dart_frog_3.png"
+  },
+  "animalia_fox_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/fox/animalia_fox_1.png"
+  },
+  "animalia_goldfinch": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/birds/animalia_goldfinch.png"
+  },
+  "animalia_horse_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_1.png"
+  },
+  "animalia_horse_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_2.png"
+  },
+  "animalia_horse_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_3.png"
+  },
+  "animalia_horse_4": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_4.png"
+  },
+  "animalia_horse_5": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_5.png"
+  },
+  "animalia_horse_pattern_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_pattern_1.png"
+  },
+  "animalia_horse_pattern_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_pattern_2.png"
+  },
+  "animalia_horse_pattern_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_pattern_3.png"
+  },
+  "animalia_horse_saddle": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/horse/animalia_horse_saddle.png"
+  },
+  "animalia_opossum": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/opossum/animalia_opossum.png"
+  },
+  "animalia_owl": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/owl/animalia_owl.png"
+  },
+  "animalia_pig_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/pig/animalia_pig_1.png"
+  },
+  "animalia_pig_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/pig/animalia_pig_2.png"
+  },
+  "animalia_pig_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/pig/animalia_pig_3.png"
+  },
+  "animalia_pig_tusks": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/pig/animalia_pig_tusks.png"
+  },
+  "animalia_rat_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/rat/animalia_rat_1.png"
+  },
+  "animalia_rat_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/rat/animalia_rat_2.png"
+  },
+  "animalia_rat_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/rat/animalia_rat_3.png"
+  },
+  "animalia_reindeer": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/reindeer/animalia_reindeer.png"
+  },
+  "animalia_reindeer_calf": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/reindeer/animalia_reindeer_calf.png"
+  },
+  "animalia_rooster_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_rooster_1.png"
+  },
+  "animalia_rooster_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_rooster_2.png"
+  },
+  "animalia_rooster_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/chicken/animalia_rooster_3.png"
+  },
+  "animalia_sheep": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/sheep/animalia_sheep.png"
+  },
+  "animalia_sheep_wool": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/sheep/animalia_sheep_wool.png"
+  },
+  "animalia_tadpole": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_tadpole.png"
+  },
+  "animalia_tree_frog": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/frog/animalia_tree_frog.png"
+  },
+  "animalia_turkey_chick": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/turkey/animalia_turkey_chick.png"
+  },
+  "animalia_turkey_hen": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/turkey/animalia_turkey_hen.png"
+  },
+  "animalia_turkey_tom": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/turkey/animalia_turkey_tom.png"
+  },
+  "animalia_wolf_1": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/wolf/animalia_wolf_1.png"
+  },
+  "animalia_wolf_2": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/wolf/animalia_wolf_2.png"
+  },
+  "animalia_wolf_3": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/wolf/animalia_wolf_3.png"
+  },
+  "animalia_wolf_4": {
+    "author": "ElCeejo",
+    "media_license": "MIT",
+    "notice": "LICENSE (MIT, Copyright (c) 2022 ElCeejo), the archive's only notice",
+    "package": "animalia",
+    "release": 34128,
+    "source": "animalia/textures/wolf/animalia_wolf_4.png"
+  }
+}

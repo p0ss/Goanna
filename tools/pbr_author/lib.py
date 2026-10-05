@@ -117,7 +117,7 @@ COMMUNITY_SRC = Path(os.environ.get("GOANNA_AUDIT_ROOT",
                                     os.path.expanduser("~/.local/share/goanna-pbr-audit"))) / "src"
 for _mod in ("draconis", "goblins", "sum_airship", "animalia", "edit_skin",
              "cottages", "basic_materials", "dfcaverns", "nextgen_fungi",
-             "steampunk_blimp", "mcl_decor"):
+             "steampunk_blimp", "mcl_decor", "mobs_animal", "mobs_monster"):
     GAMES[_mod] = {
         "art": COMMUNITY_SRC / _mod / _mod,
         "pack": REPO / "pbr_packs" / _mod / "textures",
@@ -799,3 +799,10 @@ def preview(out_dir, stem, path, light=(0.5, -0.4, 0.75), scale=2):
         im = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
     im.save(path)
     return path
+
+# 3d_armor is a modpack; its art and models sit under the pack root.
+GAMES["3d_armor"] = {
+    "art": COMMUNITY_SRC / "3d_armor" / "3d_armor",
+    "pack": REPO / "pbr_packs" / "3d_armor" / "textures",
+    "install": REPO / "pbr_packs" / "3d_armor" / "textures",
+}

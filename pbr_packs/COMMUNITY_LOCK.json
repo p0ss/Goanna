@@ -1,5 +1,12 @@
 {
   "packages": {
+    "3d_armor": {
+      "archive_sha256": "b66815387d6957b96edf318bf9e27c5f83dcfa0e7fb81cc0213d563fae656b1f",
+      "contentdb": "https://content.luanti.org/packages/stu/3d_armor/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 37711,
+      "repository": "https://github.com/minetest-mods/3d_armor"
+    },
     "backroomtest": {
       "archive_sha256": "0f03774bea8f31761f7480d34350a853957f07318cb1b28e9afa40504eddcbcd",
       "contentdb": "https://content.luanti.org/packages/Sumianvoice/backroomtest/",
@@ -188,6 +195,20 @@
       "declared_media_license": "CC-BY-SA-3.0",
       "release": 38214,
       "repository": "https://github.com/luanti-org/minetest_game"
+    },
+    "mobs_animal": {
+      "archive_sha256": "26724aa877187c37d31da26b6ce22c534d10a4696c7583a0e8045b0c51a3acc9",
+      "contentdb": "https://content.luanti.org/packages/TenPlus1/mobs_animal/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 39178,
+      "repository": "https://codeberg.org/tenplus1/mobs_animal"
+    },
+    "mobs_monster": {
+      "archive_sha256": "486bf78b95e49b0bb3a45c46f30cc82acc6593a41c1756867cdfc0b34b8b658f",
+      "contentdb": "https://content.luanti.org/packages/TenPlus1/mobs_monster/",
+      "declared_media_license": "CC-BY-3.0",
+      "release": 38244,
+      "repository": "https://codeberg.org/tenplus1/mobs_monster"
     },
     "moreblocks": {
       "archive_sha256": "1dbdcd0a903b1c49fbb873219e7f869b72600cf78fca3658916100ff889b8085",
