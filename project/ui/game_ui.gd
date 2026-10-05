@@ -60,6 +60,7 @@ var chat_open := false
 var window: Control                    # current modal: formspec, pause menu or death screen
 var form: Control                      # ui/formspec.gd
 var form_is_inventory := false
+var _inventory_spec := ""    # the inventory formspec the open inventory was built from
 var pause_menu: Control
 var death_screen: Control
 var fullscreen_tint: ColorRect
@@ -248,6 +249,15 @@ func _process(delta: float) -> void:
 			form.refresh_lists()
 			_after_inventory_update()
 	_poll_other_inventories()
+	# The open inventory follows the server's inventory formspec, as upstream's
+	# does (PlayerInventoryFormSource is asked for the form every frame): a
+	# game that changes it while it is open, Minetest Game's tabs for one,
+	# expects the change on screen at once.
+	if window == form and form_is_inventory and client.inventory_formspec() != _inventory_spec:
+		_inventory_spec = client.inventory_formspec()
+		if _inventory_spec.strip_edges() != "":
+			form.show_formspec(_inventory_spec, "", form.get_viewport_rect().size, _formspec_prepend())
+			fullscreen_tint.color = form.fullscreen_bg
 	# server-shown formspecs
 	for f in client.take_shown_formspecs():
 		form_context = str(f.get("context", ""))
@@ -688,6 +698,7 @@ func toggle_inventory() -> void:
 
 func _open_inventory() -> void:
 	var spec: String = client.inventory_formspec()
+	_inventory_spec = spec
 	if OS.get_environment("GOANNA_DUMP_FORMSPEC") != "":
 		print("FORMSPEC>>>", spec, "<<<FORMSPEC")
 
