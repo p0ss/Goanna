@@ -1,0 +1,89 @@
+{
+ "class": "planks",
+ "materials": {
+  "shingle": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.42000000000000004,
+   "levels": 3,
+   "joints": false,
+   "smooth": 0.15
+  },
+  "shadow": {
+   "mode": "flat",
+   "base": 0.06,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.05
+  }
+ },
+ "grid": [
+  "AAAAAAAAAABBBBBB",
+  "AAAABAAACDDDDDCC",
+  "EEECCEEECDDDDDCC",
+  "EEECCEEEFGGGGGFG",
+  "HHFGFFHHFGGGFGFF",
+  "HHFGGFFHIJJJJJII",
+  "KIIJJKIKIJJJJJII",
+  "KIIJJIIKssssssss",
+  "ssssABBALLLLALLA",
+  "EEEECDDDDDDDEDDC",
+  "EEEECDDDCDCDCCDC",
+  "HHHHFGGGFGFFHGGF",
+  "HHHHFGGFFGFGFGGF",
+  "KKKKIJIIIIIIIJJI",
+  "KKKKKJIIKIKKKJJI",
+  "ssssssssssssssss"
+ ],
+ "legend": {
+  "s": "shadow",
+  "A": {
+   "material": "shingle",
+   "h": 0.28
+  },
+  "B": {
+   "material": "shingle",
+   "h": 0.36
+  },
+  "C": {
+   "material": "shingle",
+   "h": 0.5
+  },
+  "D": {
+   "material": "shingle",
+   "h": 0.58
+  },
+  "E": {
+   "material": "shingle",
+   "h": 0.42
+  },
+  "F": {
+   "material": "shingle",
+   "h": 0.64
+  },
+  "G": {
+   "material": "shingle",
+   "h": 0.72
+  },
+  "H": {
+   "material": "shingle",
+   "h": 0.56
+  },
+  "I": {
+   "material": "shingle",
+   "h": 0.78
+  },
+  "J": {
+   "material": "shingle",
+   "h": 0.86
+  },
+  "K": {
+   "material": "shingle",
+   "h": 0.7
+  },
+  "L": {
+   "material": "shingle",
+   "h": 0.44
+  }
+ }
+}

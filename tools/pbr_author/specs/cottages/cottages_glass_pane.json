@@ -1,0 +1,50 @@
+{
+ "class": "glass",
+ "materials": {
+  "glass": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.92
+  },
+  "frame": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.35
+  },
+  "bead": {
+   "mode": "flat",
+   "base": 0.68,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.4
+  }
+ },
+ "grid": [
+  "FFFFFFFFFFFFFFFF",
+  "FBBBBBBBBBBBBBBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBggggggggggggBF",
+  "FBBBBBBBBBBBBBBF",
+  "FFFFFFFFFFFFFFFF"
+ ],
+ "legend": {
+  "F": "frame",
+  "B": "bead",
+  "g": "glass"
+ },
+ "micro": "none"
+}

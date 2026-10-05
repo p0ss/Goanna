@@ -115,12 +115,17 @@ GAMES = {
 # and each has its own pack, since a mod runs under several games.
 COMMUNITY_SRC = Path(os.environ.get("GOANNA_AUDIT_ROOT",
                                     os.path.expanduser("~/.local/share/goanna-pbr-audit"))) / "src"
-for _mod in ("draconis", "goblins", "sum_airship"):
+for _mod in ("draconis", "goblins", "sum_airship", "animalia", "edit_skin",
+             "cottages", "basic_materials"):
     GAMES[_mod] = {
         "art": COMMUNITY_SRC / _mod / _mod,
         "pack": REPO / "pbr_packs" / _mod / "textures",
         "install": REPO / "pbr_packs" / _mod / "textures",
     }
+# Edit Skin draws on the game's player model, player_api's character.b3d.
+GAMES["edit_skin"]["model_roots"] = [GAMES_DIR / "minetest_game"]
+# Parts its media credits do not name; built for review, never shipped.
+GAMES["edit_skin"]["excluded"] = REPO / "pbr_packs/manifests/edit-skin-v1.excluded.json"
 DEFAULT_GAME = "mineclonia"
 GAME_TEXTURES = GAMES[DEFAULT_GAME]["art"]
 PACK_TEXTURES = GAMES[DEFAULT_GAME]["pack"]

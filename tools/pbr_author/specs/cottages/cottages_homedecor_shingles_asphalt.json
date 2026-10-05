@@ -1,0 +1,89 @@
+{
+ "class": "stone",
+ "materials": {
+  "shingle": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.42000000000000004,
+   "levels": 3,
+   "joints": false,
+   "smooth": 0.12
+  },
+  "shadow": {
+   "mode": "flat",
+   "base": 0.06,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.05
+  }
+ },
+ "grid": [
+  "AABCABCDEFFGEEGs",
+  "GGGGFEGsFGEGGEED",
+  "GFEEFFEsHHIHHHIs",
+  "HJJIIHHsHJJHHJHD",
+  "HJIIIIJDKLKLLLKs",
+  "LDLLKDLsDLKLLLLs",
+  "KLKKLDKsssssssss",
+  "ssssssssACsCCACs",
+  "CBsGEGEGGGsAABCC",
+  "GGsGGEEEGGsGFEGG",
+  "GGDHHHIHHHsEFFEG",
+  "HJsHHJHIHHsHIHHJ",
+  "JIsLLKKLKDDIIIHI",
+  "DLsKLLLKLKsLKDLL",
+  "KDsssssssssKLDDK",
+  "sssCCACsAAssssss"
+ ],
+ "legend": {
+  "s": "shadow",
+  "A": {
+   "material": "shingle",
+   "h": 0.36
+  },
+  "B": {
+   "material": "shingle",
+   "h": 0.3
+  },
+  "C": {
+   "material": "shingle",
+   "h": 0.42
+  },
+  "D": {
+   "material": "shingle",
+   "h": 0.72
+  },
+  "E": {
+   "material": "shingle",
+   "h": 0.56
+  },
+  "F": {
+   "material": "shingle",
+   "h": 0.44
+  },
+  "G": {
+   "material": "shingle",
+   "h": 0.5
+  },
+  "H": {
+   "material": "shingle",
+   "h": 0.64
+  },
+  "I": {
+   "material": "shingle",
+   "h": 0.7
+  },
+  "J": {
+   "material": "shingle",
+   "h": 0.58
+  },
+  "K": {
+   "material": "shingle",
+   "h": 0.78
+  },
+  "L": {
+   "material": "shingle",
+   "h": 0.84
+  }
+ }
+}

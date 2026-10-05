@@ -1,0 +1,42 @@
+{
+  "basic_materials_brass_block": {
+    "author": "mt-mods contributors",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md, LICENSE",
+    "package": "basic_materials",
+    "release": 38908,
+    "source": "basic_materials/textures/basic_materials_brass_block.png"
+  },
+  "basic_materials_cement_block": {
+    "author": "mt-mods contributors",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md, LICENSE",
+    "package": "basic_materials",
+    "release": 38908,
+    "source": "basic_materials/textures/basic_materials_cement_block.png"
+  },
+  "basic_materials_chain_brass": {
+    "author": "mt-mods contributors",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md, LICENSE",
+    "package": "basic_materials",
+    "release": 38908,
+    "source": "basic_materials/textures/basic_materials_chain_brass.png"
+  },
+  "basic_materials_chain_steel": {
+    "author": "mt-mods contributors",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md, LICENSE",
+    "package": "basic_materials",
+    "release": 38908,
+    "source": "basic_materials/textures/basic_materials_chain_steel.png"
+  },
+  "basic_materials_concrete_block": {
+    "author": "mt-mods contributors",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "README.md, LICENSE",
+    "package": "basic_materials",
+    "release": 38908,
+    "source": "basic_materials/textures/basic_materials_concrete_block.png"
+  }
+}

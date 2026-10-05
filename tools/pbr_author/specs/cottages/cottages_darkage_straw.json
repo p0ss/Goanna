@@ -1,0 +1,60 @@
+{
+ "class": "leaves",
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.44,
+   "levels": 3,
+   "joints": false,
+   "smooth": 0.22
+  },
+  "groove": {
+   "mode": "flat",
+   "base": 0.14,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.14
+  }
+ },
+ "grid": [
+  "gACgggAgBBggBAAA",
+  "ggBgggAgABggBBAA",
+  "AgBAgABggBBgABgA",
+  "BgABgABggBCAACgA",
+  "BgACgBCAgBDCACgA",
+  "BAADBBCAACDDBCAB",
+  "BBADCBCABCDDCCBC",
+  "BBADDBCBADCDCCCC",
+  "CCBDDCDCACCCDBCC",
+  "CCDDDCDDABCCCADC",
+  "CCDCDCDDBACDBADD",
+  "BDDADBDDCgBDAgDD",
+  "ADDADACDDgADAgDD",
+  "gDDgDgBDDggCAgCD",
+  "gCCgBgADDggBBgBC",
+  "gBBgAgABCAggBAAB"
+ ],
+ "legend": {
+  "A": {
+   "material": "straw",
+   "h": 0.42
+  },
+  "C": {
+   "material": "straw",
+   "h": 0.713
+  },
+  "B": {
+   "material": "straw",
+   "h": 0.567
+  },
+  "D": {
+   "material": "straw",
+   "h": 0.86
+  },
+  "g": {
+   "material": "groove",
+   "h": 0.14
+  }
+ }
+}

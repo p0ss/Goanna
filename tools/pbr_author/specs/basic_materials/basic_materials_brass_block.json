@@ -1,0 +1,44 @@
+{
+ "class": "metal",
+ "materials": {
+  "plate": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0,
+   "micro": 0,
+   "metal": true,
+   "smooth": 0.9
+  },
+  "frame": {
+   "mode": "flat",
+   "base": 0.4,
+   "span": 0,
+   "micro": 0,
+   "metal": true,
+   "smooth": 0.8
+  }
+ },
+ "grid": [
+  "ffffffffffffffff",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "fPPPPPPPPPPPPPPf",
+  "ffffffffffffffff"
+ ],
+ "legend": {
+  "P": "plate",
+  "f": "frame"
+ },
+ "micro": "metal"
+}

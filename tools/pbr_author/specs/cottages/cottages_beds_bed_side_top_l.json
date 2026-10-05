@@ -1,0 +1,63 @@
+{
+ "class": "planks",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "micro": 0.08,
+   "smooth": 0.3
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.4,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.22
+  },
+  "cloth": {
+   "mode": "soft",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.12
+  },
+  "pillow": {
+   "mode": "soft",
+   "base": 0.64,
+   "span": 0.08,
+   "smooth": 0.12
+  },
+  "wool": {
+   "mode": "soft",
+   "base": 0.5,
+   "span": 0.1,
+   "smooth": 0.12
+  }
+ },
+ "grid": [
+  "jjjjjjjjjccccccc",
+  "WWWWWWWWjccccccc",
+  "WWWWWWWWWccccccc",
+  "WWWWWWWWWccccccc",
+  "WWjWWWWWWccccccc",
+  "jjjjjjjjjccccccc",
+  "WWWWWWWWWccccccc",
+  "WWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWWWW",
+  "jjjjjjjjjjjjjjjj",
+  "WWWWWjWWWWWWWWWW",
+  "WWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWjWWWW",
+  "jjjjjjjjjjjjjjjj"
+ ],
+ "legend": {
+  "W": "wood",
+  "j": "gap",
+  "c": "cloth",
+  "p": "pillow",
+  "w": "wool"
+ },
+ "strength": 12
+}

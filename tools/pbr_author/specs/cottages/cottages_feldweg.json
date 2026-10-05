@@ -1,0 +1,52 @@
+{
+ "class": "soil",
+ "materials": {
+  "earth": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.12
+  },
+  "stone": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.32
+  },
+  "grass": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.4,
+   "levels": 3,
+   "joints": true,
+   "smooth": 0.1
+  }
+ },
+ "grid": [
+  "GGGGSeeeeeeSGGGG",
+  "GGGGGeeeeeGGGGGG",
+  "GGGGeeeeeeeGGGGG",
+  "GGGeeeeeeeGGGGGG",
+  "GGGGeeeeeeSGeGGG",
+  "GGGGeeeeeeeeeGGG",
+  "GGGGeeeeeSSeeGGG",
+  "GGGGGeeeeeGGGGGG",
+  "GGGeGGeeeeGGGGGG",
+  "GGGGeGeeeeGGGGGG",
+  "GGGGSGeeeeSeGGGG",
+  "GGGGGGeeeeeeGGGG",
+  "GGGGGGGeeeSeGGGG",
+  "GGGeeeGeeeeeeGGG",
+  "GGGGGGeeeeeeGGGG",
+  "GGGeGGGeeeeeGGGG"
+ ],
+ "legend": {
+  "G": "grass",
+  "S": "stone",
+  "e": "earth"
+ }
+}

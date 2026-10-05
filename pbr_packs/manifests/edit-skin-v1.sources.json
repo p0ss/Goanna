@@ -1,0 +1,474 @@
+{
+  "edit_skin_base_1": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_base_1.png"
+  },
+  "edit_skin_bottom_3": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_3.png"
+  },
+  "edit_skin_bottom_4": {
+    "author": "Nova_Wostra. Adapted for edit_skin by MrRar. (Pixel Perfection Legacy 1.19)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_4.png"
+  },
+  "edit_skin_bottom_5": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_5.png"
+  },
+  "edit_skin_eye_1": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_1.png"
+  },
+  "edit_skin_eye_2": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_2.png"
+  },
+  "edit_skin_eye_3": {
+    "author": "lovehart. Adapted for edit_skin by MrRar. (the 10the doctor)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_3.png"
+  },
+  "edit_skin_eye_4": {
+    "author": "hansuke123 (lisa)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_4.png"
+  },
+  "edit_skin_eye_5": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_5.png"
+  },
+  "edit_skin_eye_6": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_6.png"
+  },
+  "edit_skin_eye_7": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_eye_7.png"
+  },
+  "edit_skin_footwear_1": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_footwear_1.png"
+  },
+  "edit_skin_footwear_2": {
+    "author": "lovehart. Adapted for edit_skin by MrRar. (the 10the doctor)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_footwear_2.png"
+  },
+  "edit_skin_footwear_3": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_footwear_3.png"
+  },
+  "edit_skin_footwear_4": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_footwear_4.png"
+  },
+  "edit_skin_hair_1": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_1.png"
+  },
+  "edit_skin_hair_10": {
+    "author": "Nova_Wostra. Adapted for edit_skin by MrRar. (Pixel Perfection Legacy 1.19)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_10.png"
+  },
+  "edit_skin_hair_11": {
+    "author": "Nova_Wostra. Adapted for edit_skin by MrRar. (Pixel Perfection Legacy 1.19)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_11.png"
+  },
+  "edit_skin_hair_12": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_12.png"
+  },
+  "edit_skin_hair_2": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_2.png"
+  },
+  "edit_skin_hair_3": {
+    "author": "lovehart. Adapted for edit_skin by MrRar. (the 10the doctor)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_3.png"
+  },
+  "edit_skin_hair_4": {
+    "author": "Rin. Adapted for edit_skin by MrRar. (Blonde Girl)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_4.png"
+  },
+  "edit_skin_hair_5": {
+    "author": "lovehart. Adapted for edit_skin by MrRar. (hobbit from lottmob)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_5.png"
+  },
+  "edit_skin_hair_6": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_6.png"
+  },
+  "edit_skin_hair_8": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_8.png"
+  },
+  "edit_skin_hair_9": {
+    "author": "TenPlus1. Adapted for edit_skin by MrRar. (Trader 1)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_9.png"
+  },
+  "edit_skin_headwear_1": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_1.png"
+  },
+  "edit_skin_headwear_10": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_10.png"
+  },
+  "edit_skin_headwear_11": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_11.png"
+  },
+  "edit_skin_headwear_12": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_12.png"
+  },
+  "edit_skin_headwear_2": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_2.png"
+  },
+  "edit_skin_headwear_3": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_3.png"
+  },
+  "edit_skin_headwear_4": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_4.png"
+  },
+  "edit_skin_headwear_5": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_5.png"
+  },
+  "edit_skin_headwear_7": {
+    "author": "Ginsu23. Adapted for edit_skin by MrRar. (Ryu)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_7.png"
+  },
+  "edit_skin_headwear_8": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_8.png"
+  },
+  "edit_skin_headwear_9": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_9.png"
+  },
+  "edit_skin_mouth_1": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_1.png"
+  },
+  "edit_skin_mouth_2": {
+    "author": "MrRar; XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_2.png"
+  },
+  "edit_skin_mouth_3": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_3.png"
+  },
+  "edit_skin_mouth_4": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_4.png"
+  },
+  "edit_skin_mouth_5": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_5.png"
+  },
+  "edit_skin_mouth_7": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_7.png"
+  },
+  "edit_skin_top_1": {
+    "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_1.png"
+  },
+  "edit_skin_top_10": {
+    "author": "Nova_Wostra. Adapted for edit_skin by MrRar. (Pixel Perfection Legacy 1.19)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_10.png"
+  },
+  "edit_skin_top_11": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_11.png"
+  },
+  "edit_skin_top_12": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_12.png"
+  },
+  "edit_skin_top_13": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_13.png"
+  },
+  "edit_skin_top_14": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_14.png"
+  },
+  "edit_skin_top_15": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_15.png"
+  },
+  "edit_skin_top_16": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_16.png"
+  },
+  "edit_skin_top_17": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_17.png"
+  },
+  "edit_skin_top_18": {
+    "author": "Rael BlackRabbit. Adapted for edit_skin by MrRar. (Duke v1)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_18.png"
+  },
+  "edit_skin_top_2": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_2.png"
+  },
+  "edit_skin_top_4": {
+    "author": "hansuke123. Adapted for edit_skin by MrRar. (Oliver_MV)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_4.png"
+  },
+  "edit_skin_top_5": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_5.png"
+  },
+  "edit_skin_top_6": {
+    "author": "MrRar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_6.png"
+  },
+  "edit_skin_top_8": {
+    "author": "Kpenguin. Adapted for edit_skin by MrRar. (Hoodie Enderman)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_8.png"
+  },
+  "edit_skin_top_9": {
+    "author": "Nova_Wostra. Adapted for edit_skin by MrRar. (Pixel Perfection Legacy 1.19)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "media_credits.txt",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_9.png"
+  }
+}

@@ -35,6 +35,13 @@
       "release": 31816,
       "repository": "https://github.com/asuna-mt/asuna"
     },
+    "basic_materials": {
+      "archive_sha256": "d47a82ad4b784b4c73d7e4670817be2a525dabcab39dd95c04df9bda6055c166",
+      "contentdb": "https://content.luanti.org/packages/mt-mods/basic_materials/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38908,
+      "repository": "https://github.com/mt-mods/basic_materials"
+    },
     "castle_lighting": {
       "archive_sha256": "65ce5d37b031087375579ecbbfc71ddf26d23b80c4f7e60f35aee564ffc8abdc",
       "contentdb": "https://content.luanti.org/packages/FaceDeer/castle_lighting/",
@@ -97,6 +104,13 @@
       "declared_media_license": "CC-BY-SA-3.0",
       "release": 36480,
       "repository": "https://github.com/CowboyLva/ebiomes.git"
+    },
+    "edit_skin": {
+      "archive_sha256": "e73b3aebd057c44869f634690140bfc48c2bfbf01fe7cc9774e6417b87c4269c",
+      "contentdb": "https://content.luanti.org/packages/Mr. Rar/edit_skin/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 30155,
+      "repository": "https://github.com/MrRar/edit_skin"
     },
     "ethereal": {
       "archive_sha256": "8f438c876758c8ccd9df72e54c24939bc39b55ebf020aa7ee155f1b800fa7b80",

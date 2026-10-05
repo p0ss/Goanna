@@ -1,0 +1,81 @@
+{
+ "schema_version": 1,
+ "review_version": "basic-materials-v1",
+ "resolution": "authored",
+ "derivation": {
+  "material_from": "tools/pbr_author/stems/basic_materials.classes.json, the classes the authoring agent chose per stem by reading the art",
+  "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
+  "notes": [
+   "planks is the authoring tool's refinement of wood and is recorded as wood.",
+   "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
+  ]
+ },
+ "textures": {
+  "basic_materials_brass_block": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "predominant",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Basic Materials authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/basic_materials.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "basic_materials_cement_block": {
+   "primary_material": "stone",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.048,
+   "smoothness_max": 0.18,
+   "relief_strength": 0.55,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Basic Materials authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/basic_materials.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "basic_materials_chain_brass": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "predominant",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Basic Materials authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/basic_materials.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "basic_materials_chain_steel": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Basic Materials authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/basic_materials.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "basic_materials_concrete_block": {
+   "primary_material": "stone",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.048,
+   "smoothness_max": 0.18,
+   "relief_strength": 0.55,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Basic Materials authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/basic_materials.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "review_required": false
+  }
+ }
+}

@@ -362,180 +362,154 @@
   "cottages_beds_bed_side": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_beds_bed_side.png"
   },
   "cottages_beds_bed_side_top_l": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_beds_bed_side_top_l.png"
   },
   "cottages_beds_bed_side_top_r": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_beds_bed_side_top_r.png"
   },
   "cottages_beds_bed_top_bottom": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_beds_bed_top_bottom.png"
   },
   "cottages_beds_bed_top_top": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_beds_bed_top_top.png"
   },
   "cottages_clay": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_clay.png"
   },
   "cottages_darkage_straw": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_darkage_straw.png"
   },
   "cottages_darkage_straw_bale": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_darkage_straw_bale.png"
   },
   "cottages_feldweg": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_feldweg.png"
-  },
-  "cottages_feldweg_ecke": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_ecke.png"
-  },
-  "cottages_feldweg_edges": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_edges.png"
-  },
-  "cottages_feldweg_end": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_end.png"
-  },
-  "cottages_feldweg_kreuzung": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_kreuzung.png"
-  },
-  "cottages_feldweg_surface": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_surface.png"
-  },
-  "cottages_feldweg_t-kreuzung": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_feldweg_t-kreuzung.png"
   },
   "cottages_glass_pane": {
     "class": "glass",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_glass_pane.png"
   },
   "cottages_homedecor_shingles_asphalt": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_homedecor_shingles_asphalt.png"
   },
   "cottages_homedecor_shingles_terracotta": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_homedecor_shingles_terracotta.png"
   },
   "cottages_homedecor_shingles_wood": {
     "class": "wood",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_homedecor_shingles_wood.png"
   },
   "cottages_junglewood": {
     "class": "wood",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_junglewood.png"
   },
   "cottages_minimal_wood": {
     "class": "wood",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_minimal_wood.png"
-  },
-  "cottages_pitchfork": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_pitchfork.png"
   },
   "cottages_reet": {
     "class": "stone",
     "collisions": [],
+    "media_license": "WTFPL",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_reet.png"
-  },
-  "cottages_rope": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_rope.png"
   },
   "cottages_slate": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-2.0-DE",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_slate.png"
   },
   "cottages_sleepingmat": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_sleepingmat.png"
   },
   "cottages_steel_block": {
     "class": "metal",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_steel_block.png"
   },
   "cottages_stone": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_stone.png"
   },
   "cottages_wagonwheel": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_wagonwheel.png"
   },
   "cottages_wool": {
     "class": "cloth",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_wool.png"
   },
@@ -1852,12 +1826,6 @@
     "collisions": [],
     "package": "glass_stained",
     "source": "glass_stained/glass_stained/textures/glass_stained_edge.png"
-  },
-  "glooptest_tool_steelhammer": {
-    "class": "metal",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/glooptest_tool_steelhammer.png"
   },
   "hammer_layout": {
     "class": "stone",

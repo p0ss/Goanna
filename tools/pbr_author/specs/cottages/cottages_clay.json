@@ -1,0 +1,13 @@
+{
+ "materials": {
+  "ground": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.12,
+   "joints": false,
+   "levels": 2
+  }
+ },
+ "class": "soil",
+ "strength": 8
+}

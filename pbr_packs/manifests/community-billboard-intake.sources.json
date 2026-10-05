@@ -419,21 +419,10 @@
     "package": "ethereal",
     "source": "ethereal/ethereal/textures/bucket_cactus.png"
   },
-  "cottages_pitchfork": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_pitchfork.png"
-  },
-  "cottages_rope": {
-    "class": "stone",
-    "collisions": [],
-    "package": "cottages",
-    "source": "cottages/cottages/textures/cottages_rope.png"
-  },
   "cottages_wagonwheel": {
     "class": "stone",
     "collisions": [],
+    "media_license": "CC-BY-SA-3.0",
     "package": "cottages",
     "source": "cottages/cottages/textures/cottages_wagonwheel.png"
   },

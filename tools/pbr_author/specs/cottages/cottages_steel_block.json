@@ -1,0 +1,14 @@
+{
+ "class": "metal",
+ "materials": {
+  "plate": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0.12,
+   "metal": true,
+   "smooth": 0.95,
+   "micro": 0
+  }
+ },
+ "micro": "none"
+}

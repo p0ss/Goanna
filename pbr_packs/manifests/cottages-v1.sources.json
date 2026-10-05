@@ -1,0 +1,200 @@
+{
+  "cottages_barrel": {
+    "author": "VanessaE",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "VanessaE (CC-by-SA 3.0): cottages_barrel.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_barrel.png"
+  },
+  "cottages_beds_bed_side": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_beds_bed_side.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_beds_bed_side.png"
+  },
+  "cottages_beds_bed_side_top_l": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_beds_bed_side_top_l.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_beds_bed_side_top_l.png"
+  },
+  "cottages_beds_bed_side_top_r": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_beds_bed_side_top_r.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_beds_bed_side_top_r.png"
+  },
+  "cottages_beds_bed_top_bottom": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_beds_bed_top_bottom.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_beds_bed_top_bottom.png"
+  },
+  "cottages_beds_bed_top_top": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_beds_bed_top_top.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_beds_bed_top_top.png"
+  },
+  "cottages_clay": {
+    "author": "celeron55, Perttu Ahola",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Copyright (C) 2010-2012 celeron55 ... (CC BY-SA 3.0): cottages_clay.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_clay.png"
+  },
+  "cottages_darkage_straw": {
+    "author": "MasterGollum",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "MasterGollum (WTFPL, darkage mod): cottages_darkage_straw.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_darkage_straw.png"
+  },
+  "cottages_darkage_straw_bale": {
+    "author": "MasterGollum",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "MasterGollum (WTFPL, darkage mod): cottages_darkage_straw_bale.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_darkage_straw_bale.png"
+  },
+  "cottages_feldweg": {
+    "author": "badger436",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "badger436 (created for this mod; CC BY-SA 3.0): cottages_feldweg.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_feldweg.png"
+  },
+  "cottages_glass_pane": {
+    "author": "Sokomine",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Sokomine (CC-by-SA 3.0): cottages_glass_pane.png (modification of default_glass.png)",
+    "release": 22105,
+    "source": "cottages/textures/cottages_glass_pane.png"
+  },
+  "cottages_homedecor_shingles_asphalt": {
+    "author": "VanessaE",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "VanessaE (CC-by-SA 3.0): cottages_homedecor_shingles_asphalt.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_homedecor_shingles_asphalt.png"
+  },
+  "cottages_homedecor_shingles_terracotta": {
+    "author": "VanessaE",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "VanessaE (CC-by-SA 3.0): cottages_homedecor_shingles_terracotta.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_homedecor_shingles_terracotta.png"
+  },
+  "cottages_homedecor_shingles_wood": {
+    "author": "VanessaE",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "VanessaE (CC-by-SA 3.0): cottages_homedecor_shingles_wood.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_homedecor_shingles_wood.png"
+  },
+  "cottages_junglewood": {
+    "author": "PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "PilzAdam (WTFPL; default and beds mod): cottages_junglewood.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_junglewood.png"
+  },
+  "cottages_minimal_wood": {
+    "author": "celeron55, Perttu Ahola",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "From the supplied minimal game: cottages_minimal_wood.png (under the celeron55 CC BY-SA 3.0 block)",
+    "release": 22105,
+    "source": "cottages/textures/cottages_minimal_wood.png"
+  },
+  "cottages_reet": {
+    "author": "MasterGollum",
+    "media_license": "WTFPL",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "MasterGollum (WTFPL, darkage mod): cottages_reet.png (straw texture changed in color)",
+    "release": 22105,
+    "source": "cottages/textures/cottages_reet.png"
+  },
+  "cottages_slate": {
+    "author": "derived from Universal schema.jpg by Stefanie Lindener; the deriving author is not named",
+    "media_license": "CC-BY-SA-2.0-DE",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Derived from Universal schema.jpg by Stefanie Lindener ... The texture is CC-by-sa 2.0/de: cottages_slate.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_slate.png"
+  },
+  "cottages_sleepingmat": {
+    "author": "VanessaE",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "VanessaE (CC-by-SA 3.0): cottages_sleepingmat.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_sleepingmat.png"
+  },
+  "cottages_steel_block": {
+    "author": "Zeg9 (per Cottages); kilbith (per Minetest Game)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Zeg9 (CC BY-SA 3.0): cottages_steel_block.png (for steel hatch and stovepipe)",
+    "release": 22105,
+    "source": "cottages/textures/cottages_steel_block.png"
+  },
+  "cottages_stone": {
+    "author": "Cisoun",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Cisoun's WTFPL texture pack: cottages_stone.png (for anvil and handmill)",
+    "release": 22105,
+    "source": "cottages/textures/cottages_stone.png"
+  },
+  "cottages_wool": {
+    "author": "Cisoun",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md",
+    "package": "cottages",
+    "readme_line": "Cisoun's WTFPL texture pack: cottages_wool.png",
+    "release": 22105,
+    "source": "cottages/textures/cottages_wool.png"
+  }
+}

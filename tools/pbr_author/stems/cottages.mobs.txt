@@ -1,0 +1,4 @@
+# Skins and model textures built by atlas.py, not extrude.py: a UV atlas of
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+cottages_barrel cottages_barrel.obj

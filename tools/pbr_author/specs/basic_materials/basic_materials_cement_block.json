@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "concrete": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0.035,
+   "smooth": 0.14
+  }
+ },
+ "micro": "concrete"
+}

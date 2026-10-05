@@ -1,0 +1,32 @@
+{
+ "class": "leaves",
+ "materials": {
+  "strand": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.22
+  },
+  "cross": {
+   "mode": "flat",
+   "base": 0.78,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.26
+  },
+  "hole": {
+   "mode": "flat",
+   "base": 0.25,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  }
+ },
+ "palette": {
+  "#695d3a": "hole",
+  "#9e8d5c": "strand",
+  "#9e8d5d": "strand",
+  "#ab9b66": "cross"
+ }
+}

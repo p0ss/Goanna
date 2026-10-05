@@ -95,6 +95,21 @@
       "decision": "eligible",
       "evidence": "Release 32959 README.md licenses the goblin and goblin dog skins (written 'goblins_goblins*.png', which is the goblin skins' own prefix), the models and the mushroom textures CC-BY-SA-3.0 by FreeLikeGNU, and goblins_goblin_king.png CC-BY-SA-3.0 from the SummerFields texture pack. The molten gold (credited to Wikimedia Commons and VanessaE with no licence) and the lightning (openclipart, no licence stated) are excluded, as are icons the notices do not name. The LICENSE file is MIT for code. Read on 2026-10-05.",
       "media_license": "CC-BY-SA-3.0 per file"
+    },
+    "edit_skin": {
+      "decision": "eligible",
+      "evidence": "Release 30155: README.md puts code under MIT and says media_credits.txt holds the media licensing; that file names an author and licence (CC BY-SA 3.0 or 4.0) per file. 59 parts are recorded per file on 2026-10-05; 9 parts it does not name (bottom_1, bottom_2, bottom_6, hair_7, headwear_6, mouth_6, top_3, top_7, top_19) are excluded.",
+      "media_license": "CC-BY-SA-3.0/4.0 per file"
+    },
+    "cottages": {
+      "decision": "eligible",
+      "evidence": "Release 22105: LICENSE is GPLv3 for code; README.md lists media per file (CC BY-SA 3.0, WTFPL, CC BY-SA 2.0 DE, and textures renamed from Minetest Game, checked by pixels). 22 node textures are recorded per file on 2026-10-05; stone and wool are recorded CC BY-SA 3.0 as Minetest Game's pixels, not the README's WTFPL. The rope (credited only 'CC') and the dirt road textures the README does not name are excluded.",
+      "media_license": "CC-BY-SA-2.0/3.0 and WTFPL per file"
+    },
+    "basic_materials": {
+      "decision": "eligible",
+      "evidence": "Release 38908: README.md and LICENSE put all media under CC BY-SA 4.0. Read on 2026-10-05.",
+      "media_license": "CC-BY-SA-4.0"
     }
   }
 }

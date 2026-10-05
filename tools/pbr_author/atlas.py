@@ -290,11 +290,14 @@ def read_model(path):
 
 
 def model_path(model, game):
-    root = lib.GAMES[game]["art"]
-    hits = sorted(root.rglob(model))
-    if not hits:
-        raise FileNotFoundError("%s under %s" % (model, root))
-    return hits[0]
+    # A mod's skin can be drawn on a model another mod ships (Edit Skin's on
+    # player_api's character.b3d), so a source may name further roots.
+    roots = [lib.GAMES[game]["art"]] + list(lib.GAMES[game].get("model_roots", []))
+    for root in roots:
+        hits = sorted(root.rglob(model))
+        if hits:
+            return hits[0]
+    raise FileNotFoundError("%s under %s" % (model, ", ".join(map(str, roots))))
 
 
 def faces(model, brush, w, h, game=lib.DEFAULT_GAME):
