@@ -132,6 +132,23 @@ def spec_mask(stem):
     return None
 
 
+def spec_cover(stem):
+    """The "cover" alpha a stem's spec names, or None.
+
+    tools/pbr_author/atlas.py counts every art texel at that alpha or more
+    as drawn, so faint texels the game blends at partial alpha (a lid's
+    shading, a beard's edge) carry the part's maps rather than neutral fill.
+    """
+    for spec in sorted(AUTHOR_SPECS.glob("*/%s.json" % stem)):
+        try:
+            cover = json.loads(spec.read_text()).get("cover")
+        except (OSError, ValueError):
+            continue
+        if cover is not None:
+            return float(cover)
+    return None
+
+
 def mask_source(stem, source, sources):
     """The mask image a layered part is drawn over, or None.
 
@@ -151,7 +168,7 @@ def mask_source(stem, source, sources):
     return None
 
 
-def coverage_alpha(source, mask):
+def coverage_alpha(source, mask, cover=None):
     """The alpha the game draws a source with, uint8.
 
     With no mask, the art's own alpha. With one, the alpha of the art laid
@@ -159,9 +176,12 @@ def coverage_alpha(source, mask):
     which tools/pbr_author/atlas.py _blit copies integer for integer:
     [colorize keeps the mask's alpha, and the art only ever adds to it. That
     is the union of the two, so a part whose art is all translucent shading
-    still covers what its mask covers.
+    still covers what its mask covers. A spec's "cover" (see spec_cover)
+    raises its faint art texels to full alpha first, as atlas.py does.
     """
     art = np.asarray(Image.open(source).convert("RGBA"))[..., 3].astype(np.int64)
+    if cover is not None:
+        art = np.where((art > 0) & (art >= cover * 255.0), 255, art)
     if mask is None:
         return art.astype(np.uint8)
     da = np.asarray(Image.open(mask).convert("RGBA").resize(
@@ -209,7 +229,7 @@ def inspect(stem, normal_path, spec_path, material, source=None, albedo=None,
     src_alpha = None
     coverage = None
     if source:
-        coverage = coverage_alpha(source, mask)
+        coverage = coverage_alpha(source, mask, spec_cover(stem))
         if (coverage < 128).any():
             src_alpha = coverage
     # The normal map and the spec map need their own masks: a flat class spec

@@ -331,6 +331,13 @@ class PbrQualityTest(unittest.TestCase):
                                                      self.root / "u_mask.png")[0]),
                          [255, 255, 255, 0])
 
+    def test_spec_cover_counts_faint_art_as_drawn(self):
+        art = np.zeros((1, 4, 4), dtype=np.uint8)
+        art[0, :, 3] = (0, 10, 60, 255)
+        Image.fromarray(art, "RGBA").save(self.root / "c.png")
+        self.assertEqual(list(quality.coverage_alpha(self.root / "c.png", None, 0.05)[0]),
+                         [0, 10, 255, 255])
+
     def test_review_rules_are_ordered_and_exact_entries_win(self):
         path = self.root / "review.json"
         path.write_text(json.dumps({
