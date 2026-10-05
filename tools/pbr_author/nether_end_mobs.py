@@ -718,6 +718,69 @@ def shulker_specs():
     return out
 
 
+# The face studies the default build ignores (README, "Sculpted faces" and
+# "Crisp sculpted faces"): GOANNA_PBR_VARIANT=<name> lays one over the spec.
+# They were first written into the specs by hand, so a regeneration dropped
+# them; they live here now and are written as each spec's last key.
+VARIANTS = {
+    "extra_mobs_piglin": {
+        "sculpt": {"materials": {"skin": {"span": 0.22}, "eye": {"flush": {"to": ["skin"]}}}},
+        "sculpt_crisp": {
+            "strength": 22,
+            "rects": [["earhole", 40, 11, 42, 13], ["earhole", 57, 11, 59, 13]],
+            "materials": {
+                "skin": {
+                    "mode": "shade",
+                    "base": 0.818,
+                    "span": 0.164,
+                    "levels": 3,
+                    "detail": 0.25,
+                    "merge": 0.2,
+                    "joints": False,
+                    "soft_edge": None,
+                    "ride": True,
+                    "round": 3,
+                    "edge_roll": 2,
+                    "edge_lean": 10,
+                },
+                "eye": {
+                    "mode": "soft",
+                    "base": 0.5,
+                    "span": 0.0,
+                    "detail": 0.0,
+                    "soft_edge": 0.0,
+                    "micro": "bulge",
+                    "micro_params": {"lean": 6.0},
+                    "smooth": 0.7,
+                    "smooth_spread": -0.2,
+                    "flush": {"to": ["skin"], "group": "eye"},
+                    "ride": True,
+                    "round": 3,
+                    "edge_roll": 2,
+                    "edge_lean": 10,
+                    "roll_rough": 0.03,
+                    "scatter": 0,
+                },
+                "earhole": {
+                    "mode": "flat",
+                    "base": 0.775,
+                    "span": 0.0,
+                    "micro": "none",
+                    "smooth": 0.3,
+                    "smooth_spread": 0.0,
+                    "scatter": 0.3,
+                    "ride": True,
+                    "round": 3,
+                    "edge_roll": 2,
+                    "edge_lean": 10,
+                    "roll_rough": 0.03,
+                },
+            },
+        },
+    },
+}
+
+
 FAMILIES = {"piglin": piglin_specs, "hoglin": hoglin_specs, "strider": strider_specs,
             "blaze": blaze_specs, "ghast": ghast_specs, "magma": magma_specs,
             "dragon": dragon_specs, "wither": wither_specs, "bugs": bug_specs,
@@ -730,6 +793,8 @@ def main():
     stale = []
     for name in args or list(FAMILIES):
         for stem, spec in FAMILIES[name]().items():
+            if stem in VARIANTS:
+                spec = {**spec, "variants": VARIANTS[stem]}
             if not mf.write(stem, spec, check_only):
                 stale.append(stem)
     for s in stale:

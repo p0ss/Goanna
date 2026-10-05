@@ -175,8 +175,8 @@ def write(stem, spec, check_only):
     for i, k in enumerate(keys):
         comma = "," if i < len(keys) - 1 else ""
         v = spec[k]
-        if k == "materials":
-            lines.append(' "materials": {')
+        if k in ("materials", "variants"):
+            lines.append(" %s: {" % json.dumps(k))
             mk = list(v)
             for j, name in enumerate(mk):
                 lines.append("  %s: %s%s" % (json.dumps(name), json.dumps(v[name]),
@@ -815,6 +815,238 @@ def vex_specs():
     return out
 
 
+# The face studies the default build ignores (README, "Sculpted faces" and
+# "Crisp sculpted faces"): GOANNA_PBR_VARIANT=<name> lays one over the spec.
+# They were first written into the specs by hand, so a regeneration dropped
+# them; they live here now and are written as each spec's last key.
+VARIANTS = {
+    "mobs_mc_zombie_villager_base": {
+        "sculpt": {
+            "materials": {
+                "skin": {"span": 0.22, "round": 4},
+                "nose": {"span": 0.22, "round": 4},
+                "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}},
+            },
+        },
+    },
+    "mobs_mc_pillager": {
+        "sculpt": {
+            "materials": {
+                "skin": {"span": 0.22, "round": 4},
+                "nose": {"span": 0.22, "round": 4},
+                "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}},
+                "white": {"flush": {"to": ["skin", "nose"], "group": "eye"}},
+                "iris": {"flush": {"to": ["skin", "nose"], "group": "eye", "offset": -0.01}},
+                "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.04}},
+            },
+        },
+        "sculpt_crisp": {
+            "legend": {
+                "a": "nose",
+                "b": "brow",
+                "c": "eye",
+                "d": "eye",
+                "e": "mouth",
+                "f": "jacket",
+                "g": "shirt",
+                "h": "strap",
+                "i": "pad",
+                "j": "bracer",
+                "k": "trousers",
+                "l": "boot",
+                "m": "belt",
+                "n": "buckle",
+            },
+            "rects": [
+                ["earhole", 3, 13, 5, 14],
+                ["earhole", 3, 14, 4, 15],
+                ["earhole", 19, 13, 21, 14],
+                ["earhole", 20, 14, 21, 15],
+                ["brow", 7, 12, 8, 14],
+                ["brow", 16, 12, 17, 14],
+            ],
+            "materials": {
+                "skin": {
+                    "mode": "shade",
+                    "base": 0.65,
+                    "span": 0.3,
+                    "levels": 3,
+                    "detail": 0.25,
+                    "merge": 0.2,
+                    "joints": False,
+                    "soft_edge": None,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                },
+                "nose": {
+                    "mode": "shade",
+                    "base": 0.65,
+                    "span": 0.3,
+                    "levels": 3,
+                    "detail": 0.25,
+                    "merge": 0.2,
+                    "joints": False,
+                    "soft_edge": None,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                },
+                "brow": {
+                    "flush": {"to": ["skin", "nose"], "offset": 0.08},
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+                "eye": {
+                    "mode": "soft",
+                    "base": 0.5,
+                    "span": 0.0,
+                    "detail": 0.0,
+                    "soft_edge": 0.0,
+                    "micro": "bulge",
+                    "micro_params": {"lean": 6.0},
+                    "smooth": 0.7,
+                    "smooth_spread": -0.2,
+                    "flush": {"to": ["skin", "nose"], "group": "eye"},
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+                "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.1}, "round": 4},
+                "earhole": {
+                    "mode": "flat",
+                    "base": 0.55,
+                    "span": 0.0,
+                    "micro": "none",
+                    "smooth": 0.2,
+                    "smooth_spread": 0.0,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+            },
+        },
+    },
+    "mobs_mc_vindicator": {
+        "sculpt": {
+            "materials": {
+                "skin": {"span": 0.22, "round": 4},
+                "nose": {"span": 0.22, "round": 4},
+                "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}},
+                "white": {"flush": {"to": ["skin", "nose"], "group": "eye"}},
+                "iris": {"flush": {"to": ["skin", "nose"], "group": "eye", "offset": -0.01}},
+                "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.04}},
+            },
+        },
+        "sculpt_crisp": {
+            "legend": {
+                "a": "nose",
+                "b": "brow",
+                "c": "eye",
+                "d": "eye",
+                "e": "mouth",
+                "f": "jacket",
+                "g": "collar",
+                "h": "coat",
+                "i": "trousers",
+                "j": "boot",
+            },
+            "rects": [["earhole", 4, 14, 6, 16], ["earhole", 18, 14, 20, 16]],
+            "materials": {
+                "skin": {
+                    "mode": "shade",
+                    "base": 0.65,
+                    "span": 0.3,
+                    "levels": 3,
+                    "detail": 0.25,
+                    "merge": 0.2,
+                    "joints": False,
+                    "soft_edge": None,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                },
+                "nose": {
+                    "mode": "shade",
+                    "base": 0.65,
+                    "span": 0.3,
+                    "levels": 3,
+                    "detail": 0.25,
+                    "merge": 0.2,
+                    "joints": False,
+                    "soft_edge": None,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                },
+                "brow": {
+                    "flush": {"to": ["skin", "nose"], "offset": 0.08},
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+                "eye": {
+                    "mode": "soft",
+                    "base": 0.5,
+                    "span": 0.0,
+                    "detail": 0.0,
+                    "soft_edge": 0.0,
+                    "micro": "bulge",
+                    "micro_params": {"lean": 6.0},
+                    "smooth": 0.7,
+                    "smooth_spread": -0.2,
+                    "flush": {"to": ["skin", "nose"], "group": "eye"},
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+                "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.1}, "round": 4},
+                "earhole": {
+                    "mode": "flat",
+                    "base": 0.55,
+                    "span": 0.0,
+                    "micro": "none",
+                    "smooth": 0.2,
+                    "smooth_spread": 0.0,
+                    "ride": True,
+                    "round": 4,
+                    "edge_roll": 2.5,
+                    "edge_lean": 15,
+                    "roll_rough": 0.03,
+                },
+            },
+        },
+    },
+    "mobs_mc_evoker": {
+        "sculpt": {
+            "materials": {
+                "skin": {"span": 0.22, "round": 4},
+                "nose": {"span": 0.22, "round": 4},
+                "brow": {"flush": {"to": ["skin", "nose"], "offset": 0.06}},
+                "white": {"flush": {"to": ["skin", "nose"], "group": "eye"}},
+                "iris": {"flush": {"to": ["skin", "nose"], "group": "eye", "offset": -0.01}},
+                "mouth": {"flush": {"to": ["skin", "nose"], "offset": -0.04}},
+            },
+        },
+    },
+}
+
+
 FAMILIES = {
     "zombie_villager": zombie_villager_specs,
     "illager": illager_specs,
@@ -853,6 +1085,8 @@ def main():
                 m, b = model_of(stem)
                 print("%s %s%s" % (stem, m, "" if b is None else " %d" % b))
                 continue
+            if stem in VARIANTS:
+                spec = {**spec, "variants": VARIANTS[stem]}
             if not write(stem, spec, check_only):
                 stale.append(stem)
     for s in stale:

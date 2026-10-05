@@ -229,8 +229,8 @@ def write(stem, spec, check_only):
     for i, k in enumerate(keys):
         comma = "," if i < len(keys) - 1 else ""
         v = spec[k]
-        if k == "materials":
-            lines.append(' "materials": {')
+        if k in ("materials", "variants"):
+            lines.append(" %s: {" % json.dumps(k))
             mk = list(v)
             for j, name in enumerate(mk):
                 lines.append("  %s: %s%s" % (json.dumps(name), json.dumps(v[name]),
