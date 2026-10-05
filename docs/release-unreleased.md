@@ -8,7 +8,10 @@
   on your computer by a Whisper model, downloaded (57 MB) the first time;
   nothing you say is recorded or sent anywhere. It makes more mistakes with
   young voices and strong accents; the Small model in Settings, Audio
-  helps. Tried with synthesised speech, not yet with a microphone.
+  helps.
+- **Talk and chat on a controller.** Hold D-pad up to speak a chat line, or
+  tap it to open chat; in the chat box, A sends and B cancels. Controllers
+  had no way to chat before. Not yet tried on a real controller.
 
 ## Fixes
 

@@ -28,12 +28,15 @@ maps them by position.
 | RB | Next hotbar slot, repeats while held | `keymap_hotbar_next` |
 | LB | Previous hotbar slot, repeats while held | `keymap_hotbar_previous` |
 | D-pad down | Drop the wielded stack, one item while sneaking | `keymap_drop` |
+| D-pad up | Talk: hold, speak a chat line and let go (voice typing); a tap opens chat | none (upstream: `keymap_zoom`) |
 | Start | Pause menu | `keymap_pause` |
 
-Upstream also puts zoom on D-pad up, free move on D-pad left, screenshot on
-D-pad right and the minimap on Back. Goanna has no zoom, screenshot or
-minimap key, and its free camera is not upstream's free move, so those are
-unbound. Chat has no controller binding. The drop action is new to Goanna:
+Upstream puts zoom on D-pad up, free move on D-pad left, screenshot on
+D-pad right and the minimap on Back. Goanna has no zoom, so D-pad up is
+voice typing instead, the same as holding `T`: the spoken line waits in the
+chat box, A sends it and B throws it away. Goanna has no screenshot or
+minimap key, and its free camera is not upstream's free move, so D-pad
+left, D-pad right and Back are unbound. The drop action is new to Goanna:
 the keyboard still has no drop key.
 
 The bindings are InputMap actions (`goanna_jump`, `goanna_dig` and so on),
@@ -59,7 +62,8 @@ and the buttons click with it:
 | X | Right click (take half a stack, place one item) |
 | LB held | Shift, for a shift click that moves a whole stack across |
 | Right stick up and down | Mouse wheel under the cursor |
-| B or Start | Escape: close the form or menu |
+| A in the chat box | Send the line, as Enter does |
+| B or Start | Escape: close the form, menu or chat box |
 | Y | Close the inventory, as `I` does |
 | D-pad | Move focus through Goanna's own menus and settings |
 

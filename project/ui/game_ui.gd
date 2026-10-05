@@ -146,6 +146,7 @@ func _ready() -> void:
 	chat_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(chat_box)
 	chat_input = LineEdit.new()
+	chat_input.set_meta("goanna_chat", true)   # gamepad.gd: A sends from here
 	chat_input.visible = false
 	chat_input.placeholder_text = "Chat, or / for a command"
 	chat_input.text_submitted.connect(_on_chat_submit)

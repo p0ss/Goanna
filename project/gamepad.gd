@@ -77,6 +77,9 @@ const ACTIONS := {
 	"goanna_hotbar_previous": JOY_BUTTON_LEFT_SHOULDER,
 	"goanna_hotbar_next": JOY_BUTTON_RIGHT_SHOULDER,
 	"goanna_drop": JOY_BUTTON_DPAD_DOWN,
+	# Upstream's zoom, which Goanna does not have: here it is T, so held it
+	# is voice typing and tapped it opens chat (ui/voice_input.gd).
+	"goanna_talk": JOY_BUTTON_DPAD_UP,
 	"goanna_ui_click": JOY_BUTTON_A,
 	"goanna_ui_secondary": JOY_BUTTON_X,
 	"goanna_ui_back": JOY_BUTTON_B,
@@ -89,6 +92,9 @@ const TRIGGERS := ["goanna_dig", "goanna_place"]
 # the inventory or closes it (ui/game_ui.gd). Upstream's keymap_pause and
 # keymap_inventory do the same jobs.
 const PLAY_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_inventory": KEY_I}
+# Buttons that stand in for a key held down rather than tapped: the key goes
+# down with the button and up with it, so a hold is a hold.
+const HOLD_KEYS := {"goanna_talk": KEY_T}
 const UI_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_ui_back": KEY_ESCAPE,
 	"goanna_inventory": KEY_I}
 
@@ -502,11 +508,17 @@ func _input(event: InputEvent) -> void:
 	if not enabled:
 		get_viewport().set_input_as_handled()
 		return
+	# A held key's release goes out whether or not play is still on, so a
+	# window opening mid-hold cannot leave the key down.
+	if event is InputEventJoypadButton and not event.pressed and _release_held(event):
+		get_viewport().set_input_as_handled()
+		return
 	# Everything the controller does in play is read from Input's action
 	# state in step(), which Godot updated before this event arrived, so the
 	# event itself is spent here and never reaches the GUI.
 	if in_play():
-		_tap_mapped(event, PLAY_KEYS)
+		if not _hold_mapped(event):
+			_tap_mapped(event, PLAY_KEYS)
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventJoypadButton and _menu_button(event):
@@ -528,6 +540,13 @@ func _menu_button(event: InputEventJoypadButton) -> bool:
 					return false
 			return true
 	if event.is_action("goanna_ui_click"):
+		# In the chat box, A sends the line, as Enter does: a line spoken
+		# with the D-pad would otherwise need a keyboard to go out.
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused != null and focused.has_meta("goanna_chat"):
+			if event.pressed:
+				_tap_key(KEY_ENTER)
+			return false
 		if _focus_nav and get_viewport().gui_get_focus_owner() != null:
 			return true  # ui_accept presses what has focus
 		_show_pointer()
@@ -539,6 +558,34 @@ func _menu_button(event: InputEventJoypadButton) -> bool:
 		return false
 	_tap_mapped(event, UI_KEYS)
 	return false
+
+var _held_keys := {}               # HOLD_KEYS action -> keycode now held down
+
+func _hold_mapped(event: InputEvent) -> bool:
+	if not (event is InputEventJoypadButton and event.pressed):
+		return false
+	for action in HOLD_KEYS:
+		if event.is_action(action):
+			_held_keys[action] = HOLD_KEYS[action]
+			_push_key(HOLD_KEYS[action], true)
+			return true
+	return false
+
+func _release_held(event: InputEvent) -> bool:
+	for action in _held_keys.keys():
+		if event.is_action(action):
+			_push_key(_held_keys[action], false)
+			_held_keys.erase(action)
+			return true
+	return false
+
+func _push_key(keycode: int, pressed: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = keycode
+	ev.physical_keycode = keycode
+	ev.key_label = keycode
+	ev.pressed = pressed
+	_push_event(ev)
 
 func _tap_mapped(event: InputEvent, table: Dictionary) -> void:
 	if not (event is InputEventJoypadButton and event.pressed):

@@ -54,6 +54,33 @@ func button(b: int, pressed: bool) -> void:
 	Input.parse_input_event(ev)
 	Input.flush_buffered_events()
 
+# D-pad up is T held down for as long as the button is, so voice typing can
+# tell a hold from a tap; and in the chat box A sends, as Enter does.
+func _test_talk() -> void:
+	check(_bound("goanna_talk", JOY_BUTTON_DPAD_UP), "D-pad up is talk")
+	var keys := func() -> Array:
+		return rec.events.filter(func(e) -> bool: return e is InputEventKey) \
+			.map(func(e) -> Array: return [e.keycode, e.pressed])
+	play = true
+	rec.events.clear()
+	button(JOY_BUTTON_DPAD_UP, true)
+	check(keys.call() == [[KEY_T, true]], "D-pad up down is T down: %s" % [keys.call()])
+	# A window opening mid-hold must not leave T held.
+	play = false
+	button(JOY_BUTTON_DPAD_UP, false)
+	check(keys.call() == [[KEY_T, true], [KEY_T, false]], "D-pad up up is T up, in play or not: %s" % [keys.call()])
+	rec.events.clear()
+	button(JOY_BUTTON_DPAD_UP, false)
+	check(keys.call().is_empty(), "a release with nothing held sends nothing")
+	var chat := LineEdit.new()
+	chat.set_meta("goanna_chat", true)
+	root.add_child(chat)
+	chat.grab_focus()
+	rec.events.clear()
+	tap(JOY_BUTTON_A)
+	check(keys.call() == [[KEY_ENTER, true], [KEY_ENTER, false]], "A in the chat box is Enter: %s" % [keys.call()])
+	chat.queue_free()
+
 func tap(b: int) -> void:
 	button(b, true)
 	button(b, false)
@@ -98,9 +125,10 @@ func _run() -> void:
 	_test_disabled()
 	_test_cursor()
 	_test_menu_buttons()
+	_test_talk()
 
 	if failures == 0:
-		print("gamepad: actions, deadzone, play keys, look, edges, off switch, cursor and menu buttons passed")
+		print("gamepad: actions, deadzone, play keys, look, edges, off switch, cursor, menu buttons and talk passed")
 	quit(1 if failures > 0 else 0)
 
 func _bound(action: String, want: int) -> bool:
