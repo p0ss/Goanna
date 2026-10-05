@@ -1,0 +1,16 @@
+{
+ "class": "leaves",
+ "materials": {
+  "needle": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.26,
+   "levels": 3,
+   "detail": 0.4,
+   "joints": false,
+   "smooth": 0.22,
+   "smooth_spread": 0.04,
+   "sss": 130
+  }
+ }
+}

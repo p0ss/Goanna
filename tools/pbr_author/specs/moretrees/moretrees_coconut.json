@@ -1,0 +1,46 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "husk": {
+   "mode": "shade",
+   "base": 0.68,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.46,
+   "smooth_spread": 0.04
+  },
+  "eye": {
+   "mode": "flat",
+   "base": 0.38,
+   "micro": 0.0,
+   "smooth": 0.3
+  }
+ },
+ "rects": [
+  [
+   "eye",
+   8,
+   7,
+   9,
+   8
+  ],
+  [
+   "eye",
+   8,
+   8,
+   9,
+   9
+  ],
+  [
+   "eye",
+   12,
+   7,
+   13,
+   8
+  ]
+ ]
+}

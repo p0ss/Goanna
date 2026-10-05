@@ -1,0 +1,26 @@
+{
+ "class": "wood",
+ "micro": "bark",
+ "materials": {
+  "scale": {
+   "mode": "shade",
+   "base": 0.46,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.05
+  },
+  "groove": {
+   "mode": "flat",
+   "base": 0.14,
+   "span": 0,
+   "smooth": 0.26
+  }
+ },
+ "palette": {
+  "#ae0079": "groove"
+ },
+ "micro_strength": 1.2
+}

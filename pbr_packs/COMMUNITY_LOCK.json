@@ -342,6 +342,20 @@
       "declared_media_license": "CC-BY-4.0",
       "release": 35166,
       "repository": "https://codeberg.org/Wuzzy/xdecor-libre"
+    },
+    "x_farming": {
+      "archive_sha256": "4925e635dd223f5fe8ff5b618082c77fef42980fb0c24fff37edbce82cf1e633",
+      "contentdb": "https://content.luanti.org/packages/SaKeL/x_farming/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38796,
+      "repository": "https://bitbucket.org/minetest_gamers/x_farming/src/master"
+    },
+    "moretrees": {
+      "archive_sha256": "aa8ff9deeb0b9942e16e1fc827bbd81365e117cc938340dda8b271b3a8d09fa9",
+      "contentdb": "https://content.luanti.org/packages/mt-mods/moretrees/",
+      "declared_media_license": "CC-BY-SA-4.0",
+      "release": 38501,
+      "repository": "https://github.com/mt-mods/moretrees"
     }
   }
 }

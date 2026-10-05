@@ -1469,6 +1469,14 @@
     "release": 22198,
     "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tower_cap_wood.png"
   },
+  "dfcaverns_tunnel_tube": {
+    "author": "FaceDeer, derived from moretrees_palm_trunk.png by Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "df_trees/textures/license.txt: 'derived from moretrees palm tree bark'; the palm trunk's pixels recoloured one for one (luminance correlation 0.9995), and More Trees release 38501 puts it under CC BY-SA 4.0 by Vanessa Ezekowitz",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/df_trees/textures/dfcaverns_tunnel_tube.png"
+  },
   "dfcaverns_tunnel_tube_sapling": {
     "author": "FaceDeer",
     "media_license": "CC0-1.0",

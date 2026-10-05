@@ -1,0 +1,49 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "lo": {
+   "mode": "shade",
+   "base": 0.56,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.46,
+   "smooth_spread": 0.05
+  },
+  "hi": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.46,
+   "smooth_spread": 0.05
+  }
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aabbaabbaabbaabb",
+  "bbbbbbbbbbbbbbbb",
+  "bbaabbaabbaabbaa",
+  "aaaaaaaaaaaaaaaa",
+  "aabbaabbaabbaabb",
+  "bbbbbbbbbbbbbbbb",
+  "bbaabbaabbaabbaa",
+  "aaaaaaaaaaaaaaaa",
+  "aabbaabbaabbaabb",
+  "bbbbbbbbbbbbbbbb",
+  "bbaabbaabbaabbaa",
+  "aaaaaaaaaaaaaaaa",
+  "aabbaabbaabbaabb",
+  "bbbbbbbbbbbbbbbb",
+  "bbaabbaabbaabbaa"
+ ],
+ "legend": {
+  "a": "hi",
+  "b": "lo"
+ }
+}

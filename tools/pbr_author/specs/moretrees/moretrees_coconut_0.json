@@ -1,0 +1,48 @@
+{
+ "class": "leaves",
+ "micro": "none",
+ "materials": {
+  "petal": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.32,
+   "sss": 120
+  },
+  "centre": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.36,
+   "sss": 40
+  }
+ },
+ "palette": {
+  "#e6ef3a": "centre",
+  "#ede73c": "centre",
+  "#eded3a": "centre",
+  "#efe63e": "centre",
+  "#f0ed43": "centre",
+  "#f0f940": "centre",
+  "#f3f03f": "centre",
+  "#f3f340": "centre",
+  "#f4f13a": "centre",
+  "#f5f83e": "centre",
+  "#f6f340": "centre",
+  "#f6f63e": "centre",
+  "#f7f43b": "centre",
+  "#f9fc40": "centre",
+  "#faf440": "centre",
+  "#fbf83e": "centre",
+  "#fdf444": "centre",
+  "#fff940": "centre",
+  "#fffc41": "centre",
+  "#ffff42": "centre"
+ }
+}

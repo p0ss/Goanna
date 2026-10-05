@@ -1,0 +1,30 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "scale": {
+   "mode": "shade",
+   "base": 0.74,
+   "span": 0.2,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.46,
+   "smooth_spread": 0.05
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.34,
+   "micro": 0.04,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#4e2714": "gap",
+  "#4e3b27": "gap",
+  "#624e27": "gap",
+  "#764e27": "gap",
+  "#764e3b": "gap"
+ }
+}

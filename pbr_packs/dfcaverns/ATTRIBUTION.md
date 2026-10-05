@@ -63,6 +63,10 @@ bones_bottom, bones_front, bones_rear, bones_side, bones_top
 
 dfcaverns_spore_tree_top, dfcaverns_spore_tree_wood
 
+## CC BY-SA 4.0: FaceDeer, derived from moretrees_palm_trunk.png by Vanessa Ezekowitz
+
+dfcaverns_tunnel_tube
+
 ## CC0 1.0: FaceDeer
 
 dfcaverns_castle_coral, dfcaverns_castle_coral_gradient, dfcaverns_cave_coral,

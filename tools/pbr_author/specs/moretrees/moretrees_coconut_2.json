@@ -1,0 +1,17 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "husk": {
+   "mode": "shade",
+   "base": 0.68,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.04
+  }
+ }
+}

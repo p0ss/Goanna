@@ -1,0 +1,690 @@
+{
+  "moretrees_acorn": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_acorn.png"
+  },
+  "moretrees_apple_tree_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_apple_tree_leaves.png"
+  },
+  "moretrees_apple_tree_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_apple_tree_sapling.png"
+  },
+  "moretrees_apple_tree_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_apple_tree_trunk.png"
+  },
+  "moretrees_apple_tree_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_apple_tree_trunk_top.png"
+  },
+  "moretrees_apple_tree_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_apple_tree_wood.png"
+  },
+  "moretrees_beech_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_beech_leaves.png"
+  },
+  "moretrees_beech_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_beech_sapling.png"
+  },
+  "moretrees_beech_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_beech_trunk.png"
+  },
+  "moretrees_beech_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_beech_trunk_top.png"
+  },
+  "moretrees_beech_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_beech_wood.png"
+  },
+  "moretrees_birch_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_birch_leaves.png"
+  },
+  "moretrees_birch_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_birch_sapling.png"
+  },
+  "moretrees_birch_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_birch_trunk.png"
+  },
+  "moretrees_birch_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_birch_trunk_top.png"
+  },
+  "moretrees_birch_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_birch_wood.png"
+  },
+  "moretrees_cedar_cone": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_cone.png"
+  },
+  "moretrees_cedar_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_leaves.png"
+  },
+  "moretrees_cedar_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_sapling.png"
+  },
+  "moretrees_cedar_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_trunk.png"
+  },
+  "moretrees_cedar_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_trunk_top.png"
+  },
+  "moretrees_cedar_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_cedar_wood.png"
+  },
+  "moretrees_coconut": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_coconut.png"
+  },
+  "moretrees_coconut_0": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_coconut_0.png"
+  },
+  "moretrees_coconut_1": {
+    "author": "Rogier, modifying Vanessa Ezekowitz's moretrees texture",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_coconut_1.png"
+  },
+  "moretrees_coconut_2": {
+    "author": "Rogier, modifying Vanessa Ezekowitz's moretrees texture",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_coconut_2.png"
+  },
+  "moretrees_date_palm_leaves": {
+    "author": "Rogier, modifying Vanessa Ezekowitz's moretrees texture",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_date_palm_leaves.png"
+  },
+  "moretrees_date_palm_sapling": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_date_palm_sapling.png"
+  },
+  "moretrees_date_palm_trunk": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_date_palm_trunk.png"
+  },
+  "moretrees_date_palm_trunk_top": {
+    "author": "Rogier, modifying Vanessa Ezekowitz's moretrees texture",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_date_palm_trunk_top.png"
+  },
+  "moretrees_date_palm_wood": {
+    "author": "Rogier, modifying Vanessa Ezekowitz's moretrees texture",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_date_palm_wood.png"
+  },
+  "moretrees_dates_f0": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_f0.png"
+  },
+  "moretrees_dates_f1": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_f1.png"
+  },
+  "moretrees_dates_f2": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_f2.png"
+  },
+  "moretrees_dates_f3": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_f3.png"
+  },
+  "moretrees_dates_f4": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_f4.png"
+  },
+  "moretrees_dates_fn": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_fn.png"
+  },
+  "moretrees_dates_m0": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_m0.png"
+  },
+  "moretrees_dates_n": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_dates_n.png"
+  },
+  "moretrees_fir_cone": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_cone.png"
+  },
+  "moretrees_fir_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_leaves.png"
+  },
+  "moretrees_fir_leaves_bright": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_leaves_bright.png"
+  },
+  "moretrees_fir_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_sapling.png"
+  },
+  "moretrees_fir_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_trunk.png"
+  },
+  "moretrees_fir_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_trunk_top.png"
+  },
+  "moretrees_fir_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_fir_wood.png"
+  },
+  "moretrees_jungletree_leaves_red": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_jungletree_leaves_red.png"
+  },
+  "moretrees_jungletree_leaves_yellow": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_jungletree_leaves_yellow.png"
+  },
+  "moretrees_oak_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_oak_leaves.png"
+  },
+  "moretrees_oak_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_oak_sapling.png"
+  },
+  "moretrees_oak_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_oak_trunk.png"
+  },
+  "moretrees_oak_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_oak_trunk_top.png"
+  },
+  "moretrees_oak_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_oak_wood.png"
+  },
+  "moretrees_palm_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_palm_leaves.png"
+  },
+  "moretrees_palm_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_palm_sapling.png"
+  },
+  "moretrees_palm_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_palm_trunk.png"
+  },
+  "moretrees_palm_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_palm_trunk_top.png"
+  },
+  "moretrees_palm_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_palm_wood.png"
+  },
+  "moretrees_poplar_leaves": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_leaves.png"
+  },
+  "moretrees_poplar_sapling": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_sapling.png"
+  },
+  "moretrees_poplar_small_sapling": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_small_sapling.png"
+  },
+  "moretrees_poplar_trunk": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_trunk.png"
+  },
+  "moretrees_poplar_trunk_top": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_trunk_top.png"
+  },
+  "moretrees_poplar_wood": {
+    "author": "Rogier",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 8 to 10: \"All date & date palm textures, date-based food, cocos flower & green coconuts, / and all poplar textures: / \u00a9 2016, Rogier <rogier777@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_poplar_wood.png"
+  },
+  "moretrees_rubber_tree_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_leaves.png"
+  },
+  "moretrees_rubber_tree_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_sapling.png"
+  },
+  "moretrees_rubber_tree_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_trunk.png"
+  },
+  "moretrees_rubber_tree_trunk_empty": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_trunk_empty.png"
+  },
+  "moretrees_rubber_tree_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_trunk_top.png"
+  },
+  "moretrees_rubber_tree_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_rubber_tree_wood.png"
+  },
+  "moretrees_sequoia_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_sequoia_leaves.png"
+  },
+  "moretrees_sequoia_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_sequoia_sapling.png"
+  },
+  "moretrees_sequoia_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_sequoia_trunk.png"
+  },
+  "moretrees_sequoia_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_sequoia_trunk_top.png"
+  },
+  "moretrees_sequoia_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_sequoia_wood.png"
+  },
+  "moretrees_spruce_cone": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_cone.png"
+  },
+  "moretrees_spruce_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_leaves.png"
+  },
+  "moretrees_spruce_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_sapling.png"
+  },
+  "moretrees_spruce_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_trunk.png"
+  },
+  "moretrees_spruce_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_trunk_top.png"
+  },
+  "moretrees_spruce_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_spruce_wood.png"
+  },
+  "moretrees_willow_leaves": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_willow_leaves.png"
+  },
+  "moretrees_willow_sapling": {
+    "author": "Tim Huppertz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 14 to 15: \"All other sapling textures (textures/*_sapling.png): / \u00a9 2013, Tim Huppertz <mitroman@naturalnet.de>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_willow_sapling.png"
+  },
+  "moretrees_willow_trunk": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_willow_trunk.png"
+  },
+  "moretrees_willow_trunk_top": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_willow_trunk_top.png"
+  },
+  "moretrees_willow_wood": {
+    "author": "Vanessa Ezekowitz",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE lines 16 to 17: \"All other textures: / \u00a9 2013, Vanessa Ezekowitz <vanessaezekowitz@gmail.com>\"; LICENSE line 22: \"License for all media and all other assets:  CC-by-SA 4.0\"; the CC BY-SA 4.0 legal code follows from line 194",
+    "package": "moretrees",
+    "release": 38501,
+    "source": "moretrees/textures/moretrees_willow_wood.png"
+  }
+}

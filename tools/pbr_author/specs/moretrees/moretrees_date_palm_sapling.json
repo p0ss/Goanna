@@ -1,0 +1,24 @@
+{
+ "class": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.25,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "stem": {
+   "mode": "flat",
+   "base": 0.34,
+   "micro": 0.04,
+   "smooth": 0.26,
+   "sss": 0
+  }
+ },
+ "palette": {
+  "#2f120b": "stem"
+ }
+}

@@ -113,7 +113,7 @@
     },
     "dfcaverns": {
       "decision": "eligible",
-      "evidence": "Release 22198 is a modpack whose submods each carry textures/license.txt: FaceDeer's own art CC0 (also MIT), df_primordial_items by ClockGen CC BY 4.0, with per file exceptions derived from Minetest Game, farming, caverealms, moretrees, Nether, Wikimedia and NSF images; bones and fireflies copies are Minetest Game's. 185 node textures are recorded per file on 2026-10-05. Derivatives of Minetest Game textures are recorded CC BY-SA 3.0 and of caverealms WTFPL, the strictest licence each could be under. Excluded: the tunnel tube (from moretrees, unaudited), big webs and subterrane's dripstone (no media notice), the achievement and food icons, and textures named nowhere. ContentDB's MIT media label is wrong for much of the archive. Later the same day: big_webs, which has no notice, is recorded CC BY-SA 3.0, the strictest licence the package's files carry, its MIT label being understated.",
+      "evidence": "Release 22198 is a modpack whose submods each carry textures/license.txt: FaceDeer's own art CC0 (also MIT), df_primordial_items by ClockGen CC BY 4.0, with per file exceptions derived from Minetest Game, farming, caverealms, moretrees, Nether, Wikimedia and NSF images; bones and fireflies copies are Minetest Game's. 185 node textures are recorded per file on 2026-10-05. Derivatives of Minetest Game textures are recorded CC BY-SA 3.0 and of caverealms WTFPL, the strictest licence each could be under. Excluded: the tunnel tube (from moretrees, unaudited), big webs and subterrane's dripstone (no media notice), the achievement and food icons, and textures named nowhere. ContentDB's MIT media label is wrong for much of the archive. Later the same day: big_webs, which has no notice, is recorded CC BY-SA 3.0, the strictest licence the package's files carry, its MIT label being understated. The tunnel tube, 'derived from moretrees palm tree bark', is More Trees' palm trunk recoloured one for one; with More Trees read, it is recorded CC BY-SA 4.0 after Vanessa Ezekowitz.",
       "media_license": "CC0-1.0, CC-BY-3.0/4.0, CC-BY-SA-3.0 and WTFPL per file"
     },
     "nextgen_fungi": {
@@ -159,6 +159,11 @@
     "x_farming": {
       "decision": "eligible",
       "evidence": "Release 38796 LICENSE.txt ends in per file credits: 576 textures CC BY-SA 4.0 by SaKeL (11 noting a source: Farmer's Delight by vectorwing, MIT; Pixel Perfection by XSSheep; Minetest Game textures by paramat, PilzAdam, Splizard, random-geek, Neuromancer and Calinou, CC BY-SA 3.0), the glass bottle CC BY-SA 3.0 modified by Thomas-S, and a GUI image by BlockMen. README.md and ContentDB agree on CC BY-SA 4.0. 331 world textures recorded per file on 2026-10-05; soil_wet_side, misattributed to SaKeL but byte identical to PilzAdam's, is recorded CC BY-SA 4.0 with PilzAdam credited, and is not authored (faint alpha).",
+      "media_license": "CC-BY-SA-4.0"
+    },
+    "moretrees": {
+      "decision": "eligible",
+      "evidence": "Release 38501 LICENSE: 'License for all media and all other assets: CC-by-SA 4.0', with an author per file: Rogier (date and date palm, cocos flower, green coconuts, poplar), Tim Huppertz (the other saplings), Vanessa Ezekowitz (everything else); ContentDB agrees. Rogier's and Huppertz's textures were first published CC BY-SA 3.0 and relabelled 4.0 in 2018, which BY-SA 3.0 permits for adaptations. 86 world textures recorded on 2026-10-05.",
       "media_license": "CC-BY-SA-4.0"
     }
   }

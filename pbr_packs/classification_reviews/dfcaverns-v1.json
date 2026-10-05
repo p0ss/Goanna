@@ -2365,6 +2365,19 @@
    "rationale": "The class the DF Caverns authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/dfcaverns.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
+  "dfcaverns_tunnel_tube": {
+   "primary_material": "wood",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.088,
+   "smoothness_max": 0.33,
+   "relief_strength": 0.42,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the DF Caverns authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/dfcaverns.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "dfcaverns_tunnel_tube_sapling": {
    "primary_material": "leaves",
    "secondary_materials": [],

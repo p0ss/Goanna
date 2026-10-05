@@ -117,7 +117,8 @@ COMMUNITY_SRC = Path(os.environ.get("GOANNA_AUDIT_ROOT",
                                     os.path.expanduser("~/.local/share/goanna-pbr-audit"))) / "src"
 for _mod in ("draconis", "goblins", "sum_airship", "animalia", "edit_skin",
              "cottages", "basic_materials", "dfcaverns", "nextgen_fungi",
-             "steampunk_blimp", "mcl_decor", "mobs_animal", "mobs_monster", "bees"):
+             "steampunk_blimp", "mcl_decor", "mobs_animal", "mobs_monster", "bees",
+             "x_farming", "moretrees"):
     GAMES[_mod] = {
         "art": COMMUNITY_SRC / _mod / _mod,
         "pack": REPO / "pbr_packs" / _mod / "textures",

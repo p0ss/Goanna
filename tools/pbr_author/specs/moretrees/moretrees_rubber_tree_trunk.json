@@ -1,0 +1,56 @@
+{
+ "class": "wood",
+ "micro": "bark",
+ "materials": {
+  "bark": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.24,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.05
+  },
+  "furrow": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0,
+   "smooth": 0.26
+  },
+  "latex": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.66,
+   "smooth_spread": 0.04,
+   "micro": "none"
+  }
+ },
+ "grid": [
+  "ffxx.......xx..f",
+  "fxxx....f.xxx..f",
+  "fxxxxx..fxxx...f",
+  "fxxxxxx.fxxx...f",
+  "fxxxxxx...x...ff",
+  "fxxxxxx...xf..ff",
+  "fx.fxxxx..xf.fff",
+  "fxxfxxxx..x..fff",
+  "fxxxfxxx.fxxxxff",
+  "f.fxfxx..fxxx.ff",
+  "f.x..xx..fxxx..f",
+  "xxxx.xx..fxxxx.f",
+  "ff.xx.x......xxf",
+  "ffxxxxx.....xxxf",
+  "fxxxx.x......xxf",
+  "fxxx.........xxx"
+ ],
+ "legend": {
+  "f": "furrow",
+  "x": "latex"
+ },
+ "micro_strength": 1.4
+}
