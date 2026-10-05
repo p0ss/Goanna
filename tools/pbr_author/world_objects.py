@@ -18,6 +18,12 @@ table per family below:
   minecart   the cart body every minecart draws: riveted iron plates in
              the iron golem's manner around a box of planks. What a cart
              carries is drawn with the block's own images and maps.
+  armour     the worn layers on players and mobs, every kind and piece,
+             the elytra and the trims (see "worn armour" below).
+  objects    the bell, the arrow, banners and their patterns, the shield,
+             the trident, bows and crossbows and the fishing rod held in
+             hand, paintings, campfire logs and the chests the chest
+             entity draws (see "held and placed objects" below).
 
 The house style settled with the owner: per texel shade steps shallow
 inside a material (0.1 to 0.18 of the range), main surfaces near the top
