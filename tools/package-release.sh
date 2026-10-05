@@ -101,7 +101,7 @@ rm -rf "$PKG"
 mkdir -p "$PKG/Goanna" "$PKG/luanti/textures"
 cp -r "$STAGE"/* "$PKG/Goanna/"
 cp -r luanti/textures/base "$PKG/luanti/textures/"
-CORE_ASSET="${GOANNA_CORE_ASSET:-dist/assets/org.goanna.mineclonia.pack-1.3.0.zip}"
+CORE_ASSET="${GOANNA_CORE_ASSET:-dist/assets/org.goanna.mineclonia.pack-1.3.1.zip}"
 test -f "$CORE_ASSET" || { echo "missing core asset bundle: $CORE_ASSET" >&2; exit 1; }
 mkdir -p "$PKG/assets"
 cp "$CORE_ASSET" "$PKG/assets/"

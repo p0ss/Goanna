@@ -3,8 +3,8 @@
   "catalogue_url": "https://raw.githubusercontent.com/p0ss/Goanna/main/asset_bundles/catalogue.json",
   "bundles": [
     {
-      "file": "org.goanna.mineclonia.pack-1.3.0.zip",
-      "sha256": "b588da9c6a2d153680734e8919f088d77a457de0220b7f07185600f4bd0e941b"
+      "file": "org.goanna.mineclonia.pack-1.3.1.zip",
+      "sha256": "4613a8673dc619ccc2631abc2ad8dff78173aaf5dba160abbf5f59ea37fd4a9c"
     }
   ]
 }

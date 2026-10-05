@@ -1,4 +1,10 @@
-# Goanna, unreleased
+# Goanna v0.12.0-alpha
+
+Goanna can read the game aloud and be played from the keyboard, sounds
+come from where they are, new materials arrive on your first visit to a
+world, dug blocks remember their progress, and the AI game master's
+characters can now walk, follow, patrol, trade and fight on its orders.
+Mineclonia's pack in the box is 1.3.1, with every mob and outfit skin.
 
 ## Accessibility
 

@@ -1431,7 +1431,10 @@ client as the player): watch, hold_item, go_to with arrival reported and
 stay after it, patrol visiting both points, follow after a teleport,
 offer_trade opening the trading form on the player's screen, and a
 villager refused as `cannot_attack`. An armed vindicator was refused as
-`over_ceiling` (cost 14 against the player's 10), as it should be.
+`over_ceiling` (cost 14 against the player's 10), as it should be; an armed
+husk (cost 5) was accepted, ordered to attack the player and took them
+from 20 health to 17, stood down when its 20 s leash ended, then killed a
+cast villager when ordered to, and was undone.
 
 ### What the first test showed
 
