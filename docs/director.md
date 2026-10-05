@@ -2009,13 +2009,15 @@ JSON-RPC by the script. 44 checks passed:
   two deliberate refusals.
 
 With no ruleset registered, the Phase 1 test (`tools/test-director.py`, same
-server and game, software rendered clients) passed its first 36 checks, up
-to and including `director_memory`: encounters, the hourly budget, pacing,
-an encounter queued for the next build up and landing there through the
-reworked queue, undo, a cast character's speech, narration, addressed chat
-and memory. It was then stopped on request, to keep a second client off a
-machine where another session held the GPU, so the kill, opt out, service
-restart and stop checks of that test did not run against this change.
+server and game) first ran with software rendered clients and passed its
+first 36 checks before it was stopped on request, to keep clients in
+gamescope off a machine where another session held the GPU. It was then run
+whole with `--dummy`, which starts each player as Godot `--headless` (the
+dummy renderer, no gamescope, no Vulkan device), on 6 October 2026: all 62
+checks passed, including the kill, the opt out, the service restart and
+stop. One earlier `--dummy` run failed only the kill check, with alice's
+blows not landing on the villager at 2.1 nodes; the next run killed it, so
+that check is sensitive to aim, not to the renderer.
 
 Not tried: a paced intent that had to wait in the queue (the player was in
 a build up throughout, so only the path that applies at once ran); `stale`

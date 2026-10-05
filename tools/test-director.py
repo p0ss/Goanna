@@ -11,6 +11,11 @@ goanna_server_mod with the director on, and headless Goanna clients
     tools/test-director.py [--keep] [--gpu]
     tools/test-director.py --ruleset [--keep]
 
+--dummy starts each player as Godot --headless (the dummy renderer, no
+gamescope and no GPU at all) instead of in headless gamescope. Nothing is
+drawn, which these tests do not need: chat, the control channel and the
+player's own actions all run.
+
 --ruleset runs the ruleset test instead (ruleset_main below): a probe mod
 registers a ruleset, and the test calls its intent and query through the
 tools the MCP service generates from the hello, with one player.
@@ -153,6 +158,60 @@ def wait_chat(port, needle, timeout=15.0):
     return None
 
 
+# --- the players ---------------------------------------------------------------
+
+DUMMY = "--dummy" in sys.argv
+
+
+def start_client(name, control_port, server_port, software, label):
+    """A player: in headless gamescope through goanna_headless, or with
+    --dummy as Godot --headless, which never opens a Vulkan device. Returns
+    a handle for stop_client."""
+    if not DUMMY:
+        return gh.start_goanna(REPO, control_port=control_port, host="127.0.0.1",
+                               port=server_port, name=name, software=software, label=label)
+    project = gh.resolve_project(REPO)
+    env = dict(os.environ)
+    # No display to open a window on, even by mistake.
+    env.pop("DISPLAY", None)
+    env["WAYLAND_DISPLAY"] = gh.NO_DESKTOP
+    env.update({"GOANNA_CONTROL": str(control_port), "GOANNA_NO_POINTER_CAPTURE": "1",
+                "GOANNA_HOST": "127.0.0.1", "GOANNA_PORT": str(server_port),
+                "GOANNA_NAME": name, "GOANNA_PASS": "", "GOANNA_TEST_LABEL": label})
+    logf = open(str(WORLD.parent / ("goanna_director_%s_%s.client.log" % (name, control_port))),
+                "w")
+    proc = subprocess.Popen([gh.find_godot(project), "--headless", "--path", str(project)],
+                            env=env, stdout=logf, stderr=subprocess.STDOUT,
+                            start_new_session=True)
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            raise RuntimeError("the --headless client exited; see " + logf.name)
+        if gh.control_ping(control_port):
+            return {"id": None, "proc": proc, "log": logf.name}
+        time.sleep(0.5)
+    stop_client({"id": None, "proc": proc})
+    raise RuntimeError("the --headless client's control channel never opened")
+
+
+def stop_client(handle):
+    proc = handle.get("proc")
+    if proc is None:
+        gh.stop(handle["id"])
+        return
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+    try:
+        os.remove(handle["log"])
+    except (KeyError, OSError):
+        pass
+
+
 # --- the server ----------------------------------------------------------------
 
 def make_world():
@@ -285,10 +344,9 @@ def main(argv):
 
         # A player joins before any director is connected, and is told
         # nothing, because nothing is running.
-        alice = gh.start_goanna(REPO, control_port=CONTROL["alice"], host="127.0.0.1",
-                                port=SERVER_PORT, name="alice", software=software,
-                                label="director test alice")
-        clients.append(alice["id"])
+        alice = start_client("alice", CONTROL["alice"], SERVER_PORT, software,
+                             "director test alice")
+        clients.append(alice)
         check(wait_log(log, "alice [", 60), "alice joins the server")
         time.sleep(3)
         check(not any("[director]" in l for l in chat_lines(CONTROL["alice"])),
@@ -523,6 +581,10 @@ def main(argv):
                     if died:
                         break
                 note("distance to the villager when striking:", reach)
+                pointing = control(CONTROL["alice"], "run", {
+                    "src": "return [main.pointed.get(\"type\", \"\"), "
+                           "main.pointed.get(\"object_name\", \"\"), main.pitch, main.yaw]"})
+                note("alice's client points at:", (pointing or {}).get("value"))
             except RuntimeError as exc:
                 note("could not strike:", exc)
             finally:
@@ -561,10 +623,8 @@ def main(argv):
         check(private is None, "a direct message never reaches the model", private)
 
         # A second player, who opts out.
-        bob = gh.start_goanna(REPO, control_port=CONTROL["bob"], host="127.0.0.1",
-                              port=SERVER_PORT, name="bob", software=software,
-                              label="director test bob")
-        clients.append(bob["id"])
+        bob = start_client("bob", CONTROL["bob"], SERVER_PORT, software, "director test bob")
+        clients.append(bob)
         ev, _ = events_of(mcp, "player_join", 90, lambda e: "player:bob" in e.get("who", []))
         check(ev is not None, "the model sees bob join")
         time.sleep(1)
@@ -597,8 +657,8 @@ def main(argv):
                      reason="test: memory of an opted out player")
         check(r.get("status") == "refused" and r.get("reason") == "opted_out",
               "nothing is remembered of an opted out player", r)
-        gh.stop(bob["id"])
-        clients.remove(bob["id"])
+        stop_client(bob)
+        clients.remove(bob)
         time.sleep(3)
         batch = mcp.call("director_events", wait_s=2)
         check(not any("player:bob" in e.get("who", []) for e in batch.get("events", [])),
@@ -657,7 +717,7 @@ def main(argv):
     finally:
         for ident in clients:
             try:
-                gh.stop(ident)
+                stop_client(ident)
             except Exception as exc:                       # noqa: BLE001
                 print("could not stop", ident, exc)
         stop_server(server)
@@ -902,9 +962,8 @@ def ruleset_main(argv):
               "probe_tally answers through the generated query tool, connected() true", r)
 
         # A player, for loaded ground, chat and speech.
-        alice = gh.start_goanna(REPO, control_port=RS_CONTROL, host="127.0.0.1",
-                                port=RS_SERVER_PORT, name="alice", software=software,
-                                label="director ruleset test alice")
+        alice = start_client("alice", RS_CONTROL, RS_SERVER_PORT, software,
+                             "director ruleset test alice")
         check(wait_log(log, "alice [", 90), "alice joins")
         time.sleep(4)
         drain(mcp)
@@ -1027,7 +1086,7 @@ def ruleset_main(argv):
     finally:
         if alice:
             try:
-                gh.stop(alice["id"])
+                stop_client(alice)
             except Exception as exc:                       # noqa: BLE001
                 print("could not stop alice", exc)
         if server:
