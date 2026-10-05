@@ -668,6 +668,14 @@ an `_n` of its own is a cut:
   name plus the server's `_n`, and every other client keeps the baked glyph.
   A server can also send a transparent layer of its own over its art; no
   other client sees it.
+- With companions withheld (`GOANNA_NO_PBR`), such a pack image would draw
+  as nothing and the carving would vanish. So in that case a wholly
+  transparent pack image never replaces server art of the same name that
+  has colour (`packMayReplace` and `insertLocalImage` in
+  `goanna_textures.cpp`), and the engraving shows the server's baked
+  glyphs, as a vanilla client does. Seen on lavapipe on 2026-10-06 with
+  DorfCraft's transparent pack glyphs: before, maps off showed blank
+  plates; after, the baked glyphs.
 
 It applies to overlay stacks (`compositeCompanions`) and to every
 expression `composeCompanion` reads, node tiles included.

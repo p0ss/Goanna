@@ -1473,15 +1473,59 @@ void GoannaTextureSource::finishTextureCap() {
     m_cap_stats.unknown = (u32)m_cap_pending.size();
 }
 
+// Whether every texel of `img` is transparent.
+static bool whollyTransparent(video::IImage *img) {
+    if (!img)
+        return false;
+    const core::dimension2d<u32> d = img->getDimension();
+    for (u32 y = 0; y < d.Height; ++y)
+        for (u32 x = 0; x < d.Width; ++x)
+            if (img->getPixel(x, y).getAlpha() != 0)
+                return false;
+    return true;
+}
+
+// Whether a pack's image may stand in for the server's `img` of the same
+// name, which upstream always allows (prefer_local). One exception: a pack
+// image with no colour at all is a cut, which only means something through
+// its _n (composeCompanion, "Depth without colour"). DorfCraft's Goanna pack
+// swaps each baked engraving glyph for one. With companions withheld
+// (GOANNA_NO_PBR) the cut would draw as nothing and the engraving would
+// vanish, so the server's art is kept, which is what a vanilla client shows.
+static bool companionsWithheld() {
+    const char *e = getenv("GOANNA_NO_PBR");
+    return e && *e;
+}
+
+static bool packMayReplace(const std::string &name, video::IImage *img) {
+    if (!companionsWithheld())
+        return true;
+    bool is_base_pack = false;
+    const std::string path = getTexturePath(name, &is_base_pack);
+    if (path.empty() || is_base_pack)
+        return true;
+    video::IImage *local = goanna_load_image_file(path);
+    const bool cut = whollyTransparent(local) && !whollyTransparent(img);
+    if (local)
+        local->drop();
+    return !cut;
+}
+
 void GoannaTextureSource::insertMediaImage(const std::string &name, video::IImage *img) {
     video::IImage *small = capImage(name, img, true);
-    m_imagesource.insertSourceImage(name, small ? small : img, true);
+    m_imagesource.insertSourceImage(name, small ? small : img, packMayReplace(name, img));
     if (small)
         small->drop();
     m_known_source[name] = true;
 }
 
 void GoannaTextureSource::insertLocalImage(const std::string &name, video::IImage *img) {
+    // The pack's own import (loadNativePack, after the server's media): the
+    // same exception as packMayReplace. With companions withheld a wholly
+    // transparent pack image over art the server sent is a cut that would
+    // draw as nothing, so the server's art stays.
+    if (companionsWithheld() && m_known_source.count(name) && whollyTransparent(img))
+        return;
     video::IImage *small = capImage(name, img, false);
     m_imagesource.insertSourceImage(name, small ? small : img, false);
     if (small)
