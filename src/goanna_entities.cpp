@@ -952,12 +952,55 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         break;
     }
     case OBJECTVISUAL_CUBE: {
+        // Upstream's createCubeMesh (client/mesh.cpp): one surface per face,
+        // in its order (+Y, -Y, +X, -X, +Z, -Z) with its UVs, and each face
+        // takes its own texture, as GenericCAO::updateTextures gives it. A
+        // BoxMesh with the first texture on all six drew a Mineclonia
+        // painting as a block of plain wood, the painting never seen.
+        // Positions and normals have z mirrored, as buildGodotModel does,
+        // and keep upstream's index order, which Godot then draws as front.
+        static const float cube[6][4][5] = {
+            {{-0.5f, +0.5f, -0.5f, 0, 1}, {-0.5f, +0.5f, +0.5f, 0, 0}, {+0.5f, +0.5f, +0.5f, 1, 0}, {+0.5f, +0.5f, -0.5f, 1, 1}},
+            {{-0.5f, -0.5f, -0.5f, 0, 0}, {+0.5f, -0.5f, -0.5f, 1, 0}, {+0.5f, -0.5f, +0.5f, 1, 1}, {-0.5f, -0.5f, +0.5f, 0, 1}},
+            {{+0.5f, -0.5f, -0.5f, 0, 1}, {+0.5f, +0.5f, -0.5f, 0, 0}, {+0.5f, +0.5f, +0.5f, 1, 0}, {+0.5f, -0.5f, +0.5f, 1, 1}},
+            {{-0.5f, -0.5f, -0.5f, 1, 1}, {-0.5f, -0.5f, +0.5f, 0, 1}, {-0.5f, +0.5f, +0.5f, 0, 0}, {-0.5f, +0.5f, -0.5f, 1, 0}},
+            {{-0.5f, -0.5f, +0.5f, 1, 1}, {+0.5f, -0.5f, +0.5f, 0, 1}, {+0.5f, +0.5f, +0.5f, 0, 0}, {-0.5f, +0.5f, +0.5f, 1, 0}},
+            {{-0.5f, -0.5f, -0.5f, 0, 1}, {-0.5f, +0.5f, -0.5f, 0, 0}, {+0.5f, +0.5f, -0.5f, 1, 0}, {+0.5f, -0.5f, -0.5f, 1, 1}},
+        };
+        static const Vector3 face_normal[6] = {
+            Vector3(0, 1, 0), Vector3(0, -1, 0), Vector3(1, 0, 0),
+            Vector3(-1, 0, 0), Vector3(0, 0, -1), Vector3(0, 0, 1),
+        };
         MeshInstance3D *mi = memnew(MeshInstance3D);
-        Ref<BoxMesh> bm;
-        bm.instantiate();
-        bm->set_size(vs);
-        mi->set_mesh(bm);
-        mi->set_material_override(materialForTexture(session, tex0, p.use_texture_alpha, false));
+        Ref<ArrayMesh> am;
+        am.instantiate();
+        for (int f = 0; f < 6; ++f) {
+            PackedVector3Array verts, normals;
+            PackedVector2Array uvs;
+            for (int v = 0; v < 4; ++v) {
+                const float *c = cube[f][v];
+                verts.push_back(Vector3(c[0] * vs.x, c[1] * vs.y, -c[2] * vs.z));
+                normals.push_back(face_normal[f]);
+                uvs.push_back(Vector2(c[3], c[4]));
+            }
+            PackedInt32Array indices;
+            for (int i : {0, 1, 2, 2, 3, 0})
+                indices.push_back(i);
+            Array arrays;
+            arrays.resize(Mesh::ARRAY_MAX);
+            arrays[Mesh::ARRAY_VERTEX] = verts;
+            arrays[Mesh::ARRAY_NORMAL] = normals;
+            arrays[Mesh::ARRAY_TEX_UV] = uvs;
+            arrays[Mesh::ARRAY_INDEX] = indices;
+            am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+        }
+        mi->set_mesh(am);
+        for (int f = 0; f < 6; ++f) {
+            std::string t = (int)p.textures.size() > f ? p.textures[f] : std::string("no_texture.png");
+            if (!obj.textureModifier().empty())
+                t += obj.textureModifier();
+            mi->set_surface_override_material(f, materialForTexture(session, t, p.use_texture_alpha, false));
+        }
         en.visual = mi;
         break;
     }
