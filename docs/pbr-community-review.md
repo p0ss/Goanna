@@ -39,6 +39,13 @@ instead. A file whose notice states a licence outside the accepted set
 is still excluded, as is a file credited to another package whose terms
 have not been read.
 
+A bare "CC" or "Creative Commons" with no licence kind or version is
+usable (the owner's decision of 2026-10-05: it has long been used loosely,
+often to mean CC0). Such a file is recorded under the strictest reading
+Goanna can comply with, CC BY-SA with attribution to the author named, so
+it is honoured whichever licence was meant. "CCPL" and stated
+non-commercial or no-derivatives terms still exclude a file.
+
 GPL-3.0 media is accepted, for texture packs only. Goanna's code is
 LGPL-2.1-or-later and the packs are separate works shipped beside it, each
 under its own source's terms as noted in its `ATTRIBUTION.md`, so a GPL

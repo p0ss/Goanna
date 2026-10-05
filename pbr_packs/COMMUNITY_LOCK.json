@@ -49,6 +49,13 @@
       "release": 38908,
       "repository": "https://github.com/mt-mods/basic_materials"
     },
+    "bees": {
+      "archive_sha256": "10d2dc2a3086b6d0bd6239009634c5d21d2967b5c6f9730c703a6a6f680edb29",
+      "contentdb": "https://content.luanti.org/packages/TenPlus1/bees/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 38367,
+      "repository": "https://codeberg.org/tenplus1/bees"
+    },
     "castle_lighting": {
       "archive_sha256": "65ce5d37b031087375579ecbbfc71ddf26d23b80c4f7e60f35aee564ffc8abdc",
       "contentdb": "https://content.luanti.org/packages/FaceDeer/castle_lighting/",
