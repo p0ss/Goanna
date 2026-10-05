@@ -62,6 +62,31 @@ void mixTexel(uint8_t *dst, const uint8_t *src, float m, const CompanionKind &ki
     }
 }
 
+// A cut's _n texel over what is under it (CompanionKind::tangent only): see
+// "Depth without colour" in goanna_overlay_companions.h. The lower of the two
+// heights is kept, the cut's normal where it is the lower one or where it
+// leans (the lip of a cut, which stands at the face but slopes into it),
+// and the two occlusions multiply. An uncut texel (a flat 128, 128, 255,
+// 255) leaves what is under it exactly as it was.
+void cutTexel(uint8_t *dst, const uint8_t *src) {
+    const bool leans = std::abs(src[0] - 128) > 1 || std::abs(src[1] - 128) > 1;
+    if (src[3] < dst[3] || leans) {
+        dst[0] = src[0];
+        dst[1] = src[1];
+    }
+    dst[2] = (uint8_t)((dst[2] * src[2] + 127) / 255);
+    dst[3] = std::min(dst[3], src[3]);
+}
+
+bool allTransparent(const Rgba8 &img) {
+    if (img.empty())
+        return false;
+    for (size_t i = 3; i < img.px.size(); i += 4)
+        if (img.px[i] != 0)
+            return false;
+    return true;
+}
+
 } // namespace
 
 bool parseOverlayLayers(const std::string &texture, std::vector<OverlayLayer> &out) {
@@ -150,6 +175,8 @@ Rgba8 compositeCompanions(const std::vector<CompanionLayer> &layers, const Compa
         if (li > 0 && !has_mask)
             continue;
         const float opacity = std::clamp(l.opacity, 0.0f, 1.0f);
+        // A layer with no colour at all and an _n of its own is a cut.
+        const bool cut = li > 0 && kind.tangent && has_comp && allTransparent(*l.albedo);
         for (int y = 0; y < out.h; ++y)
             for (int x = 0; x < out.w; ++x) {
                 uint8_t *dst = &out.px[((size_t)y * out.w + x) * 4];
@@ -158,7 +185,10 @@ Rgba8 compositeCompanions(const std::vector<CompanionLayer> &layers, const Compa
                     std::copy(src, src + 4, dst);
                     continue;
                 }
-                mixTexel(dst, src, at(*l.albedo, x, y)[3] / 255.0f * opacity, kind);
+                if (cut)
+                    cutTexel(dst, src);
+                else
+                    mixTexel(dst, src, at(*l.albedo, x, y)[3] / 255.0f * opacity, kind);
             }
     }
     return out;
@@ -251,6 +281,10 @@ namespace {
 struct Value {
     Rgba8 albedo;
     Rgba8 comp;
+    // Its companion is laid in as a cut (cutTexel) wherever its albedo is
+    // transparent: an image with no colour at all but an _n of its own, or
+    // a value such an image was placed into. _n only; see the header.
+    bool cuts = false;
     bool any() const { return !comp.empty(); }
 };
 
@@ -304,7 +338,8 @@ void blitTexel(const uint8_t *src, uint8_t *dst) {
 
 // `top` placed into `base` with its top left corner at art texel (ox, oy),
 // clipped to `base`: the albedo blitted, the companions mixed by `top`'s
-// alpha at the finer of the two companion scales.
+// alpha at the finer of the two companion scales, or laid in as a cut where
+// `top` cuts and is transparent.
 void place(Value &base, const Value &top, int ox, int oy, const CompanionKind &kind) {
     if (base.any() || top.any()) {
         auto scale = [](const Value &v, bool x) {
@@ -317,7 +352,6 @@ void place(Value &base, const Value &top, int ox, int oy, const CompanionKind &k
         Rgba8 out;
         out.w = std::max(1, (int)std::lround(base.albedo.w * kx));
         out.h = std::max(1, (int)std::lround(base.albedo.h * ky));
-        out.px.resize((size_t)out.w * out.h * 4);
         auto sample = [&](const Value &v, double u, double t) -> const uint8_t * {
             if (!v.any())
                 return kind.neutral;
@@ -325,22 +359,45 @@ void place(Value &base, const Value &top, int ox, int oy, const CompanionKind &k
             const int y = std::clamp((int)(t * v.comp.h / v.albedo.h), 0, v.comp.h - 1);
             return &v.comp.px[((size_t)y * v.comp.w + x) * 4];
         };
-        for (int cy = 0; cy < out.h; ++cy)
-            for (int cx = 0; cx < out.w; ++cx) {
+        // Where the base's companion is already at the output's size, only
+        // the texels `top` reaches change. An engraving lays a hundred
+        // glyphs into a canvas of a few million map texels, and rebuilding
+        // the whole canvas for each one cost seconds on the main thread.
+        int x0 = 0, y0 = 0, x1 = out.w, y1 = out.h;
+        if (base.any() && base.comp.w == out.w && base.comp.h == out.h) {
+            out = std::move(base.comp);
+            x0 = std::clamp((int)std::floor(ox * kx), 0, out.w);
+            y0 = std::clamp((int)std::floor(oy * ky), 0, out.h);
+            x1 = std::clamp((int)std::ceil((ox + top.albedo.w) * kx), 0, out.w);
+            y1 = std::clamp((int)std::ceil((oy + top.albedo.h) * ky), 0, out.h);
+        } else {
+            out.px.resize((size_t)out.w * out.h * 4);
+            for (int cy = 0; cy < out.h; ++cy)
+                for (int cx = 0; cx < out.w; ++cx) {
+                    const double u = (cx + 0.5) * base.albedo.w / out.w;
+                    const double t = (cy + 0.5) * base.albedo.h / out.h;
+                    const uint8_t *under = sample(base, u, t);
+                    std::copy(under, under + 4, &out.px[((size_t)cy * out.w + cx) * 4]);
+                }
+        }
+        for (int cy = y0; cy < y1; ++cy)
+            for (int cx = x0; cx < x1; ++cx) {
                 // The art position of this companion texel's centre.
                 const double u = (cx + 0.5) * base.albedo.w / out.w;
                 const double t = (cy + 0.5) * base.albedo.h / out.h;
                 uint8_t *dst = &out.px[((size_t)cy * out.w + cx) * 4];
-                const uint8_t *under = sample(base, u, t);
-                std::copy(under, under + 4, dst);
                 const double tu = u - ox, tt = t - oy;
                 if (tu < 0.0 || tt < 0.0 || tu >= top.albedo.w || tt >= top.albedo.h)
                     continue;
                 const uint8_t *a = &top.albedo.px[((size_t)(int)tt * top.albedo.w + (int)tu) * 4];
-                mixTexel(dst, sample(top, tu, tt), a[3] / 255.0f, kind);
+                if (top.cuts && a[3] == 0)
+                    cutTexel(dst, sample(top, tu, tt));
+                else
+                    mixTexel(dst, sample(top, tu, tt), a[3] / 255.0f, kind);
             }
         base.comp = std::move(out);
     }
+    base.cuts = base.cuts || top.cuts;
     for (int y = 0; y < top.albedo.h; ++y) {
         const int by = oy + y;
         if (by < 0 || by >= base.albedo.h)
@@ -466,6 +523,7 @@ private:
             if (leaf.albedo.empty())
                 return false;
             leaf.comp = m_src.companion(part);
+            leaf.cuts = m_kind.tangent && leaf.any() && allTransparent(leaf.albedo);
             if (!have) {
                 base = std::move(leaf);
                 have = true;
@@ -570,6 +628,9 @@ private:
         if (part == "[noalpha") {
             for (size_t i = 3; i < base.albedo.px.size(); i += 4)
                 base.albedo.px[i] = 255;
+            // Nothing is transparent now, so nothing is a cut: the whole
+            // companion covers by the opaque albedo.
+            base.cuts = false;
             return true;
         }
         return colourOnly(part);

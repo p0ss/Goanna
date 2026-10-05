@@ -642,6 +642,36 @@ nothing covers is neutral, as for an overlay stack. With no companion in any
 part there is no companion, so the inferred relief and the classified `_s`
 still apply as before.
 
+**Depth without colour.** A part covers by its albedo's alpha, so until
+2026-10-06 a part could carry relief only where it also painted over the
+colour beneath it. A carving wants the reverse: the stone's own colour on
+the floor of the cut, one level down. DorfCraft's engravings showed it: each
+glyph's `_n` arrived only where the glyph painted its flat grey, and the cuts
+drew as pale panels. So an image that is transparent in every texel and has
+an `_n` of its own is a cut:
+
+- Its `_n` is laid in by height rather than by alpha. At each texel the lower
+  of the two heights is kept, the cut's normal is taken where the cut is the
+  lower or where it leans (the lip of a cut stands at the face but slopes
+  into it), and the two occlusions multiply. A flat uncut texel (128, 128,
+  255, 255) changes nothing.
+- A value a cut was placed into (a `[combine` canvas of cut glyphs, the
+  group round it, a recolour of that group) carries the cut on through its
+  own transparent texels into whatever it is laid over.
+- The albedo is untouched, since a transparent image blits nothing, and so
+  is `_s`: a cut changes no material.
+- `[noalpha` ends it; the image then covers by its alpha like any other.
+- A vanilla client draws a transparent image as nothing. A Goanna pack can
+  therefore swap a server's baked glyph for a transparent one with the same
+  name plus the server's `_n`, and every other client keeps the baked glyph.
+  A server can also send a transparent layer of its own over its art; no
+  other client sees it.
+
+It applies to overlay stacks (`compositeCompanions`) and to every
+expression `composeCompanion` reads, node tiles included.
+`goanna_overlay_companions_test` checks it on an engraving built the way
+DorfCraft builds one.
+
 **Rotating a normal map.** `_n` red tilts toward plus x of the image and
 green toward its top. A transform moves each texel as `imageTransform`
 does, and turns the vector at it by the same map's linear part, which is a

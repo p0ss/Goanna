@@ -164,6 +164,23 @@ enum class Composed {
 // under it as compositeCompanions mixes a layer; a part with no companion
 // of its own is the kind's neutral there, and canvas nothing covers is
 // neutral too.
+//
+// Depth without colour. A part covers by its albedo's alpha, so a part can
+// only carry relief where it also paints over the colour beneath. A carving
+// wants the opposite: the stone's own colour on the floor of the cut, one
+// level down. So an image that is transparent in every texel and has an _n
+// of its own is a cut. Its _n is laid in where it is transparent (which is
+// everywhere) by cutTexel rather than by its alpha: the lower of the two
+// heights, the cut's normal where the cut is the lower or where it leans
+// (its lip), and the two occlusions multiplied. A flat uncut texel (128,
+// 128, 255, 255) changes nothing. A value such an image is placed into
+// (a [combine canvas of cut glyphs, the group around it) carries the cut on
+// into whatever it is placed over, through its own transparent texels. The
+// colour of the result is the albedo's, untouched, since a transparent
+// image blits nothing. _s is not affected: a cut changes no material, and
+// a transparent part mixes no _s. A vanilla client draws a transparent
+// image as nothing, so a pack (or a server) can ship cut glyphs without
+// changing what any other client sees. [noalpha ends it.
 Composed composeCompanion(const std::string &texture, const CompanionKind &kind,
         const CompanionSources &src, Rgba8 &out);
 

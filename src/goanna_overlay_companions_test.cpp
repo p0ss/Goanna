@@ -472,6 +472,67 @@ void testCompose() {
             Composed::Done, "colour modifiers are read and change nothing");
 }
 
+// Depth without colour: a transparent image with an _n of its own is a cut
+// (goanna_overlay_companions.h). An engraving, as DorfCraft's runes build
+// it: a stone plate, then the glyphs combined into a canvas of their own
+// and recoloured, laid over it.
+void testCuts() {
+    Fake f;
+    f.albedo["stone.png"] = solid(4, 4, 120, 120, 110, 255);
+    Rgba8 stone_n = solid(8, 8, 128, 128, 250, 230);
+    setPx(stone_n, 0, 0, 140, 120, 200, 255); // the stone's own crest
+    f.comp["stone.png"] = stone_n;
+    // A 2 x 2 glyph at four map texels per art texel: art texel (0, 0) cut
+    // to 40, its right neighbour the lip (face height, leaning), the rest
+    // uncut and flat.
+    f.albedo["glyph.png"] = solid(2, 2, 0, 0, 0, 0);
+    Rgba8 glyph_n = solid(8, 8, 128, 128, 255, 255);
+    for (int y = 0; y < 4; ++y)
+        for (int x = 0; x < 4; ++x)
+            setPx(glyph_n, x, y, 128, 128, 102, 40);
+    for (int y = 0; y < 4; ++y)
+        setPx(glyph_n, 4, y, 60, 128, 255, 255);
+    f.comp["glyph.png"] = glyph_n;
+    const std::string plate = "([combine:4x4:0,0=stone.png\\^[resize\\:4x4)^"
+            "(([combine:4x4:2,2=glyph.png)^[multiply:#d8d4cc)";
+    Rgba8 out;
+    check(composeCompanion(plate, kNormalKind, f.sources(), out) == Composed::Done &&
+            out.w == 16 && out.h == 16, "an engraving composes at the glyph's scale");
+    // Glyph art texel (0, 0) is plate art texel (2, 2): map texels 8 to 11.
+    check(same(px(out, 9, 9), 128, 128, 100, 40),
+            "the cut floor takes the cut's height and normal, occlusions multiplied");
+    check(same(px(out, 12, 9), 60, 128, 250, 230),
+            "the lip takes the cut's lean and keeps the stone's lower height");
+    check(same(px(out, 13, 13), 128, 128, 250, 230),
+            "an uncut glyph texel leaves the stone exactly as it was");
+    check(same(px(out, 1, 1), 140, 120, 200, 255) && same(px(out, 5, 1), 128, 128, 250, 230),
+            "the stone outside the glyph is untouched");
+    // The same glyph with colour (DorfCraft's present pack glyphs, grey
+    // where cut): the old rule, mixed by its alpha.
+    Fake g = f;
+    Rgba8 painted = solid(2, 2, 0, 0, 0, 0);
+    setPx(painted, 0, 0, 160, 160, 160, 255);
+    g.albedo["glyph.png"] = painted;
+    composeCompanion(plate, kNormalKind, g.sources(), out);
+    check(same(px(out, 9, 9), 128, 128, 102, 40) && same(px(out, 12, 9), 128, 128, 250, 230),
+            "a painted glyph still covers by its alpha alone");
+    // _s is not touched by a cut.
+    f.comp.erase("glyph.png");
+    Fake s;
+    s.albedo = f.albedo;
+    s.comp["stone.png"] = solid(4, 4, 30, 10, 20, 255);
+    s.comp["glyph.png"] = solid(2, 2, 250, 255, 0, 255);
+    check(composeCompanion(plate, kSpecKind, s.sources(), out) == Composed::Done &&
+            same(px(out, 2, 2), 30, 10, 20, 255), "a cut leaves _s as it was");
+    // A plain stack (compositeCompanions) takes the same rule.
+    Rgba8 st = solid(4, 4, 120, 120, 110, 255), gl = solid(4, 4, 0, 0, 0, 0);
+    Rgba8 st_n = solid(4, 4, 128, 128, 250, 230), gl_n = solid(4, 4, 128, 128, 255, 255);
+    setPx(gl_n, 1, 1, 128, 128, 102, 40);
+    Rgba8 stack = compositeCompanions({{&st, &st_n, 1.0f}, {&gl, &gl_n, 1.0f}}, kNormalKind);
+    check(same(px(stack, 1, 1), 128, 128, 100, 40) && same(px(stack, 2, 2), 128, 128, 250, 230),
+            "an overlay stack cuts the same way");
+}
+
 } // namespace
 
 int main() {
@@ -481,6 +542,7 @@ int main() {
     testTransformParse();
     testTransformNormals();
     testCompose();
+    testCuts();
     std::printf("overlay companions: %d checks, %d failure(s)\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;
 }
