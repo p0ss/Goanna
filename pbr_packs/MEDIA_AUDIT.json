@@ -75,6 +75,11 @@
       "decision": "eligible",
       "evidence": "too_many_stones/LICENSE.txt explicitly places textures under MIT, copyright JoeEnderman 2022; LGPL code and geode code are separately scoped.",
       "media_license": "MIT"
+    },
+    "voxelibre": {
+      "decision": "eligible",
+      "evidence": "Release 38585 LEGAL.md is a mixed notice (Pixel Perfection CC-BY-SA-4.0 unless noted, named CC-BY-SA-4.0 works, other files CC-BY-SA-3.0) and mods carry their own notices, so it qualifies per file. tools/pbr_audit_voxelibre.py recorded 864 of the 902 authored stems on 2026-10-05: 722 CC-BY-SA-4.0, 132 CC-BY-SA-3.0, 10 CC0-1.0. 38 are excluded: 7 mcl_fences textures under a 'source code and textures: GNU GPLv3' notice, and 31 mcl_flowers textures under an unscoped 'GNU GPLv3' line.",
+      "media_license": "CC-BY-SA-3.0/4.0 and CC0-1.0 per file"
     }
   }
 }

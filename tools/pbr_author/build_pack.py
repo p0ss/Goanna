@@ -30,6 +30,7 @@ still a surface and the bake it replaces is not.
 
 import argparse
 import datetime
+import json
 import re
 import subprocess
 import sys
@@ -149,7 +150,14 @@ def install(args, done, failed):
     # at their own 64 x 32 size into the corner of the 1024 wide part, and
     # would break any mod that combines or crops a skin by coordinates.
     atlases = set(getattr(args, "atlases", []))
+    # Stems a media audit excluded are built for review but never shipped.
+    excluded_path = lib.GAMES[args.game].get("excluded")
+    excluded = set(json.loads(excluded_path.read_text())) \
+        if excluded_path and excluded_path.exists() else set()
     for stem in done:
+        if stem in excluded:
+            print("%-44s excluded by the media audit, not installed" % stem)
+            continue
         for suffix in (("_n.png", "_s.png") if stem in atlases else (".png", "_n.png", "_s.png")):
             src = args.stage / (stem + suffix)
             if src.exists():

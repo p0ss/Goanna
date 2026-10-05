@@ -1,0 +1,268 @@
+{
+  "flowers_dandelion_yellow": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/flowers_dandelion_yellow.png"
+  },
+  "flowers_tulip": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/flowers_tulip.png"
+  },
+  "flowers_waterlily": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/flowers_waterlily.png"
+  },
+  "mcl_fences_fence_acacia": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_acacia.png"
+  },
+  "mcl_fences_fence_big_oak": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_big_oak.png"
+  },
+  "mcl_fences_fence_birch": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_birch.png"
+  },
+  "mcl_fences_fence_jungle": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_jungle.png"
+  },
+  "mcl_fences_fence_nether_brick": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_nether_brick.png"
+  },
+  "mcl_fences_fence_oak": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_oak.png"
+  },
+  "mcl_fences_fence_spruce": {
+    "media_license": "GPL-3.0",
+    "mod": "mods/ITEMS/mcl_fences",
+    "notice": "mods/ITEMS/mcl_fences/README.txt",
+    "reason": "the line \"License of source code and textures: GNU GPLv3\", and GPL family media is rejected. Mineclonia's copy of the same notice says WTFPL.",
+    "source": "textures/mcl_fences_fence_spruce.png"
+  },
+  "mcl_flowers_allium": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_allium.png"
+  },
+  "mcl_flowers_azure_bluet": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_azure_bluet.png"
+  },
+  "mcl_flowers_blue_orchid": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_blue_orchid.png"
+  },
+  "mcl_flowers_clover": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_clover.png"
+  },
+  "mcl_flowers_cornflower": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_cornflower.png"
+  },
+  "mcl_flowers_double_plant_fern_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_fern_bottom.png"
+  },
+  "mcl_flowers_double_plant_fern_top": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_fern_top.png"
+  },
+  "mcl_flowers_double_plant_grass_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_grass_bottom.png"
+  },
+  "mcl_flowers_double_plant_grass_top": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_grass_top.png"
+  },
+  "mcl_flowers_double_plant_paeonia_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_paeonia_bottom.png"
+  },
+  "mcl_flowers_double_plant_paeonia_top": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_paeonia_top.png"
+  },
+  "mcl_flowers_double_plant_rose_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_rose_bottom.png"
+  },
+  "mcl_flowers_double_plant_rose_top": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_rose_top.png"
+  },
+  "mcl_flowers_double_plant_sunflower_back": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_sunflower_back.png"
+  },
+  "mcl_flowers_double_plant_sunflower_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_sunflower_bottom.png"
+  },
+  "mcl_flowers_double_plant_sunflower_front": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_sunflower_front.png"
+  },
+  "mcl_flowers_double_plant_syringa_bottom": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_syringa_bottom.png"
+  },
+  "mcl_flowers_double_plant_syringa_top": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_double_plant_syringa_top.png"
+  },
+  "mcl_flowers_fern": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_fern.png"
+  },
+  "mcl_flowers_fourleaf_clover": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_fourleaf_clover.png"
+  },
+  "mcl_flowers_lily_of_the_valley": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_lily_of_the_valley.png"
+  },
+  "mcl_flowers_oxeye_daisy": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_oxeye_daisy.png"
+  },
+  "mcl_flowers_poppy": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_poppy.png"
+  },
+  "mcl_flowers_tallgrass": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_tallgrass.png"
+  },
+  "mcl_flowers_tulip_pink": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_tulip_pink.png"
+  },
+  "mcl_flowers_tulip_red": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_tulip_red.png"
+  },
+  "mcl_flowers_tulip_white": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_tulip_white.png"
+  },
+  "mcl_flowers_wither_rose": {
+    "media_license": "GPL-3.0 (unscoped)",
+    "mod": "mods/ITEMS/mcl_flowers",
+    "notice": "mods/ITEMS/mcl_flowers/README.txt",
+    "reason": "a bare \"GNU GPLv3\" line above \"License of source code\", with no separate media notice, so it may cover the textures. Ambiguous files are excluded. Mineclonia's copy says WTFPL for source code only.",
+    "source": "textures/mcl_flowers_wither_rose.png"
+  }
+}

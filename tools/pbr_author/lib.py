@@ -99,10 +99,14 @@ GAMES = {
     # VoxeLibre installs as gameid mineclone2. Most of its art is
     # Mineclonia's, byte for byte, so its specs and classes start as
     # Mineclonia's and the frozen classes file is what class lookups read.
+    # Its media audit (tools/pbr_audit_voxelibre.py) excludes stems whose
+    # notices fail the media policy; build_pack.py never installs those,
+    # and the audit rewrites the pack's ATTRIBUTION.md after an install.
     "voxelibre": {
         "art": GAMES_DIR / "mineclone2",
         "pack": REPO / "pbr_packs/voxelibre/textures",
         "install": REPO / "pbr_packs/voxelibre/textures",
+        "excluded": REPO / "pbr_packs/manifests/voxelibre-pack-v1.excluded.json",
     },
 }
 DEFAULT_GAME = "mineclonia"
