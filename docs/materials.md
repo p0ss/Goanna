@@ -765,7 +765,11 @@ not yet to the other visuals.
 `goanna_upright_sprite_test` checks the quads against upstream's vertex
 table and against a camera on each side: one quad drawn from each side,
 neither mirrored, the right way up, each with its own texture, a player's
-standing on its feet, a sheet cell's coordinates and rectangle.
+standing on its feet, a sheet cell's coordinates and rectangle. None of
+this has been seen in a frame yet: the GPU check (a decorated pot from five
+sides, the bobber in water, before and after) was set up on 2026-10-05 and
+not run, because another client held the GPU for the whole of the time
+it was waited for.
 
 Tests: `goanna_overlay_companions_test` (the reader and the arithmetic,
 with the strings Mineclonia sends for the nylium, the bookshelf, the
