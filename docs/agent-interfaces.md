@@ -205,7 +205,10 @@ of Lua chunks (a string, or a list of lines) run on the server after the
 boxes are placed, for node meta, a decorated pot's faces or a callback;
 their scope adds `S` (the stage), `P(x, y, z)` (stage relative to
 absolute), `set`, `swap` and `save` (each remembering the old node for the
-reset) and `track(obj)` (an object the reset removes). A statue may give
+reset), `track(obj)` (an object the reset removes) and `statue(d)` (a held
+statue as below, for properties computed on the server, such as worn
+armour from the game's own items; list it under `lua_statues` with its
+`entity` and `pos` so the arrival checks it). A statue may give
 `props` (object properties set after the entity activates), `animation`
 (`[from, to, speed]`), `attach` (entities attached to a bone, each with
 its own `props`) and `burn` (set on fire for good; its `on_step` is
@@ -241,10 +244,12 @@ the pack, maps, environment, time, weather, both coordinate frames of the
 pose, the node and statue checks (with the blocks meshed at arrival),
 whether the pose settled and how long it waited, the material counts with
 normal and specular arrays bound, and the entity materials built with and
-without a normal map. The material counts cover only the client's
-per texture material map, which node arrays do not use, so on a node scene
-they read 0 whether the maps are bound or not; the entity counts are the
-ones to trust. Crops are `<pose>.<name>.png`. `timing` writes
+without a normal map, and any shader compile errors in the client log so
+far (Godot compiles a shader when its material is first drawn; an error
+fails the job, with the frames still written). The material counts cover
+only the client's per texture material map, which node arrays do not use,
+so on a node scene they read 0 whether the maps are bound or not; the
+entity counts are the ones to trust. Crops are `<pose>.<name>.png`. `timing` writes
 `OUT/timing/timing.json` (median and p95 of per draw GPU time per variant
 and pose, with the range over rounds) and every round's draws as CSV.
 `OUT/result.json` repeats what `shoot` printed, with the wall time.

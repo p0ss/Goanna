@@ -819,6 +819,24 @@ class Client:
         got = self.control.send("settings")
         return {k: v.get("value") for k, v in got.items() if isinstance(v, dict)}
 
+    def shader_errors(self):
+        """Shader compile errors in the client log so far. Godot compiles a
+        material's shader when it is first drawn, so a pass that fails shows
+        here only after a frame with it in view; a frame with a failed pass
+        draws the fallback and can look plausible."""
+        try:
+            text = pathlib.Path(self.rec["client_log"]).read_text(errors="replace")
+        except (OSError, TypeError):
+            return []
+        lines = text.splitlines()
+        out = []
+        for i, line in enumerate(lines):
+            low = line.lower()
+            if "shader error" in low or "shader compilation failed" in low or \
+                    ("error" in low and ".gdshader" in low):
+                out.append(" | ".join(x.strip() for x in lines[i:i + 3])[:400])
+        return out
+
     def entity_normals(self):
         """Counts of entity materials built with and without a normal map,
         from GOANNA_DEBUG_ENTITY_PBR's log lines."""
@@ -1389,7 +1407,8 @@ class Service:
         return out
 
     def statue_check(self, job):
-        statues = job.get("statues") or []
+        # lua_statues: ones a Lua chunk made with statue(), checked alike.
+        statues = (job.get("statues") or []) + (job.get("lua_statues") or [])
         if not statues:
             return []
         ents = self.client.control.eval("client.entity_list()") or []
@@ -1555,6 +1574,10 @@ class Service:
                 meta = c.send("shot", {"path": str(shot), "warm": int(job.get("warm", 20))})
                 diag = c.eval('client.material_diagnostics("")') or {}
                 normals = self.client.entity_normals()
+                shader_errors = self.client.shader_errors()
+                if shader_errors:
+                    problems.append("%d shader errors in the client log by %s/%s, first: %s"
+                                    % (len(shader_errors), name, p["name"], shader_errors[0]))
                 side = dict(common)
                 side.update({"job": job.get("label", ""), "variant": name, "pose": p,
                              "pose_luanti": self.place(p["pos"]),
@@ -1565,6 +1588,7 @@ class Service:
                                            ("pbr_disabled", "materials", "built",
                                             "texture_path") if isinstance(diag, dict)},
                              "entity_normals": normals, "settled": getattr(self, "settled", None),
+                             "shader_errors": shader_errors[:20],
                              "taken": now()})
                 if p.get("fov") is not None:
                     side["profile"] = dict(side["profile"], held=dict(side["profile"]["held"],

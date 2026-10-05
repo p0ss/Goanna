@@ -367,6 +367,15 @@ local function lua_scope()
 		scope.save(pos)
 		core.swap_node(pos, type(node) == "string" and {name = node} or node)
 	end
+	-- A held statue made in Lua, for one whose properties have to be
+	-- computed on the server (worn armour from the game's own items). Takes
+	-- the JSON form's fields, with pos a table and yaw in degrees.
+	scope.statue = function(d)
+		local p = d.pos
+		return add_statue({name = d.entity, pos = {x = p.x or p[1], y = p.y or p[2], z = p.z or p[3]},
+			yaw = math.rad(tonumber(d.yaw) or 0), ai = d.ai == true, props = d.props,
+			animation = d.animation, attach = d.attach, burn = d.burn == true})
+	end
 	scope.track = function(obj)
 		if obj then
 			tracked[#tracked + 1] = obj
