@@ -1,0 +1,15 @@
+{
+ "class": "metal",
+ "micro": "metal_worn",
+ "materials": {
+  "drum": {"mode": "shade", "base": 0.3, "span": 0.2, "levels": 2, "detail": 0.2, "joints": false, "metal": false, "smooth": 0.62, "smooth_spread": 0.04},
+  "frame": {"mode": "flat", "base": 0.8, "span": 0, "micro": 0, "metal": true, "smooth": 0.5, "smooth_spread": 0.06}
+ },
+ "palette": {
+  "#4c4c4c": "frame",
+  "#5b5b5b": "frame",
+  "#696969": "frame",
+  "#bdbdbd": "drum",
+  "#e1e1e1": "drum"
+ }
+}

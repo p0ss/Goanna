@@ -1,0 +1,56 @@
+{
+ "class": "wood",
+ "micro": "concrete",
+ "materials": {
+  "wax": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.45,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.42,
+   "smooth_spread": 0.06,
+   "sss": 110
+  },
+  "gap": {
+   "mode": "shade",
+   "base": 0.14,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.2,
+   "joints": false,
+   "smooth": 0.22,
+   "smooth_spread": 0.02
+  },
+  "hole": {
+   "mode": "shade",
+   "base": 0.0,
+   "span": 0.06,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.1,
+   "smooth_spread": 0.0
+  }
+ },
+ "palette": {
+  "#6b522c": "gap",
+  "#7b5610": "gap",
+  "#7f7b38": "wax",
+  "#8a710c": "wax",
+  "#8a7a0c": "wax",
+  "#b99242": "wax",
+  "#c6aa27": "wax",
+  "#150e02": "hole",
+  "#1c1805": "hole",
+  "#211c06": "hole",
+  "#2c1e05": "hole",
+  "#2d2c13": "hole",
+  "#433517": "hole",
+  "#473d0d": "hole",
+  "#4a3309": "hole",
+  "#6f5827": "gap",
+  "#776617": "gap"
+ }
+}

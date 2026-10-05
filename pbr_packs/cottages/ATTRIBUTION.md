@@ -14,8 +14,10 @@ under CC BY-SA 3.0, as their pixels are Minetest Game's under that licence,
 although the README names them WTFPL. The per texture record is
 pbr_packs/manifests/cottages-v1.sources.json.
 
-The rope (credited only "CC"), the unnamed dirt road textures and the loam
-(art not a supported size) are not included.
+The rope is credited "Bas080 (CC)"; a bare "CC" is taken as usable and the
+rope's maps are offered under CC BY-SA 3.0 with attribution to Bas080. The
+unnamed dirt road textures and the loam (art not a supported size) are not
+included.
 
 ## Authored sets, 2026-10-05
 

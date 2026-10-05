@@ -1,0 +1,9 @@
+{
+ "bees_extractor": "metal",
+ "bees_extractor_front": "metal",
+ "bees_hive_artificial": "planks",
+ "bees_hive_industrial": "metal",
+ "bees_hive_wild": "wood",
+ "bees_hive_wild_bottom": "wood",
+ "bees_strip": "cloth"
+}

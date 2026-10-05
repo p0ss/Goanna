@@ -18,3 +18,5 @@ mobs_kitten_striped mobs_kitten.b3d
 mobs_panda mobs_panda.b3d
 mobs_penguin mobs_penguin.b3d
 mobs_pumba mobs_pumba.b3d
+mobs_bunny_evil mobs_bunny.b3d
+mobs_kitten_black mobs_kitten.b3d

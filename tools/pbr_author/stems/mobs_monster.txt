@@ -1,2 +1,3 @@
 mobs_fireball
 mobs_mese_arrow
+mobs_cobweb

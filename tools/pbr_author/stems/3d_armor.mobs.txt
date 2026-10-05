@@ -53,3 +53,6 @@ shields_shield_mithril 3d_armor_character.b3d 1
 shields_shield_nether 3d_armor_character.b3d 1
 shields_shield_steel 3d_armor_character.b3d 1
 shields_shield_wood 3d_armor_character.b3d 1
+3d_armor_stand 3d_armor_stand.obj 0
+3d_armor_stand_locked 3d_armor_stand.obj 0
+3d_armor_stand_shared 3d_armor_stand.obj 0

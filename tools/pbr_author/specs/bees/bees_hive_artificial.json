@@ -1,0 +1,54 @@
+{
+ "class": "planks",
+ "materials": {
+  "plank": {
+   "mode": "parts",
+   "base": 0.6,
+   "span": 0.3,
+   "detail": 0.35,
+   "smooth": 0.3,
+   "smooth_spread": 0.06
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "smooth": 0.18
+  },
+  "hole": {
+   "mode": "shade",
+   "base": 0.0,
+   "span": 0.08,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.1,
+   "smooth_spread": 0.0
+  }
+ },
+ "grid": [
+  "jjjjjjjjjjjjjjjj",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "jjjjjjjjjjjjjjjj",
+  "BBBBBBBBBBBBBBBB",
+  "BBBBBBBBBBBBBBBB",
+  "BBBBBBhhhhBBBBBB",
+  "BBBBBBhhhhBBBBBB",
+  "jjjjjjhhhhjjjjjj",
+  "CCCCCCCCCCCCCCCC",
+  "CCCCCCCCCCCCCCCC",
+  "CCCCCCCCCCCCCCCC",
+  "CCCCCCCCCCCCCCCC",
+  "jjjjjjjjjjjjjjjj"
+ ],
+ "legend": {
+  "A": "plank",
+  "B": "plank",
+  "C": "plank",
+  "j": "joint",
+  "h": "hole"
+ }
+}

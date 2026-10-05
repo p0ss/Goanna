@@ -29,6 +29,11 @@ mobs_spider_dark
 
 mobs_dungeon_master4, mobs_oerkki4
 
+## CC BY-SA 4.0: TenPlus1 and contributors (package media licence)
+
+mobs_cobweb, mobs_dungeon_master3, mobs_land_guard4, mobs_land_guard5,
+mobs_land_guard6, mobs_land_guard7, mobs_land_guard8, mobs_oerkki2, mobs_oerkki3
+
 ## CC0 1.0: SirrobZeroone
 
 mobs_mese_arrow, mobs_mese_monster_blue, mobs_mese_monster_green,

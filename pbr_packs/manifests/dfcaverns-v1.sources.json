@@ -1,4 +1,12 @@
 {
+  "big_webs": {
+    "author": "FaceDeer (package media licence)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "big_webs has no media notice; the package declares MIT on ContentDB, which its own CC BY-SA files show is understated, so CC-BY-SA-3.0, the strictest licence among them, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/big_webs/textures/big_webs.png"
+  },
   "bones_bottom": {
     "author": "paramat",
     "media_license": "CC-BY-SA-3.0",

@@ -19,3 +19,4 @@ cottages_sleepingmat
 cottages_steel_block
 cottages_stone
 cottages_wool
+cottages_rope

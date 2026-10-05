@@ -15,6 +15,14 @@
     "release": 39178,
     "source": "mobs_animal/textures/mobs_bunny_brown.png"
   },
+  "mobs_bunny_evil": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; takes the media licence the package declares on ContentDB, CC-BY-SA-4.0, which its own files do not exceed (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_bunny_evil.png"
+  },
   "mobs_bunny_grey": {
     "author": "ExeterDad",
     "media_license": "CC0-1.0",
@@ -94,6 +102,14 @@
     "package": "mobs_animal",
     "release": 39178,
     "source": "mobs_animal/textures/mobs_honey_block.png"
+  },
+  "mobs_kitten_black": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; takes the media licence the package declares on ContentDB, CC-BY-SA-4.0, which its own files do not exceed (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_kitten_black.png"
   },
   "mobs_kitten_ginger": {
     "author": "Jordach/BFD",

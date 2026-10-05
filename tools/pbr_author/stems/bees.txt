@@ -1,0 +1,7 @@
+bees_extractor
+bees_extractor_front
+bees_strip
+bees_hive_wild
+bees_hive_wild_bottom
+bees_hive_artificial
+bees_hive_industrial

@@ -12,6 +12,7 @@ licence: Creative Commons Attribution-ShareAlike 3.0 Unported,
 The modpack's LICENSE.md gives "Armor Textures: Copyright (C) 2017-2023
 davidthecreator - CC-BY-SA 3.0" and "New armor/shield textures CC-BY-SA
 3.0 / davidthecreator". The nether armour and shield were added by lortas
-and are covered by the same line. The armour stand's textures are not
-named by any notice and are not included. The player model is read only
+and are covered by the same line. The armour stand's textures (by Toby
+Plowy, per the modpack's history) are named by no notice and take the
+media licence the package declares on ContentDB, CC BY-SA 3.0. The player model is read only
 for its UV layout and is not copied.

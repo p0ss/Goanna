@@ -152,6 +152,14 @@
     "release": 22105,
     "source": "cottages/textures/cottages_reet.png"
   },
+  "cottages_rope": {
+    "author": "Bas080",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.md credits it 'Bas080 (CC)'; a bare CC is usable and is recorded as CC BY-SA with attribution (docs/pbr-community-review.md, licence gate)",
+    "package": "cottages",
+    "release": 22105,
+    "source": "cottages/textures/cottages_rope.png"
+  },
   "cottages_slate": {
     "author": "derived from Universal schema.jpg by Stefanie Lindener; the deriving author is not named",
     "media_license": "CC-BY-SA-2.0-DE",

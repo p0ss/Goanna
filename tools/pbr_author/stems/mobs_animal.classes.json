@@ -1,6 +1,7 @@
 {
  "mobs_bee": "cloth",
  "mobs_bunny_brown": "cloth",
+ "mobs_bunny_evil": "cloth",
  "mobs_bunny_grey": "cloth",
  "mobs_bunny_white": "cloth",
  "mobs_cheeseblock": "soil",
@@ -11,6 +12,7 @@
  "mobs_cow": "cloth",
  "mobs_cow2": "cloth",
  "mobs_honey_block": "ice",
+ "mobs_kitten_black": "cloth",
  "mobs_kitten_ginger": "cloth",
  "mobs_kitten_sandy": "cloth",
  "mobs_kitten_splotchy": "cloth",

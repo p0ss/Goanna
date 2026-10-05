@@ -1,0 +1,107 @@
+{
+ "schema_version": 1,
+ "review_version": "bees-v1",
+ "resolution": "authored",
+ "derivation": {
+  "material_from": "tools/pbr_author/stems/bees.classes.json, the classes the authoring agent chose per stem by reading the art",
+  "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
+  "notes": [
+   "planks is the authoring tool's refinement of wood and is recorded as wood.",
+   "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
+  ]
+ },
+ "textures": {
+  "bees_extractor": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "predominant",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_extractor_front": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "predominant",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_hive_artificial": {
+   "primary_material": "wood",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.088,
+   "smoothness_max": 0.33,
+   "relief_strength": 0.42,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_hive_industrial": {
+   "primary_material": "metal",
+   "secondary_materials": [],
+   "metalness_policy": "predominant",
+   "smoothness_min": 0.16,
+   "smoothness_max": 0.6,
+   "relief_strength": 0.18,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, metal). The bands are the pipeline's metal defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_hive_wild": {
+   "primary_material": "wood",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.088,
+   "smoothness_max": 0.33,
+   "relief_strength": 0.42,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_hive_wild_bottom": {
+   "primary_material": "wood",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.088,
+   "smoothness_max": 0.33,
+   "relief_strength": 0.42,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "bees_strip": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Bees authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/bees.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  }
+ }
+}

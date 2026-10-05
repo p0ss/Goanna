@@ -38,6 +38,10 @@ dfcaverns_mush_stalk_side, dfcaverns_mush_stalk_top, dfcaverns_mush_stalks
 
 dfcaverns_mush_giant_hypha, dfcaverns_mush_sapling
 
+## CC BY-SA 3.0: FaceDeer (package media licence)
+
+big_webs
+
 ## CC BY-SA 3.0: FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)
 
 dfcaverns_black_cap_gills, dfcaverns_black_cap_sapling,

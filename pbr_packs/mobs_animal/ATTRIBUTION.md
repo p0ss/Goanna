@@ -20,6 +20,10 @@ mobs_panda
 
 mobs_penguin
 
+## CC BY-SA 4.0: TenPlus1 and contributors (package media licence)
+
+mobs_bunny_evil, mobs_kitten_black
+
 ## CC0 1.0: ExeterDad
 
 mobs_bunny_brown, mobs_bunny_grey, mobs_bunny_white

@@ -1,0 +1,16 @@
+{
+ "class": "cloth",
+ "strength": 16,
+ "chamfer": 2,
+ "micro": "none",
+ "materials": {
+  "body": {"mode": "flat", "base": 0.8, "span": 0, "micro": 0, "smooth": 0.75},
+  "band": {"mode": "flat", "base": 0.9, "span": 0, "micro": 0, "smooth": 0.14},
+  "wing": {"mode": "flat", "base": 0.55, "span": 0, "micro": 0, "smooth": 0.72}
+ },
+ "palette": {
+  "#000000": "body",
+  "#ffc72c": "band",
+  "#ffffff": "wing"
+ }
+}

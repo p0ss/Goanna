@@ -319,6 +319,30 @@
     "release": 37711,
     "source": "3d_armor/armor_wood/textures/3d_armor_leggings_wood.png"
   },
+  "3d_armor_stand": {
+    "author": "Toby Plowy (per git history), 3d_armor contributors",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "not named in LICENSE.md; takes the media licence the package declares on ContentDB, CC-BY-SA-3.0, which matches LICENSE.md (docs/pbr-community-review.md, licence gate)",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/3d_armor_stand/models/3d_armor_stand.png"
+  },
+  "3d_armor_stand_locked": {
+    "author": "Toby Plowy (per git history), 3d_armor contributors",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "not named in LICENSE.md; takes the media licence the package declares on ContentDB, CC-BY-SA-3.0, which matches LICENSE.md (docs/pbr-community-review.md, licence gate)",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/3d_armor_stand/models/3d_armor_stand_locked.png"
+  },
+  "3d_armor_stand_shared": {
+    "author": "Toby Plowy (per git history), 3d_armor contributors",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "not named in LICENSE.md; takes the media licence the package declares on ContentDB, CC-BY-SA-3.0, which matches LICENSE.md (docs/pbr-community-review.md, licence gate)",
+    "package": "3d_armor",
+    "release": 37711,
+    "source": "3d_armor/3d_armor_stand/models/3d_armor_stand_shared.png"
+  },
   "shields_shield_admin": {
     "author": "davidthecreator",
     "media_license": "CC-BY-SA-3.0",

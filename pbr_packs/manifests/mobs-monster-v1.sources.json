@@ -1,4 +1,12 @@
 {
+  "mobs_cobweb": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_cobweb.png"
+  },
   "mobs_dirt_monster": {
     "author": "Pavel_S and PilzAdam",
     "media_license": "WTFPL",
@@ -38,6 +46,14 @@
     "package": "mobs_monster",
     "release": 38244,
     "source": "mobs_monster/textures/mobs_dungeon_master2.png"
+  },
+  "mobs_dungeon_master3": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master3.png"
   },
   "mobs_dungeon_master4": {
     "author": "SkyBuilder1717",
@@ -95,6 +111,46 @@
     "release": 38244,
     "source": "mobs_monster/textures/mobs_land_guard3.png"
   },
+  "mobs_land_guard4": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard4.png"
+  },
+  "mobs_land_guard5": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard5.png"
+  },
+  "mobs_land_guard6": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard6.png"
+  },
+  "mobs_land_guard7": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard7.png"
+  },
+  "mobs_land_guard8": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard8.png"
+  },
   "mobs_mese_arrow": {
     "author": "SirrobZeroone",
     "media_license": "CC0-1.0",
@@ -150,6 +206,22 @@
     "package": "mobs_monster",
     "release": 38244,
     "source": "mobs_monster/textures/mobs_oerkki.png"
+  },
+  "mobs_oerkki2": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_oerkki2.png"
+  },
+  "mobs_oerkki3": {
+    "author": "TenPlus1 and contributors (package media licence)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in license.txt; the package declares CC-BY-3.0 on ContentDB, which its own CC BY-SA files show is understated, so the strictest licence among them, CC-BY-SA-4.0, applies (docs/pbr-community-review.md, licence gate)",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_oerkki3.png"
   },
   "mobs_oerkki4": {
     "author": "SkyBuilder1717",

@@ -1,0 +1,16 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "micro_strength": 1.5,
+ "strength": 12,
+ "chamfer": 2,
+ "materials": {
+  "ply": {"mode": "shade", "base": 0.62, "span": 0.3, "levels": 2, "detail": 0.3, "joints": false, "smooth": 0.14, "smooth_spread": 0.04},
+  "groove": {"mode": "flat", "base": 0.2, "span": 0, "micro": 0, "smooth": 0.1}
+ },
+ "palette": {
+  "#000000": "groove",
+  "#403a30": "ply",
+  "#50493d": "ply"
+ }
+}

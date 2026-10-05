@@ -1,0 +1,9 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "strength": 18,
+ "chamfer": 3,
+ "materials": {
+  "silk": {"mode": "shade", "base": 0.45, "span": 0.45, "levels": 2, "detail": 0.4, "joints": false, "smooth": 0.18, "smooth_spread": 0.04}
+ }
+}

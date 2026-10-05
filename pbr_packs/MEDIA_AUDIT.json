@@ -103,7 +103,7 @@
     },
     "cottages": {
       "decision": "eligible",
-      "evidence": "Release 22105: LICENSE is GPLv3 for code; README.md lists media per file (CC BY-SA 3.0, WTFPL, CC BY-SA 2.0 DE, and textures renamed from Minetest Game, checked by pixels). 22 node textures are recorded per file on 2026-10-05; stone and wool are recorded CC BY-SA 3.0 as Minetest Game's pixels, not the README's WTFPL. The rope (credited only 'CC') and the dirt road textures the README does not name are excluded.",
+      "evidence": "Release 22105: LICENSE is GPLv3 for code; README.md lists media per file (CC BY-SA 3.0, WTFPL, CC BY-SA 2.0 DE, and textures renamed from Minetest Game, checked by pixels). 22 node textures are recorded per file on 2026-10-05; stone and wool are recorded CC BY-SA 3.0 as Minetest Game's pixels, not the README's WTFPL. The rope (credited only 'CC') and the dirt road textures the README does not name are excluded. Later the same day: the rope, credited 'Bas080 (CC)', is recorded CC BY-SA 3.0 with attribution under the owner's rule that a bare CC is usable.",
       "media_license": "CC-BY-SA-2.0/3.0 and WTFPL per file"
     },
     "basic_materials": {
@@ -113,7 +113,7 @@
     },
     "dfcaverns": {
       "decision": "eligible",
-      "evidence": "Release 22198 is a modpack whose submods each carry textures/license.txt: FaceDeer's own art CC0 (also MIT), df_primordial_items by ClockGen CC BY 4.0, with per file exceptions derived from Minetest Game, farming, caverealms, moretrees, Nether, Wikimedia and NSF images; bones and fireflies copies are Minetest Game's. 185 node textures are recorded per file on 2026-10-05. Derivatives of Minetest Game textures are recorded CC BY-SA 3.0 and of caverealms WTFPL, the strictest licence each could be under. Excluded: the tunnel tube (from moretrees, unaudited), big webs and subterrane's dripstone (no media notice), the achievement and food icons, and textures named nowhere. ContentDB's MIT media label is wrong for much of the archive.",
+      "evidence": "Release 22198 is a modpack whose submods each carry textures/license.txt: FaceDeer's own art CC0 (also MIT), df_primordial_items by ClockGen CC BY 4.0, with per file exceptions derived from Minetest Game, farming, caverealms, moretrees, Nether, Wikimedia and NSF images; bones and fireflies copies are Minetest Game's. 185 node textures are recorded per file on 2026-10-05. Derivatives of Minetest Game textures are recorded CC BY-SA 3.0 and of caverealms WTFPL, the strictest licence each could be under. Excluded: the tunnel tube (from moretrees, unaudited), big webs and subterrane's dripstone (no media notice), the achievement and food icons, and textures named nowhere. ContentDB's MIT media label is wrong for much of the archive. Later the same day: big_webs, which has no notice, is recorded CC BY-SA 3.0, the strictest licence the package's files carry, its MIT label being understated.",
       "media_license": "CC0-1.0, CC-BY-3.0/4.0, CC-BY-SA-3.0 and WTFPL per file"
     },
     "nextgen_fungi": {
@@ -133,7 +133,7 @@
     },
     "3d_armor": {
       "decision": "eligible",
-      "evidence": "Release 37711 LICENSE.md: 'Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0' and 'New armor/shield textures CC-BY-SA 3.0 / davidthecreator'; no submod has its own notice. 52 worn armour and shield layers recorded on 2026-10-05; the nether set, added by lortas, falls under the same line. The armour stand textures, which no notice names, are excluded.",
+      "evidence": "Release 37711 LICENSE.md: 'Armor Textures: Copyright (C) 2017-2023 davidthecreator - CC-BY-SA 3.0' and 'New armor/shield textures CC-BY-SA 3.0 / davidthecreator'; no submod has its own notice. 52 worn armour and shield layers recorded on 2026-10-05; the nether set, added by lortas, falls under the same line. The armour stand textures, which no notice names, are excluded. Later the same day: the armour stand's three textures, named by no notice, are recorded under the package's declared CC BY-SA 3.0.",
       "media_license": "CC-BY-SA-3.0"
     },
     "animalia": {
@@ -143,13 +143,18 @@
     },
     "mobs_animal": {
       "decision": "eligible",
-      "evidence": "Release 39178 license.txt lists files by author under mixed licences; ContentDB's CC-BY-SA-4.0 label matches no line of it. 19 world textures recorded per file on 2026-10-05 (CC0, WTFPL, CC BY-SA 3.0, MIT). Excluded: the sheep (CC BY-SA 4.0 NC, non-commercial), the rats ('CCPL', no licence named), mobs_bunny_evil, mobs_kitten_black and the beehive (named by no line).",
+      "evidence": "Release 39178 license.txt lists files by author under mixed licences; ContentDB's CC-BY-SA-4.0 label matches no line of it. 19 world textures recorded per file on 2026-10-05 (CC0, WTFPL, CC BY-SA 3.0, MIT). Excluded: the sheep (CC BY-SA 4.0 NC, non-commercial), the rats ('CCPL', no licence named), mobs_bunny_evil, mobs_kitten_black and the beehive (named by no line). Later the same day, under the rule that a file no notice names takes the declared licence: mobs_bunny_evil and mobs_kitten_black are recorded CC BY-SA 4.0. The beehive (24 px, not buildable) is not authored.",
       "media_license": "CC0-1.0, WTFPL, CC-BY-SA-3.0 and MIT per file"
     },
     "mobs_monster": {
       "decision": "eligible",
-      "evidence": "Release 38244 license.txt lists files by author under mixed licences; ContentDB's CC-BY-3.0 label matches no line of it. 41 world textures recorded per file on 2026-10-05 (WTFPL, CC0, CC BY-SA 3.0 and 4.0, MIT). Excluded, named by no line: dungeon master skin 3, oerkki skins 2 and 3, land guard skins 4 to 8, the fire spirit and the cobweb.",
+      "evidence": "Release 38244 license.txt lists files by author under mixed licences; ContentDB's CC-BY-3.0 label matches no line of it. 41 world textures recorded per file on 2026-10-05 (WTFPL, CC0, CC BY-SA 3.0 and 4.0, MIT). Excluded, named by no line: dungeon master skin 3, oerkki skins 2 and 3, land guard skins 4 to 8, the fire spirit and the cobweb. Later the same day, under the rule that a file no notice names takes the strictest licence the package's files carry where the declared one is understated: dungeon master 3, oerkki 2 and 3, land guard 4 to 8 and the cobweb are recorded CC BY-SA 4.0. The fire spirit's own texture is fully transparent and is not authored.",
       "media_license": "CC0-1.0, WTFPL, CC-BY-SA-3.0/4.0 and MIT per file"
+    },
+    "bees": {
+      "decision": "eligible",
+      "evidence": "Release 38367's only media notice is 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version and agrees with the notice. Its 7 world textures are recorded CC BY-SA 3.0 with both authors credited on every file, 2026-10-05.",
+      "media_license": "CC-BY-SA-3.0"
     }
   }
 }

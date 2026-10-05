@@ -12,6 +12,19 @@
   ]
  },
  "textures": {
+  "big_webs": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the DF Caverns authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/dfcaverns.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "bones_bottom": {
    "primary_material": "stone",
    "secondary_materials": [],

@@ -1,0 +1,17 @@
+{
+ "class": "metal",
+ "micro": "metal_worn",
+ "materials": {
+  "plate": {"mode": "flat", "base": 0.55, "span": 0, "micro": 0, "metal": true, "smooth": 0.58},
+  "boss": {"mode": "flat", "base": 0.8, "span": 0, "micro": 0, "metal": true, "smooth": 0.5, "smooth_spread": 0.05},
+  "port": {"mode": "flat", "base": 0.0, "span": 0, "micro": 0, "metal": false, "smooth": 0.1}
+ },
+ "palette": {
+  "#bdbdbd": "plate",
+  "#4c4c4c": "boss",
+  "#5b5b5b": "boss",
+  "#5f5f5f": "boss",
+  "#696969": "boss",
+  "#000000": "port"
+ }
+}

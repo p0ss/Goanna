@@ -1,0 +1,58 @@
+{
+  "bees_extractor": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_extractor.png"
+  },
+  "bees_extractor_front": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_extractor_front.png"
+  },
+  "bees_hive_artificial": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_hive_artificial.png"
+  },
+  "bees_hive_industrial": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_hive_industrial.png"
+  },
+  "bees_hive_wild": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_hive_wild.png"
+  },
+  "bees_hive_wild_bottom": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_hive_wild_bottom.png"
+  },
+  "bees_strip": {
+    "author": "Bas80 and Neuromancer",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README: 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version; both authors credited on every file",
+    "package": "bees",
+    "release": 38367,
+    "source": "bees/textures/bees_strip.png"
+  }
+}

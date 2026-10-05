@@ -12,6 +12,19 @@
   ]
  },
  "textures": {
+  "mobs_cobweb": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "mobs_dirt_monster": {
    "primary_material": "soil",
    "secondary_materials": [],
@@ -65,6 +78,19 @@
    "review_required": false
   },
   "mobs_dungeon_master2": {
+   "primary_material": "stone",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.048,
+   "smoothness_max": 0.18,
+   "relief_strength": 0.55,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_dungeon_master3": {
    "primary_material": "stone",
    "secondary_materials": [],
    "metalness_policy": "none",
@@ -168,6 +194,71 @@
    "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
+  "mobs_land_guard4": {
+   "primary_material": "stone",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.048,
+   "smoothness_max": 0.18,
+   "relief_strength": 0.55,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_land_guard5": {
+   "primary_material": "stone",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.048,
+   "smoothness_max": 0.18,
+   "relief_strength": 0.55,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_land_guard6": {
+   "primary_material": "ice",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.352,
+   "smoothness_max": 0.95,
+   "relief_strength": 0.12,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, ice). The bands are the pipeline's ice defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_land_guard7": {
+   "primary_material": "ice",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.352,
+   "smoothness_max": 0.95,
+   "relief_strength": 0.12,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, ice). The bands are the pipeline's ice defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_land_guard8": {
+   "primary_material": "ice",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.352,
+   "smoothness_max": 0.95,
+   "relief_strength": 0.12,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, ice). The bands are the pipeline's ice defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "mobs_mese_arrow": {
    "primary_material": "glass",
    "secondary_materials": [],
@@ -247,6 +338,32 @@
    "review_required": false
   },
   "mobs_oerkki": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_oerkki2": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Mobs Monster authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/mobs_monster.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "mobs_oerkki3": {
    "primary_material": "cloth",
    "secondary_materials": [],
    "metalness_policy": "none",

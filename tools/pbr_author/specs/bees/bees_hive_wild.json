@@ -1,0 +1,17 @@
+{
+ "class": "wood",
+ "micro": "concrete",
+ "materials": {
+  "wax": {"mode": "shade", "base": 0.45, "span": 0.45, "levels": 3, "detail": 0.3, "joints": false, "smooth": 0.42, "smooth_spread": 0.06, "sss": 110},
+  "gap": {"mode": "shade", "base": 0.14, "span": 0.08, "levels": 2, "detail": 0.2, "joints": false, "smooth": 0.22, "smooth_spread": 0.02}
+ },
+ "palette": {
+  "#6b522c": "gap",
+  "#7b5610": "gap",
+  "#7f7b38": "wax",
+  "#8a710c": "wax",
+  "#8a7a0c": "wax",
+  "#b99242": "wax",
+  "#c6aa27": "wax"
+ }
+}
