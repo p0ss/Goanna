@@ -27,7 +27,7 @@ const DEFAULTS := {
 	"render_ice_detail": true,
 	"render_ice_transmission": true,
 	"render_lava_detail": true,
-	# The heat shimmer over flames (flame_glow.gdshader). Off on Lowest and Low.
+	# The heat shimmer over flames (flame_shimmer.gdshader). Off on Lowest and Low.
 	"render_fire_shimmer": true,
 }
 

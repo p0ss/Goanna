@@ -271,7 +271,7 @@ private:
     godot::Ref<godot::Shader> m_sh_entity_double_scissor;
     godot::Ref<godot::Shader> m_sh_diamond;
     godot::Ref<godot::Shader> m_sh_diamond_double;
-    godot::Ref<godot::Shader> m_sh_flame, m_sh_flame_glow;
+    godot::Ref<godot::Shader> m_sh_flame, m_sh_flame_glow, m_sh_flame_shimmer;
     std::map<std::string, godot::Ref<godot::Material>> m_flame_materials;
     bool m_flame_material = true;
     godot::Array m_stroke_events;

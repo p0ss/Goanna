@@ -1241,7 +1241,7 @@ private:
 
     godot::Ref<godot::Shader> m_sh_water, m_sh_lava, m_sh_leaves, m_sh_plants, m_sh_glass, m_sh_glass_clear, m_sh_glass_double, m_sh_ice, m_sh_array,
             m_sh_array_scissor, m_sh_crack, m_sh_portal_nether, m_sh_portal_end,
-            m_sh_flame, m_sh_flame_glow;
+            m_sh_flame, m_sh_flame_glow, m_sh_flame_shimmer;
     bool m_shaders_loaded = false;
     // Relief inferred from a texture's own brightness, for every texture a
     // pack does not supply a normal map for. Only ever used where nothing is

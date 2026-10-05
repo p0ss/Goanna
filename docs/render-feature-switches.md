@@ -29,7 +29,7 @@ cloud styles, lamp shadow budgets and grass budgets.
 | `render_ice_detail` | Ice volume tracing, facets and detailed material evaluation; uses a simple textured surface |
 | `render_ice_transmission` | Ice visibility queries and its extra background render viewport |
 | `render_lava_detail` | Lava crust displacement, normal reconstruction and layered texture advection |
-| `render_fire_shimmer` | The heat shimmer pass's screen reads and the raised tops of firelike quads; keeps the flame and its halo ([fire material](fire-material.md)) |
+| `render_fire_shimmer` | The heat shimmer pass (its quads collapse to a point when off, so nothing is drawn or read); keeps the flame and its halo ([fire material](fire-material.md)) |
 
 Sky clouds, terrain cloud shadows and local atmospheric volumes are
 independent for measurement. Turning off sky clouds can therefore leave

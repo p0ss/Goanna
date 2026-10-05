@@ -302,14 +302,18 @@ Ref<Material> EntityRenderer::flameSpriteMaterial(GoannaSession &session,
         m_sh_flame = m_root->call("load_view_shader", "res://shaders/flame.gdshader");
     if (m_sh_flame_glow.is_null())
         m_sh_flame_glow = m_root->call("load_view_shader", "res://shaders/flame_glow.gdshader");
+    if (m_sh_flame_shimmer.is_null())
+        m_sh_flame_shimmer = m_root->call("load_view_shader", "res://shaders/flame_shimmer.gdshader");
     // The whole sheet is measured: every frame of it is the flame.
     const FlameRamp ramp = measureFlameRamp({gt->image()});
-    Ref<ShaderMaterial> sm, glow;
+    Ref<ShaderMaterial> sm, glow, shimmer;
     sm.instantiate();
     glow.instantiate();
+    shimmer.instantiate();
     sm->set_shader(m_sh_flame);
     glow->set_shader(m_sh_flame_glow);
-    for (const Ref<ShaderMaterial> &m : {sm, glow}) {
+    shimmer->set_shader(m_sh_flame_shimmer);
+    for (const Ref<ShaderMaterial> &m : {sm, glow, shimmer}) {
         m->set_shader_parameter("albedo_tex", tex);
         // A burning entity's glow is the brightest a node gives.
         configureFlameMaterial(m, ramp, 14.0f);
@@ -317,6 +321,7 @@ Ref<Material> EntityRenderer::flameSpriteMaterial(GoannaSession &session,
         // Each quad of the upright sprite is culled from behind.
         m->set_shader_parameter("single_sided", true);
     }
+    glow->set_next_pass(shimmer);
     sm->set_next_pass(glow);
     m_flame_materials[texture] = sm;
     return sm;
@@ -1823,11 +1828,23 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         v3f pos = obj.position();
         v3f rot = obj.rotation();
         Vector3 gp(pos.X / BS, pos.Y / BS, -pos.Z / BS);
+        // Upstream parents an attached object's scene node to its parent's
+        // mesh node, which is scaled by the parent's visual_size, so the
+        // offset and the child itself are scaled with it, and games divide
+        // by it: mcl_burning's flame on a zombie (visual_size 3) is a third
+        // of the zombie's height until it is. Done here for a mesh parent;
+        // a bone attachment has its own path below.
+        Vector3 parent_scale(1, 1, 1);
         if (obj.attachmentParent() != 0) {
             auto pit = objects.find(obj.attachmentParent());
             if (pit != objects.end()) {
                 v3f pp = pit->second->position();
                 v3f ap = obj.attachmentPosition();
+                const ObjectProperties &ppr = pit->second->props();
+                if (ppr.visual == OBJECTVISUAL_MESH && obj.attachmentBone().empty()) {
+                    parent_scale = Vector3(ppr.visual_size.X, ppr.visual_size.Y, ppr.visual_size.Z);
+                    ap = v3f(ap.X * ppr.visual_size.X, ap.Y * ppr.visual_size.Y, ap.Z * ppr.visual_size.Z);
+                }
                 // attachment offset is in the parent's local space (BS units), rotated by parent yaw
                 v3f off = ap;
                 off.rotateXZBy(pit->second->rotation().Y);
@@ -1841,6 +1858,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // of rotating it, which only happened to look right for north/south
         // movement and put every east/west-facing mob backwards.
         en.root->set_rotation_degrees(Vector3(rot.X, rot.Y, -rot.Z));
+        en.root->set_scale(parent_scale);
         if (obj.props().visual == OBJECTVISUAL_UPRIGHT_SPRITE && en.visual)
             updateWallPlate(session, obj, en, dt);
         // The node light where the entity stands, for entity.gdshader's

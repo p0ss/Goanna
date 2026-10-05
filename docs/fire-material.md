@@ -45,8 +45,9 @@ upstream swaps them, so it can take this material.
 
 ## How it is drawn
 
-`project/shaders/flame.gdshader`, with `flame_glow.gdshader` as its next
-pass; both share `flame_common.gdshaderinc`.
+`project/shaders/flame.gdshader`, then `flame_glow.gdshader` (the halo)
+and `flame_shimmer.gdshader` (the heat shimmer) as next passes; all three
+share `flame_common.gdshaderinc`.
 
 - **Edges.** The flame is blended, not cut out. Inside it every texel is
   whole, so close up it is still the art's pixels. Each texel on the edge
@@ -67,18 +68,31 @@ pass; both share `flame_common.gdshaderinc`.
   on the node animation clock in whole cycles a minute, so it does not
   jump when the clock wraps, and pinning the clock pins it.
 - **Halo.** The glow pass adds the core colour where a coarser mip of the
-  art's alpha reaches past the sharp edge.
-- **Shimmer.** The glow pass adds the difference between the opaque scene
-  at a displaced point and at the pixel, over the flame and above it. A
-  firelike quad's top edge is raised 0.6 nodes in that pass, with its
+  art's alpha reaches past the sharp edge. It is never negative, so halos
+  that overlap only add up to a brighter glow.
+- **Shimmer.** The shimmer pass adds the difference between the opaque
+  scene at a displaced point and at the pixel, over the flame and above
+  it. A firelike quad's top edge is raised 0.6 nodes in that pass, with its
   texture coordinate, to make room above the flame. The bend is a few
   pixels at two nodes and fades out by 24. It is off on Lowest and Low
-  (`render_fire_shimmer`, [render feature switches](render-feature-switches.md)).
+  (`render_fire_shimmer`, [render feature switches](render-feature-switches.md)),
+  where its quads collapse to a point and nothing is drawn.
 
 Godot's screen texture is taken before the blended pass, so it holds no
 water and no glass. Drawing it would cut a window through a lake behind a
 fire. Added as a difference, the water or glass behind keeps its colour and
 only the opaque detail through it wavers.
+
+A difference is only right once per pixel. Until 2026-10-06 the shimmer
+was part of the glow pass and every quad added its own: a firelike node is
+six quads, and a field of fire stacks dozens behind one pixel, so a pixel
+moved several times as far as the bend, past black where the scene behind
+was bright (a band of dark noise over a fire) and into cyan and green where
+only its red channel went under (the far rows of a field). The shimmer pass
+now uses the stencil buffer: a pixel takes the shimmer of the first layer
+drawn there (`stencil_mode read, write, compare_not_equal, 7`), and pixels
+the shimmer does not reach are discarded before they can claim it. Nothing
+else in Goanna uses the stencil.
 
 ## Fitting in
 
@@ -90,7 +104,8 @@ only the opaque detail through it wavers.
   flame used to cast a sun shadow of itself.
 - **Fog and water.** Godot's fog applies to the flame pass as to any blended
   surface. Seen from under water, both passes take the water's absorption
-  (`underwater.gdshaderinc`); the glow pass, which has Godot's fog off, also
+  (`underwater.gdshaderinc`); the glow and shimmer passes, which have Godot's fog off,
+  also
   takes the fog's share.
 - **Sorting.** Flames go on a mesh instance of their own under each block
   (`flames`), never into regional batches, so they sort by their own bounds
@@ -107,11 +122,16 @@ launch, draws flames the old way, for comparison.
 
 ## Review
 
-Not yet seen running. As of 2026-10-06 the material is built and its
-routing tested, but no frame of it has been drawn: the GPU was in use by
-other clients for the whole attempt, and the shaders have not been
-compiled by a renderer. Until a review is recorded here, assume a shader
-error is possible. `GOANNA_FLAME_MATERIAL=0` falls back to the old flame.
+First drawn on 2026-10-06 by the render service on the RTX 3090 (Godot
+4.5.1, Luanti 5.17.0 server, Mineclonia release 38561, tier High), old
+against new by day and at night. All three shaders compiled. The first
+frames showed the stacked shimmer described above; the frames after the
+fix, the cause and the timings are in
+[docs/perf/fire-shader-2026-10-05](perf/fire-shader-2026-10-05/README.md).
+On the nine by nine field the material costs about 0.6 ms of GPU time more
+than the old flame, with or without the fix; the shimmer is about 0.1 ms
+of that. Only Mineclonia has been seen. The owner has not yet judged the
+look. `GOANNA_FLAME_MATERIAL=0` falls back to the old flame.
 
 What has been run, with the 2026-10-05 build:
 
@@ -120,21 +140,20 @@ What has been run, with the 2026-10-05 build:
 - `project/tests/graphics_profiles.gd` and `project/tests/render_features.gd`,
   headless with a scratch profile, passed with the new gate.
 
-The review to run is
-[docs/perf/fire-shader-2026-10-05](perf/fire-shader-2026-10-05/README.md):
-a Mineclonia fixture with a campfire, fire on netherrack, soul fire, a lit
-candle, a burning zombie, fire in front of water, fire behind and beside
-glass, and a nine by nine field of fire for the cost, old against new by
-day and at night.
+The 2026-10-05 fixture in that directory was never run; the 2026-10-06
+review used the render service's stage with the same set of fires.
 
 ## Limits
 
-- The halo and shimmer are a second pass over every flame quad. At Lowest
-  and Low the halo is still drawn and the screen is not read, but the
-  material still declares the screen texture, so Godot copies the screen
-  whenever a flame is in view, as it does for water and glass.
-- A firelike node is four quads, so the shimmer behind one is added up to
-  four times, each with its own waves.
+- The halo and the shimmer are two more passes over every flame quad. At
+  Lowest and Low the halo is still drawn and the shimmer's quads collapse,
+  but the shimmer material still declares the screen texture, so Godot
+  copies the screen whenever a flame is in view, as it does for water and
+  glass.
+- Where flames overlap on screen, a pixel shows the shimmer of the first
+  one drawn there, which is the farthest, because blended passes are drawn
+  back to front. A near flame does not bend what is seen through a farther
+  flame's shimmer.
 - Embers were not added.
 - Godot sorts blended mesh instances by the centre of their bounds. A flame
   and a large water or glass instance that overlap on screen can still be

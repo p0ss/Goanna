@@ -3454,6 +3454,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         m_sh_crack = load_view_shader("res://shaders/crack_overlay.gdshader");
         m_sh_flame = load_view_shader("res://shaders/flame.gdshader");
         m_sh_flame_glow = load_view_shader("res://shaders/flame_glow.gdshader");
+        m_sh_flame_shimmer = load_view_shader("res://shaders/flame_shimmer.gdshader");
     }
     if (key.crack_overlay)
         return crackOverlayMaterial(key);
@@ -3906,14 +3907,16 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
 }
 
 // A flame: the tile's own frame, measured for its ramp, drawn by
-// flame.gdshader with flame_glow.gdshader as its next pass. Both passes
-// carry albedo_tex, and showAnimationFrame moves both to the frame the
-// clock names. docs/fire-material.md.
+// flame.gdshader, then flame_glow.gdshader (the halo) and
+// flame_shimmer.gdshader as next passes. Every pass carries albedo_tex,
+// and showAnimationFrame moves each to the frame the clock names.
+// docs/fire-material.md.
 Ref<Material> GoannaClient::flameMaterial(const MaterialKey &key, const FlameTex &flame) {
     GoannaTextureSource *tsrc = m_session->tsrc();
     GoannaTexture *gt = tsrc->goannaTexture(key.texture_id);
     Ref<ImageTexture> tex = gt ? gt->godotTexture() : Ref<ImageTexture>();
-    if (tex.is_null() || m_sh_flame.is_null() || m_sh_flame_glow.is_null())
+    if (tex.is_null() || m_sh_flame.is_null() || m_sh_flame_glow.is_null() ||
+            m_sh_flame_shimmer.is_null())
         return Ref<Material>();
     std::vector<video::IImage *> frames;
     if (const NodeAnimation *anim = tsrc->nodeAnimation(key.texture_id))
@@ -3926,10 +3929,13 @@ Ref<Material> GoannaClient::flameMaterial(const MaterialKey &key, const FlameTex
     Ref<ShaderMaterial> glow;
     glow.instantiate();
     glow->set_shader(m_sh_flame_glow);
+    Ref<ShaderMaterial> shimmer;
+    shimmer.instantiate();
+    shimmer->set_shader(m_sh_flame_shimmer);
     Ref<ShaderMaterial> sm;
     sm.instantiate();
     sm->set_shader(m_sh_flame);
-    for (const Ref<ShaderMaterial> &m : {sm, glow}) {
+    for (const Ref<ShaderMaterial> &m : {sm, glow, shimmer}) {
         m->set_shader_parameter("albedo_tex", tex);
         configureFlameMaterial(m, ramp, (float)flame.level);
         // A culled mesh tile is drawn from its front only, as upstream does.
@@ -3937,7 +3943,8 @@ Ref<Material> GoannaClient::flameMaterial(const MaterialKey &key, const FlameTex
     }
     // A firelike frame spans its node, so its top edge can rise for the
     // shimmer above the flame without moving the art.
-    glow->set_shader_parameter("shimmer_rise", flame.firelike ? 0.6f : 0.0f);
+    shimmer->set_shader_parameter("shimmer_rise", flame.firelike ? 0.6f : 0.0f);
+    glow->set_next_pass(shimmer);
     sm->set_next_pass(glow);
     if (getenv("GOANNA_DEBUG_FLAME"))
         UtilityFunctions::print("flame material: '", String(tsrc->getTextureName(key.texture_id).c_str()),
@@ -4067,9 +4074,9 @@ void GoannaClient::showAnimationFrame(AnimatedMaterial &am, u32 frame_texture) {
     }
     if (ShaderMaterial *sm = Object::cast_to<ShaderMaterial>(am.material.ptr())) {
         sm->set_shader_parameter("albedo_tex", albedo);
-        // A flame's halo and shimmer pass reads the same frame.
-        Ref<ShaderMaterial> next = sm->get_next_pass();
-        if (next.is_valid())
+        // A flame's halo and shimmer passes read the same frame.
+        for (Ref<ShaderMaterial> next = sm->get_next_pass(); next.is_valid();
+                next = next->get_next_pass())
             next->set_shader_parameter("albedo_tex", albedo);
         // A companion follows the frame where the pack has one per frame;
         // where it has one still map, companionTexture returns that for
