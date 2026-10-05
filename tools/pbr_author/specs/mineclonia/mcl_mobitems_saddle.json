@@ -1,0 +1,25 @@
+{
+ "class": "wood",
+ "materials": {
+  "leather": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.4
+  },
+  "iron": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.7,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#54514f": "iron",
+  "#6b635e": "iron",
+  "#afaca5": "iron",
+  "#c9c7c1": "iron"
+ },
+ "micro": "none"
+}

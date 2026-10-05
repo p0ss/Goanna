@@ -1,0 +1,12 @@
+{
+ "class": "glass",
+ "materials": {
+  "fill": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.85
+  }
+ },
+ "micro": "none"
+}

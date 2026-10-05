@@ -1,0 +1,37 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.6,
+   "metal": true
+  },
+  "dark": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.45,
+   "metal": false
+  },
+  "gem": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.85,
+   "f0": 0.06,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#1c1c1c": "dark",
+  "#232323": "dark",
+  "#2c2c2c": "dark",
+  "#3d3d3d": "dark",
+  "#494949": "dark",
+  "#ad003e": "gem",
+  "#c6005e": "gem",
+  "#d32d8d": "gem"
+ }
+}

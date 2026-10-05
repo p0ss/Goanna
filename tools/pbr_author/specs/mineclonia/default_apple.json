@@ -1,0 +1,35 @@
+{
+ "class": "soil",
+ "materials": {
+  "skin": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.72
+  },
+  "leaf": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "stalk": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#382a24": "stalk",
+  "#395123": "leaf",
+  "#46632b": "leaf",
+  "#4e3a32": "stalk",
+  "#517733": "leaf",
+  "#5b4537": "stalk",
+  "#628f3c": "leaf",
+  "#70a445": "leaf",
+  "#896853": "stalk"
+ },
+ "micro": "none"
+}

@@ -1,0 +1,37 @@
+{
+ "class": "wood",
+ "materials": {
+  "handle": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "feather": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "copper": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.72,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#6b3e2f": "copper",
+  "#774432": "copper",
+  "#93503a": "copper",
+  "#ad5a41": "copper",
+  "#af8b8b": "feather",
+  "#c6a7a5": "feather",
+  "#cebbb9": "feather",
+  "#d36e4d": "copper",
+  "#ddcbc7": "feather",
+  "#e5dddc": "feather"
+ },
+ "micro": "none"
+}

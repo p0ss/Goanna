@@ -1,0 +1,22 @@
+{
+ "class": "wood",
+ "materials": {
+  "wax": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.5
+  },
+  "wick": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#1c1c1c": "wick",
+  "#232323": "wick"
+ },
+ "micro": "none"
+}

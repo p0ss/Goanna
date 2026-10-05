@@ -1,0 +1,35 @@
+{
+ "class": "wood",
+ "materials": {
+  "wool": {
+   "mode": "flat",
+   "base": 0.82,
+   "span": 0,
+   "smooth": 0.1
+  },
+  "wood": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "pillow": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.12
+  }
+ },
+ "palette": {
+  "#4e3e30": "wood",
+  "#594637": "wood",
+  "#715644": "wood",
+  "#7c5f4c": "wood",
+  "#bca293": "pillow",
+  "#d1c1af": "pillow",
+  "#d6c9b8": "pillow",
+  "#dbd3c5": "pillow",
+  "#e8e0d3": "pillow"
+ },
+ "micro": "none"
+}

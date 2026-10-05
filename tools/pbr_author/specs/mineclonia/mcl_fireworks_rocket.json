@@ -1,0 +1,21 @@
+{
+ "class": "wood",
+ "materials": {
+  "paper": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "fuse": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#332a23": "fuse"
+ },
+ "micro": "none"
+}

@@ -1,0 +1,27 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.25
+  },
+  "torch": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.35
+  }
+ },
+ "palette": {
+  "#260c0c": "torch",
+  "#381212": "torch",
+  "#38291d": "torch",
+  "#4c1c1c": "torch",
+  "#4c3725": "torch",
+  "#60452f": "torch",
+  "#876d6c": "torch"
+ },
+ "micro": "none"
+}

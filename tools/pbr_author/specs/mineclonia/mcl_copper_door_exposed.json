@@ -1,0 +1,24 @@
+{
+ "class": "metal",
+ "materials": {
+  "plate": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.4,
+   "smooth": 0.6,
+   "metal": true
+  },
+  "dark": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.4,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#3d3d3d": "dark",
+  "#494949": "dark"
+ },
+ "micro": "metal_worn"
+}

@@ -1,0 +1,34 @@
+{
+ "class": "wood",
+ "materials": {
+  "cover": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "pages": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "smooth": 0.22
+  },
+  "quill": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#7a6060": "quill",
+  "#af8b8b": "quill",
+  "#b28669": "pages",
+  "#c6a7a5": "quill",
+  "#cebbb9": "quill",
+  "#d0ab8d": "pages",
+  "#ddcbc7": "quill",
+  "#e5dddc": "quill"
+ },
+ "micro": "none"
+}

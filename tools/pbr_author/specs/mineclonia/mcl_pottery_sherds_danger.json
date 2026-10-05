@@ -1,0 +1,25 @@
+{
+ "class": "stone",
+ "materials": {
+  "clay": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.2
+  },
+  "line": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0,
+   "smooth": 0.15
+  }
+ },
+ "palette": {
+  "#3a1814": "line",
+  "#3b1b17": "line",
+  "#3e1c1a": "line",
+  "#42201c": "line",
+  "#462920": "line"
+ },
+ "micro": "none"
+}

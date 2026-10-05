@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "ore": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "smooth": 0.4,
+   "joints": false
+  }
+ },
+ "micro": "none"
+}

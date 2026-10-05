@@ -1,0 +1,32 @@
+{
+ "class": "soil",
+ "materials": {
+  "food": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.6
+  },
+  "leaf": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "stalk": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#224620": "leaf",
+  "#35662f": "leaf",
+  "#397034": "leaf",
+  "#3b2a26": "stalk",
+  "#4c3c33": "stalk",
+  "#52433b": "stalk"
+ },
+ "micro": "none"
+}

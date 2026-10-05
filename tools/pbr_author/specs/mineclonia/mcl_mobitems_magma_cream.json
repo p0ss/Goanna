@@ -1,0 +1,14 @@
+{
+ "class": "soil",
+ "materials": {
+  "food": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.7,
+   "emission": 0.5,
+   "emission_shade": true
+  }
+ },
+ "micro": "none"
+}

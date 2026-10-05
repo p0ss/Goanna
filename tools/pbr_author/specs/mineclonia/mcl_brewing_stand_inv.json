@@ -1,0 +1,25 @@
+{
+ "class": "stone",
+ "materials": {
+  "stand": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "rod": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.5,
+   "emission": 0.6,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#bc2500": "rod",
+  "#d34f1f": "rod",
+  "#ff7200": "rod"
+ },
+ "micro": "none"
+}

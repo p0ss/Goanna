@@ -1,0 +1,22 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.75,
+   "metal": true
+  },
+  "dark": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.4,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#2f2e33": "dark"
+ }
+}

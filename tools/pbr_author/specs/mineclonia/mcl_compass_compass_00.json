@@ -1,0 +1,24 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.75,
+   "metal": true
+  },
+  "dial": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.55,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#262626": "dial",
+  "#2f2f2f": "dial",
+  "#bc122f": "dial"
+ }
+}

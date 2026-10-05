@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "materials": {
+  "bone": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.3,
+   "smooth": 0.35,
+   "joints": false
+  }
+ },
+ "micro": "none"
+}

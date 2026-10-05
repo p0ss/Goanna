@@ -1,0 +1,23 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "stone": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0,
+   "smooth": 0.2
+  }
+ },
+ "palette": {
+  "#575757": "stone",
+  "#626262": "stone",
+  "#7d7d7d": "stone",
+  "#888888": "stone"
+ }
+}

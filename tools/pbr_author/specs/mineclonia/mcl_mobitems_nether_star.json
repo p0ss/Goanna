@@ -1,0 +1,15 @@
+{
+ "class": "stone",
+ "materials": {
+  "star": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.35,
+   "smooth": 0.85,
+   "joints": false,
+   "emission": 0.4,
+   "emission_shade": true
+  }
+ },
+ "micro": "none"
+}

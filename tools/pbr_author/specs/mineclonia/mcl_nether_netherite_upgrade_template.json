@@ -1,0 +1,24 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "gem": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.88,
+   "f0": 0.17
+  }
+ },
+ "palette": {
+  "#5faed8": "gem",
+  "#77cefb": "gem",
+  "#a8e2ff": "gem"
+ },
+ "micro": "none"
+}

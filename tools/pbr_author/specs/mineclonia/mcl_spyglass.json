@@ -1,0 +1,37 @@
+{
+ "class": "metal",
+ "materials": {
+  "copper": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.72,
+   "metal": true
+  },
+  "lens": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.9,
+   "metal": false
+  },
+  "amethyst": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.88,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#588b75": "lens",
+  "#619983": "lens",
+  "#6aa590": "lens",
+  "#80bda7": "lens",
+  "#8246a5": "amethyst",
+  "#8f56b1": "amethyst",
+  "#aa7cc5": "amethyst",
+  "#c69cdf": "amethyst",
+  "#debef0": "amethyst"
+ }
+}

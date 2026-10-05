@@ -1,0 +1,25 @@
+{
+ "class": "glass",
+ "materials": {
+  "glass": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.9
+  },
+  "core": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#743836": "core",
+  "#7b414a": "core",
+  "#86495a": "core",
+  "#994d52": "core",
+  "#d67b5d": "core"
+ },
+ "micro": "none"
+}

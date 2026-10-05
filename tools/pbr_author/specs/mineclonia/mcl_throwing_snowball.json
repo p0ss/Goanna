@@ -1,0 +1,12 @@
+{
+ "class": "snow",
+ "materials": {
+  "snow": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.35
+  }
+ },
+ "micro": "none"
+}

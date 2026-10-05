@@ -1,0 +1,26 @@
+{
+ "class": "stone",
+ "materials": {
+  "rod": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.45,
+   "emission": 0.6,
+   "emission_shade": true
+  },
+  "ash": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#332a23": "ash",
+  "#443c34": "ash",
+  "#685c50": "ash",
+  "#892000": "ash"
+ },
+ "micro": "none"
+}

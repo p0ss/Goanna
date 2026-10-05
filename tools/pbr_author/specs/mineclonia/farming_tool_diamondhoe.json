@@ -1,0 +1,24 @@
+{
+ "class": "stone",
+ "materials": {
+  "stone": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.33,
+   "smooth": 0.88,
+   "f0": 0.17
+  },
+  "handle": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35
+  }
+ },
+ "palette": {
+  "#41352b": "handle",
+  "#514035": "handle",
+  "#5d493c": "handle",
+  "#675244": "handle",
+  "#715a47": "handle"
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "class": "wood",
+ "materials": {
+  "cover": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "pages": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.22
+  },
+  "trim": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.8,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#a47822": "trim",
+  "#b28669": "pages",
+  "#d0ab8d": "pages",
+  "#d4a735": "trim"
+ },
+ "micro": "none"
+}

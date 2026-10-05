@@ -1,0 +1,25 @@
+{
+ "class": "soil",
+ "materials": {
+  "melon": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.55
+  },
+  "gold": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.8,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#8e7d12": "gold",
+  "#af9f12": "gold",
+  "#b78c14": "gold",
+  "#c98a16": "gold"
+ },
+ "micro": "none"
+}

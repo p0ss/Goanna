@@ -1,0 +1,24 @@
+{
+ "class": "wood",
+ "materials": {
+  "hide": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "claw": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.6
+  }
+ },
+ "palette": {
+  "#847e77": "claw",
+  "#938e88": "claw",
+  "#c9c7c1": "claw",
+  "#e5e4e0": "claw"
+ },
+ "micro": "none"
+}

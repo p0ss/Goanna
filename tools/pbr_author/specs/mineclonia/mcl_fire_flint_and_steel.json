@@ -1,0 +1,27 @@
+{
+ "class": "metal",
+ "materials": {
+  "steel": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.75,
+   "metal": true
+  },
+  "flint": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.6,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#2b2b2b": "flint",
+  "#343434": "flint",
+  "#434343": "flint",
+  "#484848": "flint",
+  "#575757": "flint",
+  "#636363": "flint"
+ }
+}

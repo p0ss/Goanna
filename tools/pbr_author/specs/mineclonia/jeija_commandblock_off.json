@@ -1,0 +1,24 @@
+{
+ "class": "metal",
+ "materials": {
+  "case": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.4,
+   "smooth": 0.45,
+   "metal": false
+  },
+  "panel": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "smooth": 0.6,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#292b3a": "panel",
+  "#333144": "panel"
+ },
+ "micro": "metal_worn"
+}

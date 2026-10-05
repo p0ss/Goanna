@@ -1,0 +1,12 @@
+{
+ "class": "leaves",
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.4,
+   "smooth": 0.3,
+   "joints": false
+  }
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "class": "wood",
+ "materials": {
+  "stew": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "smooth": 0.8
+  },
+  "bowl": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#2d241b": "bowl",
+  "#3f3226": "bowl",
+  "#4e3e30": "bowl",
+  "#604c3c": "bowl",
+  "#7a5e45": "bowl",
+  "#8e6e52": "bowl",
+  "#9e7960": "bowl"
+ },
+ "micro": "none"
+}

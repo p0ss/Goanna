@@ -1,0 +1,22 @@
+{
+ "class": "wood",
+ "materials": {
+  "cover": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "pages": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.22
+  }
+ },
+ "palette": {
+  "#b28669": "pages",
+  "#d0ab8d": "pages"
+ },
+ "micro": "none"
+}

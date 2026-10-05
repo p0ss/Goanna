@@ -1,0 +1,23 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "chain": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#191919": "chain",
+  "#232323": "chain",
+  "#2c2c2c": "chain",
+  "#353535": "chain"
+ }
+}

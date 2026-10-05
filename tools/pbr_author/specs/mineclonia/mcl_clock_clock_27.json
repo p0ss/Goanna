@@ -1,0 +1,27 @@
+{
+ "class": "metal",
+ "materials": {
+  "gold": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.82,
+   "metal": true
+  },
+  "dial": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.6,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#161d44": "dial",
+  "#242c5b": "dial",
+  "#424fa3": "dial",
+  "#5a73c4": "dial",
+  "#717991": "dial",
+  "#9199ad": "dial"
+ }
+}

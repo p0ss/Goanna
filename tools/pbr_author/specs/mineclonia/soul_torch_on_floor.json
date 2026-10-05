@@ -1,0 +1,22 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "soot": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.25
+  }
+ },
+ "palette": {
+  "#232323": "soot",
+  "#353535": "soot",
+  "#494949": "soot"
+ }
+}

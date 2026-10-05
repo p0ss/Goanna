@@ -1,0 +1,11 @@
+{
+ "class": "wood",
+ "materials": {
+  "bowl": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  }
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "materials": {
+  "obsidian": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.45,
+   "joints": false,
+   "smooth": 0.7,
+   "smooth_spread": 0.1
+  },
+  "charge": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.8,
+   "emission": 0.9,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#3003af": "charge",
+  "#4f1caf": "charge",
+  "#6d5d99": "charge",
+  "#7f3da0": "charge"
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "class": "metal",
+ "materials": {
+  "gold": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.8,
+   "metal": true
+  },
+  "leaf": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.35,
+   "metal": false
+  },
+  "stalk": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.3,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#382a24": "stalk",
+  "#395123": "leaf",
+  "#46632b": "leaf",
+  "#4e3a32": "stalk",
+  "#517733": "leaf",
+  "#5b4537": "stalk",
+  "#628f3c": "leaf",
+  "#70a445": "leaf",
+  "#896853": "stalk"
+ }
+}

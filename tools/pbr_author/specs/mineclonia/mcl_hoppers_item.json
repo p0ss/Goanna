@@ -1,0 +1,13 @@
+{
+ "class": "metal",
+ "materials": {
+  "iron": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.45,
+   "metal": false
+  }
+ },
+ "micro": "metal_worn"
+}

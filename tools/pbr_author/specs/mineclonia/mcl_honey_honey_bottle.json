@@ -1,0 +1,35 @@
+{
+ "class": "glass",
+ "materials": {
+  "fill": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.85
+  },
+  "glass": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.92
+  },
+  "cork": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#54638c": "glass",
+  "#724e47": "cork",
+  "#778eb5": "glass",
+  "#91685f": "cork",
+  "#92a8ce": "glass",
+  "#af8e83": "cork",
+  "#b6cbef": "glass",
+  "#e8f5ff": "glass",
+  "#eaccb4": "cork"
+ },
+ "micro": "none"
+}

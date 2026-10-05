@@ -1,0 +1,13 @@
+{
+ "class": "soil",
+ "materials": {
+  "lump": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "smooth": 0.35,
+   "joints": false
+  }
+ },
+ "micro": "none"
+}

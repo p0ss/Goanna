@@ -1,0 +1,22 @@
+{
+ "class": "wood",
+ "materials": {
+  "membrane": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.45
+  },
+  "dark": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#232323": "dark",
+  "#2c2c2c": "dark"
+ },
+ "micro": "none"
+}

@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "materials": {
+  "case": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.35
+  },
+  "dial": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.75
+  }
+ },
+ "palette": {
+  "#040a0f": "dial",
+  "#050f14": "dial",
+  "#07131b": "dial",
+  "#081b24": "dial",
+  "#0b2a32": "dial",
+  "#0b4d55": "dial",
+  "#0e434a": "dial",
+  "#333436": "dial"
+ },
+ "micro": "none"
+}

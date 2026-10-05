@@ -1,0 +1,25 @@
+{
+ "class": "stone",
+ "materials": {
+  "char": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.25
+  },
+  "ember": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3,
+   "emission": 0.7,
+   "emission_shade": true
+  }
+ },
+ "palette": {
+  "#bc2500": "ember",
+  "#d34f1f": "ember",
+  "#ff7200": "ember"
+ },
+ "micro": "none"
+}

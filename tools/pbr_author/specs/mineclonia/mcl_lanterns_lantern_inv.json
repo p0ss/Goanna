@@ -1,0 +1,28 @@
+{
+ "class": "metal",
+ "materials": {
+  "cage": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.42,
+   "metal": false
+  },
+  "glow": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.6,
+   "emission": 0.85,
+   "emission_shade": true,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#e56f39": "glow",
+  "#f2863a": "glow",
+  "#ffa54c": "glow",
+  "#ffd27a": "glow",
+  "#ffeaa0": "glow"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "class": "metal",
+ "materials": {
+  "fill": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "smooth": 0.62,
+   "metal": false
+  },
+  "iron": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.75,
+   "metal": true
+  },
+  "water": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0,
+   "smooth": 0.9,
+   "metal": false
+  }
+ },
+ "palette": {
+  "#2a3a6e": "water",
+  "#2c4d7c": "water",
+  "#2e5582": "water",
+  "#4381a5": "water",
+  "#6b635e": "iron",
+  "#847e77": "iron",
+  "#938e88": "iron",
+  "#afaca5": "iron",
+  "#c9c7c1": "iron",
+  "#e5e4e0": "iron"
+ }
+}

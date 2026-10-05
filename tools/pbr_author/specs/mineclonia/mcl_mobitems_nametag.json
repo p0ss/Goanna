@@ -1,0 +1,28 @@
+{
+ "class": "wood",
+ "materials": {
+  "tag": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "ring": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0,
+   "smooth": 0.7,
+   "metal": true
+  }
+ },
+ "palette": {
+  "#54514f": "ring",
+  "#6b635e": "ring",
+  "#847e77": "ring",
+  "#938e88": "ring",
+  "#afaca5": "ring",
+  "#c9c7c1": "ring",
+  "#e5e4e0": "ring"
+ },
+ "micro": "none"
+}

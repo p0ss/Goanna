@@ -1,0 +1,25 @@
+{
+ "class": "stone",
+ "materials": {
+  "label": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "smooth": 0.3
+  },
+  "vinyl": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0,
+   "smooth": 0.85
+  }
+ },
+ "palette": {
+  "#0b090f": "vinyl",
+  "#1e1c28": "vinyl",
+  "#302f3d": "vinyl",
+  "#414554": "vinyl",
+  "#5a5e70": "vinyl"
+ },
+ "micro": "none"
+}
