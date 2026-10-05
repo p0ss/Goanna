@@ -6,7 +6,7 @@
    "base": 0.6,
    "span": 0.35,
    "metal": true,
-   "smooth": 0.78
+   "smooth": 0.55
   },
   "handle": {
    "mode": "shade",
