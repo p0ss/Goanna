@@ -500,10 +500,16 @@ BANNER_POLE = dict(NARROW_PLANK, base=0.94)
 BANNER_STRENGTH = 14.0
 
 # Held in hand, as the hand tools (default_tool_*): wood by shade, the
-# string flat, iron by shade and polished.
+# string flat, iron by shade and polished. A bow, crossbow or rod mixes
+# materials, so each names its own micro: the wood the planks' grain along
+# each piece, the fittings worn metal, the string none (with "step" keeping
+# its per texel step). The item frames keep plain HELD_WOOD.
 HELD_WOOD = {"mode": "shade", "base": 0.5, "span": 0.35}
-HELD_STRING = {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04}
-HELD_METAL = {"mode": "shade", "base": 0.6, "span": 0.35, "metal": True, "smooth": 0.78}
+HELD_GRAIN = dict(HELD_WOOD, micro="wood", micro_dir="along")
+HELD_STRING = {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "step": 0.04,
+               "micro": "none"}
+HELD_METAL = {"mode": "shade", "base": 0.6, "span": 0.35, "metal": True, "smooth": 0.78,
+              "micro": "metal_worn"}
 HELD_FEATHER = {"mode": "shade", "base": 0.6, "span": 0.2, "smooth": 0.3, "joints": False}
 HELD_PAINT = {"mode": "flat", "base": 0.75, "span": 0.0, "smooth": 0.6, "micro": 0.02}
 
@@ -511,8 +517,11 @@ HELD_PAINT = {"mode": "flat", "base": 0.75, "span": 0.0, "smooth": 0.6, "micro":
 # boss, a dielectric (drawn near black).
 SHIELD_WOOD = {"mode": "shade", "base": 0.55, "span": 0.3, "levels": 3, "joint": 0.3}
 SHIELD_IRON = {"mode": "shade", "base": 0.75, "span": 0.15, "levels": 2, "joints": False,
-               "metal": False, "smooth": 0.45}
-# The trident: polished pale metal prongs, a sea-green gem, a shaft.
+               "metal": False, "smooth": 0.45, "micro": "metal_worn"}
+# The trident: polished pale metal prongs, a sea-green gem, a shaft. The
+# stem is metal class, so the wooden shaft says "metal": False or it is
+# written as metal; its grain runs down the shaft.
+TRIDENT_SHAFT = dict(HELD_WOOD, metal=False, micro="wood", micro_dir="v")
 TRIDENT_METAL = {"mode": "shade", "base": 0.65, "span": 0.3, "metal": True, "smooth": 0.8,
                  "joints": False}
 TRIDENT_GEM = {"mode": "flat", "base": 0.85, "span": 0.0, "smooth": 0.9, "f0": 0.17, "metal": False,
@@ -656,7 +665,7 @@ def object_specs():
                      "grid": grid, "legend": legend})
         out[stem] = spec
     # Tiles and flat images.
-    held = {"wood": HELD_WOOD, "metal": HELD_METAL, "string": HELD_STRING,
+    held = {"wood": HELD_GRAIN, "metal": HELD_METAL, "string": HELD_STRING,
             "feather": HELD_FEATHER, "paint": HELD_PAINT}
     for stem in ("mcl_bows_bow", "mcl_bows_bow_0", "mcl_bows_bow_1", "mcl_bows_bow_2",
                  "mcl_bows_crossbow", "mcl_bows_crossbow_0", "mcl_bows_crossbow_1",
@@ -671,7 +680,7 @@ def object_specs():
     for stem in ("mcl_tridents_trident_entity", "mcl_tridents_trident_entity_clip"):
         out[stem] = tile_spec(
             stem, lambda hh, s, L: ("gem" if s > 0.8 else "metal" if s < 0.2 else "wood"),
-            {"metal": TRIDENT_METAL, "wood": HELD_WOOD, "gem": TRIDENT_GEM}, "metal")
+            {"metal": TRIDENT_METAL, "wood": TRIDENT_SHAFT, "gem": TRIDENT_GEM}, "metal")
     for stem in ("mcl_campfires_log", "mcl_campfires_campfire_log_lit",
                  "mcl_campfires_soul_campfire_log_lit"):
         out[stem] = tile_spec(

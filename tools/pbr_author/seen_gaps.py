@@ -192,9 +192,11 @@ def book_specs():
 # --- items held through [transform ------------------------------------------------------
 
 # The fishing rod's materials (specs/mineclonia/mcl_fishing_fishing_rod.json).
-ROD_WOOD = {"mode": "shade", "base": 0.5, "span": 0.35}
-ROD_METAL = {"mode": "shade", "base": 0.6, "span": 0.35, "metal": True, "smooth": 0.78}
-ROD_STRING = {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "micro": 0.04}
+ROD_WOOD = {"mode": "shade", "base": 0.5, "span": 0.35, "micro": "wood", "micro_dir": "along"}
+ROD_METAL = {"mode": "shade", "base": 0.6, "span": 0.35, "metal": True, "smooth": 0.78,
+             "micro": "metal_worn"}
+ROD_STRING = {"mode": "flat", "base": 0.7, "span": 0.0, "smooth": 0.3, "step": 0.04,
+              "micro": "none"}
 METAL = ["#6b635e", "#847e77", "#938e88", "#afaca5", "#c9c7c1", "#e5e4e0"]
 STRING = ["#b7a892", "#c8bfaa", "#d6ceb9"]
 # The carrot, as farming_carrot has it: the root a little waxy, the leaves
