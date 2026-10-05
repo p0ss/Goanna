@@ -817,6 +817,52 @@ cap, and its stone marched deeper and drew darker than the same stone in
 the wall. In the software run below the plate measured 0.10 before and
 0.085 after, the wall's own figure.
 
+**Wall plates.** DorfCraft cuts engravings into walls as an upright sprite
+showing a stone plate, set a hundredth of a node in front of the face
+because a vanilla client needs the gap or the two fight for depth. Drawn as
+any other entity, the plate floated in front of the wall's relief and took
+one light level for the whole entity, so a plate four nodes across beside a
+torch was evenly lit where the wall beside it was not. Since 2026-10-06
+(`EntityRenderer::updateWallPlate`, `goanna_upright_sprite.h`):
+
+- An upright sprite is a wall plate when it is not blended
+  (`use_texture_alpha` false) and not attached, its quads face along a
+  world axis with no tilt, its plane is within 0.03 of a node face, and at
+  five or more of nine points over it (a three by three grid) the node
+  behind that face is solid and the node in front is not. Either quad may
+  be the one facing out of the wall: DorfCraft turns its plates so that the
+  back quad is the one seen.
+- It is drawn on the face itself. Its position is put on the face, and the
+  entity shader moves each vertex a thousandth of its distance toward the
+  eye (`wall_plate_bias`), which leaves it on the same pixel and wins the
+  depth test against the wall it lies on. The plate's march then cuts into
+  the face.
+- The quad seen is cut at every node boundary it crosses and each vertex
+  takes its light from the map as the node mesher gives the wall's
+  vertices (`BlockLightField::sample` with the wall's outward normal: block
+  light, sky light and Goanna's occlusion, in `CUSTOM1`). The light is read
+  again when a block around the plate changes (`blockRevision`), at most
+  twice a second.
+- The entity shader then lights it as `nodes_array.gdshader` lights the
+  wall (`wall_plate` instance uniform): occlusion and sky visibility on
+  ambient, the sky fill as emission shaped by the mapped normal between the
+  sky and ground colours, the cloud shadow (now
+  `cloud_shadow.gdshaderinc`, shared with the node shaders), and the baked
+  block light only past the lamp pool's reach, where every other entity
+  adds a warm fill from its one block light value on top of the lamps.
+- It casts no shadow: the wall behind it casts that one.
+- `GOANNA_NO_WALL_PLATE=1` turns all of this off, for an A/B.
+- Not handled: a plate on a floor or ceiling, a plate turned off the world
+  axes, one whose wall has holes over more than four of the nine points,
+  and seams where the plate's march meets the wall's at the plate's edge.
+
+`goanna_upright_sprite_test` checks the plane test, the node boundary cuts
+and the grid. Seen in a frame on 2026-10-06 on lavapipe only (Godot 4.5.1,
+a Luanti 5.17.0 server on a scratch Mineclonia world, release 38561,
+holding DorfCraft's `dorfcraft_runes` mod and two engravings on a smooth
+stone wall): the plates were found (`wall plate: ... seen quad=1`) and drew
+on the face. Not yet seen on the GPU.
+
 **Node layers sized from their companions.** Shipping maps only costs the
 node forms of those stems their relief resolution, unless the client makes
 up for it: a texture array layer is the size of the generated albedo, and

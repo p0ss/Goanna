@@ -53,6 +53,45 @@ struct UprightSprite {
 UprightSprite buildUprightSprite(float size_x, float size_y, bool is_player,
         int col, int row, int div_x, int div_y);
 
+// A wall plate: an upright sprite lying on a node face, as DorfCraft's
+// engravings lie on a wall, a hundredth of a node in front of it because a
+// vanilla client needs the gap or the two fight for depth. Goanna draws such
+// a plate on the face itself (the entity shader moves it a hair toward the
+// eye so it wins the depth test) and lights it per vertex from the nodes in
+// front of the face, as the wall beside it is lit, instead of one level for
+// the whole entity. See docs/materials.md, "Wall plates".
+//
+// The quad's front normal must be horizontal and along a world axis, and its
+// plane within kWallPlateGap of a node face. Then `axis` is 0 for x or 2 for
+// z (Godot's axes), `face` that face's coordinate, and `side` +1 when the
+// front faces +axis. Whether a solid node is behind it is the caller's to
+// check, with the nodes this names.
+constexpr float kWallPlateGap = 0.03f;
+struct WallPlane {
+    bool ok = false;
+    int axis = 0;
+    float face = 0.0f;
+    int side = 1;
+};
+WallPlane wallPlane(const float normal[3], const float centre[3]);
+
+// Where a quad's edge from world coordinate `from` (at parameter 0) to `to`
+// (at 1) crosses a node boundary (k + 0.5): the parameters strictly inside
+// (0, 1), ascending. A plate is cut there so that every vertex the wall has
+// is a vertex of the plate too, and its light per vertex is the wall's.
+std::vector<float> nodeCuts(float from, float to);
+
+// One quad cut into a grid at parameters `us` along its first edge (vertex 0
+// to 1) and `vs` along its second (0 to 3), each strictly inside (0, 1) and
+// ascending. Positions, normals and coordinates are interpolated, the
+// winding kept. With no cuts it is the quad itself.
+struct UprightSpriteGrid {
+    std::vector<UprightSpriteVertex> v;
+    std::vector<int> index;
+};
+UprightSpriteGrid subdivideQuad(const UprightSpriteQuad &q, const std::vector<float> &us,
+        const std::vector<float> &vs);
+
 // The texture string side 0 (front) or 1 (back) shows, before the texture
 // modifier is added: GenericCAO::updateTextures.
 std::string uprightSpriteTexture(const std::vector<std::string> &textures, int side);

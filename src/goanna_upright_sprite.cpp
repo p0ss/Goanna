@@ -4,6 +4,7 @@
 #include "goanna_upright_sprite.h"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace goanna {
@@ -54,6 +55,73 @@ UprightSprite buildUprightSprite(float size_x, float size_y, bool is_player,
         q.rect[3] = v1;
     }
     return out;
+}
+
+WallPlane wallPlane(const float normal[3], const float centre[3]) {
+    WallPlane w;
+    if (std::fabs(normal[1]) > 0.01f)
+        return w;
+    for (int a : {0, 2}) {
+        if (std::fabs(normal[a]) < 0.9999f)
+            continue;
+        const float face = std::round(centre[a] - 0.5f) + 0.5f;
+        if (std::fabs(centre[a] - face) > kWallPlateGap)
+            return w;
+        w.ok = true;
+        w.axis = a;
+        w.face = face;
+        w.side = normal[a] > 0.0f ? 1 : -1;
+    }
+    return w;
+}
+
+std::vector<float> nodeCuts(float from, float to) {
+    std::vector<float> out;
+    const float lo = std::min(from, to), hi = std::max(from, to);
+    if (hi - lo < 1e-6f)
+        return out;
+    for (float b = std::floor(lo - 0.5f) + 1.5f; b < hi; b += 1.0f) {
+        const float t = (b - from) / (to - from);
+        if (t > 1e-4f && t < 1.0f - 1e-4f)
+            out.push_back(t);
+    }
+    std::sort(out.begin(), out.end());
+    return out;
+}
+
+UprightSpriteGrid subdivideQuad(const UprightSpriteQuad &q, const std::vector<float> &us,
+        const std::vector<float> &vs) {
+    std::vector<float> u{0.0f}, v{0.0f};
+    u.insert(u.end(), us.begin(), us.end());
+    v.insert(v.end(), vs.begin(), vs.end());
+    u.push_back(1.0f);
+    v.push_back(1.0f);
+    // Bilinear over the corners: 0 at (0, 0), 1 at (1, 0), 2 at (1, 1),
+    // 3 at (0, 1), the order buildUprightSprite gives them.
+    auto lerp = [&](const float *c0, const float *c1, const float *c2, const float *c3,
+                        float s, float t, int n, float *out) {
+        for (int i = 0; i < n; ++i)
+            out[i] = (c0[i] * (1 - s) + c1[i] * s) * (1 - t) + (c3[i] * (1 - s) + c2[i] * s) * t;
+    };
+    UprightSpriteGrid g;
+    const int nu = (int)u.size(), nv = (int)v.size();
+    for (int j = 0; j < nv; ++j)
+        for (int i = 0; i < nu; ++i) {
+            UprightSpriteVertex x{};
+            lerp(q.v[0].pos, q.v[1].pos, q.v[2].pos, q.v[3].pos, u[i], v[j], 3, x.pos);
+            lerp(q.v[0].normal, q.v[1].normal, q.v[2].normal, q.v[3].normal, u[i], v[j], 3,
+                    x.normal);
+            lerp(q.v[0].uv, q.v[1].uv, q.v[2].uv, q.v[3].uv, u[i], v[j], 2, x.uv);
+            g.v.push_back(x);
+        }
+    for (int j = 0; j + 1 < nv; ++j)
+        for (int i = 0; i + 1 < nu; ++i) {
+            const int a = j * nu + i, b = a + 1, c = b + nu, d = a + nu;
+            // The quad's own {0, 1, 2, 2, 3, 0}.
+            for (int k : {a, b, c, c, d, a})
+                g.index.push_back(k);
+        }
+    return g;
 }
 
 std::string uprightSpriteTexture(const std::vector<std::string> &textures, int side) {

@@ -169,6 +169,14 @@ private:
         v3s16 light_pos{32767, 32767, 32767};
         float light_sky = 1.0f, light_block = 0.0f;
         bool light_known = false;
+        // A wall plate (goanna_upright_sprite.h): an upright sprite drawn on
+        // the node face it lies against and lit per vertex from the nodes
+        // in front of that face. wall_key is the map revisions its light was
+        // read at; wall_check counts down to the next look.
+        bool wall_plate = false;
+        int wall_side = 0; // the quad seen: 0 front, 1 back
+        uint64_t wall_key = 0;
+        float wall_check = 0.0f;
     };
     // The bone the first-person swing turns: the arm holding the wield item
     // where the game attaches one, otherwise the arm on the camera's right.
@@ -183,8 +191,16 @@ private:
     // An upright sprite's two quads (goanna_upright_sprite.h) showing one
     // cell of the sheet, each side through the entity shader with its own
     // texture.
+    // With `wall`, the root's transform already on the face: the front quad
+    // is cut at node boundaries and every vertex carries the wall's light
+    // (CUSTOM1), as the node mesher gives the wall beside it.
     godot::Ref<godot::ArrayMesh> buildUprightSpriteMesh(GoannaSession &session,
-            GoannaActiveObject &obj, int col, int row);
+            GoannaActiveObject &obj, int col, int row, const godot::Transform3D *wall = nullptr,
+            int wall_side = 0);
+    // Whether an upright sprite is a wall plate, its position put on the
+    // face, and its mesh rebuilt when its light changes. Every sync.
+    void updateWallPlate(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en,
+            float dt);
     std::shared_ptr<GodotModel> modelFor(GoannaSession &session, const std::string &name);
     godot::Ref<godot::StandardMaterial3D> materialForTexture(GoannaSession &session,
             const std::string &texture, bool alpha, bool double_sided);

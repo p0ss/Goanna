@@ -27,6 +27,8 @@
 #include "goanna_session.h"
 #include "goanna_textures.h"
 #include "goanna_upright_sprite.h"
+#include "goanna_light.h"
+#include "client/node_visuals.h"
 #include <IMeshManipulator.h>
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
@@ -951,7 +953,7 @@ bool EntityRenderer::buildItemVisual(GoannaSession &session, GoannaActiveObject 
 }
 
 Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
-        GoannaActiveObject &obj, int col, int row) {
+        GoannaActiveObject &obj, int col, int row, const Transform3D *wall, int wall_side) {
     const ObjectProperties &p = obj.props();
     const int div_x = std::max<int>(1, p.spritediv.X), div_y = std::max<int>(1, p.spritediv.Y);
     const UprightSprite sprite = buildUprightSprite(p.visual_size.X, p.visual_size.Y,
@@ -963,22 +965,58 @@ Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
     for (int y = 0; y < div_y; ++y)
         for (int x = 0; x < div_x; ++x)
             cells.push_back(Rect2((float)x / div_x, (float)y / div_y, 1.0f / div_x, 1.0f / div_y));
+    // A wall plate's light, read from the map as the node mesher reads the
+    // wall's (BlockLightField, goanna_light.h): the field around the
+    // plate's block, sampled at each vertex with the wall's outward normal.
+    BlockLightField field;
+    v3f wall_out(0, 0, 0);
+    if (wall) {
+        const Vector3 c = wall->origin;
+        field.build(session, getNodeBlockPos(v3s16((s16)std::lround(c.x), (s16)std::lround(c.y),
+                (s16)std::lround(-c.z))));
+        // The side facing out of the wall is the one seen; its normal is
+        // the wall's outward one.
+        const Vector3 n = wall->basis.xform(Vector3(0, 0, wall_side == 0 ? -1 : 1)).normalized();
+        wall_out = v3f(std::round(n.x), 0.0f, -std::round(n.z));
+    }
     Ref<ArrayMesh> am;
     am.instantiate();
     for (int side = 0; side < 2; ++side) {
         const UprightSpriteQuad &q = sprite.side[side];
+        // The front of a wall plate is cut at every node boundary it
+        // crosses, so each vertex the wall has is one of its own. The back
+        // faces into the wall and is never seen; it keeps four vertices.
+        std::vector<float> us, vs;
+        if (wall && side == wall_side) {
+            const Vector3 w0 = wall->xform(Vector3(q.v[0].pos[0], q.v[0].pos[1], q.v[0].pos[2]));
+            const Vector3 w1 = wall->xform(Vector3(q.v[1].pos[0], q.v[1].pos[1], q.v[1].pos[2]));
+            const Vector3 w3 = wall->xform(Vector3(q.v[3].pos[0], q.v[3].pos[1], q.v[3].pos[2]));
+            const bool along_x = std::fabs(w1.x - w0.x) > std::fabs(w1.z - w0.z);
+            us = along_x ? nodeCuts(w0.x, w1.x) : nodeCuts(w0.z, w1.z);
+            vs = nodeCuts(w0.y, w3.y);
+        }
+        const UprightSpriteGrid g = subdivideQuad(q, us, vs);
         PackedVector3Array verts, normals;
         PackedVector2Array uvs;
         PackedFloat32Array rects;
+        PackedByteArray light;
         PackedInt32Array indices;
-        for (const UprightSpriteVertex &v : q.v) {
+        for (const UprightSpriteVertex &v : g.v) {
             verts.push_back(Vector3(v.pos[0], v.pos[1], v.pos[2]));
             normals.push_back(Vector3(v.normal[0], v.normal[1], v.normal[2]));
             uvs.push_back(Vector2(v.uv[0], v.uv[1]));
             for (float r : q.rect)
                 rects.push_back(r);
+            if (wall) {
+                const Vector3 w = wall->xform(Vector3(v.pos[0], v.pos[1], v.pos[2]));
+                const VertexLight vl = field.sample(v3f(w.x, w.y, -w.z), wall_out);
+                light.push_back(vl.block);
+                light.push_back(vl.sky);
+                light.push_back(vl.ao);
+                light.push_back(255);
+            }
         }
-        for (int i : q.index)
+        for (int i : g.index)
             indices.push_back(i);
         Array arrays;
         arrays.resize(Mesh::ARRAY_MAX);
@@ -986,9 +1024,14 @@ Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
         arrays[Mesh::ARRAY_NORMAL] = normals;
         arrays[Mesh::ARRAY_TEX_UV] = uvs;
         arrays[Mesh::ARRAY_CUSTOM0] = rects;
+        if (wall)
+            arrays[Mesh::ARRAY_CUSTOM1] = light;
         arrays[Mesh::ARRAY_INDEX] = indices;
+        int64_t format = Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
+        if (wall)
+            format |= Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM1_SHIFT;
         am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, Array(), Dictionary(),
-                Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT);
+                format);
         // GenericCAO::updateTextures: the front textures[0], the back
         // textures[1] or else textures[0]. Each quad is culled from behind,
         // as Irrlicht's default material culls it, whatever the object's
@@ -1002,6 +1045,99 @@ Ref<ArrayMesh> EntityRenderer::buildUprightSpriteMesh(GoannaSession &session,
     return am;
 }
 
+void EntityRenderer::updateWallPlate(GoannaSession &session, GoannaActiveObject &obj,
+        EntityNode &en, float dt) {
+    auto *mi = Object::cast_to<MeshInstance3D>(en.visual);
+    if (!mi)
+        return;
+    const ObjectProperties &p = obj.props();
+    const NodeDefManager *ndef = session.nodeDefs();
+    static const bool disabled = getenv("GOANNA_NO_WALL_PLATE") != nullptr;
+    WallPlane wp;
+    bool want = false;
+    Transform3D xf = en.root->get_transform();
+    if (!disabled && ndef && !p.use_texture_alpha && obj.attachmentParent() == 0) {
+        const Vector3 n = xf.basis.xform(Vector3(0, 0, -1)).normalized();
+        const float nn[3] = {n.x, n.y, n.z};
+        const float cc[3] = {xf.origin.x, xf.origin.y, xf.origin.z};
+        wp = wallPlane(nn, cc);
+    }
+    // Which quad faces out of the wall, and is seen: 0 the front, 1 the
+    // back. DorfCraft turns its plates so that the back is the one seen.
+    int seen = 0;
+    for (int attempt = 0; wp.ok && attempt < 2 && !want; ++attempt) {
+        if (attempt == 1) {
+            wp.side = -wp.side;
+            seen = 1;
+        }
+        // A solid node behind the face and open air in front, over most of
+        // the plate: nine points at the centres of a three by three grid.
+        auto solid = [&](const Vector3 &g) {
+            const MapNode node = session.map().getNode(v3s16((s16)std::floor(g.x + 0.5f),
+                    (s16)std::floor(g.y + 0.5f), (s16)std::floor(-g.z + 0.5f)));
+            if (node.getContent() == CONTENT_IGNORE)
+                return -1;
+            const ContentFeatures &f = ndef->get(node);
+            return f.visuals && f.visuals->solidness == 2 ? 1 : 0;
+        };
+        const float hx = p.visual_size.X / 2.0f, hy = p.visual_size.Y / 2.0f;
+        int behind = 0, open = 0;
+        for (int j = -1; j <= 1; ++j)
+            for (int i = -1; i <= 1; ++i) {
+                Vector3 at = xf.xform(Vector3(i * hx * 2.0f / 3.0f, j * hy * 2.0f / 3.0f, 0.0f));
+                Vector3 back = at, front = at;
+                back[wp.axis] = wp.face - 0.5f * wp.side;
+                front[wp.axis] = wp.face + 0.5f * wp.side;
+                behind += solid(back) == 1;
+                open += solid(front) == 0;
+            }
+        want = behind >= 5 && open >= 5;
+    }
+    if (want) {
+        Vector3 o = xf.origin;
+        o[wp.axis] = wp.face;
+        en.root->set_position(o);
+        xf.origin = o;
+    }
+    en.wall_check -= dt;
+    if (want == en.wall_plate && (!want || en.wall_check > 0.0f))
+        return;
+    en.wall_check = 0.5f;
+    // The revisions of the blocks the plate's light reads, which change
+    // when a node is placed or dug or its light changes.
+    uint64_t key = 0;
+    if (want) {
+        const float r = std::max(p.visual_size.X, p.visual_size.Y) / 2.0f + 2.0f;
+        const v3s16 lo = getNodeBlockPos(v3s16((s16)std::floor(xf.origin.x - r),
+                (s16)std::floor(xf.origin.y - r), (s16)std::floor(-xf.origin.z - r)));
+        const v3s16 hi = getNodeBlockPos(v3s16((s16)std::ceil(xf.origin.x + r),
+                (s16)std::ceil(xf.origin.y + r), (s16)std::ceil(-xf.origin.z + r)));
+        for (s16 z = lo.Z; z <= hi.Z; ++z)
+            for (s16 y = lo.Y; y <= hi.Y; ++y)
+                for (s16 x = lo.X; x <= hi.X; ++x)
+                    key = key * 1000003ull + session.blockRevision(v3s16(x, y, z)) + 1;
+        if (en.wall_plate && key == en.wall_key)
+            return;
+    }
+    en.wall_plate = want;
+    en.wall_key = key;
+    const v2s16 base = obj.spriteBasepos();
+    const int sx = std::max<int>(1, p.spritediv.X), sy = std::max<int>(1, p.spritediv.Y);
+    const int col = ((base.X % sx) + sx) % sx;
+    const int row = ((base.Y + en.sprite_frame) % sy + sy) % sy;
+    en.wall_side = seen;
+    mi->set_mesh(buildUprightSpriteMesh(session, obj, col, row, want ? &xf : nullptr, seen));
+    en.sprite_cell = row * sx + col;
+    // The plate lies on the wall, which casts the shadow; a second caster on
+    // the same plane only adds acne.
+    mi->set_cast_shadows_setting(want ? GeometryInstance3D::SHADOW_CASTING_SETTING_OFF
+            : GeometryInstance3D::SHADOW_CASTING_SETTING_ON);
+    mi->set_instance_shader_parameter("wall_plate", want ? 1.0f : 0.0f);
+    if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+        UtilityFunctions::print("wall plate: ", obj.id(), " ", want, " axis=", wp.axis,
+                " face=", wp.face, " out=", wp.side, " seen quad=", seen);
+}
+
 void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
     if (en.visual) {
         en.visual->queue_free();
@@ -1011,6 +1147,9 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
     en.shadow_skeleton = nullptr;
     // The new meshes start at node_light's default; sync sets it again.
     en.light_known = false;
+    en.wall_plate = false;
+    en.wall_key = 0;
+    en.wall_check = 0.0f;
     std::unique_ptr<ModelAnimator> previous = std::move(en.animator);
     scene::IAnimatedMesh *source = nullptr;
     const ObjectProperties &p = obj.props();
@@ -1529,6 +1668,8 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // of rotating it, which only happened to look right for north/south
         // movement and put every east/west-facing mob backwards.
         en.root->set_rotation_degrees(Vector3(rot.X, rot.Y, -rot.Z));
+        if (obj.props().visual == OBJECTVISUAL_UPRIGHT_SPRITE && en.visual)
+            updateWallPlate(session, obj, en, dt);
         // The node light where the entity stands, for entity.gdshader's
         // node_light, read at about eye height so a mob standing in a lit
         // doorway takes the doorway's light. Read every sync rather than
@@ -1876,7 +2017,9 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 const int row = ((base.Y + en.sprite_frame) % sy + sy) % sy;
                 if (row * sx + col != en.sprite_cell) {
                     en.sprite_cell = row * sx + col;
-                    mi->set_mesh(buildUprightSpriteMesh(session, obj, col, row));
+                    const Transform3D xf = en.root->get_transform();
+                    mi->set_mesh(buildUprightSpriteMesh(session, obj, col, row,
+                            en.wall_plate ? &xf : nullptr, en.wall_side));
                 }
             } else if (mi) {
                 Ref<StandardMaterial3D> m = mi->get_material_override();

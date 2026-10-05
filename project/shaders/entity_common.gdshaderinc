@@ -100,8 +100,28 @@ global uniform vec3 goanna_sun_dir;
 // this so it never slides into the island beside the face. A mesh without
 // it reads zeros, an empty rectangle, and gets no parallax.
 varying vec4 v_face_rect;
+// A wall plate (goanna_upright_sprite.h, EntityRenderer::updateWallPlate):
+// an upright sprite lying on a node face, DorfCraft's engravings. 1 draws
+// it at the face, a hair toward the eye so it wins the depth test against
+// the wall it lies on, and lights it as nodes_array.gdshader lights the
+// wall: per vertex from CUSTOM1 (block light, sky light, occlusion, read
+// from the nodes in front of the face as the node mesher reads them), the
+// sky fill shaped by the normal, the cloud shadow, and no warm block fill
+// near the lamps, which light it for real. 0 is every other entity.
+instance uniform float wall_plate = 0.0;
+// How far toward the eye the plate moves, as a share of its distance: it
+// never moves on screen, and at a node from the eye it is a millimetre.
+uniform float wall_plate_bias : hint_range(0.0, 0.01) = 0.001;
+varying vec3 v_wall_light;
+// The node shaders' balance of the same terms (nodes_array_common.gdshaderinc).
+uniform float vertex_ao_strength : hint_range(0.0, 1.0) = 1.0;
+uniform float vertex_ao_light_strength : hint_range(0.0, 1.0) = 0.3;
+uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
+global uniform vec3 goanna_ground_fill;
+global uniform float goanna_lamp_reach;
 
 #include "res://shaders/relief_depth.gdshaderinc"
+#include "res://shaders/cloud_shadow.gdshaderinc"
 
 // Hair's along the strand highlight (direct_light.gdshaderinc), on texels
 // whose _s green byte is 12 (atlas.HAIR_F0_BYTE in tools/pbr_author): F0
@@ -129,6 +149,14 @@ uniform float hair_shader_strength : hint_range(0.0, 1.0) = 0.0;
 
 void vertex() {
 	v_face_rect = CUSTOM0;
+	v_wall_light = vec3(node_light.x, node_light.y, 1.0);
+	if (wall_plate > 0.5) {
+		v_wall_light = CUSTOM1.rgb;
+		// Along the line to the eye, so the same pixel, nearer: a depth bias
+		// that grows with distance as the depth buffer's step does.
+		vec3 eye = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
+		VERTEX = mix(VERTEX, eye, wall_plate_bias);
+	}
 }
 
 void fragment() {
@@ -356,6 +384,7 @@ void fragment() {
 	v_hair = 0.0;
 	v_hair_strand = vec4(0.0);
 	v_hair_fx = vec2(0.0);
+	float sp_emission = 1.0;
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_tex, puv, gem_dx, gem_dy);
 		float sm = sp.r;
@@ -394,7 +423,7 @@ void fragment() {
 				EMISSION *= mix(1.0, shade, k);
 				// The strands' own normals replace the map's fine ones as
 				// far as a tilt across can: the lock's slopes stay the map's.
-				vec3 nm = NORMAL_MAP * 2.0 - 1.0;
+				vec3 nm = (has_normal ? NORMAL_MAP : vec3(0.5, 0.5, 1.0)) * 2.0 - 1.0;
 				nm.x += tilt * k;
 				NORMAL_MAP = normalize(nm) * 0.5 + 0.5;
 				arc += shift * k;
@@ -406,12 +435,37 @@ void fragment() {
 		ROUGHNESS = mix(1.0, clamp(1.0 - sm, 0.04, 1.0), roughness_strength);
 		METALLIC = sp.g >= 0.898 ? 1.0 : 0.0;
 		SPECULAR = clamp((sp.g >= 0.898 ? 0.5 : sqrt(sp.g / 0.16)) * specular_strength, 0.0, 1.0);
+		sp_emission = sp.a;
 		if (sp.a < 0.999)
 			EMISSION += ALBEDO * sp.a * emission_strength;
 		if (sp.b > 0.2549) {
 			float sss = (sp.b - 0.2549) / 0.7451;
 			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
+	}
+	bool wall = wall_plate > 0.5;
+	if (wall) {
+		// The wall's own light, as nodes_array.gdshader writes it, so the
+		// plate is lit as the face it lies on: occlusion and sky visibility
+		// on ambient, the fill as emission shaped by the mapped normal, the
+		// clouds, and the baked block light only past the lamps' reach.
+		vec3 wl = v_wall_light;
+		float sky_vis = mix(1.0, wl.g, sky_light_strength);
+		float occ = mix(1.0, wl.b, vertex_ao_strength);
+		AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
+		AO_LIGHT_AFFECT = vertex_ao_light_strength;
+		ALBEDO *= goanna_cloud_dim(v_lamp_world);
+		vec3 nm = NORMAL_MAP * 2.0 - 1.0;
+		vec3 n_view = normalize(TANGENT * nm.x + BINORMAL * nm.y + NORMAL * nm.z);
+		float fill_up = clamp(0.5 + 0.5 * (INV_VIEW_MATRIX * vec4(n_view, 0.0)).y, 0.0, 1.0);
+		vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, fill_up);
+		EMISSION = ALBEDO * fill_col * mix(0.65, 1.0, fill_up) * wl.g * sky_fill_strength
+				* clamp(pack_ao * occ, 0.0, 1.0);
+		float lamp_bake = smoothstep(goanna_lamp_reach, goanna_lamp_reach * 1.5 + 48.0,
+				length(VERTEX));
+		EMISSION += ALBEDO * wl.r * lamp_bake;
+		if (has_spec && sp_emission < 0.999)
+			EMISSION += ALBEDO * sp_emission * emission_strength;
 	}
 	float gem = goanna_diamond_mask(tex.rgb, diamond_mode);
 	// Without an authored map, the class applies to the whole item. Keep
@@ -486,7 +540,7 @@ void fragment() {
 	// No sun or moon where Luanti has no sunlight at the entity, and F0 for
 	// light(); see direct_light.gdshaderinc. An entity without node_light
 	// keeps the default (0, 1), full sky, as before.
-	v_sun_gate = goanna_sun_gate(node_light.y, node_light.x);
+	v_sun_gate = goanna_sun_gate(v_wall_light.g, v_wall_light.r);
 	// The parallax self shadow reaches direct light through AO, folded in
 	// exactly as nodes_array.gdshader folds it: direct light is scaled by
 	// mix(1, AO, AO_LIGHT_AFFECT), which this makes the shadow itself.

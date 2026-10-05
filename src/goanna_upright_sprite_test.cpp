@@ -186,6 +186,70 @@ void testTextures() {
             "no textures: no_texture.png both sides");
 }
 
+void testWallPlate() {
+    // DorfCraft's plate: a hundredth of a node in front of the face at
+    // x = 3.5, facing +x.
+    const float nx[3] = {1, 0, 0}, cx[3] = {3.51f, 7.0f, -2.5f};
+    WallPlane w = wallPlane(nx, cx);
+    check(w.ok && w.axis == 0 && near(w.face, 3.5f) && w.side == 1,
+            "a plate a hundredth in front of an x face lies on it");
+    const float nz[3] = {0, 0, -1}, cz[3] = {0.0f, 7.0f, -4.49f};
+    w = wallPlane(nz, cz);
+    check(w.ok && w.axis == 2 && near(w.face, -4.5f) && w.side == -1,
+            "the same on a z face, facing -z");
+    const float cfar[3] = {3.6f, 7.0f, 0.0f};
+    check(!wallPlane(nx, cfar).ok, "a tenth of a node off is not a plate");
+    const float tilted[3] = {0.7071f, 0.0f, 0.7071f};
+    check(!wallPlane(tilted, cx).ok, "a quad turned off the axes is not a plate");
+    const float up[3] = {0, 1, 0};
+    check(!wallPlane(up, cx).ok, "a quad lying flat is not a wall plate");
+
+    std::vector<float> c = nodeCuts(-1.0f, 3.0f);
+    check(c.size() == 4 && near(c[0], 0.125f) && near(c[3], 0.875f),
+            "an edge from -1 to 3 crosses -0.5, 0.5, 1.5 and 2.5");
+    c = nodeCuts(2.5f, -1.5f);
+    check(c.size() == 3 && near(c[0], 0.25f) && near(c[2], 0.75f),
+            "a reversed edge on boundaries is cut between them, not at its ends");
+    check(nodeCuts(0.1f, 0.4f).empty(), "an edge inside one node is not cut");
+
+    const UprightSprite s = buildUprightSprite(4.0f, 2.0f, false, 0, 0, 1, 1);
+    for (int side = 0; side < 2; ++side) {
+        const UprightSpriteQuad &q = s.side[side];
+        const UprightSpriteGrid plain = subdivideQuad(q, {}, {});
+        bool same = plain.v.size() == 4 && plain.index.size() == 6;
+        for (int i = 0; same && i < 4; ++i) {
+            // The grid lists rows bottom first: 0, 1, then 3, 2.
+            const int k = i < 2 ? i : (i == 2 ? 3 : 2);
+            same = near(plain.v[i].pos[0], q.v[k].pos[0]) && near(plain.v[i].uv[0], q.v[k].uv[0]) &&
+                    near(plain.v[i].uv[1], q.v[k].uv[1]);
+        }
+        check(same, "a grid with no cuts is the quad, side " + std::to_string(side));
+        const UprightSpriteGrid g = subdivideQuad(q, {0.25f, 0.5f, 0.75f}, {0.5f});
+        check(g.v.size() == 15 && g.index.size() == 4 * 2 * 6,
+                "four by two cells, side " + std::to_string(side));
+        // Every triangle faces the way the quad's own do.
+        UprightSpriteQuad t = q;
+        bool winding = true;
+        float area = 0.0f;
+        for (size_t k = 0; k < g.index.size(); k += 3) {
+            for (int i = 0; i < 3; ++i)
+                t.v[i] = g.v[g.index[k + i]];
+            t.index[0] = 0;
+            t.index[1] = 1;
+            t.index[2] = 2;
+            const float a = screenArea(t, 0, side == 0);
+            winding = winding && a < 0.0f;
+            area += a;
+        }
+        check(winding, "every cell keeps the quad's winding, side " + std::to_string(side));
+        check(near(-area, 2.0f * 8.0f), "the cells cover the quad, side " + std::to_string(side));
+        // The middle vertex has the middle coordinates.
+        const UprightSpriteVertex &m = g.v[5 + 2];
+        check(near(m.pos[0], 0.0f) && near(m.pos[1], 0.0f) && near(m.uv[0], 0.5f) &&
+                near(m.uv[1], 0.5f), "the centre vertex is the centre, side " + std::to_string(side));
+    }
+}
+
 } // namespace
 
 int main() {
@@ -194,6 +258,7 @@ int main() {
     testSizeAndPlayer();
     testSheet();
     testTextures();
+    testWallPlate();
     std::printf("%d checks, %d failures\n", g_checks, g_failures);
     return g_failures ? 1 : 0;
 }
