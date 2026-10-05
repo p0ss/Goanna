@@ -25,7 +25,8 @@ Conventions, all fixed here so a per stem script cannot get them wrong:
   cut-out    where the art draws nothing (source alpha under 128) both
              maps are forced to the bake's neutral, after every field is
              derived. See cutout_mask.
-  size       256, the bake's map size, so a set drops into the pack.
+  size       256, the bake's map size, so a set drops into the pack; 128
+             and 512 for the other texture resolution tiers (SIZE).
   marker     _n and _s carry a goanna_pipeline=authored PNG text chunk, so
              tools/check-pbr-quality.py measures the height above by the
              rule it is built to rather than the bake's. See PIPELINE_KEY.
@@ -54,11 +55,52 @@ from PIL import Image, PngImagePlugin
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pbr_bake  # noqa: E402
 
-# The map size. 256 is the release pack; GOANNA_PBR_SIZE=512 builds the
-# optional high resolution one. Pixel measures written for 256 scale by
-# PX, so a 512 map has the same features at twice the resolution.
+# The map size, one per texture resolution tier: 256 is the release pack,
+# GOANNA_PBR_SIZE=128 builds the Low and Lowest one and 512 the Ultra one.
+# Pixel measures written for 256 scale by PX, so a 512 map has the same
+# features at twice the resolution and a 128 map at half. A measure that
+# would fall under one pixel at 128 is kept at one (a chamfer, a bevel) or,
+# for the micro surface, drawn at the 256 resolution and averaged down
+# (SUPERSAMPLE, downsample), so a feature finer than a pixel fades rather
+# than aliasing.
 SIZE = int(os.environ.get("GOANNA_PBR_SIZE", "256"))
+if SIZE not in (128, 256, 512):
+    raise ValueError("GOANNA_PBR_SIZE must be 128, 256 or 512, not %d" % SIZE)
 PX = SIZE / 256.0
+# How many times finer the micro surface is drawn than the map: 2 at 128,
+# else 1, which leaves the 256 and 512 builds exactly as they were.
+SUPERSAMPLE = int(round(1.0 / PX)) if PX < 1.0 else 1
+# What the micro surface's slopes are multiplied by: PX at 128, else 1. A
+# chamfer cannot go under one pixel, so at 128 every step is twice as wide
+# on the block as at 256 and half as steep, while a pore or a strand keeps
+# its own slope. Unfaded, the micro surface stood twice as strong against
+# the steps as in the reviewed 256 look, and the client's relief measure
+# (the normal's slope over the height's, extrude.relief_depth) read up to
+# twice the depth on skins whose steps carry micro detail: the chain mail
+# leggings 0.12 node against 0.058. Faded by the same half, the balance
+# and the measure are the 256 build's. The smoothness swing is not faded.
+MICRO_FADE = PX if PX < 1.0 else 1.0
+
+
+def px(measure, minimum=1):
+    """A pixel measure written for the 256 map, at this map's size, rounded
+    to whole pixels and never under minimum when the measure itself is
+    above zero, so a one pixel chamfer stays one pixel at 128 rather than
+    rounding to none. At 256 it is the measure, rounded."""
+    v = float(measure) * PX
+    if v <= 0.0:
+        return 0
+    return max(int(minimum), int(round(v)))
+
+
+def downsample(field, f):
+    """field averaged over f by f pixel blocks: a 2D field, or the first
+    two axes of a 3D one. The shape must divide by f."""
+    if f == 1:
+        return field
+    h, w = field.shape[:2]
+    rest = field.shape[2:]
+    return field.reshape((h // f, f, w // f, f) + rest).mean(axis=(1, 3)).astype(field.dtype)
 # Every map this module writes carries a PNG text chunk naming the pipeline
 # that made it, because the two pipelines encode the _n alpha differently and
 # a reader cannot tell them apart from the bytes without guessing.

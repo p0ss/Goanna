@@ -510,8 +510,10 @@ def chamfer_px(spec, cell):
     """The bevel width in map pixels: the spec's (default 1), but never
     more than a quarter of a texel, so a 128 px atlas (the lectern, texels
     two pixels wide) keeps flat tops at all. A spec's width is in 256 px
-    map pixels and scales with the map."""
-    return min(int(round(float(spec.get("chamfer", 1)) * lib.PX)), cell // 4)
+    map pixels and scales with the map, but a chamfer stays at least one
+    pixel: at 128 the default would otherwise round to none and every step
+    would be a cliff."""
+    return min(lib.px(spec.get("chamfer", 1)), cell // 4)
 
 
 def chamfer(h, px=1):
@@ -605,6 +607,18 @@ def _micro_dir(how, sel, iy, ix):
     else:
         raise ValueError("micro_dir %r: a tile takes h, v, along or an angle" % (how,))
     return dvec, (cx, cy, hx, hy)
+
+
+def material_micro_px(stem, spec, cls, mat, src, n):
+    """material_micro at this build's resolution: at 128 drawn at
+    lib.SUPERSAMPLE times the texel, the 256 build's own, averaged down and
+    its detail faded by lib.MICRO_FADE, as micro_field_px does for the
+    stem's kind. At 256 and 512 it is material_micro itself."""
+    f = lib.SUPERSAMPLE
+    if f == 1:
+        return material_micro(stem, spec, cls, mat, src, n)
+    d, s = material_micro(stem, spec, cls, mat, src, n * f)
+    return lib.downsample(d, f) * np.float32(lib.MICRO_FADE), lib.downsample(s, f)
 
 
 def material_micro(stem, spec, cls, mat, src, n):
@@ -708,13 +722,13 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     if kind in MICRO_KINDS:
         amp, swing = MICRO_KINDS[kind]
         amp *= float(spec.get("micro_strength", 1.0))
-        d, dsm = micro_field(kind, zlib.crc32(stem.encode()) & 0xffff,
-                             direction=spec.get("micro_dir", "h"))
+        d, dsm = micro_field_px(kind, zlib.crc32(stem.encode()) & 0xffff,
+                                direction=spec.get("micro_dir", "h"))
         detail = amp * _fit(d, hi.shape) * keep
         smooth_hi = np.clip(smooth_hi + swing * _fit(dsm, hi.shape) * keep, 0.0,
                             lib.SMOOTH_CEILING)
     if own:
-        d2, s2 = material_micro(stem, spec, cls, mat, src, n)
+        d2, s2 = material_micro_px(stem, spec, cls, mat, src, n)
         detail = d2 if detail is None else detail + d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     sss = sss_map(spec, cls, mat, n)
@@ -983,6 +997,24 @@ def micro_field(kind, seed, size=lib.SIZE, direction="h"):
     else:
         return None, None
     return np.clip(d, -1.5, 1.5).astype(np.float32), np.clip(sm, -1.5, 2.0).astype(np.float32)
+
+
+def micro_field_px(kind, seed, size=None, direction="h"):
+    """micro_field for a map of size pixels at this build's resolution. At
+    128 the field is drawn at twice the size, which is the 256 build's own
+    field, and averaged down two by two: grain spacing, pores, scratches
+    and cracks are written in 256 px map pixels, and at 128 the finest of
+    them (a one pixel scratch, wood grain three pixels apart, a weave four)
+    would land between pixels and alias into stripes and dots. Averaged,
+    a feature finer than a pixel fades instead. The detail is then faded
+    by lib.MICRO_FADE, so it stands against the steps as it does at 256.
+    At 256 and 512 this is micro_field itself."""
+    size = lib.SIZE if size is None else size
+    f = lib.SUPERSAMPLE
+    d, sm = micro_field(kind, seed, size=size * f, direction=direction)
+    if d is None or f == 1:
+        return d, sm
+    return lib.downsample(d, f) * np.float32(lib.MICRO_FADE), lib.downsample(sm, f)
 
 
 def _fit(field, shape):

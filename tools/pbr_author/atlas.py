@@ -8,7 +8,8 @@ in a row), so three of the tile rule's assumptions are wrong for it:
            64 px skin 4 map pixels per art texel and the 128 px iron golem
            2. A mob texel is about a sixteenth of a block, like a node
            texel. Here the map is TEXEL_PX map pixels per art texel at the
-           256 pack (16 at the 512 one, via lib.PX) whatever the art's
+           256 pack (4 at the 128 one and 16 at the 512 one, via lib.PX,
+           and a spec's "texel_px" likewise) whatever the art's
            size. The albedo is written at the same size for previews
            only: build_pack.py installs just the _n and _s of a skin, and
            the client draws the game's own art and scales the maps to it.
@@ -607,8 +608,8 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         # same share of a skin texel. It tiles over the atlas; nothing
         # needs it to, but it does no harm either.
         size = cell * 16
-        d, dsm = extrude.micro_field(kind, zlib.crc32(stem.encode()) & 0xffff, size=size,
-                                     direction=spec.get("micro_dir", "h"))
+        d, dsm = extrude.micro_field_px(kind, zlib.crc32(stem.encode()) & 0xffff, size=size,
+                                        direction=spec.get("micro_dir", "h"))
         # A skin is several materials and one micro kind fits only some:
         # scratches belong on the golem's iron, not on its vines.
         only = spec.get("micro_materials")
@@ -622,8 +623,8 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     sss = None
     extra = {}
     if any(_has_material_surface(m) for m in mats.values()):
-        d2, s2, sss = material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
-                                       hgt=hgt, extra=extra)
+        d2, s2, sss = material_surface_px(stem, spec, game, mat, drawn, isl, cell, model, brush,
+                                          cls, hgt=hgt, extra=extra)
         detail += d2
         smooth_hi = np.clip(smooth_hi + s2, 0.0, lib.SMOOTH_CEILING)
     roll_w = None
@@ -712,7 +713,10 @@ def lock_occlusion(spec, mat, hi, isl_hi, cell):
         sel = np.kron((mat == name).astype(np.float32), np.ones((cell, cell), np.float32)) > 0.5
         strength = float(m.get("lock_occlusion", 0) or 0)
         if strength > 0:
-            reach = int(m.get("lock_occlusion_px", max(1, cell // 4)))
+            # A spec's reach is in 256 px map pixels and scales with the
+            # map, as a chamfer does.
+            reach = lib.px(m["lock_occlusion_px"]) if "lock_occlusion_px" in m \
+                else max(1, cell // 4)
             contact = np.zeros(hi.shape, np.float32)
             for dy, dx, k in ((-1, 0, 2), (1, 0, 1), (0, -1, 1), (0, 1, 1)):
                 rr = reach * k
@@ -1098,6 +1102,37 @@ def _lock_frames(sel, isl, hgt, u, v, iy, ix, cell, length=False):
     return np.clip(la, -1, 1), np.clip(lt, 0, 1), lw[ids], ids
 
 
+def material_surface_px(stem, spec, game, mat, drawn, isl, cell, model, brush, cls, hgt=None,
+                        extra=None):
+    """material_surface at this build's resolution. At 128 it is drawn at
+    lib.SUPERSAMPLE times the cell, which is the 256 build's own surface,
+    and averaged down: knit loops, weave threads, strands, pores, stitches
+    and rivets are sized in texels, several to a texel, and at four or
+    eight map pixels a texel the finest of them would fall between pixels
+    and alias. Averaged, a feature under a pixel fades. The detail is a
+    height for the normal, and the strength atlas.build passes halves with
+    the cell, so its normal comes out as the 256 build's, filtered; a slope
+    kind's slopes are the surface's own tilt (a strand's round), whatever
+    the pixel, so they average as they are. Both are then faded by
+    lib.MICRO_FADE, so they stand against the steps as they do at 256.
+    The smoothness swing and the occlusion are not. At 256 and 512 this
+    is material_surface itself."""
+    f = lib.SUPERSAMPLE
+    if f == 1:
+        return material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls,
+                                hgt=hgt, extra=extra)
+    fine = {}
+    d, s, sss = material_surface(stem, spec, game, mat, drawn, isl, cell * f, model, brush, cls,
+                                 hgt=hgt, extra=fine)
+    if extra is not None:
+        if "slope" in fine:
+            extra["slope"] = tuple(lib.downsample(a, f) * np.float32(lib.MICRO_FADE)
+                                   for a in fine["slope"])
+        if "occlusion" in fine:
+            extra["occlusion"] = lib.downsample(fine["occlusion"], f)
+    return lib.downsample(d, f) * np.float32(lib.MICRO_FADE), lib.downsample(s, f), sss
+
+
 def material_surface(stem, spec, game, mat, drawn, isl, cell, model, brush, cls, hgt=None,
                      extra=None):
     """The per material micro surface, edges, wear and scattering of a
@@ -1323,9 +1358,22 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
     # Soft skin's stored steps are a few hundredths of the range on
     # purpose, so like flat it is held only to the cap.
     flat_only = all(m in ("flat", "soft") for m in modes)
-    line(spec.get("overlay") or (flat_only and depth <= 0.105) or 0.02 <= depth <= 0.105,
-         "relief %.3f node equivalent (want 0.02 to 0.10%s)"
-         % (depth, ", or none when all flat" if flat_only else ""))
+    # At 128 the measure reads past the cap on a few skins authored at it
+    # (strength 24, an authored 0.094 node: the dolphin's soft steps, the
+    # chain leggings' rings), where at 256 it read under it or found too
+    # few steps to read at all. A chamfer cannot go under a pixel, so at 128
+    # a step and its neighbours' rolls and micro surface share fewer, wider
+    # pixels. The client clips the measure to 0.10, within a few per cent
+    # of what was authored, so there a measure over the cap passes when the
+    # authored depth (strength over 256 node map pixels) is within it.
+    authored = float(spec.get("strength", extrude.CLASS_STYLE.get(
+        cls, extrude.DEFAULT_STYLE)[2])) / 256.0
+    clipped = lib.PX < 1.0 and depth > 0.105 and authored <= 0.10
+    line(spec.get("overlay") or clipped or (flat_only and depth <= 0.105)
+         or 0.02 <= depth <= 0.105,
+         "relief %.3f node equivalent (want 0.02 to 0.10%s)%s"
+         % (depth, ", or none when all flat" if flat_only else "",
+            ", clipped to 0.10 at 128, authored %.3f" % authored if clipped else ""))
 
     # No step at an island border: the height on either side of a border
     # differs only as the art says, so the normal at a border pixel must
@@ -1356,15 +1404,40 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, model=None, brush=Non
         gxb = lib.island_gradient(bdf, isl_hi, 1)
         gyb = lib.island_gradient(bdf, isl_hi, 0)
         out = (xy[..., 0] * -gxb + xy[..., 1] * gyb) > 0.02
-        bring, binner = ring & ~rolled, inner & ~rolled
+        # A pixel at a face's corner leans out over whichever side it is
+        # on, but the border distance's gradient there sees one side only
+        # (the column it ends is all border, so along it the gradient is
+        # 0): leaning out of the face over any side that is off the face
+        # counts, and so does a side the art leaves undrawn, where the face
+        # ends at a hole. At 256 a corner is one ring pixel in 16 along a
+        # texel wide face and never reached the 5% the measure allows; at
+        # 128 it is one in 8, and a few small faces failed on their corners
+        # alone.
+        #
+        # A pixel off the face on two sides at right angles is a corner: its
+        # neighbours along both edges are border pixels too, at the bevel's
+        # own height, so its normal is flat at every size. It is left out:
+        # at 256 corners were 2% of the ring, under the 5% allowed, and at
+        # 128 they are twice that share of a ring half as long, which
+        # failed the tropical fish on their corners.
+        pad = np.pad(np.where(up_drawn, isl_hi, -3), 1, constant_values=-2)
+        h_, w_ = isl_hi.shape
+        offs = []
+        for dy, dx, lean in ((0, 1, xy[..., 0]), (0, -1, -xy[..., 0]),
+                             (1, 0, -xy[..., 1]), (-1, 0, xy[..., 1])):
+            off = pad[1 + dy:1 + dy + h_, 1 + dx:1 + dx + w_] != isl_hi
+            offs.append(off)
+            out |= off & (lean > 0.02)
+        corner = (offs[0] | offs[1]) & (offs[2] | offs[3])
+        bring, binner = ring & ~rolled & ~corner, inner & ~rolled
         if bring.any():
             share = float(out[bring].mean())
             line(share >= 0.95 and tilt[bring].mean() >= tilt[binner].mean() + 0.05,
                  "bevel leans outward at %.0f%% of face border pixels, tilt %.2f against %.2f"
                  " inside (want >= 95%%, steeper)" % (100 * share, tilt[bring].mean(),
                                                       tilt[binner].mean()))
-        if (ring & rolled).any():
-            share = float(out[ring & rolled].mean())
+        if (ring & rolled & ~corner).any():
+            share = float(out[ring & rolled & ~corner].mean())
             line(share >= 0.95, "skin rolls outward at %.0f%% of its face border pixels (want >= 95%%)"
                  % (100 * share))
     else:
