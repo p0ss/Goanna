@@ -25,6 +25,32 @@
    "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
+  "edit_skin_bottom_1": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "edit_skin_bottom_2": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "partial",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "edit_skin_bottom_3": {
    "primary_material": "cloth",
    "secondary_materials": [],
@@ -55,6 +81,19 @@
    "primary_material": "cloth",
    "secondary_materials": [],
    "metalness_policy": "partial",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "edit_skin_bottom_6": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
    "smoothness_min": 0.032,
    "smoothness_max": 0.12,
    "relief_strength": 0.16,
@@ -324,6 +363,19 @@
    "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
+  "edit_skin_hair_7": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "edit_skin_hair_8": {
    "primary_material": "cloth",
    "secondary_materials": [],
@@ -454,6 +506,19 @@
    "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
+  "edit_skin_headwear_6": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "edit_skin_headwear_7": {
    "primary_material": "cloth",
    "secondary_materials": [],
@@ -546,6 +611,19 @@
    "review_required": false
   },
   "edit_skin_mouth_5": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "edit_skin_mouth_6": {
    "primary_material": "cloth",
    "secondary_materials": [],
    "metalness_policy": "none",
@@ -701,7 +779,33 @@
    "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
+  "edit_skin_top_19": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
   "edit_skin_top_2": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "edit_skin_top_3": {
    "primary_material": "cloth",
    "secondary_materials": [],
    "metalness_policy": "none",
@@ -744,6 +848,19 @@
    "primary_material": "cloth",
    "secondary_materials": [],
    "metalness_policy": "none",
+   "smoothness_min": 0.032,
+   "smoothness_max": 0.12,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": false,
+   "confidence": 0.8,
+   "rationale": "The class the Edit Skin authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/edit_skin.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "edit_skin_top_7": {
+   "primary_material": "cloth",
+   "secondary_materials": [],
+   "metalness_policy": "partial",
    "smoothness_min": 0.032,
    "smoothness_max": 0.12,
    "relief_strength": 0.16,

@@ -98,7 +98,7 @@
     },
     "edit_skin": {
       "decision": "eligible",
-      "evidence": "Release 30155: README.md puts code under MIT and says media_credits.txt holds the media licensing; that file names an author and licence (CC BY-SA 3.0 or 4.0) per file. 59 parts are recorded per file on 2026-10-05; 9 parts it does not name (bottom_1, bottom_2, bottom_6, hair_7, headwear_6, mouth_6, top_3, top_7, top_19) are excluded.",
+      "evidence": "Release 30155: README.md puts code under MIT and says media_credits.txt holds the media licensing; that file names an author and licence (CC BY-SA 3.0 or 4.0) per file. The 9 parts it does not name (bottom_1, bottom_2, bottom_6, hair_7, headwear_6, mouth_6, top_3, top_7, top_19) take the media licence the author declares on ContentDB, CC BY-SA 4.0, as nothing in the archive says otherwise. All 68 parts recorded per file on 2026-10-05.",
       "media_license": "CC-BY-SA-3.0/4.0 per file"
     },
     "cottages": {

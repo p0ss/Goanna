@@ -7,6 +7,22 @@
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_base_1.png"
   },
+  "edit_skin_bottom_1": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_1.png"
+  },
+  "edit_skin_bottom_2": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_2.png"
+  },
   "edit_skin_bottom_3": {
     "author": "MrRar",
     "media_license": "CC-BY-SA-4.0",
@@ -30,6 +46,14 @@
     "package": "edit_skin",
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_bottom_5.png"
+  },
+  "edit_skin_bottom_6": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_bottom_6.png"
   },
   "edit_skin_eye_1": {
     "author": "XSSheep. Adapted for edit_skin by MrRar. (Pixel Perfection resource pack for Minecraft 1.11)",
@@ -191,6 +215,14 @@
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_hair_6.png"
   },
+  "edit_skin_hair_7": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_hair_7.png"
+  },
   "edit_skin_hair_8": {
     "author": "MrRar",
     "media_license": "CC-BY-SA-4.0",
@@ -271,6 +303,14 @@
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_headwear_5.png"
   },
+  "edit_skin_headwear_6": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_headwear_6.png"
+  },
   "edit_skin_headwear_7": {
     "author": "Ginsu23. Adapted for edit_skin by MrRar. (Ryu)",
     "media_license": "CC-BY-SA-3.0",
@@ -334,6 +374,14 @@
     "package": "edit_skin",
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_mouth_5.png"
+  },
+  "edit_skin_mouth_6": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_mouth_6.png"
   },
   "edit_skin_mouth_7": {
     "author": "MrRar",
@@ -423,6 +471,14 @@
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_top_18.png"
   },
+  "edit_skin_top_19": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_19.png"
+  },
   "edit_skin_top_2": {
     "author": "MrRar",
     "media_license": "CC-BY-SA-4.0",
@@ -430,6 +486,14 @@
     "package": "edit_skin",
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_top_2.png"
+  },
+  "edit_skin_top_3": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_3.png"
   },
   "edit_skin_top_4": {
     "author": "hansuke123. Adapted for edit_skin by MrRar. (Oliver_MV)",
@@ -454,6 +518,14 @@
     "package": "edit_skin",
     "release": 30155,
     "source": "edit_skin/textures/edit_skin_top_6.png"
+  },
+  "edit_skin_top_7": {
+    "author": "Mr. Rar",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "not named in media_credits.txt; nothing in the archive says otherwise, so the package's declared media licence (ContentDB: CC-BY-SA-4.0, by the author) applies, per docs/pbr-community-review.md",
+    "package": "edit_skin",
+    "release": 30155,
+    "source": "edit_skin/textures/edit_skin_top_7.png"
   },
   "edit_skin_top_8": {
     "author": "Kpenguin. Adapted for edit_skin by MrRar. (Hoodie Enderman)",

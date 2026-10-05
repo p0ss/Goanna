@@ -27,6 +27,18 @@ a substitute for the notice inside the pinned archive. Ambiguous files are
 excluded, or recorded under the strictest licence they could be under,
 rather than assigned the most convenient nearby licence.
 
+A file the package's own notices do not name, where nothing in the
+archive says otherwise, takes the media licence the author declares for
+the package on ContentDB. A permissive file (CC0, WTFPL, MIT) inside a
+package declared CC BY or CC BY-SA is no contradiction, since it can be
+redistributed under either. Where the package's own files show the
+declared licence is understated (CC BY-SA files in a package declared
+CC BY or MIT), such a file takes the strictest licence among them
+instead. A file whose notice states a licence outside the accepted set
+(non-commercial terms, say) or one that cannot be identified ("CC", "CCPL")
+is still excluded, as is a file credited to another package whose terms
+have not been read.
+
 GPL-3.0 media is accepted, for texture packs only. Goanna's code is
 LGPL-2.1-or-later and the packs are separate works shipped beside it, each
 under its own source's terms as noted in its `ATTRIBUTION.md`, so a GPL

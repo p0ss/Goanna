@@ -125,8 +125,6 @@ for _mod in ("draconis", "goblins", "sum_airship", "animalia", "edit_skin",
     }
 # Edit Skin draws on the game's player model, player_api's character.b3d.
 GAMES["edit_skin"]["model_roots"] = [GAMES_DIR / "minetest_game"]
-# Parts its media credits do not name; built for review, never shipped.
-GAMES["edit_skin"]["excluded"] = REPO / "pbr_packs/manifests/edit-skin-v1.excluded.json"
 DEFAULT_GAME = "mineclonia"
 GAME_TEXTURES = GAMES[DEFAULT_GAME]["art"]
 PACK_TEXTURES = GAMES[DEFAULT_GAME]["pack"]
