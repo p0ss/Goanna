@@ -420,6 +420,25 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             if (cls == MaterialClass::None && item)
                 cls = classifyName(cbase);
         }
+        // A composed texture built on a node tile (DorfCraft's engraving
+        // plate) draws its art at the resolution of its parts' files, the
+        // way its companions are composed: the plate's stone is the wall's
+        // own 256 pixel art instead of Luanti's [resize back to 16 texels,
+        // which kept one pixel in sixteen and drew the plate as a blurred,
+        // lighter panel in the wall. The generated image still sets the art
+        // grid and the alpha; this changes only what is sampled.
+        if (composed && cls != MaterialClass::None) {
+            GoannaTexture *full = session.tsrc()->composedCompanion(texture, "_a", nullptr);
+            if (full && full->image() && gt->image() &&
+                    full->image()->getDimension().Width > gt->image()->getDimension().Width &&
+                    full->godotTexture().is_valid()) {
+                sm->set_shader_parameter("albedo", full->godotTexture());
+                if (getenv("GOANNA_DEBUG_ENTITY_PBR"))
+                    UtilityFunctions::print("entity albedo at full resolution: ",
+                            (int)full->image()->getDimension().Width, "x",
+                            (int)full->image()->getDimension().Height);
+            }
+        }
         const ClassSpec &csp = classSpec(cls);
         sm->set_shader_parameter("mat_class", (int)cls);
         sm->set_shader_parameter("class_smoothness", csp.smoothness);

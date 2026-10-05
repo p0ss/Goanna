@@ -98,13 +98,23 @@ struct Rgba8 {
 //
 // tangent says R and G hold a tangent space vector, which a rotation or a
 // flip of the image has to turn with it (transformCompanion).
+//
+// albedo says the "companion" is the art itself at the resolution its file
+// has: composeCompanion then builds a texture's albedo at the finest scale
+// among its parts, where Luanti's own result is at the declared size (a
+// [resize back to 16 texels samples a pack's 256 pixel stone one pixel in
+// sixteen). Colour and coverage modifiers are not reproduced at that
+// scale, so with albedo they are read only on a value that draws nothing
+// (wholly transparent), and anything else makes the texture Unsupported.
 struct CompanionKind {
     uint8_t neutral[4];
     bool blend[4];
     bool tangent = false;
+    bool albedo = false;
 };
 constexpr CompanionKind kNormalKind{{128, 128, 255, 255}, {true, true, true, true}, true};
 constexpr CompanionKind kSpecKind{{0, 10, 0, 255}, {true, false, false, false}, false};
+constexpr CompanionKind kAlbedoKind{{0, 0, 0, 0}, {true, true, true, true}, false, true};
 
 // One layer's inputs: its albedo (whose alpha, times opacity, is the mask)
 // and its companion, either of which may be empty. A layer whose albedo is

@@ -347,14 +347,20 @@ Rgba8 scaled(const Rgba8 &img, int w, int h) {
     return out;
 }
 
-// `v` at art size w x h, its companion keeping its scale over the art.
+// `v` at art size w x h. Its companion covers the same image, so it keeps
+// its scale over the art when the art grows, and its own pixels when the art
+// shrinks: a resize never lowers a companion's resolution. A pack that ships
+// a stone at 256 pixels with its maps, laid into a plate as
+// "stone.png^[resize:16x16" (DorfCraft's engravings), kept 16 pixels of map
+// per node, the stone's relief one art texel coarse beside the same stone in
+// the wall; now it keeps all 256.
 void resizeValue(Value &v, int w, int h) {
     if (v.albedo.w == w && v.albedo.h == h)
         return;
     if (v.any()) {
-        const int cw = std::max(1, (int)std::lround((double)w * v.comp.w / v.albedo.w));
-        const int ch = std::max(1, (int)std::lround((double)h * v.comp.h / v.albedo.h));
-        v.comp = scaled(v.comp, cw, ch);
+        const int cw = std::max(v.comp.w, (int)std::lround((double)w * v.comp.w / v.albedo.w));
+        const int ch = std::max(v.comp.h, (int)std::lround((double)h * v.comp.h / v.albedo.h));
+        v.comp = scaled(v.comp, std::max(1, cw), std::max(1, ch));
     }
     v.albedo = scaled(v.albedo, w, h);
 }
@@ -612,6 +618,11 @@ private:
             return true;
         }
         if (!have)
+            return false;
+        // At the parts' own resolution only what moves texels is
+        // reproduced; see CompanionKind::albedo.
+        if (m_kind.albedo && !startsWith(part, "[transform") && !startsWith(part, "[resize") &&
+                !allTransparent(base.albedo))
             return false;
         if (startsWith(part, "[transform")) {
             const int t = parseImageTransform(part.substr(10));

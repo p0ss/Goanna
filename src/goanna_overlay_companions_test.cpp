@@ -533,6 +533,45 @@ void testCuts() {
             "an overlay stack cuts the same way");
 }
 
+// A pack's stone at four times its art, resized back to the art's size in a
+// plate (DorfCraft's "stone.png\^[resize\:16x16" parts): the maps and, with
+// kAlbedoKind, the art itself keep all of the pack's pixels.
+void testPackResolution() {
+    Fake f;
+    Rgba8 big = solid(16, 16, 0, 0, 0, 255);
+    for (int y = 0; y < 16; ++y)
+        for (int x = 0; x < 16; ++x)
+            setPx(big, x, y, (uint8_t)(x * 10), (uint8_t)(y * 10), 7, 255);
+    f.albedo["stone.png"] = big;
+    f.comp["stone.png"] = big;
+    f.albedo["glyph.png"] = solid(2, 2, 0, 0, 0, 0);
+    Rgba8 out;
+    const std::string plate = "([combine:8x4:0,0=stone.png\\^[resize\\:4x4:4,0=stone.png"
+            "\\^[resize\\:4x4)^(([combine:8x4:1,1=glyph.png)^[multiply:#d8d4cc)";
+    check(composeCompanion(plate, kNormalKind, f.sources(), out) == Composed::Done &&
+            out.w == 32 && out.h == 16, "a resize down keeps the map's own pixels");
+    check(same(px(out, 5, 3), 50, 30, 7, 255) && same(px(out, 21, 3), 50, 30, 7, 255),
+            "each copy of the stone carries the whole map, not every fourth pixel");
+    // The albedo kind: the leaf's "companion" is its own image.
+    Fake a = f;
+    a.comp = a.albedo;
+    check(composeCompanion(plate, kAlbedoKind, a.sources(), out) == Composed::Done &&
+            out.w == 32 && same(px(out, 5, 3), 50, 30, 7, 255),
+            "the albedo kind builds the plate at the stone's full resolution");
+    check(same(px(out, 6, 6), 60, 60, 7, 255),
+            "a transparent glyph leaves the stone's colour, multiply and all");
+    a.albedo["glyph.png"] = solid(2, 2, 160, 160, 160, 255);
+    a.comp["glyph.png"] = a.albedo["glyph.png"];
+    check(composeCompanion(plate, kAlbedoKind, a.sources(), out) == Composed::Unsupported,
+            "a recolour of drawn art is not reproduced at full resolution, so refused");
+    // Growing the art still scales the map with it.
+    Fake g;
+    g.albedo["s.png"] = solid(2, 2, 1, 1, 1, 255);
+    g.comp["s.png"] = solid(4, 4, 9, 9, 9, 255);
+    check(composeCompanion("s.png^[resize:4x4", kNormalKind, g.sources(), out) ==
+            Composed::Done && out.w == 8, "a resize up keeps the map's scale over the art");
+}
+
 void testFirstImage() {
     check(firstImage("mobs_mc_creeper.png^[brighten") == "mobs_mc_creeper.png", "a plain image");
     check(firstImage("(mcl_banners_banner_base.png^[mask:m.png)^x.png") ==
@@ -556,6 +595,7 @@ int main() {
     testCompose();
     testCuts();
     testFirstImage();
+    testPackResolution();
     std::printf("overlay companions: %d checks, %d failure(s)\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;
 }

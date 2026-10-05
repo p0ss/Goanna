@@ -633,7 +633,7 @@ a 16 texel part stays 256 pixels per 16 texels inside a composite.
 | `(...)` | composed on its own, then laid into the corner at its own size, unscaled, as Luanti blits a group |
 | `[combine:WxH:x,y=part:...` | a transparent canvas, neutral companion; each part composed (escaped `\^` and `\:` included, nested combines included) and placed at its offset times the scale, clipped; laid onto the image before it instead when there is one |
 | `[transformN` | moved as the texels move (`imageTransform`), and for `_n` the tangent turned with them; see below |
-| `[resize:WxH` | scaled nearest, keeping its scale over the art |
+| `[resize:WxH` | scaled nearest when the art grows, keeping its scale over the art; left at its own pixels when the art shrinks, so a resize never lowers a companion's resolution (since 2026-10-06; before, a pack's 256 pixel stone map resized with its art to 16 kept one pixel in sixteen) |
 | `[opacity:R`, `[noalpha` | the albedo's alpha changes, which is the mask when this part lies over another |
 | `[mask:m` | the mask composed, the smaller of the two scaled up to the other by area, and the albedo ANDed with it byte by byte (`imageApplyMask`); the companion is untouched, and shows only where the masked art covers once the part lies over another |
 | colour only modifiers | nothing |
@@ -853,6 +853,21 @@ torch was evenly lit where the wall beside it was not. Since 2026-10-06
   block light only past the lamp pool's reach, where every other entity
   adds a warm fill from its one block light value on top of the lamps.
 - It casts no shadow: the wall behind it casts that one.
+- Its art is drawn at the resolution of its parts' files. Luanti builds the
+  plate at its declared size, 16 texels a node, and DorfCraft lays the
+  wall's stone in as `stone.png^[resize:16x16` so the tiling is right for
+  any pack; with Goanna's authored pack that stone is 256 pixels, and the
+  resize kept one pixel in sixteen, so on the GPU the plate's stone was a
+  blurred, lighter panel in the wall. When an entity's texture is composed
+  and its first image is a node tile, `composedCompanion(texture, "_a")`
+  builds the albedo the way the maps are built, each part at its own file's
+  resolution (`kAlbedoKind`), and the shader samples that instead; the
+  generated image still sets the art grid and the alpha. Colour and
+  coverage modifiers are not reproduced at that scale, so they are allowed
+  only on parts that draw nothing (DorfCraft's recoloured glyph group, whose
+  pack glyphs are transparent) and anything else keeps Luanti's image. It
+  costs a texture of the plate's size at the pack's scale: 2048 by 1024 for
+  an eight by four node plate on a 256 pixel pack, 8 MiB before mipmaps.
 - `GOANNA_NO_WALL_PLATE=1` turns all of this off, for an A/B.
 - Not handled: a plate on a floor or ceiling, a plate turned off the world
   axes, one whose wall has holes over more than four of the nine points,

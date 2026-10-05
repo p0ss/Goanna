@@ -963,6 +963,9 @@ GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture
         // loads it, its companion the first of companionNames a pack or the
         // server has. Kept for the one composition, which may ask twice.
         std::map<std::string, Rgba8> albedos, comps;
+        // "_a" is the albedo itself at the resolution of each part's file
+        // (kAlbedoKind): the leaf's "companion" is the leaf.
+        const bool albedo = std::strcmp(suffix, "_a") == 0;
         CompanionSources sources{
             [&](const std::string &name) {
                 auto a = albedos.find(name);
@@ -979,6 +982,13 @@ GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture
                 if (c != comps.end())
                     return c->second;
                 Rgba8 r;
+                if (albedo) {
+                    video::IImage *img = getOrGenerateImage(name);
+                    r = imageToRgba8(img);
+                    if (img)
+                        img->drop();
+                    return comps[name] = r;
+                }
                 for (const std::string &cn : companionNames(name, suffix)) {
                     if (!isKnownSourceImage(cn))
                         continue;
@@ -994,8 +1004,8 @@ GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture
         };
         Rgba8 out;
         const bool normal = suffix[1] == 'n';
-        const Composed result = composeCompanion(texture, normal ? kNormalKind : kSpecKind,
-                sources, out);
+        const Composed result = composeCompanion(texture,
+                albedo ? kAlbedoKind : normal ? kNormalKind : kSpecKind, sources, out);
         u32 id = result == Composed::Unsupported ? kComposedUnread : 0;
         if (result == Composed::Done) {
             video::IImage *img = goanna_create_image(video::ECF_A8R8G8B8,
