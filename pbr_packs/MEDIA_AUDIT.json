@@ -155,6 +155,11 @@
       "decision": "eligible",
       "evidence": "Release 38367's only media notice is 'Textures by Bas80 and Neuromancer are CC BY-SA', with no version and no file list; the package declares CC-BY-SA-3.0 on ContentDB, which supplies the version and agrees with the notice. Its 7 world textures are recorded CC BY-SA 3.0 with both authors credited on every file, 2026-10-05.",
       "media_license": "CC-BY-SA-3.0"
+    },
+    "x_farming": {
+      "decision": "eligible",
+      "evidence": "Release 38796 LICENSE.txt ends in per file credits: 576 textures CC BY-SA 4.0 by SaKeL (11 noting a source: Farmer's Delight by vectorwing, MIT; Pixel Perfection by XSSheep; Minetest Game textures by paramat, PilzAdam, Splizard, random-geek, Neuromancer and Calinou, CC BY-SA 3.0), the glass bottle CC BY-SA 3.0 modified by Thomas-S, and a GUI image by BlockMen. README.md and ContentDB agree on CC BY-SA 4.0. 331 world textures recorded per file on 2026-10-05; soil_wet_side, misattributed to SaKeL but byte identical to PilzAdam's, is recorded CC BY-SA 4.0 with PilzAdam credited, and is not authored (faint alpha).",
+      "media_license": "CC-BY-SA-4.0"
     }
   }
 }

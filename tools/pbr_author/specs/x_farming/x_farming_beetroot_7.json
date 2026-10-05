@@ -1,0 +1,35 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "stalk": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.22
+  },
+  "fruit": {
+   "mode": "shade",
+   "base": 0.56,
+   "span": 0.18,
+   "joints": false,
+   "detail": 0.25,
+   "smooth": 0.36,
+   "sss": 50
+  }
+ },
+ "palette": {
+  "#8c1619": "fruit",
+  "#b41c28": "fruit",
+  "#bb4748": "stalk",
+  "#d96669": "stalk"
+ }
+}

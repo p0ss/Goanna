@@ -1,0 +1,45 @@
+{
+ "class": "wood",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "bevel",
+ "micro": "none",
+ "strength": 10,
+ "bevel_px": 1.5,
+ "bevel_depth": 0.08,
+ "materials": {
+  "wax": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.45,
+   "smooth_spread": 0.04,
+   "scatter": 0.35
+  }
+ },
+ "legend": {
+  "A": "wax",
+  ".": "wax"
+ },
+ "grid": [
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAA.."
+ ]
+}

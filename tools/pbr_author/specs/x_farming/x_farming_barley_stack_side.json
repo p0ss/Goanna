@@ -1,0 +1,50 @@
+{
+ "class": "leaves",
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.44,
+   "smooth": 0.22,
+   "levels": 3,
+   "joints": false
+  },
+  "groove": {
+   "mode": "flat",
+   "base": 0.14,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.14
+  },
+  "band": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.18
+  }
+ },
+ "legend": {
+  "a": "straw",
+  "b": "groove",
+  "c": "band"
+ },
+ "grid": [
+  "bababababaaaaaba",
+  "baaabaaabaaababa",
+  "baaabaaabaaabaaa",
+  "bababababababaaa",
+  "cccccccccccccccc",
+  "babaaabaaabababa",
+  "babaaabaaabaaaba",
+  "aabaaababaaaaaba",
+  "aababababaaababa",
+  "bababaaaaaaababa",
+  "baaabaaabababaaa",
+  "cccccccccccccccc",
+  "baaababababaaaaa",
+  "baaababaaababaaa",
+  "aaaaaabaaaaabaaa",
+  "aabaaabaaaaababa"
+ ]
+}

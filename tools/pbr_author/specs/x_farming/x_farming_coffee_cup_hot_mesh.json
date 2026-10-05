@@ -1,0 +1,80 @@
+{
+ "class": "stone",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 8,
+ "materials": {
+  "glaze": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0.0,
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "micro": "glass",
+   "micro_strength": 1.0
+  },
+  "heart": {
+   "mode": "flat",
+   "base": 0.82,
+   "span": 0.0,
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "micro": "glass",
+   "micro_strength": 1.0
+  },
+  "rim": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0.0,
+   "smooth": 0.6,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  },
+  "coffee": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0.0,
+   "smooth": 0.88,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  }
+ },
+ "legend": {
+  "A": "glaze",
+  "B": "heart",
+  "C": "rim",
+  "D": "coffee",
+  ".": "glaze"
+ },
+ "grid": [
+  "...........................",
+  "AAAAA......................",
+  "AAAAAAAAAAAAAAA............",
+  "AAAAAAAAAAAAAACCCCCAAAAA...",
+  "AAAAAAAAAAAAAACDDDCAAAAA...",
+  "AAAAAAAAAAAAAACDDDCAAAAA...",
+  "BBABBAAAAA..AACDDDCAAAAA...",
+  "BBBBBAAAAA..AACCCCCAAAAA...",
+  "ABBBAAAAAA..AACCCCCBBABB...",
+  "AABAAAAAAA..AACDDDCBBBBB...",
+  "AAAAAAAAAAAAAACDDDCABBBAA..",
+  "AAAAAAAAAAAAAACDDDCAABAAA..",
+  "AAAAAAAAAAAAAACCCCCAAAAAA..",
+  "AAAAAAAABBABBAAAAAAAAAAAA..",
+  "AAAAAAAABBBBBAAAAAAAAA.AA..",
+  "AAAAAAAAABBBAAAAAAAAAAAAA..",
+  "AAAAAAAAAABAAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAAAAAAAAAAAAA..",
+  "AAAAAAAAAAAAAAAAAAAAAAAAA..",
+  "AAAAAAAAAA.AAAAAAAAAAAA.A..",
+  "ABBABBAAAAAAAAA.....AAAAA..",
+  "ABBBBBAAAAAAAAA.....A..AA..",
+  "AABBBAAAAAAAAAA.....A..AA..",
+  "AAABAAAAAAAAAAA.....A..AA..",
+  "AAAAAAAAAA.AAAA.....A..AA..",
+  "AAAAAAAAAAAAAAAAAAAAAAAAA.."
+ ]
+}

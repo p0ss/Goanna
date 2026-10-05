@@ -1,0 +1,59 @@
+{
+ "class": "wood",
+ "micro": "none",
+ "materials": {
+  "rind": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5,
+   "smooth": 0.4,
+   "smooth_spread": 0.05
+  },
+  "lip": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.35
+  },
+  "hole": {
+   "mode": "flat",
+   "base": 0.06,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  },
+  "glow": {
+   "mode": "shade",
+   "base": 0.1,
+   "span": 0.15,
+   "smooth": 0.3,
+   "joints": false,
+   "emission": 0.8
+  }
+ },
+ "legend": {
+  "a": "rind",
+  "b": "lip",
+  "c": "hole",
+  "d": "glow"
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aabcaaaaaaaacbaa",
+  "abcdcbaaaabcdcba",
+  "abcddcaaabcddcba",
+  "aabcddaacbddcbaa",
+  "aaaaaaacdcbbaaaa",
+  "aababaaddbabbcaa",
+  "aacbbbbbbbbbbcaa",
+  "aaccbccbbccbcdaa",
+  "aadccddccddccdaa",
+  "aaaddddddddddaaa",
+  "aaabdccddccdaaaa",
+  "aaaaabcbbbcaaaaa",
+  "aaaaaaaaaaaaaaaa"
+ ]
+}

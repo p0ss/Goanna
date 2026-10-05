@@ -1,0 +1,45 @@
+{
+ "class": "soil",
+ "micro": "none",
+ "materials": {
+  "soil": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45,
+   "smooth": 0.06
+  },
+  "salt": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.35,
+   "smooth": 0.6,
+   "joints": false,
+   "levels": 3,
+   "merge": 0.3,
+   "smooth_spread": 0.06,
+   "f0": 0.05
+  }
+ },
+ "legend": {
+  "a": "soil",
+  "b": "salt"
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaabbaaaaaaa",
+  "aaaaaaabbaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa"
+ ]
+}

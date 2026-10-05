@@ -1,0 +1,15 @@
+{
+ "class": "wood",
+ "overlay": true,
+ "micro": "none",
+ "materials": {
+  "honey": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.15,
+   "smooth": 0.78,
+   "joints": false,
+   "smooth_spread": 0.04
+  }
+ }
+}

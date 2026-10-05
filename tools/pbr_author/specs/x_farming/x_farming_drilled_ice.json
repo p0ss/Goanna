@@ -1,0 +1,14 @@
+{
+ "class": "ice",
+ "overlay": true,
+ "micro": "none",
+ "materials": {
+  "water": {
+   "mode": "shade",
+   "base": 0.0,
+   "span": 0.1,
+   "smooth": 0.9,
+   "joints": false
+  }
+ }
+}

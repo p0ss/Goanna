@@ -1,0 +1,26 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "stalk": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.22
+  }
+ },
+ "palette": {
+  "#6a2f0b": "stalk",
+  "#723b03": "stalk",
+  "#813c01": "stalk",
+  "#965315": "stalk"
+ }
+}

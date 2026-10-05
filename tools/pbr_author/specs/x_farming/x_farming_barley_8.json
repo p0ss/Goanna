@@ -1,0 +1,33 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.38,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.26,
+   "sss": 70
+  },
+  "head": {
+   "mode": "shade",
+   "base": 0.52,
+   "span": 0.2,
+   "joints": false,
+   "detail": 0.25,
+   "smooth": 0.32,
+   "sss": 80
+  }
+ },
+ "palette": {
+  "#8e5b24": "head",
+  "#92682b": "head",
+  "#a97430": "head",
+  "#bf943b": "head",
+  "#d9a40c": "head",
+  "#daa947": "head",
+  "#f1cc6c": "head",
+  "#f1cd23": "head"
+ }
+}

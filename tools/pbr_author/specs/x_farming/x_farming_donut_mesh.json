@@ -1,0 +1,82 @@
+{
+ "class": "soil",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "dough": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.22,
+   "smooth_spread": 0.04,
+   "micro": "mottle",
+   "micro_strength": 0.5
+  },
+  "icing": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.6,
+   "smooth_spread": 0.04
+  },
+  "sprinkle": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0.0,
+   "smooth": 0.55,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  }
+ },
+ "legend": {
+  "A": "dough",
+  "B": "icing",
+  "C": "sprinkle",
+  ".": "dough"
+ },
+ "grid": [
+  "..................................",
+  "AAAAAAAAAAAAAAABAAABAAAAA.........",
+  ".....AAAAAA.....AAAABBAABABAAAAA..",
+  "...AAAAAAAAAA...BAAABABBAAABABBA..",
+  "..AAAAAAAAAAAA..B..BBBBBBBBBBBBA..",
+  ".AAAAAAAAAAAAAA.AAAA.ABABAAAABBA..",
+  ".AAAAA....AAAAA.AAAA.ABABAAAAABA..",
+  "AAAAA......AAAAAAAAA.AAAAAAAAAAA..",
+  "AAAA........AAAAA..AAAAAAAAAAAAAA.",
+  "AAAA........AAAABBBBBBBBBBBBBBBB..",
+  "AAAA........AAAA.AA..AA..B.BB.BAA.",
+  "AAAA........AAAA.AA..AA..A.AB.AAA.",
+  "AAAAA......AAAAA.AA..AA..A.AA.AAA.",
+  ".AAAAA....AAAAA.AAAAAAAAAAAAAAAAB.",
+  ".AAAAAAAAAAAAAA..BBBBBB.B..BBBBAB.",
+  "..AAAAAAAAAAAA..AABBAABAAAAAB.BAA.",
+  "...AAAAAAAAAA...AAABAAAAAAAAB.AAA.",
+  ".....AAAAAA.....AAAAAAAAAAAAA.AAA.",
+  ".....BBBBBB......AAAAAA.A..AAAAAA.",
+  "...BBBBCBBBBB....BBBBBB.B.BB.BBAA.",
+  "..BBBCBBCBBBBB..AABABBAAAAB.AABAA.",
+  ".BBBBBBBBBBCBBB.AAAABAAAAAA.AAAAA.",
+  ".BBCBB....BBBBB.AAAAAAAAAAA.AAAAA.",
+  "BBBBB......BCBBB.AAAAAA.A.AA.AAAA.",
+  "BBBB........BBBB.BBBBBB.BBBBBBBAA.",
+  "BBBB........BCBBAAAABABA.AA.B.AAA.",
+  "BBCB........BBBBAAAAAABA.AA.B.AAA.",
+  "BBBB........BBCBAAAAAAAA.AA.A.AAA.",
+  "BBCBB......BBBBB.AAAAAA.AAAAAAAAA.",
+  ".BBBBB....BBCBB..BBBBBB.BBBBBBBAA.",
+  ".BCBBBBBBBBBBBB.AABABABA.AA..BBAA.",
+  "..BBCBCBBBCBBB..AAAABAAA.AA..ABAA.",
+  "...BBBBBCBBBB...AAAAAAAA.AA..AAAA.",
+  ".....BBBBBB......AAAAAA.AAAAAAAAA."
+ ]
+}

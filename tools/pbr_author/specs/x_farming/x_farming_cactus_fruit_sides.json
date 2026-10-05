@@ -1,0 +1,33 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "skin": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.22,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.55,
+   "smooth_spread": 0.04
+  },
+  "areole": {
+   "mode": "flat",
+   "base": 0.4,
+   "span": 0,
+   "micro": 0.03,
+   "smooth": 0.45
+  }
+ },
+ "palette": {
+  "#2f0200": "areole",
+  "#320400": "areole",
+  "#360400": "areole",
+  "#400501": "areole",
+  "#420500": "areole",
+  "#430400": "areole",
+  "#430602": "areole"
+ }
+}

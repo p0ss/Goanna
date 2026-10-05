@@ -1,0 +1,41 @@
+{
+ "class": "wood",
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.4,
+   "smooth": 0.28,
+   "joints": false
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.1,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.12
+  }
+ },
+ "legend": {
+  "a": "wood",
+  "b": "gap"
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaabaaaabaaaa",
+  "aaababbababbabaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa"
+ ]
+}

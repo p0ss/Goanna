@@ -1,0 +1,27 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "stake": {
+   "mode": "shade",
+   "base": 0.34,
+   "span": 0.12,
+   "joints": false,
+   "detail": 0.3,
+   "smooth": 0.3,
+   "sss": 0
+  },
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  }
+ },
+ "palette": {
+  "#16404d": "leaf",
+  "#1b7761": "leaf",
+  "#33e786": "leaf"
+ }
+}

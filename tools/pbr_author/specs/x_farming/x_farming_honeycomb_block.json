@@ -1,0 +1,44 @@
+{
+ "class": "wood",
+ "micro": "none",
+ "materials": {
+  "honey": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.4,
+   "smooth": 0.8,
+   "joints": false,
+   "levels": 3,
+   "smooth_spread": 0.06
+  },
+  "wax": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.35
+  }
+ },
+ "legend": {
+  "a": "honey",
+  "b": "wax"
+ },
+ "grid": [
+  "aaaabaaaaaababaa",
+  "aaaabaaaaaababaa",
+  "aaaabaaaaaabbbbb",
+  "baabbbaaaabbaaaa",
+  "abbbaabbbbbaaaaa",
+  "ababaaaaaabaaaaa",
+  "ababaaaaaabaaaaa",
+  "abbbbaaaaabaaaaa",
+  "baaaabaaababaaaa",
+  "aaaaaabbbaaabbbb",
+  "aaaaaababaaaaaab",
+  "aaaaaababaaaaaab",
+  "aaaaaababaaaaaab",
+  "baaaabbbbbaaaabb",
+  "abbbbbaaaabbbbba",
+  "aaaabaaaaaababaa"
+ ]
+}

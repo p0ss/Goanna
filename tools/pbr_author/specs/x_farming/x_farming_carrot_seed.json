@@ -1,0 +1,27 @@
+{
+ "class": "soil",
+ "micro": "none",
+ "materials": {
+  "seed": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.2,
+   "joints": false,
+   "detail": 0.3,
+   "smooth": 0.42
+  },
+  "top": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.15,
+   "joints": false,
+   "smooth": 0.26
+  }
+ },
+ "palette": {
+  "#2f4c23": "top",
+  "#305a2c": "top",
+  "#4b703d": "top",
+  "#597c46": "top"
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "class": "wood",
+ "micro": "bark",
+ "materials": {
+  "bark": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.24,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.05
+  },
+  "furrow": {
+   "mode": "flat",
+   "base": 0.12,
+   "span": 0,
+   "smooth": 0.26
+  },
+  "moss": {
+   "mode": "flat",
+   "base": 0.24,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.2,
+   "sss": 60
+  }
+ },
+ "grid": [
+  "m..f.........f..",
+  ".f.ff....f...f..",
+  ".f..fm..ff..ff..",
+  ".f...m..ff..fm..",
+  ".fm....f.fmf..m.",
+  "......ff.f.fm...",
+  ".....fff..ff...f",
+  ".....f.fm.ff...f",
+  "....ff..m.fm...m",
+  "..m.fm..fff.m..m",
+  ".f..fm..ff......",
+  ".ff....mff......",
+  ".ff...f.fm....f.",
+  ".fm...f....m..f.",
+  "...f..fm..m...fm",
+  "...f....m.m....m"
+ ],
+ "legend": {
+  "f": "furrow",
+  "m": "moss"
+ },
+ "micro_strength": 1.4
+}

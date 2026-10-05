@@ -1,0 +1,82 @@
+{
+ "class": "soil",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "skin": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.04,
+   "micro": "scale",
+   "micro_strength": 0.8
+  },
+  "herb": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.04,
+   "micro": "leaf",
+   "micro_strength": 0.5
+  },
+  "eye": {
+   "mode": "flat",
+   "base": 0.55,
+   "span": 0.0,
+   "smooth": 0.6,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  }
+ },
+ "legend": {
+  "A": "skin",
+  "B": "herb",
+  "C": "eye",
+  ".": "skin"
+ },
+ "grid": [
+  "AAAAA.....AAAA..",
+  "AAAAA.....AAAA..",
+  "AAAAA.....AAAA..",
+  "AAAAA.....AAAA..",
+  "..........AAAA..",
+  "..........AAAA..",
+  "..........AAAA..",
+  "..........AAAA..",
+  "BAAAA.......AA..",
+  "AABCA.....AAAA..",
+  "AAAAA.....AAAA..",
+  "ABCAA.....A....A",
+  "AAAAB.....AAAAAA",
+  "BAAAA......AAAA.",
+  "AAAAC.....A.AA.A",
+  "ABCAA.....AAAAAA",
+  "AAAAAAAAA..AAAA.",
+  "AAAAAAAAAA..AA..",
+  "AAAAAAAAAA......",
+  "AAAAAAAAAA......",
+  "AAAAAAAAAA......",
+  "AAAAAAAA.A......",
+  "AAA.AAA.........",
+  "AAAAA..AAAA.....",
+  "AAAAAA.AAA......",
+  "AAAAAAAAAAAA....",
+  "AAAAAAAA..AA....",
+  "...AAAAAAAA.....",
+  "AAAAAAAAAAAA....",
+  "AAAAAAAAAAAA....",
+  "...AAAAAAAA.....",
+  "................"
+ ]
+}

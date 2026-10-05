@@ -1,0 +1,82 @@
+{
+ "class": "soil",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "carton": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0.0,
+   "smooth": 0.28,
+   "smooth_spread": 0.0,
+   "micro": "paper",
+   "micro_strength": 1.0
+  },
+  "print": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0.0,
+   "smooth": 0.3,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  },
+  "fries": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.25,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.35,
+   "smooth_spread": 0.04
+  }
+ },
+ "legend": {
+  "A": "carton",
+  "B": "print",
+  "C": "fries",
+  ".": "carton"
+ },
+ "grid": [
+  ".....................................",
+  "C....................................",
+  "CC...................................",
+  "CCCCCC......................C.....C..",
+  "CCCCCC......................C..CCCC..",
+  "CCCCCCC.....................CACCCCC..",
+  "CCCCCCCCCCCCACCCCCC.CCA.A.A.CACCCCC..",
+  "C.C..C...C....C..CC.CCA.A.A.CACCCCC..",
+  "C.C.CC...C.CCCC.CCCCCCA.A.A.CACCCCC..",
+  "CCC.CCCC.C.CCCC.CCCCCCA.A.A.CACCCCC..",
+  "CCC.CCCC.C.CCCCCCCCCCCA.A.A.CACCCCC..",
+  "CCCCCCCC.CCCCCCCCCCCCCA.A.A.CACCCCC..",
+  "CCCCCCCC.CCCCCCCCCCCCCAAAAAACACCCCC..",
+  "CCCCCCCCACCCCCCCCCCCCCAAAAAC..CCCCC..",
+  "CCCCCCCC.CCCCCCCCCCCCCAA.AAC.CCCCCC..",
+  "CCCCCCCC.CCCCCCCCCCCCCA.A.ACCCAAACC..",
+  "CCCCCCCC.CCCCCCCCCCCCCAAAAACCCAAACC..",
+  "CCCCCCCC.CCCCCCCCCCCCCA..AACCCAAACC..",
+  "CCCCCCCC.CCC.A.A.A.A.AAAA.ACCCAAACC..",
+  "AA........AA.A.A.A.A.AA.AAACCCAAACC..",
+  "AAAAAAAAAAAA.A.A.A.A.AAA.AACCCAAACC..",
+  "AABBAAAABBAA.A.A.A.A.AA...ACCCAAACC..",
+  "AABBAAAABBAA.A.A.A.A.AAA.AACCCAAACC..",
+  "AAAAABBAAAAA.A.A.A.A.AA.A.ACCCAAACC..",
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAACCCAAACC..",
+  "........C.AAAAAAAAAACCAAAAA.C...CCC..",
+  "........C.AAAAAAAAAACCA...A.CC.CCC...",
+  "........C.AAAAAAAAAACCA....CCC.CCC...",
+  "........C.AAAAAAAAAACCA....CCC.CCC...",
+  "........C.AAAAAAAAAACCA....CCC.CCCC..",
+  "........CAAAAAAAAAAACCA....CCC.CCCC..",
+  ".A.AA.AA.AAAAAAAAAAAAAA....CCCACCCCC.",
+  ".B.AA.AB.AAAAAAAAAAAAAA....CCC.CCCCC.",
+  ".B.AA.AB.AAAAAAAAAAAAAA....CCC.CCCCC.",
+  ".A.AB.AA.AAAAAAAAAAAAAA....CCC.CCCCC.",
+  ".A.AA.AA.AAAAAAAAAAAAAA...ACCC.CCCCC.",
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAACCC.CCCCC."
+ ]
+}

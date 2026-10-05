@@ -1,0 +1,29 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "pod": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.26,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.05
+  },
+  "stem": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#4c3b33": "stem",
+  "#544238": "stem",
+  "#6f5142": "stem"
+ }
+}

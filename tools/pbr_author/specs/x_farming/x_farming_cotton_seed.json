@@ -1,0 +1,14 @@
+{
+ "class": "soil",
+ "micro": "none",
+ "materials": {
+  "seed": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.2,
+   "joints": false,
+   "detail": 0.3,
+   "smooth": 0.42
+  }
+ }
+}

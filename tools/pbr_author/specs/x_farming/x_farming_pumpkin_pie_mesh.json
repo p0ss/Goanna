@@ -1,0 +1,69 @@
+{
+ "class": "soil",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "crust": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.22,
+   "smooth_spread": 0.04,
+   "micro": "mottle",
+   "micro_strength": 0.5
+  },
+  "filling": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.15,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.45,
+   "smooth_spread": 0.04
+  }
+ },
+ "legend": {
+  "A": "crust",
+  "B": "filling",
+  ".": "crust"
+ },
+ "grid": [
+  "..............................",
+  "..............................",
+  "AAAAAAAAAAAAAAABBBBBBBBBBB....",
+  ".AAAAAAAAAAAAA.ABBBBBBBBBBBB..",
+  "BBBBBBBBBBBBB..AAABBBBABABBB..",
+  "BBBBBBBBBBBBB..AAABAABAAAABB..",
+  ".BBBBBBBBBBB...AAAAAAAAAAABAB.",
+  ".BBBBBBBBBBB...AAAAAAAAAAAAAA.",
+  "..BBBBBBBBB..AAAAAAAAAAAAAAAA.",
+  "..BBBBBBBBB..AAAAAAAAAAAAAAAA.",
+  "...BBBBBBB...AAAAAAAAAAAAAAAA.",
+  "...BBBBBBB...AAAAAAAAAAAAAAAA.",
+  "....BBBBB....AAAAAAAAAAAAAAAB.",
+  ".....BBB.....AAAAAAAAAAAAAAAA.",
+  ".....BBB.....AAAAAAAAAAAAAAAA.",
+  "......B......AAAAAAAAAAAAAAAA.",
+  "AAAAAAAAAAAAAAA..A........AAA.",
+  ".AAAAAAAAAAAAA.BBABB......AAA.",
+  ".AAAAAAAAAAAAA.BAABABBBBBBAAB.",
+  ".AAAAAAAAAAAAA.BAABABABABAAAB.",
+  "..AAAAAAAAAAA..BAAAABABABAAAB.",
+  "..AAAAAAAAAAA..AAAAAAAAABAAAA.",
+  "...AAAAAAAAA...AAAAAAAAAAAAAA.",
+  "...AAAAAAAAA.....A..AAAAAAAAA.",
+  "....AAAAAAA....BBABBBBBBBBAAB.",
+  "....AAAAAAA....BAABABABABAAAB.",
+  ".....AAAAA.....BAABABABABAAAB.",
+  "......AAA......BAAAAAAAABAAAB.",
+  "......AAA......AAAAAAAAAAAAAA.",
+  ".......A.......AAAAAAAAAAAAAA."
+ ]
+}

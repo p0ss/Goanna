@@ -1,0 +1,12 @@
+{
+ "class": "leaves",
+ "micro": "none",
+ "materials": {
+  "wart": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.55,
+   "smooth": 0.3
+  }
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "berry": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.55,
+   "smooth_spread": 0.04,
+   "sss": 50
+  }
+ },
+ "palette": {
+  "#cf2d07": "berry",
+  "#e92606": "berry",
+  "#fc6030": "berry",
+  "#ff5a29": "berry"
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "class": "leaves",
+ "materials": {
+  "flesh": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "smooth": 0.5,
+   "smooth_spread": 0.05,
+   "sss": 40
+  },
+  "spine": {
+   "mode": "flat",
+   "base": 0.92,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.3,
+   "sss": 0
+  }
+ },
+ "palette": {
+  "#af9c85": "spine",
+  "#ccbeab": "spine",
+  "#dbd6ce": "spine"
+ }
+}

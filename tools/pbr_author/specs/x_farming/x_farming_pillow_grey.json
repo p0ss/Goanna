@@ -1,0 +1,67 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "strength": 6,
+ "materials": {
+  "puff": {
+   "mode": "flat",
+   "base": 0.78,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.12
+  },
+  "puffr": {
+   "mode": "flat",
+   "base": 0.86,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.12
+  },
+  "dip": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  },
+  "dipr": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  },
+  "stitch": {
+   "mode": "flat",
+   "base": 0.28,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.08
+  }
+ },
+ "legend": {
+  "a": "puff",
+  "b": "puffr",
+  "c": "dip",
+  "d": "dipr",
+  "e": "stitch"
+ },
+ "grid": [
+  "abccabccabccabcc",
+  "abedabedabedabed",
+  "ccabccabccabccab",
+  "edabedabedabedab",
+  "abccabccabccabcc",
+  "abedabedabedabed",
+  "ccabccabccabccab",
+  "edabedabedabedab",
+  "abccabccabccabcc",
+  "abedabedabedabed",
+  "ccabccabccabccab",
+  "edabedabedabedab",
+  "abccabccabccabcc",
+  "abedabedabedabed",
+  "ccabccabccabccab",
+  "edabedabedabedab"
+ ]
+}

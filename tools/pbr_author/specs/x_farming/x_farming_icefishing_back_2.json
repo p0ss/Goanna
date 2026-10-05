@@ -1,0 +1,65 @@
+{
+ "class": "wood",
+ "materials": {
+  "post": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.3,
+   "smooth": 0.3,
+   "joints": false
+  },
+  "line": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.35
+  },
+  "float": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.55
+  },
+  "plank": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.35,
+   "smooth": 0.3
+  },
+  "ice": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.2,
+   "smooth": 0.72,
+   "joints": false,
+   "levels": 2
+  }
+ },
+ "legend": {
+  "a": "post",
+  "b": "line",
+  "c": "float",
+  "d": "plank",
+  "e": "ice"
+ },
+ "grid": [
+  "aaabbbbbaaaaaaaa",
+  "aaabbaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaaaaaabaaaaaaaa",
+  "aaacaaabcccaaaaa",
+  "aaacaaabcccaaaaa",
+  "aaacaaabaaaaaaaa",
+  "aaacaaabaaaaaaaa",
+  "dddddddddddddddd",
+  "dddddddddddddddd",
+  "eeeeeeeeeeeeeeee",
+  "eeeeeeeeeeeeeeee"
+ ]
+}

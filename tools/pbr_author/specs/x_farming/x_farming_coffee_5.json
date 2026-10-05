@@ -1,0 +1,55 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "stalk": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.22,
+   "sss": 40
+  },
+  "flower": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.32,
+   "sss": 120
+  },
+  "cherry": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.55,
+   "smooth_spread": 0.04,
+   "sss": 30
+  }
+ },
+ "palette": {
+  "#315519": "leaf",
+  "#446d28": "leaf",
+  "#4c3817": "stalk",
+  "#5b441c": "stalk",
+  "#6a5227": "stalk",
+  "#b0976a": "flower",
+  "#b7311e": "cherry",
+  "#dc4224": "cherry",
+  "#e5ce99": "flower",
+  "#fd7065": "cherry",
+  "#ffeec4": "flower"
+ }
+}

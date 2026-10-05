@@ -1,0 +1,31 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.38,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.26,
+   "sss": 70
+  },
+  "boll": {
+   "mode": "shade",
+   "base": 0.56,
+   "span": 0.18,
+   "joints": false,
+   "detail": 0.25,
+   "smooth": 0.16,
+   "sss": 70
+  }
+ },
+ "palette": {
+  "#b5a7a2": "boll",
+  "#bfb0aa": "boll",
+  "#d5d4d9": "boll",
+  "#e1e0e4": "boll",
+  "#e8ebf0": "boll",
+  "#f4f6f8": "boll"
+ }
+}

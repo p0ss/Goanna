@@ -1,0 +1,45 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "strength": 6,
+ "materials": {
+  "weave": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.25,
+   "smooth": 0.12,
+   "levels": 2,
+   "detail": 0.5,
+   "joints": false
+  },
+  "hem": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  }
+ },
+ "legend": {
+  "a": "weave",
+  "b": "hem"
+ },
+ "grid": [
+  "bbbbbbbbbbbbbbbb",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "baaaaaaaaaaaaaab",
+  "bbbbbbbbbbbbbbbb"
+ ]
+}

@@ -1,0 +1,34 @@
+{
+ "class": "wood",
+ "micro": "none",
+ "materials": {
+  "rind": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.5,
+   "smooth": 0.4,
+   "smooth_spread": 0.05
+  }
+ },
+ "legend": {
+  "a": "rind"
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa"
+ ]
+}

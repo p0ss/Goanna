@@ -1,0 +1,72 @@
+{
+ "class": "cloth",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "leg": {
+   "mode": "shade",
+   "base": 0.65,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.35,
+   "smooth_spread": 0.04,
+   "micro": "chitin",
+   "micro_strength": 0.6
+  },
+  "eye": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0.0,
+   "smooth": 0.75,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  },
+  "sting": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0.0,
+   "smooth": 0.5,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  },
+  "glint": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0.0,
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  }
+ },
+ "legend": {
+  "A": "leg",
+  "B": "eye",
+  "C": "sting",
+  "D": "glint",
+  ".": "leg"
+ },
+ "grid": [
+  "..................................",
+  "..........AAAAAAAAAAAAAA....A.A...",
+  "............................C.C...",
+  "...BC.....AAAAAAAAAAAAAA...A...A..",
+  "..B........................C...C..",
+  "..........AAAAAAAABBBBBA...A...A..",
+  "......CB..AAAAAAABBBBBBB...C...C..",
+  "........B.AAAAAAAABBBBBA..........",
+  "..................................",
+  "..........................BB......",
+  ".A.A.AAA...........AAA.A.A........",
+  ".A.A.AAA...B...B...AAA.A.A........",
+  ".A.A.AAA...........AAA.A.A........",
+  ".A.A.AAABBBD...DBBBAAA.A.A........",
+  ".A.A.AAA.BBD...DBB.AAA.A.A........",
+  ".A.A.AAA..BB...BB..AAA.A.A........",
+  ".A.A.AAA...........AAA.A.A........"
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "class": "cloth",
+ "micro": "cloth",
+ "strength": 12,
+ "chamfer": 2,
+ "materials": {
+  "strand": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.2,
+   "smooth": 0.12,
+   "levels": 2,
+   "joints": false
+  },
+  "knot": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.12
+  }
+ },
+ "legend": {
+  "a": "strand"
+ },
+ "grid": [
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa",
+  "aaaaaaaaaaaaaaaa"
+ ]
+}

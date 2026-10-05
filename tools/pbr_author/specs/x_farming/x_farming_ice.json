@@ -1,0 +1,14 @@
+{
+ "class": "ice",
+ "materials": {
+  "ice": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.15,
+   "smooth": 0.78,
+   "levels": 2,
+   "joints": false,
+   "smooth_spread": 0.04
+  }
+ }
+}

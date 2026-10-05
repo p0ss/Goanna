@@ -1,0 +1,70 @@
+{
+ "class": "ice",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 10,
+ "materials": {
+  "slush": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.25,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.78,
+   "smooth_spread": 0.04,
+   "micro": "glass",
+   "micro_strength": 1.2,
+   "scatter": 0.3
+  },
+  "seed": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0.0,
+   "smooth": 0.7,
+   "smooth_spread": 0.0,
+   "micro": "none"
+  }
+ },
+ "legend": {
+  "A": "slush",
+  "B": "seed",
+  ".": "slush"
+ },
+ "grid": [
+  "................................",
+  "................................",
+  "AAAAAAAA........................",
+  "ABAAAABA........................",
+  "AABAABAAAAAAAAAAAAAAAAAA........",
+  "AAAAAAAAABAAABAAAAAAAAAA........",
+  "AAABAAAAAAAAAAAAAABABBAA........",
+  "AABAABAAAABAABAAAAAAAAAA........",
+  "AAABAAAAAAAAAAAAAABAAAAA........",
+  "AAAAAAAAAABABAAAAAAABABA........",
+  "........AAAAAABAABAAAAAA........",
+  "........AAAAAAAAAAAAAAAA........",
+  "AAAAAAAA........................",
+  "AAAABAAA........................",
+  "AABAAAAA........................",
+  "ABAAAAAA........................",
+  "AAAAAABA........................",
+  "AABAABAA........................",
+  "AAAAAABA........................",
+  "AAAAAAAA........................",
+  "................................",
+  "................................",
+  "AAAAAAAAAAAAAAAA................",
+  "AABAAAAAAABAAABA................",
+  "AAAABAAAAAAABBAA................",
+  "AAAAAABAAAAAAAAA................",
+  "AABAABAAAAAABAAA................",
+  "ABAAAABAAAABABAA................",
+  "ABAAAAAAABAAAAAA................",
+  "AAAAAAAAAAAAAAAA................",
+  "................................",
+  "................................"
+ ]
+}

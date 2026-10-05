@@ -1,0 +1,36 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.28,
+   "sss": 70
+  },
+  "kernel": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.04,
+   "sss": 20
+  }
+ },
+ "palette": {
+  "#c4bd00": "kernel",
+  "#c7d007": "kernel",
+  "#c9b405": "kernel",
+  "#c9dd00": "kernel",
+  "#cacd09": "kernel",
+  "#ccce03": "kernel",
+  "#cfda00": "kernel",
+  "#d5d11c": "kernel",
+  "#e9f112": "kernel"
+ }
+}

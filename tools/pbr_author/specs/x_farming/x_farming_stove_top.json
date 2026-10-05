@@ -1,0 +1,56 @@
+{
+ "class": "stone",
+ "materials": {
+  "brick": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4,
+   "smooth": 0.2
+  },
+  "mortar": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  },
+  "iron": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0.05,
+   "smooth": 0.4
+  },
+  "hole": {
+   "mode": "flat",
+   "base": 0.1,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  }
+ },
+ "legend": {
+  "a": "brick",
+  "b": "mortar",
+  "c": "iron",
+  "d": "hole"
+ },
+ "grid": [
+  "aaabaaaaaaabaaaa",
+  "aacbcacaacacacaa",
+  "adcdcdcddcdcdcda",
+  "bbccccccccccccbb",
+  "adcdcdcddcdcdcdb",
+  "aaccccccccccccab",
+  "adcdcdcddcdcdcdb",
+  "bbccccccccccccbb",
+  "aaccccccccccccaa",
+  "adcdcdcddcdcdcda",
+  "aaccccccccccccaa",
+  "bdcdcdcddcdcdcdb",
+  "aaccccccccccccab",
+  "adcdcdcddcdcdcdb",
+  "aacacacbacacacab",
+  "bbbbbbbbbbbbbbbb"
+ ]
+}

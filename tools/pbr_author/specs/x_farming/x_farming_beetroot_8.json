@@ -1,0 +1,26 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.38,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.26,
+   "sss": 70
+  },
+  "fruit": {
+   "mode": "shade",
+   "base": 0.56,
+   "span": 0.18,
+   "joints": false,
+   "detail": 0.25,
+   "smooth": 0.36,
+   "sss": 50
+  }
+ },
+ "palette": {
+  "#ad1c24": "fruit"
+ }
+}

@@ -1,0 +1,82 @@
+{
+ "class": "soil",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 12,
+ "materials": {
+  "crust": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.22,
+   "smooth_spread": 0.04,
+   "micro": "mottle",
+   "micro_strength": 0.5
+  },
+  "chocolate": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.5,
+   "smooth_spread": 0.04
+  },
+  "cream": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.15,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.38,
+   "smooth_spread": 0.04
+  }
+ },
+ "legend": {
+  "A": "crust",
+  "B": "chocolate",
+  "C": "cream",
+  ".": "crust"
+ },
+ "grid": [
+  "AAAAAAAAAAAAAAAAAA..............",
+  "ABBBBBBBBBBAAAAAAA..............",
+  "ABBBBBBBBBBAAAAAAA..............",
+  "ABBBBBBBBBBAAAAAAA..............",
+  "ABBB....BBAAAAAAAAAAAAAA........",
+  "ABBB....BBBAAAAAAAAAAAAA........",
+  "ABBB........AAAAAAAAAAAA........",
+  "ABBB........AAAAAAAAAAAA........",
+  "ABBBBB......AAAAAAAAAAAA........",
+  "ABBBBB......AAAAAAAAAAAA........",
+  "ABBBBB......AAAAAAAAAAAA........",
+  "AAAAAA......AAAAAAAAAAAA........",
+  "AAAAAAAAAAAA......AAAAAA........",
+  "AAAAAAAAAAAA......AAAAAA........",
+  "AAAAAAAAAAAA......AAAAAA........",
+  "AAAAAAAAAAAA......AAAAAA........",
+  "AAAAAAAAAAAA....CCCC............",
+  "AAAAAAAAAAAAABBBBBBBBBBA........",
+  "AAAAAA......ABBBBBBBBBBA........",
+  "AAAAAA......ABBBBBBBBBBA........",
+  "AAAAAA......AAAAAAAAAAAA........",
+  "AAAAAA..........CCCC............",
+  "AAAAAA......ABBBBBBBBBBA........",
+  "AAAAAA......ABBBBBBBBBBA........",
+  "CC..........ABBBBBBBBBBA........",
+  "CCCC........AAAAAAAAAAAA........",
+  "CCCC............................",
+  "..CC............................",
+  "CCCC............................",
+  "CCCC............................",
+  "CC..............................",
+  "CC.............................."
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "skin": {
+   "mode": "shade",
+   "base": 0.72,
+   "span": 0.22,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.55,
+   "smooth_spread": 0.04
+  },
+  "areole": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0.03,
+   "smooth": 0.6
+  },
+  "flesh": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.45,
+   "sss": 60
+  }
+ },
+ "palette": {
+  "#410400": "areole",
+  "#e6edea": "flesh",
+  "#ebf1ee": "flesh",
+  "#eef4f2": "flesh",
+  "#f2f4f3": "flesh",
+  "#f3f8f6": "flesh",
+  "#f9fbfa": "flesh"
+ }
+}

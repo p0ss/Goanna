@@ -1,0 +1,41 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "scale": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.18,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.48,
+   "smooth_spread": 0.04
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.32,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.3
+  }
+ },
+ "palette": {
+  "#341e13": "gap",
+  "#372115": "gap",
+  "#391f15": "gap",
+  "#392115": "gap",
+  "#3a2217": "gap",
+  "#3d2116": "gap",
+  "#3e2416": "gap",
+  "#3f2418": "gap",
+  "#422618": "gap",
+  "#71412c": "scale",
+  "#77442d": "scale",
+  "#7b482f": "scale",
+  "#7e4b33": "scale",
+  "#a65e3e": "scale",
+  "#b06644": "scale"
+ }
+}

@@ -1,0 +1,43 @@
+{
+ "class": "leaves",
+ "sss": 0,
+ "micro": "none",
+ "materials": {
+  "star": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.22,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.62,
+   "smooth_spread": 0.05,
+   "emission": 0.6,
+   "emission_shade": true
+  },
+  "rim": {
+   "mode": "flat",
+   "base": 0.45,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.5
+  }
+ },
+ "palette": {
+  "#361e00": "rim",
+  "#4c3611": "rim",
+  "#74561c": "star",
+  "#9d751e": "star",
+  "#ba942d": "star",
+  "#d4a635": "star",
+  "#dfb438": "star",
+  "#e4bd38": "star",
+  "#e9c43a": "star",
+  "#eccb3a": "star",
+  "#efd33a": "star",
+  "#f4c040": "star",
+  "#f5da3d": "star",
+  "#f5de65": "star",
+  "#f6cb40": "star"
+ }
+}

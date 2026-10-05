@@ -1,0 +1,2650 @@
+{
+  "x_farming_bag_empty": {
+    "author": "SaKeL, derived from Farmer's Delight by vectorwing (MIT)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 634, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bag_empty.png -- Derived from Farmer's Delight by vectorwing (MIT)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bag_empty.png"
+  },
+  "x_farming_bag_rice_grains": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 957, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bag_rice_grains.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bag_rice_grains.png"
+  },
+  "x_farming_bag_salt": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 589, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bag_salt.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bag_salt.png"
+  },
+  "x_farming_baked_fish_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 986, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_baked_fish_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_baked_fish_mesh.png"
+  },
+  "x_farming_baked_fish_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 987, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_baked_fish_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_baked_fish_mesh_1.png"
+  },
+  "x_farming_baked_fish_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 988, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_baked_fish_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_baked_fish_mesh_2.png"
+  },
+  "x_farming_baked_fish_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 989, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_baked_fish_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_baked_fish_mesh_3.png"
+  },
+  "x_farming_baked_fish_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 990, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_baked_fish_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_baked_fish_mesh_4.png"
+  },
+  "x_farming_barley_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 796, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_1.png"
+  },
+  "x_farming_barley_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 797, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_2.png"
+  },
+  "x_farming_barley_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 798, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_3.png"
+  },
+  "x_farming_barley_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 799, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_4.png"
+  },
+  "x_farming_barley_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 800, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_5.png"
+  },
+  "x_farming_barley_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 801, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_6.png"
+  },
+  "x_farming_barley_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 802, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_7.png"
+  },
+  "x_farming_barley_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 803, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_8.png"
+  },
+  "x_farming_barley_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 804, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_seed.png"
+  },
+  "x_farming_barley_stack_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 805, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_stack_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_stack_side.png"
+  },
+  "x_farming_barley_stack_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 806, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_barley_stack_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_barley_stack_top.png"
+  },
+  "x_farming_bee_features_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 915, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_features_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_features_mesh.png"
+  },
+  "x_farming_bee_hive_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 910, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_hive_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_hive_bottom.png"
+  },
+  "x_farming_bee_hive_front": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 911, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_hive_front.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_hive_front.png"
+  },
+  "x_farming_bee_hive_saturated_overlay": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 912, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_hive_saturated_overlay.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_hive_saturated_overlay.png"
+  },
+  "x_farming_bee_hive_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 913, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_hive_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_hive_side.png"
+  },
+  "x_farming_bee_hive_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 914, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_hive_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_hive_top.png"
+  },
+  "x_farming_bee_torso_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 917, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_torso_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_torso_mesh.png"
+  },
+  "x_farming_bee_wings_anim": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 918, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_bee_wings_anim.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_bee_wings_anim.png"
+  },
+  "x_farming_beetroot_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 831, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_1.png"
+  },
+  "x_farming_beetroot_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 832, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_2.png"
+  },
+  "x_farming_beetroot_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 833, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_3.png"
+  },
+  "x_farming_beetroot_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 834, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_4.png"
+  },
+  "x_farming_beetroot_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 835, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_5.png"
+  },
+  "x_farming_beetroot_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 836, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_6.png"
+  },
+  "x_farming_beetroot_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 837, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_7.png"
+  },
+  "x_farming_beetroot_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 838, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_8.png"
+  },
+  "x_farming_beetroot_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 840, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_seed.png"
+  },
+  "x_farming_beetroot_soup_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 581, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_beetroot_soup_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_beetroot_soup_mesh.png"
+  },
+  "x_farming_cactus": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 499, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus.png"
+  },
+  "x_farming_cactus_brick": {
+    "author": "SaKeL, derived from a texture by Calinou (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 786, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_brick.png -- Derived from a texture by Calinou (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_brick.png"
+  },
+  "x_farming_cactus_fruit_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 501, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_fruit_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_fruit_bottom.png"
+  },
+  "x_farming_cactus_fruit_item": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 504, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_fruit_item.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_fruit_item.png"
+  },
+  "x_farming_cactus_fruit_sides": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 502, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_fruit_sides.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_fruit_sides.png"
+  },
+  "x_farming_cactus_fruit_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 503, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_fruit_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_fruit_top.png"
+  },
+  "x_farming_cactus_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 500, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cactus_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cactus_top.png"
+  },
+  "x_farming_candle_flame_animated": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 931, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_candle_flame_animated.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_candle_flame_animated.png"
+  },
+  "x_farming_candle_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 933, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_candle_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_candle_mesh.png"
+  },
+  "x_farming_candle_no_flame": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 934, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_candle_no_flame.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_candle_no_flame.png"
+  },
+  "x_farming_canvas": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 495, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_canvas.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_canvas.png"
+  },
+  "x_farming_carrot_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 843, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_1.png"
+  },
+  "x_farming_carrot_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 844, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_2.png"
+  },
+  "x_farming_carrot_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 845, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_3.png"
+  },
+  "x_farming_carrot_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 846, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_4.png"
+  },
+  "x_farming_carrot_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 847, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_5.png"
+  },
+  "x_farming_carrot_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 848, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_6.png"
+  },
+  "x_farming_carrot_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 849, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_7.png"
+  },
+  "x_farming_carrot_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 850, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_8.png"
+  },
+  "x_farming_carrot_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 465, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_carrot_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_carrot_seed.png"
+  },
+  "x_farming_chocolate_pie_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1010, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_chocolate_pie_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_chocolate_pie_mesh_1.png"
+  },
+  "x_farming_chocolate_pie_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1011, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_chocolate_pie_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_chocolate_pie_mesh_2.png"
+  },
+  "x_farming_chocolate_pie_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1012, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_chocolate_pie_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_chocolate_pie_mesh_3.png"
+  },
+  "x_farming_chocolate_pie_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1013, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_chocolate_pie_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_chocolate_pie_mesh_4.png"
+  },
+  "x_farming_christmas_tree_leaves_animated": {
+    "author": "SaKeL, derived from texture by Splizard (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 790, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_christmas_tree_leaves_animated.png  -- Derived from texture by Splizard (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_christmas_tree_leaves_animated.png"
+  },
+  "x_farming_christmas_tree_sapling": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 792, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_christmas_tree_sapling.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_christmas_tree_sapling.png"
+  },
+  "x_farming_christmas_tree_star": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 793, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_christmas_tree_star.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_christmas_tree_star.png"
+  },
+  "x_farming_cocoa_bottom_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 883, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_bottom_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_bottom_1.png"
+  },
+  "x_farming_cocoa_bottom_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 886, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_bottom_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_bottom_2.png"
+  },
+  "x_farming_cocoa_bottom_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 892, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_bottom_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_bottom_3.png"
+  },
+  "x_farming_cocoa_front_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 882, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_front_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_front_1.png"
+  },
+  "x_farming_cocoa_front_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 887, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_front_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_front_2.png"
+  },
+  "x_farming_cocoa_front_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 890, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_front_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_front_3.png"
+  },
+  "x_farming_cocoa_left_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 881, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_left_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_left_1.png"
+  },
+  "x_farming_cocoa_left_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 884, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_left_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_left_2.png"
+  },
+  "x_farming_cocoa_left_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 893, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_left_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_left_3.png"
+  },
+  "x_farming_cocoa_right_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 880, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_right_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_right_1.png"
+  },
+  "x_farming_cocoa_right_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 888, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_right_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_right_2.png"
+  },
+  "x_farming_cocoa_right_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 889, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_right_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_right_3.png"
+  },
+  "x_farming_cocoa_top_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 879, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_top_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_top_1.png"
+  },
+  "x_farming_cocoa_top_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 885, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_top_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_top_2.png"
+  },
+  "x_farming_cocoa_top_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 891, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cocoa_top_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cocoa_top_3.png"
+  },
+  "x_farming_coffee_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 618, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_1.png"
+  },
+  "x_farming_coffee_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 619, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_2.png"
+  },
+  "x_farming_coffee_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 620, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_3.png"
+  },
+  "x_farming_coffee_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 621, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_4.png"
+  },
+  "x_farming_coffee_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 622, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_5.png"
+  },
+  "x_farming_coffee_cup_hot_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 586, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_cup_hot_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_cup_hot_mesh.png"
+  },
+  "x_farming_coffee_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 468, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_coffee_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_coffee_seed.png"
+  },
+  "x_farming_composter_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 613, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_composter_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_composter_1.png"
+  },
+  "x_farming_composter_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 616, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_composter_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_composter_2.png"
+  },
+  "x_farming_composter_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 617, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_composter_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_composter_3.png"
+  },
+  "x_farming_composter_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 614, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_composter_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_composter_4.png"
+  },
+  "x_farming_composter_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 615, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_composter_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_composter_5.png"
+  },
+  "x_farming_corn_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 473, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_1.png"
+  },
+  "x_farming_corn_10": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 482, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_10.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_10.png"
+  },
+  "x_farming_corn_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 474, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_2.png"
+  },
+  "x_farming_corn_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 475, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_3.png"
+  },
+  "x_farming_corn_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 476, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_4.png"
+  },
+  "x_farming_corn_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 477, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_5.png"
+  },
+  "x_farming_corn_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 478, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_6.png"
+  },
+  "x_farming_corn_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 479, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_7.png"
+  },
+  "x_farming_corn_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 480, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_8.png"
+  },
+  "x_farming_corn_9": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 481, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_9.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_9.png"
+  },
+  "x_farming_corn_popcorn_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 584, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_popcorn_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_popcorn_mesh.png"
+  },
+  "x_farming_corn_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 484, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_corn_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_corn_seed.png"
+  },
+  "x_farming_cotton_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 809, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_1.png"
+  },
+  "x_farming_cotton_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 810, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_2.png"
+  },
+  "x_farming_cotton_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 811, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_3.png"
+  },
+  "x_farming_cotton_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 812, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_4.png"
+  },
+  "x_farming_cotton_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 813, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_5.png"
+  },
+  "x_farming_cotton_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 814, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_6.png"
+  },
+  "x_farming_cotton_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 815, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_7.png"
+  },
+  "x_farming_cotton_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 816, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_8.png"
+  },
+  "x_farming_cotton_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 817, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_cotton_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_cotton_seed.png"
+  },
+  "x_farming_crate_barley_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 818, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_barley_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_barley_3.png"
+  },
+  "x_farming_crate_beetroot_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 590, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_beetroot_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_beetroot_3.png"
+  },
+  "x_farming_crate_cactus_fruit_item_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 591, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_cactus_fruit_item_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_cactus_fruit_item_3.png"
+  },
+  "x_farming_crate_carrot_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 592, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_carrot_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_carrot_3.png"
+  },
+  "x_farming_crate_cocoa_bean_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 594, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_cocoa_bean_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_cocoa_bean_3.png"
+  },
+  "x_farming_crate_coffee_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 595, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_coffee_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_coffee_3.png"
+  },
+  "x_farming_crate_corn_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 599, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_corn_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_corn_3.png"
+  },
+  "x_farming_crate_cotton2_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 819, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_cotton2_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_cotton2_3.png"
+  },
+  "x_farming_crate_cotton_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 600, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_cotton_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_cotton_3.png"
+  },
+  "x_farming_crate_empty": {
+    "author": "SaKeL, derived from Farmer's Delight by vectorwing (MIT)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 635, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_empty.png -- Derived from Farmer's Delight by vectorwing (MIT)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_empty.png"
+  },
+  "x_farming_crate_fish_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 601, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_fish_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_fish_3.png"
+  },
+  "x_farming_crate_kiwi_fruit_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 602, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_kiwi_fruit_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_kiwi_fruit_3.png"
+  },
+  "x_farming_crate_melon_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 603, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_melon_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_melon_3.png"
+  },
+  "x_farming_crate_obsidian_wart_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 604, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_obsidian_wart_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_obsidian_wart_3.png"
+  },
+  "x_farming_crate_pine_nut_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 605, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_pine_nut_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_pine_nut_3.png"
+  },
+  "x_farming_crate_potato_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 606, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_potato_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_potato_3.png"
+  },
+  "x_farming_crate_pumpkin_block_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 607, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_pumpkin_block_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_pumpkin_block_3.png"
+  },
+  "x_farming_crate_rice_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 958, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_rice_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_rice_3.png"
+  },
+  "x_farming_crate_soybean_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 608, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_soybean_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_soybean_3.png"
+  },
+  "x_farming_crate_stevia_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 609, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_stevia_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_stevia_3.png"
+  },
+  "x_farming_crate_strawberry_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 610, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_strawberry_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_strawberry_3.png"
+  },
+  "x_farming_crate_wheat_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 611, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_crate_wheat_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_crate_wheat_3.png"
+  },
+  "x_farming_donut_chocolate_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 588, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_donut_chocolate_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_donut_chocolate_mesh.png"
+  },
+  "x_farming_donut_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 587, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_donut_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_donut_mesh.png"
+  },
+  "x_farming_drilled_ice": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 551, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_drilled_ice.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_drilled_ice.png"
+  },
+  "x_farming_drying_rack_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1038, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_drying_rack_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_drying_rack_side.png"
+  },
+  "x_farming_drying_rack_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1037, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_drying_rack_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_drying_rack_top.png"
+  },
+  "x_farming_fish_stew_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 580, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_fish_stew_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_fish_stew_mesh.png"
+  },
+  "x_farming_french_potatoes_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 995, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_french_potatoes_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_french_potatoes_mesh.png"
+  },
+  "x_farming_french_potatoes_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 996, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_french_potatoes_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_french_potatoes_mesh_1.png"
+  },
+  "x_farming_french_potatoes_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 997, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_french_potatoes_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_french_potatoes_mesh_2.png"
+  },
+  "x_farming_french_potatoes_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 998, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_french_potatoes_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_french_potatoes_mesh_3.png"
+  },
+  "x_farming_french_potatoes_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 999, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_french_potatoes_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_french_potatoes_mesh_4.png"
+  },
+  "x_farming_fries_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 585, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_fries_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_fries_mesh.png"
+  },
+  "x_farming_honey_block_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 925, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honey_block_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honey_block_mesh.png"
+  },
+  "x_farming_honey_kiwi_pie_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1015, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honey_kiwi_pie_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honey_kiwi_pie_mesh_1.png"
+  },
+  "x_farming_honey_kiwi_pie_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1016, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honey_kiwi_pie_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honey_kiwi_pie_mesh_2.png"
+  },
+  "x_farming_honey_kiwi_pie_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1017, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honey_kiwi_pie_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honey_kiwi_pie_mesh_3.png"
+  },
+  "x_farming_honey_kiwi_pie_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1018, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honey_kiwi_pie_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honey_kiwi_pie_mesh_4.png"
+  },
+  "x_farming_honeycomb_block": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 927, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_honeycomb_block.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_honeycomb_block.png"
+  },
+  "x_farming_ice": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 552, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_ice.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_ice.png"
+  },
+  "x_farming_icefishing_back_0": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 554, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_0.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_0.png"
+  },
+  "x_farming_icefishing_back_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 555, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_1.png"
+  },
+  "x_farming_icefishing_back_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 556, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_2.png"
+  },
+  "x_farming_icefishing_back_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 557, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_3.png"
+  },
+  "x_farming_icefishing_back_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 558, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_4.png"
+  },
+  "x_farming_icefishing_back_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 559, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_5.png"
+  },
+  "x_farming_icefishing_back_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 560, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_6.png"
+  },
+  "x_farming_icefishing_back_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 561, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_7.png"
+  },
+  "x_farming_icefishing_back_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 562, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_8.png"
+  },
+  "x_farming_icefishing_back_9": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 563, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_back_9.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_back_9.png"
+  },
+  "x_farming_icefishing_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 564, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_bottom.png"
+  },
+  "x_farming_icefishing_front_0": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 565, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_0.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_0.png"
+  },
+  "x_farming_icefishing_front_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 566, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_1.png"
+  },
+  "x_farming_icefishing_front_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 567, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_2.png"
+  },
+  "x_farming_icefishing_front_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 568, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_3.png"
+  },
+  "x_farming_icefishing_front_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 569, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_4.png"
+  },
+  "x_farming_icefishing_front_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 570, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_5.png"
+  },
+  "x_farming_icefishing_front_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 571, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_6.png"
+  },
+  "x_farming_icefishing_front_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 572, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_7.png"
+  },
+  "x_farming_icefishing_front_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 573, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_8.png"
+  },
+  "x_farming_icefishing_front_9": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 574, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_front_9.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_front_9.png"
+  },
+  "x_farming_icefishing_left": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 576, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_left.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_left.png"
+  },
+  "x_farming_icefishing_right": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 577, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_right.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_right.png"
+  },
+  "x_farming_icefishing_top_animated": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 578, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_top_animated.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_top_animated.png"
+  },
+  "x_farming_icefishing_top_animated_9": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 579, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_icefishing_top_animated_9.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_icefishing_top_animated_9.png"
+  },
+  "x_farming_irrigation_trough_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1036, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_irrigation_trough_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_irrigation_trough_bottom.png"
+  },
+  "x_farming_irrigation_trough_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1035, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_irrigation_trough_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_irrigation_trough_side.png"
+  },
+  "x_farming_irrigation_trough_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1034, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_irrigation_trough_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_irrigation_trough_top.png"
+  },
+  "x_farming_jungle_tree": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 509, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_jungle_tree.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_jungle_tree.png"
+  },
+  "x_farming_jungle_tree_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 510, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_jungle_tree_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_jungle_tree_top.png"
+  },
+  "x_farming_jungle_wood": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 511, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_jungle_wood.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_jungle_wood.png"
+  },
+  "x_farming_jungleleaves": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 508, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_jungleleaves.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_jungleleaves.png"
+  },
+  "x_farming_junglesapling": {
+    "author": "SaKeL, derived from texture by PilzAdam (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 652, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_junglesapling.png -- Derived from texture by PilzAdam (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_junglesapling.png"
+  },
+  "x_farming_kiwi": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 496, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi.png"
+  },
+  "x_farming_kiwi_fruit_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 583, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_fruit_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_fruit_mesh.png"
+  },
+  "x_farming_kiwi_leaves": {
+    "author": "SaKeL, derived from texture by paramat (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 651, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_leaves.png -- Derived from texture by paramat (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_leaves.png"
+  },
+  "x_farming_kiwi_sapling": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 498, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_sapling.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_sapling.png"
+  },
+  "x_farming_kiwi_tree": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 828, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_tree.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_tree.png"
+  },
+  "x_farming_kiwi_tree_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 829, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_tree_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_tree_top.png"
+  },
+  "x_farming_kiwi_wood": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 830, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_kiwi_wood.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_kiwi_wood.png"
+  },
+  "x_farming_large_cactus_with_fruit_seedling": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 505, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_large_cactus_with_fruit_seedling.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_large_cactus_with_fruit_seedling.png"
+  },
+  "x_farming_melon_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 636, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_1.png"
+  },
+  "x_farming_melon_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 637, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_2.png"
+  },
+  "x_farming_melon_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 638, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_3.png"
+  },
+  "x_farming_melon_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 639, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_4.png"
+  },
+  "x_farming_melon_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 640, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_5.png"
+  },
+  "x_farming_melon_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 641, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_6.png"
+  },
+  "x_farming_melon_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 642, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_7.png"
+  },
+  "x_farming_melon_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 643, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_8.png"
+  },
+  "x_farming_melon_fruit_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 898, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_fruit_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_fruit_bottom.png"
+  },
+  "x_farming_melon_fruit_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 896, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_fruit_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_fruit_side.png"
+  },
+  "x_farming_melon_fruit_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 897, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_fruit_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_fruit_top.png"
+  },
+  "x_farming_melon_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 895, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_seed.png"
+  },
+  "x_farming_melon_slush_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1008, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_slush_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_slush_mesh.png"
+  },
+  "x_farming_melon_slush_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1003, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_slush_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_slush_mesh_1.png"
+  },
+  "x_farming_melon_slush_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1004, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_slush_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_slush_mesh_2.png"
+  },
+  "x_farming_melon_slush_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1005, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_slush_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_slush_mesh_3.png"
+  },
+  "x_farming_melon_slush_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1006, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_melon_slush_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_melon_slush_mesh_4.png"
+  },
+  "x_farming_obsidian_soil": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 470, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_soil.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_soil.png"
+  },
+  "x_farming_obsidian_soil_wet": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 471, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_soil_wet.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_soil_wet.png"
+  },
+  "x_farming_obsidian_wart_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 865, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_1.png"
+  },
+  "x_farming_obsidian_wart_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 866, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_2.png"
+  },
+  "x_farming_obsidian_wart_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 867, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_3.png"
+  },
+  "x_farming_obsidian_wart_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 868, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_4.png"
+  },
+  "x_farming_obsidian_wart_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 869, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_5.png"
+  },
+  "x_farming_obsidian_wart_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 870, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_6.png"
+  },
+  "x_farming_obsidian_wart_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 472, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_obsidian_wart_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_obsidian_wart_seed.png"
+  },
+  "x_farming_pillow_black": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 956, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_black.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_black.png"
+  },
+  "x_farming_pillow_blue": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 949, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_blue.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_blue.png"
+  },
+  "x_farming_pillow_brown": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 953, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_brown.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_brown.png"
+  },
+  "x_farming_pillow_cyan": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 951, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_cyan.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_cyan.png"
+  },
+  "x_farming_pillow_dark_green": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 952, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_dark_green.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_dark_green.png"
+  },
+  "x_farming_pillow_dark_grey": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 955, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_dark_grey.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_dark_grey.png"
+  },
+  "x_farming_pillow_green": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 946, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_green.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_green.png"
+  },
+  "x_farming_pillow_grey": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 954, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_grey.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_grey.png"
+  },
+  "x_farming_pillow_light_blue": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 945, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_light_blue.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_light_blue.png"
+  },
+  "x_farming_pillow_magenta": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 950, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_magenta.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_magenta.png"
+  },
+  "x_farming_pillow_orange": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 947, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_orange.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_orange.png"
+  },
+  "x_farming_pillow_pink": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 942, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_pink.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_pink.png"
+  },
+  "x_farming_pillow_red": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 948, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_red.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_red.png"
+  },
+  "x_farming_pillow_violet": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 941, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_violet.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_violet.png"
+  },
+  "x_farming_pillow_white": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 944, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_white.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_white.png"
+  },
+  "x_farming_pillow_yellow": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 943, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pillow_yellow.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pillow_yellow.png"
+  },
+  "x_farming_pine_nut": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 512, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut.png"
+  },
+  "x_farming_pine_nut_leaves": {
+    "author": "SaKeL, derived from texture Pixel Perfection by XSSheep (CC-BY-SA-4.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 648, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut_leaves.png -- Derived from texture Pixel Perfection by XSSheep (CC-BY-SA-4.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut_leaves.png"
+  },
+  "x_farming_pine_nut_sapling": {
+    "author": "SaKeL, derived from texture by Splizard (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 653, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut_sapling.png -- Derived from texture by Splizard (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut_sapling.png"
+  },
+  "x_farming_pine_nut_tree": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 825, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut_tree.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut_tree.png"
+  },
+  "x_farming_pine_nut_tree_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 826, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut_tree_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut_tree_top.png"
+  },
+  "x_farming_pine_nut_wood": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 827, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pine_nut_wood.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pine_nut_wood.png"
+  },
+  "x_farming_potato_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 854, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_1.png"
+  },
+  "x_farming_potato_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 855, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_2.png"
+  },
+  "x_farming_potato_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 856, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_3.png"
+  },
+  "x_farming_potato_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 857, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_4.png"
+  },
+  "x_farming_potato_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 858, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_5.png"
+  },
+  "x_farming_potato_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 859, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_6.png"
+  },
+  "x_farming_potato_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 860, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_7.png"
+  },
+  "x_farming_potato_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 861, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_8.png"
+  },
+  "x_farming_potato_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 466, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_potato_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_potato_seed.png"
+  },
+  "x_farming_pumpkin_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 623, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_1.png"
+  },
+  "x_farming_pumpkin_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 624, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_2.png"
+  },
+  "x_farming_pumpkin_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 625, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_3.png"
+  },
+  "x_farming_pumpkin_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 626, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_4.png"
+  },
+  "x_farming_pumpkin_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 627, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_5.png"
+  },
+  "x_farming_pumpkin_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 628, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_6.png"
+  },
+  "x_farming_pumpkin_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 629, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_7.png"
+  },
+  "x_farming_pumpkin_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 630, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_8.png"
+  },
+  "x_farming_pumpkin_fruit_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 905, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_fruit_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_fruit_bottom.png"
+  },
+  "x_farming_pumpkin_fruit_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 903, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_fruit_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_fruit_side.png"
+  },
+  "x_farming_pumpkin_fruit_side_off": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 901, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_fruit_side_off.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_fruit_side_off.png"
+  },
+  "x_farming_pumpkin_fruit_side_on": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 902, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_fruit_side_on.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_fruit_side_on.png"
+  },
+  "x_farming_pumpkin_fruit_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 904, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_fruit_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_fruit_top.png"
+  },
+  "x_farming_pumpkin_pie_mesh": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 582, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_pie_mesh.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_pie_mesh.png"
+  },
+  "x_farming_pumpkin_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 908, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_pumpkin_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_pumpkin_seed.png"
+  },
+  "x_farming_rice_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 960, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_1.png"
+  },
+  "x_farming_rice_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 961, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_2.png"
+  },
+  "x_farming_rice_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 962, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_3.png"
+  },
+  "x_farming_rice_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 963, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_4.png"
+  },
+  "x_farming_rice_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 964, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_5.png"
+  },
+  "x_farming_rice_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 965, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_6.png"
+  },
+  "x_farming_rice_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 966, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_7.png"
+  },
+  "x_farming_rice_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 967, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_8.png"
+  },
+  "x_farming_rice_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 969, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_seed.png"
+  },
+  "x_farming_rice_stack_bottom": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 971, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_stack_bottom.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_stack_bottom.png"
+  },
+  "x_farming_rice_stack_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 972, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_stack_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_stack_side.png"
+  },
+  "x_farming_rice_stack_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 973, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rice_stack_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rice_stack_top.png"
+  },
+  "x_farming_rope": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 935, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rope.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rope.png"
+  },
+  "x_farming_rope_fence": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 937, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_rope_fence.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_rope_fence.png"
+  },
+  "x_farming_safety_net": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 939, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_safety_net.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_safety_net.png"
+  },
+  "x_farming_safety_net_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 940, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_safety_net_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_safety_net_side.png"
+  },
+  "x_farming_salt_1_bottom": {
+    "author": "SaKeL, derived from a texture by random-geek (CC BY-SA 3.0); Derived from texture by Neuromancer (CC BY-SA 3.0)",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 654, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_1_bottom.png -- Derived from a texture by random-geek (CC BY-SA 3.0) -- Derived from texture by Neuromancer (CC BY-SA 3.0)\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_1_bottom.png"
+  },
+  "x_farming_salt_1_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 541, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_1_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_1_side.png"
+  },
+  "x_farming_salt_1_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 542, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_1_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_1_top.png"
+  },
+  "x_farming_salt_2_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 543, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_2_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_2_side.png"
+  },
+  "x_farming_salt_2_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 544, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_2_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_2_top.png"
+  },
+  "x_farming_salt_3_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 545, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_3_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_3_side.png"
+  },
+  "x_farming_salt_3_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 546, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_3_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_3_top.png"
+  },
+  "x_farming_salt_4_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 547, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_4_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_4_side.png"
+  },
+  "x_farming_salt_4_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 548, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_salt_4_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_salt_4_top.png"
+  },
+  "x_farming_scarecrow_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 789, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_scarecrow_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_scarecrow_1.png"
+  },
+  "x_farming_scarecrow_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 794, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_scarecrow_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_scarecrow_2.png"
+  },
+  "x_farming_silt_loam_brick_block": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 984, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_silt_loam_brick_block.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_silt_loam_brick_block.png"
+  },
+  "x_farming_silt_loam_soil": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 974, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_silt_loam_soil.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_silt_loam_soil.png"
+  },
+  "x_farming_soybean_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 522, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_1.png"
+  },
+  "x_farming_soybean_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 523, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_2.png"
+  },
+  "x_farming_soybean_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 524, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_3.png"
+  },
+  "x_farming_soybean_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 525, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_4.png"
+  },
+  "x_farming_soybean_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 526, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_5.png"
+  },
+  "x_farming_soybean_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 527, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_6.png"
+  },
+  "x_farming_soybean_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 528, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_7.png"
+  },
+  "x_farming_soybean_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 529, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_soybean_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_soybean_seed.png"
+  },
+  "x_farming_stevia_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 531, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_1.png"
+  },
+  "x_farming_stevia_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 532, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_2.png"
+  },
+  "x_farming_stevia_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 533, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_3.png"
+  },
+  "x_farming_stevia_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 534, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_4.png"
+  },
+  "x_farming_stevia_5": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 535, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_5.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_5.png"
+  },
+  "x_farming_stevia_6": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 536, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_6.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_6.png"
+  },
+  "x_farming_stevia_7": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 537, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_7.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_7.png"
+  },
+  "x_farming_stevia_8": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 538, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_8.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_8.png"
+  },
+  "x_farming_stevia_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 539, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stevia_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stevia_seed.png"
+  },
+  "x_farming_stove_front": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 975, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stove_front.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stove_front.png"
+  },
+  "x_farming_stove_front_animated": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 976, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stove_front_animated.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stove_front_animated.png"
+  },
+  "x_farming_stove_side": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 978, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stove_side.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stove_side.png"
+  },
+  "x_farming_stove_top": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 979, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stove_top.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stove_top.png"
+  },
+  "x_farming_stove_top_animated": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 980, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_stove_top_animated.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_stove_top_animated.png"
+  },
+  "x_farming_strawberry_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 644, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_1.png"
+  },
+  "x_farming_strawberry_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 645, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_2.png"
+  },
+  "x_farming_strawberry_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 646, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_3.png"
+  },
+  "x_farming_strawberry_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 647, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_4.png"
+  },
+  "x_farming_strawberry_pie_mesh_1": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1023, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_pie_mesh_1.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_pie_mesh_1.png"
+  },
+  "x_farming_strawberry_pie_mesh_2": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1024, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_pie_mesh_2.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_pie_mesh_2.png"
+  },
+  "x_farming_strawberry_pie_mesh_3": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1025, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_pie_mesh_3.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_pie_mesh_3.png"
+  },
+  "x_farming_strawberry_pie_mesh_4": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 1026, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_pie_mesh_4.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_pie_mesh_4.png"
+  },
+  "x_farming_strawberry_seed": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 506, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_strawberry_seed.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_strawberry_seed.png"
+  },
+  "x_farming_vessels_glass_bottle": {
+    "author": "Thomas-S (modified)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "LICENSE.txt line 1045, under \"**CC-BY-SA-3.0, modified by Thomas-S**\" (line 1043): \"- x_farming_vessels_glass_bottle.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_vessels_glass_bottle.png"
+  },
+  "x_farming_wart_block": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 872, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_wart_block.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_wart_block.png"
+  },
+  "x_farming_wart_brick_block": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 873, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_wart_brick_block.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_wart_brick_block.png"
+  },
+  "x_farming_wart_red_brick_block": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 876, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_wart_red_brick_block.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_wart_red_brick_block.png"
+  },
+  "x_farming_wartrack": {
+    "author": "SaKeL",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "LICENSE.txt line 875, under \"**CC-BY-SA-4.0, by SaKeL**\" (line 463): \"- x_farming_wartrack.png\"",
+    "package": "x_farming",
+    "release": 38796,
+    "source": "x_farming/textures/x_farming_wartrack.png"
+  }
+}

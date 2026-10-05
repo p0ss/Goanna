@@ -1,0 +1,29 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.24
+  },
+  "flower": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.18,
+   "joints": false,
+   "smooth": 0.28,
+   "sss": 130
+  }
+ },
+ "palette": {
+  "#c3c3c3": "flower",
+  "#c5ddb7": "flower",
+  "#d1e5c2": "flower",
+  "#d2d2d2": "flower",
+  "#dcdcdc": "flower",
+  "#e0e0e0": "flower"
+ }
+}

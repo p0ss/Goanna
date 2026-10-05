@@ -1,0 +1,42 @@
+{
+ "class": "glass",
+ "micro": "none",
+ "materials": {
+  "glass": {
+   "mode": "flat",
+   "base": 0.5,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.9
+  },
+  "cork": {
+   "mode": "flat",
+   "base": 0.65,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  }
+ },
+ "legend": {
+  "a": "glass",
+  "b": "cork"
+ },
+ "grid": [
+  "bbbbbbbbbbbbbbbb",
+  "bbbbbbbbbbbbbbbb",
+  "bbbbbbbbbbbbbbbb",
+  "bbbbbbbbbbbbbbbb",
+  "bbbbbbbbbbbbbbbb",
+  "bbbbbaaaaaabbbbb",
+  "bbbbbbabbabbbbbb",
+  "bbbbbbabbabbbbbb",
+  "bbbbbbabbabbbbbb",
+  "bbbbbabbbbabbbbb",
+  "bbbbbababbabbbbb",
+  "bbbbababbbbabbbb",
+  "bbbbabbbbababbbb",
+  "bbbbabbbabbabbbb",
+  "bbbbbabbbbabbbbb",
+  "bbbbbbaaaabbbbbb"
+ ]
+}

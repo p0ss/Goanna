@@ -1,0 +1,56 @@
+{
+ "class": "stone",
+ "materials": {
+  "brick": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4,
+   "smooth": 0.2
+  },
+  "mortar": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  },
+  "opening": {
+   "mode": "flat",
+   "base": 0.08,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.15
+  },
+  "ash": {
+   "mode": "shade",
+   "base": 0.12,
+   "span": 0.12,
+   "smooth": 0.12,
+   "joints": false
+  }
+ },
+ "legend": {
+  "a": "brick",
+  "b": "mortar",
+  "c": "opening",
+  "d": "ash"
+ },
+ "grid": [
+  "aaabaaaaaaabaaaa",
+  "aaabaaaaaaabaaaa",
+  "aaabaaaaaaabaaaa",
+  "bbbbbbbbbbbbbbbb",
+  "aaaaaaabaaaaaaab",
+  "aaaaaaabaaaaaaab",
+  "aaaaaadcddaaaaab",
+  "bbbbbccccccbbbbb",
+  "aaabddccccdcaaaa",
+  "aaacdcccccccaaaa",
+  "aaacdcccccccdaaa",
+  "bbbccccccccccbbb",
+  "aaaddccccccddaab",
+  "aaaddddccddddaab",
+  "aaaddddddddddaab",
+  "bbbccddddddccbbb"
+ ]
+}

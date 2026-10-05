@@ -1,0 +1,59 @@
+{
+ "class": "planks",
+ "materials": {
+  "plank": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35,
+   "smooth": 0.3,
+   "joints": false
+  },
+  "joint": {
+   "mode": "flat",
+   "base": 0.15,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.15
+  },
+  "band": {
+   "mode": "flat",
+   "base": 0.75,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.5,
+   "metal": true
+  },
+  "rivet": {
+   "mode": "flat",
+   "base": 0.92,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.6,
+   "metal": true
+  }
+ },
+ "legend": {
+  "a": "plank",
+  "b": "joint",
+  "c": "band",
+  "d": "rivet"
+ },
+ "grid": [
+  "cccccccccccccccc",
+  "cbbbbbbbbbbbbbbc",
+  "caaaaaaaaaaaaaac",
+  "cdaaaaaaaaaaadac",
+  "caaaaaaaaaaaaaac",
+  "cbbbbbbbbbbbbbbc",
+  "caaaaaaaaaaaaaac",
+  "cdaaaaaaaaaaadac",
+  "caaaaaaaaaaaaaac",
+  "cbbbbbbbbbbbbbbc",
+  "caaaaaaaaaaaaaac",
+  "cdaaaaaaaaaaadac",
+  "caaaaaaaaaaaaaac",
+  "cbbbbbbbbbbbbbbc",
+  "cccccccccccccccc",
+  "cccccccccccccccc"
+ ]
+}

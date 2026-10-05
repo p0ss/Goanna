@@ -1,0 +1,62 @@
+{
+ "class": "ice",
+ "texel_px": 8,
+ "chamfer": 1,
+ "face_edge": "flat",
+ "micro": "none",
+ "strength": 8,
+ "cover": 0.3,
+ "materials": {
+  "honey": {
+   "mode": "shade",
+   "base": 0.75,
+   "span": 0.12,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.88,
+   "smooth_spread": 0.04,
+   "micro": "glass",
+   "micro_strength": 1.0,
+   "scatter": 0.4
+  }
+ },
+ "legend": {
+  "A": "honey",
+  ".": "honey"
+ },
+ "grid": [
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAA",
+  "................",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  ".AAAAAAAAAAAAAA.",
+  "................"
+ ]
+}
