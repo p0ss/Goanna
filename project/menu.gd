@@ -11,6 +11,10 @@
 extends Control
 
 const CFG_PATH := "user://goanna.cfg"
+const Narrator := preload("res://ui/narrator.gd")
+# Read aloud (ui/narrator.gd): announces each screen and reads the control
+# the keyboard or pointer is on, when the player has it on.
+var narrator: Node
 const LocalLaunch := preload("res://local_launch.gd")
 var local_roster: Array = []
 var local_layout := "grid"
@@ -101,6 +105,9 @@ const Updater := preload("res://updater.gd")
 var updater: Node
 
 func _ready() -> void:
+	narrator = Narrator.new()
+	narrator.settings_owner = self
+	add_child(narrator)
 	AssetUpdater.install_bootstrap()
 	# Goanna's own updates (updater.gd). Only a packaged release checks, and
 	# the offer appears on the main screen when one is ready.
@@ -462,6 +469,24 @@ func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	_footer.add_theme_constant_override("separation", 8)
 	_panel_box.add_child(_footer)
 	_fit_panel()
+	if narrator != null:
+		narrator.screen_root = _panel_box
+		var heard := ["Goanna", title if title != "" else "Main menu"]
+		if subtitle != "":
+			heard.append(subtitle)
+		narrator.announce(". ".join(heard))
+
+# The first Tab or arrow with nothing focused focuses the screen's first
+# control, so the menu can be worked from the keyboard (game_ui.gd does the
+# same for windows in game).
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode in [KEY_TAB, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT] \
+			and _panel_box != null:
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused == null or not _panel_box.is_ancestor_of(focused):
+			GameUI.focus_first(_panel_box)
+			get_viewport().set_input_as_handled()
 
 # Back, in the footer, where it stays in reach.
 func _footer_back(cb: Callable = _show_main) -> void:
@@ -475,6 +500,8 @@ func _button(text: String, cb: Callable) -> Button:
 
 func _fail(msg: String) -> void:
 	status_label.text = msg
+	if narrator != null and narrator.enabled:
+		narrator.say(msg)
 	GlassStyle.tint_text(status_label, Color(1, 0.6, 0.5))
 
 # --- main screen -------------------------------------------------------------
@@ -1158,8 +1185,9 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		# One of a few named values, stored as text. The interface style is the
 		# only one, and it applies straight away, here as in game.
 		var picker := OptionButton.new()
-		var current := str(cfg.get_value("settings", key, (row[5] as Array)[0][0]))
-		for choice in row[5]:
+		var choices: Array = GameUI.setting_choices(row)
+		var current := str(cfg.get_value("settings", key, choices[0][0]))
+		for choice in choices:
 			picker.add_item(str(choice[1]))
 			picker.set_item_metadata(picker.item_count - 1, str(choice[0]))
 			if str(choice[0]) == current:
@@ -1169,7 +1197,9 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 			if key == GlassStyle.KEY:
 				GlassStyle.set_mode(value)
 			else:
-				_save_setting_text(key, value))
+				_save_setting_text(key, value)
+			if key == "speech_voice" and narrator != null:
+				narrator.voice_id = value)
 		box.add_child(picker)
 		PanelFit.describe(box, str(row[4]))
 		return
@@ -1268,9 +1298,14 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 # what the client is really running with. A slider sits at its own midpoint
 # rather than at zero, and the row says it is not recorded yet, because a
 # confident wrong number is worse than an obvious placeholder.
+# What a setting is before anything was saved, for the rows whose default is
+# not "on" or the middle of the slider.
+const SETTING_DEFAULTS := {"procedural_grass": 0.0, "read_aloud": 0.0, "speech_rate": 1.0,
+	"speech_volume": 1.0, "volume": 0.8}
+
 func _settings_default(row: Array) -> float:
-	if str(row[1]) == "procedural_grass":
-		return 0.0
+	if SETTING_DEFAULTS.has(str(row[1])):
+		return float(SETTING_DEFAULTS[str(row[1])])
 	if str(row[2]) == "toggle":
 		return 1.0
 	return float(row[5]) + (float(row[6]) - float(row[5])) * 0.5
@@ -1285,6 +1320,13 @@ func _save_setting(key: String, value: float) -> void:
 	var pad := get_node_or_null("/root/Gamepad")
 	if pad != null and key.begins_with("pad_"):
 		pad.load_settings()
+	# Read aloud works in this menu too, so its settings apply here at once.
+	if narrator != null:
+		if key == "read_aloud" and narrator.enabled != (value > 0.5):
+			narrator.set_enabled(value > 0.5)
+		elif Narrator.SETTING_PROPERTIES.has(key):
+			narrator.set(Narrator.SETTING_PROPERTIES[key],
+				value if key.begins_with("speech_") else value > 0.5)
 
 func _save_setting_text(key: String, value: String) -> void:
 	var cfg := ConfigFile.new()

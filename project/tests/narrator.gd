@@ -39,7 +39,14 @@ class FakeClient extends Node:
 class FakeMain extends Node:
 	var pointed := {}
 
+class FakeItems extends Node:
+	func get_list_item(_loc: String, _list: String, index: int) -> Dictionary:
+		return {"name": "default:stone", "description": "Stone", "count": 12} if index == 0 else {}
+	func item_icon(_name: String) -> Texture2D: return null
+	func ui_texture(_name: String) -> Texture2D: return null
+
 class FakeUi extends Control:
+	var selected := {}
 	var chat_lines: Array = []
 	var window: Control = null
 	var form: Control
@@ -61,6 +68,8 @@ func _initialize() -> void:
 	ui.main_node = FakeMain.new()
 	ui.add_child(ui.main_node)
 	ui.form = Formspec.new()
+	ui.form.item_source = FakeItems.new()
+	ui.add_child(ui.form.item_source)
 	ui.add_child(ui.form)
 	root.add_child(ui)
 	narrator = Narrator.new()
@@ -126,6 +135,111 @@ func _run() -> void:
 	check(run_for(0.5).is_empty(), "focus that stays put is not read again")
 	ui.window = null
 	run_for(0.1)
+
+	# A form worked from the keyboard alone.
+	var sent: Array = []
+	var clicks: Array = []
+	ui.form.fields_submitted.connect(func(f: Dictionary, _q: bool) -> void: sent.append(f))
+	ui.form.slot_clicked.connect(func(loc: String, l: String, i: int, b: int, sh: bool) -> void:
+		clicks.append([l, i, b, sh]))
+	ui.form.show_formspec("formspec_version[6]size[10,8]list[current_player;main;0.5,0.5;2,1;]" \
+		+ "hypertext[0.5,2;8,1;talk;<action name=greet>Hello</action> or <action name=bye>Goodbye</action>]" \
+		+ "hypertext[0.5,3.5;8,0.6;row_1;Ask about the <action name=ask>harvest</action>]",
+		"talk", Vector2(1200, 900))
+	ui.window = ui.form
+	await process_frame
+	run_for(0.1)
+	var GameUiScript = load("res://ui/game_ui.gd")
+	get_root().gui_release_focus()
+	GameUiScript.focus_first(ui.form)
+	var slot: Control = get_root().gui_get_focus_owner()
+	check(slot != null and slot.get("listname") == "main" and slot.get("index") == 0,
+		"the first key focuses the form's first control, its first slot")
+	check(run_for(0.1) == ["Stone, 12"], "a focused slot reads its stack")
+	var enter := func(shift: bool, ctrl: bool) -> InputEventKey:
+		var k := InputEventKey.new()
+		k.keycode = KEY_ENTER
+		k.pressed = true
+		k.shift_pressed = shift
+		k.ctrl_pressed = ctrl
+		return k
+	slot._gui_input(enter.call(false, false))
+	slot._gui_input(enter.call(true, false))
+	slot._gui_input(enter.call(false, true))
+	check(clicks == [["main", 0, MOUSE_BUTTON_LEFT, false], ["main", 0, MOUSE_BUTTON_LEFT, true],
+		["main", 0, MOUSE_BUTTON_RIGHT, false]],
+		"Enter, Shift+Enter and Ctrl+Enter are a click, a shift click and a right click: %s" % [clicks])
+	ui.selected = {"name": "default:stone", "amount": 6}
+	check(run_for(0.1) == ["Holding 6 default:stone"], "picking up is read")
+	ui.selected = {}
+	check(run_for(0.1) == ["Put down"], "putting down is read")
+	var talk: Control = ui.form.named_controls["talk"]
+	talk.grab_focus()
+	check(run_for(0.1) == ["Hello, link 1 of 2"], "a link list reads its first link")
+	var down := InputEventKey.new()
+	down.keycode = KEY_DOWN
+	down.pressed = true
+	talk.gui_input.emit(down)
+	check(run_for(0.1) == ["Goodbye, link 2 of 2"], "Down moves to the next link")
+	talk.gui_input.emit(enter.call(false, false))
+	check(not sent.is_empty() and sent.back().get("talk") == "action:bye",
+		"Enter follows the chosen link as a click does: %s" % [sent])
+	(ui.form.named_controls["row_1"] as Control).grab_focus()
+	check(run_for(0.1) == ["Ask about the harvest, link"],
+		"a row with one link is read whole, as a link")
+	ui.window = null
+	run_for(0.1)
+
+	# What is read can be chosen.
+	narrator.read_chat = false
+	ui.chat_lines.append({"text": "<sam> not now"})
+	check(run_for(0.2).is_empty(), "chat is not read with Read chat off")
+	narrator.read_chat = true
+	check(Narrator.voice_choices()[0] == ["", "System default"], "the voice list starts with the default")
+
+	# The main menu: no game_ui, a screen that announces itself.
+	var menu_root := VBoxContainer.new()
+	var b1 := Button.new()
+	b1.text = "Start Game"
+	var b2 := Button.new()
+	b2.text = "Join Game"
+	menu_root.add_child(b1)
+	menu_root.add_child(b2)
+	root.add_child(menu_root)
+	narrator.ui = null
+	narrator.screen_root = menu_root
+	voice.said.clear()
+	narrator.announce("Goanna. Main menu")
+	b2.grab_focus()
+	for i in 6:
+		narrator._process(1.0 / 60.0)
+	said = voice.said.map(func(u: Dictionary) -> String: return u.text)
+	check(said == ["Goanna. Main menu", "Join Game, button"] and voice.said[0].interrupt
+		and not voice.said[1].interrupt, "a menu screen is announced, then its focus: %s" % [said])
+	narrator.ui = ui
+
+	# Controls with no words of their own take the label beside them.
+	var row := HBoxContainer.new()
+	var name_label := Label.new()
+	name_label.text = "Player name"
+	var name_edit := LineEdit.new()
+	name_edit.placeholder_text = "your name"
+	var switch := CheckButton.new()
+	switch.button_pressed = true
+	var group := Button.new()
+	group.text = "▸  Camera   (3)"
+	row.add_child(name_label)
+	row.add_child(name_edit)
+	row.add_child(switch)
+	row.add_child(group)
+	root.add_child(row)
+	check(Narrator.describe(name_edit) == "Player name, text field, empty, your name",
+		"a field takes its label and placeholder: %s" % Narrator.describe(name_edit))
+	check(Narrator.describe(switch) == "Player name, switch, on", "a switch says its state")
+	check(Narrator.describe(group) == "closed Camera (3), button", "a disclosure arrow is said as a word")
+	group.queue_free()
+	check(Narrator._leaving(group), "a control being freed is not read")
+
 	# Ctrl+B turns it off and saves that.
 	var key := InputEventKey.new()
 	key.keycode = KEY_B

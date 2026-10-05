@@ -5,7 +5,8 @@
 # through a voice provider (the system's text to speech by default, so the
 # player's own voice, rate and screen reader set up apply). Off unless the
 # player turns it on: Ctrl+B, as in Minecraft, the Read aloud setting, or
-# GOANNA_READ_ALOUD=1 at launch.
+# GOANNA_READ_ALOUD=1 at launch. In game it watches game_ui (ui); in the main
+# menu it watches a screen (screen_root) that menu.gd announces.
 #
 # What it speaks is what is shown, nothing the screen does not show:
 #   - chat lines as they arrive;
@@ -29,9 +30,25 @@ const SUMMARY_MAX := 400
 
 var client: Node
 var ui: Node                          # game_ui.gd
+var screen_root: Control             # the main menu's panel, when ui is null
+var settings_owner: Object            # whatever saves settings (_save_setting)
 var enabled := false
 var rate := 1.0                       # 1 is the voice's normal rate
 var speech_volume := 1.0
+var voice_id := ""                    # empty for the system's default voice
+# What is read, each its own setting (game_ui.gd SETTINGS, Audio).
+var read_chat := true
+var read_hud := true
+var read_pointed := true
+var read_held := true
+var read_health := true
+var read_menus := true
+
+const SETTINGS_CFG := "user://goanna.cfg"
+# Settings key -> property, for the keys read aloud owns.
+const SETTING_PROPERTIES := {"speech_rate": "rate", "speech_volume": "speech_volume",
+	"read_chat": "read_chat", "read_hud": "read_hud", "read_pointed": "read_pointed",
+	"read_held": "read_held", "read_health": "read_health", "read_menus": "read_menus"}
 # The voice provider: anything with speak(text, interrupt) and available().
 var voice: Object
 
@@ -44,6 +61,10 @@ var _hp_since := 0.0
 var _window_key := ""
 var _focus_name := ""
 var _focus_queues := false            # the first focus after an opening waits its turn
+var _held_stack := ""                 # what is on the cursor in a form, as last read
+var _form_root := 0                   # the open form's build, by instance id
+var _last_summary := ""               # its summary, numbers taken out
+static var _digits := RegEx.create_from_string("[0-9]+")
 var _clock := 0.0
 
 # The system's text to speech (speech-dispatcher on Linux), through Godot.
@@ -52,10 +73,12 @@ class SystemVoice extends RefCounted:
 	func available() -> bool:
 		return not DisplayServer.tts_get_voices().is_empty()
 	func speak(text: String, interrupt: bool) -> void:
-		var voices := DisplayServer.tts_get_voices_for_language(TranslationServer.get_locale())
-		if voices.is_empty():
-			voices = DisplayServer.tts_get_voices_for_language("en")
-		var id: String = voices[0] if not voices.is_empty() else ""
+		var id: String = narrator.voice_id
+		if id == "":
+			var voices := DisplayServer.tts_get_voices_for_language(TranslationServer.get_locale())
+			if voices.is_empty():
+				voices = DisplayServer.tts_get_voices_for_language("en")
+			id = voices[0] if not voices.is_empty() else ""
 		DisplayServer.tts_speak(text, id, int(narrator.speech_volume * 100.0), 1.0,
 			narrator.rate, 0, interrupt)
 	func stop() -> void:
@@ -66,8 +89,37 @@ func _ready() -> void:
 		var system := SystemVoice.new()
 		system.narrator = self
 		voice = system
-	if OS.get_environment("GOANNA_READ_ALOUD") in ["1", "true", "yes"]:
+	load_settings()
+	if launched_on():
 		enabled = true
+
+static func launched_on() -> bool:
+	return OS.get_environment("GOANNA_READ_ALOUD") in ["1", "true", "yes"]
+
+# What goanna.cfg says. In game, game_ui applies the numbers too; the menu has
+# no game_ui, and the voice is text, which game_ui does not apply.
+func load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_CFG) != OK:
+		return
+	enabled = bool(float(cfg.get_value("settings", "read_aloud", 0.0)) > 0.5)
+	for key in SETTING_PROPERTIES:
+		if cfg.has_section_key("settings", key):
+			var v = cfg.get_value("settings", key)
+			set(SETTING_PROPERTIES[key], float(v) if key.begins_with("speech_") else float(v) > 0.5)
+	voice_id = str(cfg.get_value("settings", "speech_voice", ""))
+
+# The system's voices as the Voice setting offers them: the default first,
+# then one of each voice, its variants (espeak-ng's +Adam, +Alex and the
+# rest, over a thousand for English) left out.
+static func voice_choices() -> Array:
+	var out := [["", "System default"]]
+	for v in DisplayServer.tts_get_voices():
+		var name := str(v.get("name", ""))
+		if name.contains("+"):
+			continue
+		out.append([str(v.get("id", "")), "%s (%s)" % [name, str(v.get("language", ""))]])
+	return out
 
 func say(text: String, interrupt := false) -> void:
 	text = FormspecScript.strip_enriched(text).strip_edges()
@@ -82,8 +134,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo \
 			and event.keycode == KEY_B and event.ctrl_pressed:
 		set_enabled(not enabled)
-		if ui != null and ui.has_method("_save_setting"):
-			ui._save_setting("read_aloud", 1.0 if enabled else 0.0)
+		var saver: Object = settings_owner if settings_owner != null else ui
+		if saver != null and saver.has_method("_save_setting"):
+			saver._save_setting("read_aloud", 1.0 if enabled else 0.0)
 		get_viewport().set_input_as_handled()
 
 func set_enabled(on: bool) -> void:
@@ -93,6 +146,7 @@ func set_enabled(on: bool) -> void:
 	voice.speak("Read aloud on" if on else "Read aloud off", true)
 	if on:
 		_window_key = ""   # read what is open now
+		_focus_name = ""
 		# Chat from before it was turned on is not read out.
 		if ui != null and not ui.chat_lines.is_empty():
 			_chat_seen = ui.chat_lines[ui.chat_lines.size() - 1]
@@ -102,15 +156,34 @@ func set_enabled(on: bool) -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
-	if not enabled or client == null or ui == null:
+	if not enabled:
 		return
-	_chat()
+	if ui == null:
+		if screen_root != null and is_instance_valid(screen_root):
+			_focus_in(screen_root)
+		return
+	if client == null:
+		return
+	if read_chat:
+		_chat()
 	_window()
 	if ui.window == null:
-		_hud()
-		_pointed()
-		_wielded()
-	_health()
+		if read_hud:
+			_hud()
+		if read_pointed:
+			_pointed()
+		if read_held:
+			_wielded()
+	if read_health:
+		_health()
+
+# A new screen of the main menu: its title and what it says, interrupting,
+# then whatever takes the focus after it.
+func announce(text: String) -> void:
+	_focus_name = ""
+	_focus_queues = true
+	if enabled:
+		say(text, true)
 
 # --- what it watches -----------------------------------------------------------
 
@@ -196,11 +269,49 @@ func _window() -> void:
 	if key != _window_key:
 		_window_key = key
 		_focus_name = ""
+		_held_stack = ""
 		if w != null:
-			say(_summary(w), true)
+			var summary := _summary(w)
+			_last_summary = _digits.sub(summary, "", true)
+			_form_root = ui.form.root.get_instance_id() if w == ui.form and ui.form.root != null else 0
+			if read_menus:
+				say(summary, true)
 			_focus_queues = true
+	elif w != null and w == ui.form and ui.form.root != null \
+			and ui.form.root.get_instance_id() != _form_root:
+		# The server sent the form again. Read it again only if what it says
+		# changed beyond its numbers: a furnace's timer resends every second.
+		_form_root = ui.form.root.get_instance_id()
+		var summary := _summary(w)
+		var gist := _digits.sub(summary, "", true)
+		if gist != _last_summary:
+			_last_summary = gist
+			if read_menus:
+				say(summary)
 	if w != null:
-		_focus()
+		_focus_in(w)
+		if w == ui.form:
+			_cursor_stack()
+
+# The stack on the cursor in a form, when it changes: what was picked up, or
+# that the hand is empty again.
+func _cursor_stack() -> void:
+	var held: Dictionary = ui.get("selected") if ui.get("selected") is Dictionary else {}
+	var now := ""
+	if not held.is_empty():
+		var desc := ""
+		if client != null and client.has_method("item_description"):
+			desc = String(client.item_description(String(held.get("name", ""))))
+		var what := FormspecScript.strip_enriched(desc).split("\n")[0] if desc != "" else String(held.get("name", ""))
+		now = "Holding %d %s" % [int(held.get("amount", 1)), what]
+	if now == _held_stack:
+		return
+	var was := _held_stack
+	_held_stack = now
+	if now != "":
+		say(now)
+	elif was != "":
+		say("Put down")
 
 # A form or menu as it opens: its text, then its controls' captions, in
 # order, cut short.
@@ -253,17 +364,27 @@ func _visible_controls(root: Control) -> Array:
 			out.append(n)
 	return out
 
-# The control under the keyboard focus, or failing that under the pointer.
-func _focus() -> void:
+# The control under the keyboard focus, or failing that under the pointer,
+# within root.
+func _focus_in(root: Control) -> void:
 	var c: Control = get_viewport().gui_get_focus_owner()
-	if c == null or not ui.window.is_ancestor_of(c):
+	if c == null or not root.is_ancestor_of(c):
 		c = get_viewport().gui_get_hovered_control()
 	while c != null and not (c is BaseButton or c is LineEdit or c is TextEdit or c is Range
-			or c is ItemList or c is TabBar or c is Tree or c.get("listname") != null):
+			or c is ItemList or c is TabBar or c is Tree or c.get("listname") != null
+			or (c is RichTextLabel and c.has_meta("kbd_action"))):
 		c = c.get_parent() as Control
-	if c == null or not ui.window.is_ancestor_of(c):
+	if c == null or not root.is_ancestor_of(c) or _leaving(c):
 		return
-	var key := "%d" % c.get_instance_id()
+	# What it says is part of the key, so a change in the focused control (a
+	# tab switched, a box ticked, a slot filled, the next link chosen) is read
+	# as well as a move to another one.
+	# A form element is known by its name, so the same element rebuilt by the
+	# server's resend is not read again unless it changed.
+	var who := String(c.get_meta("formspec_name", "")) if c.has_meta("formspec_name") \
+		else ("slot %s %d" % [c.get("listname"), int(c.get("index"))] if c.get("listname") != null \
+		else str(c.get_instance_id()))
+	var key := "%s:%s" % [who, describe(c)]
 	if key == _focus_name:
 		return
 	_focus_name = key
@@ -271,11 +392,91 @@ func _focus() -> void:
 	say(describe(c), not _focus_queues)
 	_focus_queues = false
 
+# Text as it should be heard: the disclosure arrows Goanna's menus draw on a
+# group's header said as words, and runs of spaces closed up, so a voice does
+# not spell out "black right-pointing small triangle".
+static func _spoken(text: String) -> String:
+	text = text.replace("▸", "closed").replace("▾", "open").replace("▶", "closed").replace("▼", "open")
+	while text.contains("  "):
+		text = text.replace("  ", " ")
+	return text.strip_edges()
+
+# A control on its way out: a screen being replaced keeps its old controls,
+# focus included, until the end of the frame.
+static func _leaving(c: Node) -> bool:
+	while c != null:
+		if c.is_queued_for_deletion():
+			return true
+		c = c.get_parent()
+	return false
+
+# The words that name a control that has none of its own (a text field, a
+# slider, a dropdown): the nearest label before it, beside it or in the row
+# above, as a screen reader takes a field's label.
+static func label_for(c: Control) -> String:
+	var at: Node = c
+	for level in 3:
+		var parent := at.get_parent()
+		if parent == null:
+			return ""
+		for i in range(at.get_index() - 1, -1, -1):
+			var text := _label_text(parent.get_child(i))
+			if text != "":
+				return text
+		at = parent
+	return ""
+
+static func _label_text(n: Node) -> String:
+	if n is Label and (n as Label).is_visible_in_tree():
+		return (n as Label).text.strip_edges()
+	if n is RichTextLabel and (n as RichTextLabel).is_visible_in_tree():
+		return (n as RichTextLabel).get_parsed_text().strip_edges()
+	if n is Container and not (n is ScrollContainer):
+		for child in n.get_children():
+			var text := _label_text(child)
+			if text != "":
+				return text
+	return ""
+
 # A control as a screen reader says it: its words, what it is, its state.
 static func describe(c: Control) -> String:
+	var said := _describe(c)
+	if c is LineEdit or c is TextEdit or c is Range or c is OptionButton or c is ItemList:
+		var label := label_for(c)
+		if label != "" and not said.begins_with(label):
+			said = "%s, %s" % [label, said]
+	return said
+
+static func _describe(c: Control) -> String:
 	var tip := String(c.tooltip_text)
+	# A form keeps its tooltips itself (tooltip[], and an item image
+	# button's item description), not in Godot's tooltip_text.
+	if tip == "" and c.has_meta("formspec_name"):
+		var form: Node = c.get_parent()
+		while form != null and form.get("tooltips") == null:
+			form = form.get_parent()
+		if form != null:
+			var spec: Dictionary = (form.get("tooltips") as Dictionary).get(String(c.get_meta("formspec_name")), {})
+			tip = FormspecScript.strip_enriched(String(spec.get("text", ""))).split("\n")[0]
+	if c is RichTextLabel and c.has_meta("kbd_action"):
+		var links: Array = FormspecScript.hypertext_actions(c)
+		var at := int(c.get_meta("kbd_action"))
+		if links.is_empty():
+			return (c as RichTextLabel).get_parsed_text()
+		var link: Dictionary = links[clampi(at, 0, links.size() - 1)]
+		var text := (c as RichTextLabel).get_parsed_text().strip_edges()
+		# One link standing alone in its element is read with the element's
+		# text (Kythen puts each choice in its own row); several are read one
+		# at a time, with where the chosen one is.
+		if links.size() == 1:
+			return "%s, link" % (text if text != "" else str(link.text))
+		return "%s, link %d of %d" % [str(link.text), at + 1, links.size()]
 	if c is CheckBox:
 		return "%s, checkbox, %s" % [(c as CheckBox).text, "checked" if (c as CheckBox).button_pressed else "not checked"]
+	if c is CheckButton:
+		var name := _spoken((c as CheckButton).text)
+		return "%s, switch, %s" % [name if name != "" else label_for(c),
+			"on" if (c as CheckButton).button_pressed else "off"]
 	if c is OptionButton:
 		var ob := c as OptionButton
 		return "%s, dropdown" % (ob.get_item_text(ob.selected) if ob.selected >= 0 else "nothing chosen")
@@ -285,14 +486,21 @@ static func describe(c: Control) -> String:
 			item.get("name", "")))).split("\n")[0]
 		return "%s, %d" % [what, int(item.get("count", 1))] if what != "" else "Empty slot"
 	if c is Button:
-		var label := String(c.get_meta("label", (c as Button).text)).strip_edges()
+		var label := _spoken(String(c.get_meta("label", (c as Button).text)))
+		if label == "" and tip != "":
+			label = tip
 		if label == "" and c.has_meta("formspec_name"):
-			label = tip if tip != "" else String(c.get_meta("formspec_name"))
+			label = String(c.get_meta("formspec_name"))
+		if label == "":
+			label = label_for(c)
+		if label == "":
+			label = "unlabelled"
 		return "%s, button%s" % [label, ", unavailable" if (c as Button).disabled else ""]
 	if c is LineEdit:
 		var le := c as LineEdit
+		var empty := "empty" if le.placeholder_text == "" else "empty, %s" % le.placeholder_text
 		return "%s, %s" % ["password" if le.secret else "text field",
-			"%d characters" % le.text.length() if le.secret else (le.text if le.text != "" else "empty")]
+			"%d characters" % le.text.length() if le.secret else (le.text if le.text != "" else empty)]
 	if c is TextEdit:
 		return "text area, %s" % ((c as TextEdit).text if (c as TextEdit).text != "" else "empty")
 	if c is TabBar:
@@ -303,5 +511,5 @@ static func describe(c: Control) -> String:
 		var picked := Array(il.get_selected_items())
 		return "list, %s" % (il.get_item_text(int(picked[0])) if not picked.is_empty() else "%d items" % il.item_count)
 	if c is Range:
-		return "slider, %s" % str((c as Range).value)
+		return "slider, %s" % str(snappedf((c as Range).value, 0.01))
 	return c.get_class()

@@ -136,6 +136,7 @@ var last_show: Array = []            # show_formspec's arguments, for restyle()
 # built behind the form unless the form asked for no_prepend[], which is why
 # it is parsed after the form and not simply glued in front of it.
 func show_formspec(spec: String, name: String, screen: Vector2, prepend := "") -> void:
+	var kept := _focused_key() if name == formname else ""
 	last_show = [spec, name, screen, prepend]
 	_show(spec, name, screen, prepend, style == GlassStyle.GLASS)
 	if glass and _paints_own_window():
@@ -144,6 +145,36 @@ func show_formspec(spec: String, name: String, screen: Vector2, prepend := "") -
 		# it keeps the game's look.
 		_show(spec, name, screen, prepend, false)
 		bespoke = true
+	_restore_focus(kept)
+
+# The focused element, as something that survives a rebuild: its name, or a
+# slot's place. GUIFormSpecMenu::regenerateGui keeps the focused element
+# across a server's resend of the form; without that, every answer from the
+# server would throw a keyboard player back to the start.
+func _focused_key() -> String:
+	var vp := get_viewport()
+	var c: Control = vp.gui_get_focus_owner() if vp != null else null
+	if c == null or root == null or not root.is_ancestor_of(c):
+		return ""
+	if c.get("listname") != null:
+		return "slot|%s|%s|%d" % [c.get("location"), c.get("listname"), int(c.get("index"))]
+	return "name|" + String(c.get_meta("formspec_name", ""))
+
+func _restore_focus(kept: String) -> void:
+	if kept == "" or kept == "name|" or (focus_force and focus_name != ""):
+		return
+	var target: Control = null
+	if kept.begins_with("slot|"):
+		var bits := kept.split("|")
+		for sl in slots:
+			if is_instance_valid(sl) and sl.location == bits[1] and sl.listname == bits[2] \
+					and sl.index == int(bits[3]):
+				target = sl
+	else:
+		target = named_controls.get(kept.substr(5))
+	if target != null and target.is_visible_in_tree() and target.focus_mode != Control.FOCUS_NONE:
+		target.remove_theme_stylebox_override("focus")
+		target.grab_focus()
 
 func _show(spec: String, name: String, screen: Vector2, prepend: String, want_glass: bool) -> void:
 	formname = name
@@ -294,7 +325,7 @@ func describe() -> Dictionary:
 static var _action_tags := RegEx.create_from_string("(?s)<action(\\s[^>]*)?>(.*?)</action>")
 static var _any_tag := RegEx.create_from_string("<[^>]*>")
 static var _markup_escape := RegEx.create_from_string("\\\\(.)")
-func hypertext_actions(rt: Control) -> Array:
+static func hypertext_actions(rt: Control) -> Array:
 	var out: Array = []
 	for m in _action_tags.search_all(String(rt.get_meta("markup", ""))):
 		var attrs := _markup_attrs(m.get_string(1).strip_edges())
@@ -2213,6 +2244,32 @@ func _hypertext(parts: PackedStringArray) -> void:
 			rt.set_meta("hovered_action", -1)
 			_render_markup.call_deferred(rt, text, -1))
 	_render_markup(rt, text, -1)
+	# The keyboard reaches an element with links: Up and Down choose a link,
+	# drawn as hovered, and Enter or Space follows it, as a click on it would.
+	# Upstream has no keyboard path to a hypertext link; without one a player
+	# who cannot use a pointer could not answer a game that offers its
+	# choices as links (Kythen's conversations).
+	if hypertext_actions(rt).size() > 0:
+		rt.focus_mode = Control.FOCUS_ALL
+		rt.set_meta("kbd_action", 0)
+		rt.focus_entered.connect(func() -> void:
+			_render_markup.call_deferred(rt, text, int(rt.get_meta("kbd_action"))))
+		rt.focus_exited.connect(func() -> void:
+			_render_markup.call_deferred(rt, text, -1))
+		rt.gui_input.connect(func(event: InputEvent) -> void:
+			var links := hypertext_actions(rt)
+			if not (event is InputEventKey) or not event.pressed or links.is_empty():
+				return
+			var at := int(rt.get_meta("kbd_action"))
+			if event.is_action("ui_accept"):
+				var link: Dictionary = links[clampi(at, 0, links.size() - 1)]
+				rt.meta_clicked.emit({"index": at, "name": link.name, "url": link.url})
+				rt.accept_event()
+			elif links.size() > 1 and (event.is_action("ui_down") or event.is_action("ui_up")):
+				at = clampi(at + (1 if event.is_action("ui_down") else -1), 0, links.size() - 1)
+				rt.set_meta("kbd_action", at)
+				_render_markup.call_deferred(rt, text, at)
+				rt.accept_event())
 
 # Walks Luanti's hypertext markup and drives the RichTextLabel directly
 # rather than translating to BBCode: <img> and <item> name client media and
@@ -3395,6 +3452,17 @@ func _tabheader(parts: PackedStringArray) -> void:
 	tb.tab_changed.connect(func(i: int) -> void:
 		_play_sound(sound)
 		submit({tname: str(i + 1)}, false))
+	# Left and Right choose the tab beside this one, as a click on it would.
+	tb.gui_input.connect(func(event: InputEvent) -> void:
+		if not (event is InputEventKey) or not event.pressed:
+			return
+		var step := -1 if event.is_action("ui_left") else (1 if event.is_action("ui_right") else 0)
+		if step == 0:
+			return
+		var to := clampi(tb.current_tab + step, 0, tb.tab_count - 1)
+		if to != tb.current_tab:
+			tb.current_tab = to
+		tb.accept_event())
 
 func _list(parts: PackedStringArray) -> void:
 	# list[inventory location;list name;x,y;w,h;starting item index]
@@ -4493,6 +4561,11 @@ class FormspecSlot extends Control:
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		mouse_entered.connect(func() -> void: hovered = true; queue_redraw())
 		mouse_exited.connect(func() -> void: hovered = false; queue_redraw())
+		# Reachable from the keyboard, as Luanti's own slots are not: Tab and
+		# the arrows move between slots, and Enter does what a click does.
+		focus_mode = Control.FOCUS_ALL
+		focus_entered.connect(queue_redraw)
+		focus_exited.connect(queue_redraw)
 
 	# The form draws the item's tooltip itself (tooltip_at), from `item`.
 	func refresh() -> void:
@@ -4514,6 +4587,8 @@ class FormspecSlot extends Control:
 					false, 1.0)
 		if icon:
 			draw_texture_rect(icon, r, false)
+		if has_focus():
+			draw_rect(r.grow(-1.0), Color(1, 1, 1, 0.9), false, 2.0)
 		var wear: int = item.get("wear", 0)
 		if wear > 0 and int(item.get("type", ITEM_TOOL)) == ITEM_TOOL:
 			_draw_wear(wear / 65535.0)
@@ -4554,7 +4629,22 @@ class FormspecSlot extends Control:
 			return MOUSE_BUTTON_MIDDLE
 		return 0
 
+	# Enter or Space: a left click, picking up or putting down. Shift+Enter: a
+	# shift click, moving the stack to the other list. Ctrl+Enter: a right
+	# click, taking half or putting one down. Press and release on this slot,
+	# through the handlers a mouse click reaches.
+	func _key_click(event: InputEventKey) -> bool:
+		if not event.pressed or event.echo or not event.is_action("ui_accept"):
+			return false
+		var button := MOUSE_BUTTON_RIGHT if event.ctrl_pressed else MOUSE_BUTTON_LEFT
+		form._slot_clicked(location, listname, index, button, event.shift_pressed)
+		form._slot_released(location, listname, index, button)
+		return true
+
 	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventKey and _key_click(event):
+			accept_event()
+			return
 		if event is InputEventMouseButton \
 				and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
 			if event.pressed:

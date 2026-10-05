@@ -515,6 +515,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_close_window()
 			elif event.keycode == KEY_I and window == form and form_is_inventory:
 				_close_window()
+			elif event.keycode in [KEY_TAB, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]:
+				focus_first(window)
 			get_viewport().set_input_as_handled()
 			return
 		if chat_open:
@@ -541,6 +543,32 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 	elif window != null and (event is InputEventMouseButton or event is InputEventKey):
 		get_viewport().set_input_as_handled()
+
+# The first Tab or arrow in a window with nothing focused takes the focus to
+# its first control, so the keyboard has somewhere to start; Godot moves
+# focus only from a control that has it. A form hides its opening focus
+# (formspec.gd _initial_focus, as upstream does), and that is shown again
+# once the keyboard is being used.
+static func focus_first(root: Control) -> void:
+	var vp := root.get_viewport()
+	if vp == null or (vp.gui_get_focus_owner() != null and root.is_ancestor_of(vp.gui_get_focus_owner())):
+		return
+	var stack: Array = [root]
+	var first: Control = null
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is Control and n != root and (n as Control).is_visible_in_tree():
+			var c := n as Control
+			if c is Button:
+				c.remove_theme_stylebox_override("focus")
+			if first == null and c.focus_mode == Control.FOCUS_ALL:
+				first = c
+		# Depth first, in child order: the order Tab goes in.
+		var children := n.get_children()
+		children.reverse()
+		stack.append_array(children)
+	if first != null:
+		first.grab_focus()
 
 # --- chat --------------------------------------------------------------------
 
@@ -882,6 +910,13 @@ const SETTINGS := [
 	["Audio", "read_aloud", "toggle", "Read aloud", "Speak chat, on screen text, what you point at, what you hold and the menus as they open, through the system's voice. Ctrl+B turns it on and off anywhere. On Linux this needs speech-dispatcher and a voice such as espeak-ng."],
 	["Audio", "speech_rate", "slider", "Speech rate", "How fast read aloud speaks. 1 is the voice's normal rate.", 0.5, 4.0, 0.25],
 	["Audio", "speech_volume", "slider", "Speech volume", "How loud read aloud speaks.", 0.0, 1.0, 0.05],
+	["Audio", "speech_voice", "choice", "Speech voice", "Which of the system's voices read aloud uses. System default follows your screen reader's or desktop's choice.", "voices"],
+	["Audio", "read_chat", "toggle", "Read chat", "Read chat lines as they arrive."],
+	["Audio", "read_hud", "toggle", "Read on screen text", "Read text the game puts on the screen, once it has stopped changing."],
+	["Audio", "read_pointed", "toggle", "Read what you point at", "Read the description of the block or creature under the crosshair."],
+	["Audio", "read_held", "toggle", "Read what you hold", "Read the item in your hand when it changes."],
+	["Audio", "read_health", "toggle", "Read health", "Read your health when it changes."],
+	["Audio", "read_menus", "toggle", "Read menus as they open", "Read a form's or menu's text and controls when it opens. The control you move to is always read."],
 	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
 	["Updates", "asset_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 ]
@@ -903,7 +938,8 @@ const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "volume", "muted",
-	"read_aloud", "speech_rate", "speech_volume",
+	"read_aloud", "speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed",
+	"read_held", "read_health", "read_menus",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "asset_updates", "update_check",
@@ -991,11 +1027,14 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"muted":
 			if audio != null: audio.muted = on
 		"read_aloud":
-			if narrator != null and narrator.enabled != on: narrator.set_enabled(on)
-		"speech_rate":
-			if narrator != null: narrator.rate = value
-		"speech_volume":
-			if narrator != null: narrator.speech_volume = value
+			# A launch with GOANNA_READ_ALOUD=1 is not undone by a saved off.
+			if narrator != null and narrator.enabled != on and not (narrator.launched_on() and not on):
+				narrator.set_enabled(on)
+		"speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed", "read_held", \
+				"read_health", "read_menus":
+			if narrator != null:
+				var prop: String = narrator.SETTING_PROPERTIES[key]
+				narrator.set(prop, value if key.begins_with("speech_") else on)
 
 func _local_value(key: String) -> float:
 	var m := _main_node()
@@ -1023,8 +1062,11 @@ func _local_value(key: String) -> float:
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0
 		"read_aloud": return 1.0 if (narrator != null and narrator.enabled) else 0.0
-		"speech_rate": return narrator.rate if narrator != null else 1.0
-		"speech_volume": return narrator.speech_volume if narrator != null else 1.0
+		"speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed", "read_held", \
+				"read_health", "read_menus":
+			if narrator == null:
+				return 1.0
+			return float(narrator.get(narrator.SETTING_PROPERTIES[key]))
 		"asset_updates", "update_check":
 			# What is saved, which asset_updater.gd and updater.gd obey. This
 			# used to show on whatever was saved, so a profile with material
@@ -1272,13 +1314,21 @@ func _build_settings() -> Control:
 
 # One of a few named values, stored as text: the interface style. It applies
 # at once, like the other settings on this screen.
+# A choice row's options: the list in SETTINGS, or for "voices" the system's
+# voices, which are only known at run time.
+static func setting_choices(entry: Array) -> Array:
+	if entry[5] is String and entry[5] == "voices":
+		return preload("res://ui/narrator.gd").voice_choices()
+	return entry[5]
+
 func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var picker := OptionButton.new()
+	var choices := setting_choices(entry)
 	var current := _setting_text(key)
 	if current == "":
-		current = str((entry[5] as Array)[0][0])
-	for choice in entry[5]:
+		current = str(choices[0][0])
+	for choice in choices:
 		picker.add_item(str(choice[1]))
 		picker.set_item_metadata(picker.item_count - 1, str(choice[0]))
 		if str(choice[0]) == current:
@@ -1289,7 +1339,9 @@ func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
 		if key == GlassStyle.KEY:
 			GlassStyle.set_mode(value)
 		else:
-			_save_setting_text(key, value))
+			_save_setting_text(key, value)
+		if key == "speech_voice" and narrator != null:
+			narrator.voice_id = value)
 	row.add_child(picker)
 
 func _setting_text(key: String) -> String:
