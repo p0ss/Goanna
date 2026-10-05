@@ -1,0 +1,330 @@
+{
+  "mobs_dirt_monster": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_dirt_monster.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dirt_monster.png"
+  },
+  "mobs_dirt_monster2": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_dirt_monster2.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dirt_monster2.png"
+  },
+  "mobs_dirt_monster3": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_dirt_monster3.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dirt_monster3.png"
+  },
+  "mobs_dungeon_master": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_dungeon_master.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master.png"
+  },
+  "mobs_dungeon_master2": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_dungeon_master2.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master2.png"
+  },
+  "mobs_dungeon_master4": {
+    "author": "SkyBuilder1717",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "license.txt: \"SkyBuilder1717 (CC BY-SA 4.0)\" lists mobs_dungeon_master4.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master4.png"
+  },
+  "mobs_dungeon_master_nether": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_dungeon_master_nether.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master_nether.png"
+  },
+  "mobs_dungeon_master_netherdeep": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_dungeon_master_netherdeep.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_dungeon_master_netherdeep.png"
+  },
+  "mobs_fireball": {
+    "author": "TenPlus1",
+    "media_license": "MIT",
+    "notice": "license.txt: \"Textures by TenPlus1 (MIT)\" lists mobs_fireball.png; MIT text \"Copyright (c) 2016 TenPlus1\" heads the file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_fireball.png"
+  },
+  "mobs_land_guard": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_land_guard.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard.png"
+  },
+  "mobs_land_guard2": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_land_guard2.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard2.png"
+  },
+  "mobs_land_guard3": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_land_guard3.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_land_guard3.png"
+  },
+  "mobs_mese_arrow": {
+    "author": "SirrobZeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures and Model created by SirrobZeroone (CC0)\" lists mobs_mese_arrow.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_mese_arrow.png"
+  },
+  "mobs_mese_monster_blue": {
+    "author": "SirrobZeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures and Model created by SirrobZeroone (CC0)\" lists mobs_mese_monster_blue.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_mese_monster_blue.png"
+  },
+  "mobs_mese_monster_green": {
+    "author": "SirrobZeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures and Model created by SirrobZeroone (CC0)\" lists mobs_mese_monster_green.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_mese_monster_green.png"
+  },
+  "mobs_mese_monster_purple": {
+    "author": "SirrobZeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures and Model created by SirrobZeroone (CC0)\" lists mobs_mese_monster_purple.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_mese_monster_purple.png"
+  },
+  "mobs_mese_monster_red": {
+    "author": "SirrobZeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures and Model created by SirrobZeroone (CC0)\" lists mobs_mese_monster_red.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_mese_monster_red.png"
+  },
+  "mobs_obsidian_flan": {
+    "author": "TenPlus1",
+    "media_license": "MIT",
+    "notice": "license.txt: \"Textures by TenPlus1 (MIT)\" lists mobs_obsidian_flan.png; MIT text \"Copyright (c) 2016 TenPlus1\" heads the file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_obsidian_flan.png"
+  },
+  "mobs_oerkki": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_oerkki.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_oerkki.png"
+  },
+  "mobs_oerkki4": {
+    "author": "SkyBuilder1717",
+    "media_license": "CC-BY-SA-4.0",
+    "notice": "license.txt: \"SkyBuilder1717 (CC BY-SA 4.0)\" lists mobs_oerkki4.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_oerkki4.png"
+  },
+  "mobs_sand_monster": {
+    "author": "Sirrobzeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures by Sirrobzeroone (CC0 1.0 Universal)\" lists mobs_sand_monster.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_sand_monster.png"
+  },
+  "mobs_sand_monster2": {
+    "author": "Pavel_S and PilzAdam",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists mobs_sand_monster2.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_sand_monster2.png"
+  },
+  "mobs_spider_crystal": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists mobs_spider_crystal.png; spider.lua: \"Spider by AspireMint (CC-BY-SA 3.0 license)\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_crystal.png"
+  },
+  "mobs_spider_dark": {
+    "author": "AspireMint, edited by SkyBuilder1717",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists \"mobs_spider_dark.png [edited by SkyBuilder1717]\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_dark.png"
+  },
+  "mobs_spider_grey": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists mobs_spider_grey.png; spider.lua: \"Spider by AspireMint (CC-BY-SA 3.0 license)\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_grey.png"
+  },
+  "mobs_spider_mese": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists mobs_spider_mese.png; spider.lua: \"Spider by AspireMint (CC-BY-SA 3.0 license)\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_mese.png"
+  },
+  "mobs_spider_orange": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists mobs_spider_orange.png; spider.lua: \"Spider by AspireMint (CC-BY-SA 3.0 license)\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_orange.png"
+  },
+  "mobs_spider_snowy": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists mobs_spider_snowy.png; spider.lua: \"Spider by AspireMint (CC-BY-SA 3.0 license)\"",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_spider_snowy.png"
+  },
+  "mobs_stone_monster": {
+    "author": "wwar",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures created by wwar (CC0)\" lists mobs_stone_monster.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_stone_monster.png"
+  },
+  "mobs_stone_monster2": {
+    "author": "AMMOnym",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Textures by AMMOnym (WTFPL)\" lists mobs_stone_monster2.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_stone_monster2.png"
+  },
+  "mobs_stone_monster3": {
+    "author": "TenPlus1",
+    "media_license": "MIT",
+    "notice": "license.txt: \"Textures by TenPlus1 (MIT)\" lists mobs_stone_monster3.png; MIT text \"Copyright (c) 2016 TenPlus1\" heads the file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_stone_monster3.png"
+  },
+  "mobs_stone_monster4": {
+    "author": "Sirrobzeroone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Textures by Sirrobzeroone (CC0 1.0 Universal)\" lists mobs_stone_monster4.png",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_stone_monster4.png"
+  },
+  "mobs_tree_monster": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster.png"
+  },
+  "mobs_tree_monster2": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster2.png"
+  },
+  "mobs_tree_monster3": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster3.png"
+  },
+  "mobs_tree_monster4": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster4.png"
+  },
+  "mobs_tree_monster5": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster5.png"
+  },
+  "mobs_tree_monster6": {
+    "author": "Pavel_S and PilzAdam, edited by TenPlus1",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Pavel_S and PilzAdam (WTFPL)\" lists \"mobs_tree_monster*.png (edited by TenPlus1)\", which matches this file",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/mobs_tree_monster6.png"
+  },
+  "zmobs_lava_flan": {
+    "author": "AspireMint (license.txt); lava_flan.lua says Zeg9, additional textures by JurajVajda",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists zmobs_lava_flan.png; lava_flan.lua comments \"Lava Flan by Zeg9 (additional textures by JurajVajda)\", a conflicting author credit under no other licence",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/zmobs_lava_flan.png"
+  },
+  "zmobs_lava_flan2": {
+    "author": "AspireMint (license.txt); lava_flan.lua says Zeg9, additional textures by JurajVajda",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists zmobs_lava_flan2.png; lava_flan.lua comments \"Lava Flan by Zeg9 (additional textures by JurajVajda)\", a conflicting author credit under no other licence",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/zmobs_lava_flan2.png"
+  },
+  "zmobs_lava_flan3": {
+    "author": "AspireMint (license.txt); lava_flan.lua says Zeg9, additional textures by JurajVajda",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"AspireMint (CC BY-SA 3.0)\" lists zmobs_lava_flan3.png; lava_flan.lua comments \"Lava Flan by Zeg9 (additional textures by JurajVajda)\", a conflicting author credit under no other licence",
+    "package": "mobs_monster",
+    "release": 38244,
+    "source": "mobs_monster/textures/zmobs_lava_flan3.png"
+  }
+}

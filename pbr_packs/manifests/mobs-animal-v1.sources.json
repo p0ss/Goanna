@@ -1,0 +1,154 @@
+{
+  "mobs_bee": {
+    "author": "sirrobzerrone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by sirrobzerrone (CC0)\" lists mobs_bee.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_bee.png"
+  },
+  "mobs_bunny_brown": {
+    "author": "ExeterDad",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by ExeterDad (CC0)\" lists mobs_bunny_brown.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_bunny_brown.png"
+  },
+  "mobs_bunny_grey": {
+    "author": "ExeterDad",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by ExeterDad (CC0)\" lists mobs_bunny_grey.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_bunny_grey.png"
+  },
+  "mobs_bunny_white": {
+    "author": "ExeterDad",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by ExeterDad (CC0)\" lists mobs_bunny_white.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_bunny_white.png"
+  },
+  "mobs_cheeseblock": {
+    "author": "TenPlus1",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Honey block, cheese and Cheese block by TenPlus1 under CC0\"",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_cheeseblock.png"
+  },
+  "mobs_chick": {
+    "author": "JK Murray",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by JK Murray (CC0)\" lists mobs_chick.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_chick.png"
+  },
+  "mobs_chicken": {
+    "author": "JK Murray",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by JK Murray (CC0)\" lists mobs_chicken.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_chicken.png"
+  },
+  "mobs_chicken_black": {
+    "author": "JK Murray",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by JK Murray (CC0)\" lists mobs_chicken_black.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_chicken_black.png"
+  },
+  "mobs_chicken_brown": {
+    "author": "JK Murray",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by JK Murray (CC0)\" lists mobs_chicken_brown.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_chicken_brown.png"
+  },
+  "mobs_cow": {
+    "author": "sirrobzerrone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by sirrobzerrone (CC0)\" lists mobs_cow.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_cow.png"
+  },
+  "mobs_cow2": {
+    "author": "sirrobzerrone",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Models/Textures by sirrobzerrone (CC0)\" lists mobs_cow2.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_cow2.png"
+  },
+  "mobs_honey_block": {
+    "author": "TenPlus1",
+    "media_license": "CC0-1.0",
+    "notice": "license.txt: \"Honey block, cheese and Cheese block by TenPlus1 under CC0\"",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_honey_block.png"
+  },
+  "mobs_kitten_ginger": {
+    "author": "Jordach/BFD",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Models/Textures by Jordach/BFD (WTFPL)\" lists mobs_kitten_ginger.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_kitten_ginger.png"
+  },
+  "mobs_kitten_sandy": {
+    "author": "Jordach/BFD",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Models/Textures by Jordach/BFD (WTFPL)\" lists mobs_kitten_sandy.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_kitten_sandy.png"
+  },
+  "mobs_kitten_splotchy": {
+    "author": "Jordach/BFD",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Models/Textures by Jordach/BFD (WTFPL)\" lists mobs_kitten_splotchy.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_kitten_splotchy.png"
+  },
+  "mobs_kitten_striped": {
+    "author": "Jordach/BFD",
+    "media_license": "WTFPL",
+    "notice": "license.txt: \"Models/Textures by Jordach/BFD (WTFPL)\" lists mobs_kitten_striped.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_kitten_striped.png"
+  },
+  "mobs_panda": {
+    "author": "AspireMint",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"Models/Textures by AspireMint (CC BY-SA 3.0)\" lists mobs_panda.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_panda.png"
+  },
+  "mobs_penguin": {
+    "author": "D00Med",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "license.txt: \"Models/Textures by D00Med (CC BY-SA 3.0)\" lists mobs_penguin.png",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_penguin.png"
+  },
+  "mobs_pumba": {
+    "author": "Krupnov Pavel",
+    "media_license": "MIT",
+    "notice": "license.txt: \"Models/Textures by Krupno Pavel (MIT)\" lists mobs_pumba.png; the MIT text above it is \"Copyright (c) 2014 Krupnov Pavel and 2016 TenPlus1\"",
+    "package": "mobs_animal",
+    "release": 39178,
+    "source": "mobs_animal/textures/mobs_pumba.png"
+  }
+}

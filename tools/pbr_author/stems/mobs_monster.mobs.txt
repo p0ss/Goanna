@@ -1,0 +1,42 @@
+# Skins and model textures built by atlas.py, not extrude.py: a UV atlas of
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+mobs_spider_crystal mobs_spider.b3d
+mobs_spider_dark mobs_spider.b3d
+mobs_spider_grey mobs_spider.b3d
+mobs_spider_mese mobs_spider.b3d
+mobs_spider_orange mobs_spider.b3d
+mobs_spider_snowy mobs_spider.b3d
+mobs_dirt_monster mobs_stone_monster.b3d
+mobs_dirt_monster2 mobs_stone_monster.b3d
+mobs_dirt_monster3 mobs_stone_monster.b3d
+mobs_stone_monster mobs_stone_monster.b3d
+mobs_stone_monster2 mobs_stone_monster.b3d
+mobs_stone_monster3 mobs_stone_monster.b3d
+mobs_stone_monster4 mobs_stone_monster.b3d
+mobs_sand_monster mobs_sand_monster.b3d
+mobs_sand_monster2 mobs_sand_monster.b3d
+mobs_dungeon_master mobs_dungeon_master.b3d
+mobs_dungeon_master2 mobs_dungeon_master.b3d
+mobs_dungeon_master4 mobs_dungeon_master.b3d
+mobs_dungeon_master_nether mobs_dungeon_master.b3d
+mobs_dungeon_master_netherdeep mobs_dungeon_master.b3d
+mobs_land_guard mobs_dungeon_master.b3d
+mobs_land_guard2 mobs_dungeon_master.b3d
+mobs_land_guard3 mobs_dungeon_master.b3d
+mobs_oerkki mobs_oerkki.b3d
+mobs_oerkki4 mobs_oerkki.b3d
+mobs_tree_monster mobs_tree_monster.b3d
+mobs_tree_monster2 mobs_tree_monster.b3d
+mobs_tree_monster3 mobs_tree_monster.b3d
+mobs_tree_monster4 mobs_tree_monster.b3d
+mobs_tree_monster5 mobs_tree_monster.b3d
+mobs_tree_monster6 mobs_tree_monster.b3d
+mobs_mese_monster_red mobs_mese_monster.b3d
+mobs_mese_monster_green mobs_mese_monster.b3d
+mobs_mese_monster_blue mobs_mese_monster.b3d
+mobs_mese_monster_purple mobs_mese_monster.b3d
+zmobs_lava_flan zmobs_lava_flan.b3d
+zmobs_lava_flan2 zmobs_lava_flan.b3d
+zmobs_lava_flan3 zmobs_lava_flan.b3d
+mobs_obsidian_flan zmobs_lava_flan.b3d

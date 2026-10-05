@@ -1,0 +1,20 @@
+# Skins and model textures built by atlas.py, not extrude.py: a UV atlas of
+# faces read from its model, not a tiling node face. One per line:
+#   <stem> <model.b3d> [brush]
+mobs_bee mobs_bee.b3d
+mobs_bunny_brown mobs_bunny.b3d
+mobs_bunny_grey mobs_bunny.b3d
+mobs_bunny_white mobs_bunny.b3d
+mobs_chicken mobs_chicken.b3d
+mobs_chicken_black mobs_chicken.b3d
+mobs_chicken_brown mobs_chicken.b3d
+mobs_chick mobs_chicken.b3d
+mobs_cow mobs_cow.b3d
+mobs_cow2 mobs_cow.b3d
+mobs_kitten_ginger mobs_kitten.b3d
+mobs_kitten_sandy mobs_kitten.b3d
+mobs_kitten_splotchy mobs_kitten.b3d
+mobs_kitten_striped mobs_kitten.b3d
+mobs_panda mobs_panda.b3d
+mobs_penguin mobs_penguin.b3d
+mobs_pumba mobs_pumba.b3d

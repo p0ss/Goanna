@@ -1,0 +1,104 @@
+{
+ "class": "soil",
+ "texel_px": 16,
+ "strength": 12,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.08,
+ "micro": "none",
+ "materials": {
+  "soil": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.16,
+   "levels": 4,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.1,
+   "smooth_spread": 0.03,
+   "micro": "mottle",
+   "micro_params": {
+    "cell": 0.45
+   },
+   "micro_strength": 0.35,
+   "micro_swing": 0.2
+  },
+  "moss": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.12,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.08,
+   "smooth_spread": 0.02,
+   "micro": "mottle",
+   "micro_params": {
+    "cell": 0.3
+   },
+   "micro_strength": 0.6,
+   "micro_swing": 0.2,
+   "scatter": 0.2
+  },
+  "eye": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.8,
+   "smooth_spread": 0.0,
+   "flush": {
+    "to": [
+     "soil",
+     "moss"
+    ]
+   }
+  }
+ },
+ "grid": [
+  "m...m.....mmm.mmm.mmmmmmmmm..mm",
+  "mm........mmm.mmm..mmmmmmmmm.mm",
+  "mmm.mmm...mmmmmmm....mm..mmmmmm",
+  "mmmmmmm...mmmmmm.mm.......mmmmm",
+  "mm...mm....mmm...mm..m....mmmmm",
+  "....e.mm..e.mm..mmm..mm...mmm..",
+  "......mmm...mmmmmmmmmmmmmmmmm..",
+  "...mmmmmmm.mmmmmmmmmmmmmmmmmm..",
+  "m..mmmmmmmmmmmmmmmmmmmmmmmmmm..",
+  "mm.mmmmmmmmmmmmmmmmmmm.mmmmmm.m",
+  "mmmmmmmmmmmmmmmmmmmmmmmmmmm....",
+  "..mmmmmmmmmmmmmmmmmmmmmmmmm....",
+  "...mmmmmmmmmmmmmmmmmmmmmmm.....",
+  "...mmmmmmmmmmmmmmmmmmmmmm...m..",
+  "...mmmmmmmmmmmm..mmmmmmmmm..mmm",
+  "m..mmmmmmmmmmmm.mmmmm..mmmm..mm",
+  "mmmmmmmmmmmmmmmmmmmmmmmmmmm.mm.",
+  "..mmmmmmmmmmmmmmmmmmmmmmmmmmmm.",
+  ".mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+  "mmmmmmmmm.mmmmmmmmmmmmmmmmmmmmm",
+  "mmmmmmmmm...mmmmmmmmmmmmmmmmmmm",
+  "mmm.mmmmmmmmmmmmmmmmmmmmm.mmmmm",
+  "mmmmmmmmmmmmmmmmmmmmmmmmm.mmmmm",
+  "mmmmmmmm..mmmmmmmmmm.mmmmmmmm..",
+  ".mmmmmmm.mmmm.mmm.mm.mmmmmmmm..",
+  ".mmmmmmmmmmmmmmmmmmmmmmmmmmmm..",
+  ".mmmmmmmmmmmmmmmmmmmmmmmmmmmm..",
+  "..mmmmmmmmmmmmmmmmmmmmmmmmmmm..",
+  "....mmmmmmmmmmmmmmmmm.....mmmm.",
+  "....mmmmmmmmmmmmmmmmmm.mmmmmm..",
+  "mm..mmmmmmmmmmmmmmmmmmmmmmmmm..",
+  ".mmmmmmmm..mmmmmmm.mmmmmmmmm...",
+  ".mmmmm...mmmmmmmmmmmmmmmmmmm...",
+  ".mmmmm..mmmmmmmmm..mmmmmmmmm...",
+  ".mmmmmmmmmmmm.mmm.....mmm.mm...",
+  ".mmmmmmmmmmmm.mmm.....mmm..mmmm",
+  "mmmmmmmmmmmmm.mmmmm..mmmm..mmmm",
+  "mmmmmmmmm.mmm.mmmmmm..mm...mm..",
+  "m..mmmm.mmmmmmmm..mm......m...."
+ ],
+ "legend": {
+  "m": "moss",
+  "e": "eye"
+ }
+}

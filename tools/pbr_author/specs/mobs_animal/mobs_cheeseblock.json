@@ -1,0 +1,6 @@
+{
+ "class": "soil",
+ "materials": {
+  "cheese": {"mode": "shade", "smooth": 0.36, "smooth_spread": 0.04}
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "class": "stone",
+ "micro": "none",
+ "materials": {
+  "flame": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.16,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.05,
+   "emission": 0.8,
+   "emission_shade": true
+  },
+  "spark": {
+   "mode": "flat",
+   "base": 0.78,
+   "span": 0,
+   "smooth": 0.25,
+   "emission": 0.4
+  }
+ },
+ "palette": {
+  "#a8240d": "spark"
+ }
+}

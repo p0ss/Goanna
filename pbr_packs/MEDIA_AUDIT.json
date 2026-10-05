@@ -140,6 +140,16 @@
       "decision": "eligible",
       "evidence": "Release 34128 carries one notice, an MIT LICENSE by ElCeejo, with no credits naming other authors; ContentDB's MIT media label agrees. 70 creature skins recorded on 2026-10-05.",
       "media_license": "MIT"
+    },
+    "mobs_animal": {
+      "decision": "eligible",
+      "evidence": "Release 39178 license.txt lists files by author under mixed licences; ContentDB's CC-BY-SA-4.0 label matches no line of it. 19 world textures recorded per file on 2026-10-05 (CC0, WTFPL, CC BY-SA 3.0, MIT). Excluded: the sheep (CC BY-SA 4.0 NC, non-commercial), the rats ('CCPL', no licence named), mobs_bunny_evil, mobs_kitten_black and the beehive (named by no line).",
+      "media_license": "CC0-1.0, WTFPL, CC-BY-SA-3.0 and MIT per file"
+    },
+    "mobs_monster": {
+      "decision": "eligible",
+      "evidence": "Release 38244 license.txt lists files by author under mixed licences; ContentDB's CC-BY-3.0 label matches no line of it. 41 world textures recorded per file on 2026-10-05 (WTFPL, CC0, CC BY-SA 3.0 and 4.0, MIT). Excluded, named by no line: dungeon master skin 3, oerkki skins 2 and 3, land guard skins 4 to 8, the fire spirit and the cobweb.",
+      "media_license": "CC0-1.0, WTFPL, CC-BY-SA-3.0/4.0 and MIT per file"
     }
   }
 }

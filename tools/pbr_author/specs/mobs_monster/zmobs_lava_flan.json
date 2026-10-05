@@ -1,0 +1,150 @@
+{
+ "class": "stone",
+ "texel_px": 16,
+ "strength": 12,
+ "chamfer": 2,
+ "face_edge": "bevel",
+ "bevel_px": 3,
+ "bevel_depth": 0.08,
+ "micro": "none",
+ "materials": {
+  "crust": {
+   "mode": "shade",
+   "base": 0.8,
+   "span": 0.14,
+   "levels": 3,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.24,
+   "smooth_spread": 0.03,
+   "micro": "rust",
+   "micro_strength": 0.5
+  },
+  "molten_dim": {
+   "mode": "flat",
+   "base": 0.8,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.6,
+   "smooth_spread": 0.0,
+   "scatter": 0
+  },
+  "molten": {
+   "mode": "flat",
+   "base": 0.88,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.6,
+   "smooth_spread": 0.0,
+   "scatter": 0,
+   "emission": 0.5
+  },
+  "molten_hot": {
+   "mode": "flat",
+   "base": 0.96,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.6,
+   "smooth_spread": 0.0,
+   "scatter": 0,
+   "emission": 1.0
+  },
+  "rim": {
+   "mode": "flat",
+   "base": 0.9,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.3,
+   "smooth_spread": 0.0,
+   "flush": {
+    "to": [
+     "crust",
+     "molten_dim",
+     "molten",
+     "molten_hot"
+    ],
+    "group": "eye"
+   }
+  },
+  "eye": {
+   "mode": "soft",
+   "base": 0.9,
+   "span": 0.0,
+   "detail": 0.0,
+   "soft_edge": 0.0,
+   "micro": "none",
+   "smooth": 0.7,
+   "smooth_spread": -0.2,
+   "flush": {
+    "to": [
+     "crust",
+     "molten_dim",
+     "molten",
+     "molten_hot"
+    ],
+    "group": "eye"
+   }
+  },
+  "teeth": {
+   "mode": "flat",
+   "base": 0.92,
+   "span": 0.0,
+   "micro": "bone",
+   "micro_strength": 0.5,
+   "smooth": 0.35,
+   "smooth_spread": 0.0
+  },
+  "gum": {
+   "mode": "flat",
+   "base": 0.82,
+   "span": 0.0,
+   "micro": "none",
+   "smooth": 0.3,
+   "smooth_spread": 0.0
+  }
+ },
+ "grid": [
+  ".ppn.opppo.......ppn.opppo............opppo.npp.......opppo.npp..ppn.opppo...........kkkkkk..........kkkkkk.....",
+  "noo...nppo.....nnoo...nppo.....nn.....oppn...oonn.....oppn...oonnoo...nppo.....n....kkkkkkkk........kkkkkkkk....",
+  "o...nnpppo.....no...nnpppo.....nn.....opppnn...on.....opppnn...oo...nnpppo.....n....kkwwwwkk........kkwwwwkk....",
+  "o..nnppppoo....no..nnppppoo....nn....ooppppnn..on....ooppppnn..oo..nnppppoo....n....kkwwwwkk........kkwwwwkk....",
+  "o..nppp.ppo...nno..nppp.ppo...nnnn...opp.pppn..onn...opp.pppn..oo..nppp.ppo...nn....kkiiwwkk........kkiiwwkk....",
+  "o..ooppoppon..nno..ooppoppon..nnnn..noppoppoo..onn..noppoppoo..oo..ooppoppon..nn....kkiiwwkk........kkiiwwkk....",
+  "....nppooppn...n....nppooppn...nn...nppooppn....n...nppooppn........nppooppn...n....kkkkkkkk........kkkkkkkk....",
+  "o...np.oop.o...no...np.oop.o...nn...o.poo.pn...on...o.poo.pn...oo...np.oop.o...n.....kkkkkk..........kkkkkk.....",
+  "n....npoopon....n....npoopon........nopoopn....n....nopoopn....nn....npoopon.......mm....mm....mm....mm....mm...",
+  "n...nnpoooon....n...nnpoooon........noooopnn...n....noooopnn...nn...nnpoooon......mmmm..mmmm..mmmm..mmmm..mmmm..",
+  "n...np..oon.....n...np..oon..........noo..pn...n.....noo..pn...nn...np..oon.......mmmm..mmmm..mmmm..mmmm..mmmm..",
+  "...nnppoon...on....nnppoon...on..no...nooppnn....no...nooppnn......nnppoon...on..mmttmmmmttmmmmttmmmmttmmmmttmm.",
+  "...npppon...n......npppon...n......n...nopppn......n...nopppn......npppon...n....mttttmmttttmmttttmmttttmmttttm.",
+  "..nonnnnn...n.....nonnnnn...n......n...nnnnnon.....n...nnnnnon....nonnnnn...n...................................",
+  ".nnpnpp.n........nnpnpp.n..............n.ppnpnn........n.ppnpnn..nnpnpp.n......................nn...............",
+  "nppnpppoon......nppnpppoon............noopppnppn......noopppnppnnppnpppoon.....................nn...............",
+  ".nnnnnnn.........nnnnnnn........n....nnno.oooon..nnnnnnn.........nnnnnnn..................o....nn....o..........",
+  "....nn.....n........nn.....n....pn............op....nn.....n........nn.....n..............o...nnnn...o..........",
+  "...........o...............o....pnn...........op...........o...............o..............on..nnnn..no..........",
+  "............nn..............nn..nponn.....onn..n............nn..............nn............pn...nn...np..........",
+  ".....nnonn...........nnonn......pnnpnnn.nnopnn.......nnonn...........nnonn.................o...nn...o...........",
+  "...ooop.oon........ooop.oon.....ppnpppnnpppppn.o...ooop.oon........ooop.oon..........npoopon........nopoopn.....",
+  "oooopppppoon...noooopppppoon...nppnpp.pp.pppppnpoooopppppoon...noooopppppoon...n....nnpoooon........noooopnn....",
+  "ppppppoooooonnnoppppppoooooonnnoo.noo.ooooo.ppppppppppoooooonnnoppppppoooooonnno....np..oon..........noo..pn....",
+  "pppp.ooooo.oon.opppp.ooooo.oon.oonnnoooooopppppppppp.ooooo.oon.opppp.ooooo.oon.o.............on..no.............",
+  "pnppppp.pp.ppnpppnppppp.pp.ppnppn...noopppppoooopnppppp.pp.ppnpppnppppp.pp.ppnpp............n......n............",
+  "o.npppppnnpppnppo.npppppnnpppnpp.....noo.pooo...o.npppppnnpppnppo.npppppnnpppnpp............n......n............",
+  "..nnponn.nnnpnnp..nnponn.nnnpnnp......nnonn.......nnponn.nnnpnnp..nnponn.nnnpnnp................................",
+  "n..nno.....nnopnn..nno.....nnopn..nn............n..nno.....nnopnn..nno.....nnopn................................",
+  "po...........nnppo...........nnp....o...........po...........nnppo...........nnp................................",
+  "po............nppo............np....n.....nn....po............nppo............np............n......n............",
+  ".noooo.onnn....n.noooo.onnn....n........nnnnnnn..noooo.onnn....n.noooo.onnn....n............n......n............"
+ ],
+ "legend": {
+  "n": "molten_dim",
+  "o": "molten",
+  "p": "molten_hot",
+  "k": "rim",
+  "w": "eye",
+  "i": "eye",
+  "m": "gum",
+  "t": "teeth"
+ }
+}
