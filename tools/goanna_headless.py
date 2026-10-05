@@ -365,22 +365,54 @@ def gpu_clients():
     # themselves. Zombies hold no GPU and are skipped.
     seen = {pid for pid, _ in found}
     try:
-        ps = subprocess.run(["ps", "-eo", "pid=,stat=,comm=,args="], capture_output=True,
+        ps = subprocess.run(["ps", "-eo", "pid=,ppid=,stat=,comm=,args="], capture_output=True,
                             text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         ps = ""
+    rows = []
+    parent = {}
     for line in ps.splitlines():
-        parts = line.split(None, 3)
-        if len(parts) < 3 or parts[1].startswith("Z"):
+        parts = line.split(None, 4)
+        if len(parts) < 4:
             continue
-        comm = parts[2].lower()
-        args = parts[3] if len(parts) > 3 else ""
-        # A Luanti server is luanti.bin too, and draws nothing.
-        if "--server" in args.split():
+        parent[int(parts[0])] = int(parts[1])
+        rows.append(parts)
+    # A software instance this launcher started never reaches the card: its
+    # gamescope is pinned to lavapipe (--prefer-vk-device) and its Godot
+    # renders there too. Counting those as busy kept every GPU caller waiting
+    # for hours on 2026-10-06 while nvidia-smi showed the card idle. Only the
+    # process-list fallback skips them; a software instance that nvidia-smi
+    # does list stays counted above.
+    software_roots = set()
+    for rec in list_records():
+        if rec.get("software") and rec.get("status") in ("launching", "starting", "running"):
+            for key in ("supervisor_pid", "gamescope_pid", "child_pid"):
+                if rec.get(key):
+                    software_roots.add(int(rec[key]))
+
+    def under_software(pid):
+        for _ in range(16):
+            if pid in software_roots:
+                return True
+            pid = parent.get(pid, 1)
+            if pid <= 1:
+                return False
+        return False
+
+    for parts in rows:
+        if parts[2].startswith("Z"):
             continue
+        comm = parts[3].lower()
+        args = parts[4] if len(parts) > 4 else ""
+        argv = args.split()
+        # A Luanti server is luanti.bin too, and draws nothing; a Godot run
+        # with --headless has no renderer at all.
+        if "--server" in argv or "--headless" in argv:
+            continue
+        pid = int(parts[0])
         if any(word in comm for word in ("godot", "gamescope", "luanti.bin")) \
-                and "reaper" not in comm and int(parts[0]) not in seen:
-            found.append((int(parts[0]), parts[2]))
+                and "reaper" not in comm and pid not in seen and not under_software(pid):
+            found.append((pid, parts[3]))
     return found
 
 
