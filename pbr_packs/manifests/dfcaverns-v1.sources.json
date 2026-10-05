@@ -7,46 +7,6 @@
     "release": 22198,
     "source": "dfcaverns/big_webs/textures/big_webs.png"
   },
-  "bones_bottom": {
-    "author": "paramat",
-    "media_license": "CC-BY-SA-3.0",
-    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_bottom.png",
-    "package": "dfcaverns",
-    "release": 22198,
-    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_bottom.png"
-  },
-  "bones_front": {
-    "author": "paramat",
-    "media_license": "CC-BY-SA-3.0",
-    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_front.png",
-    "package": "dfcaverns",
-    "release": 22198,
-    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_front.png"
-  },
-  "bones_rear": {
-    "author": "paramat",
-    "media_license": "CC-BY-SA-3.0",
-    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_rear.png",
-    "package": "dfcaverns",
-    "release": 22198,
-    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_rear.png"
-  },
-  "bones_side": {
-    "author": "paramat",
-    "media_license": "CC-BY-SA-3.0",
-    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_side.png",
-    "package": "dfcaverns",
-    "release": 22198,
-    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_side.png"
-  },
-  "bones_top": {
-    "author": "paramat",
-    "media_license": "CC-BY-SA-3.0",
-    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_top.png",
-    "package": "dfcaverns",
-    "release": 22198,
-    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_top.png"
-  },
   "dfcaverns_black_cap_gills": {
     "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
     "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",

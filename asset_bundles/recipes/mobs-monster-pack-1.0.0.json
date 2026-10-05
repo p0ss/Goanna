@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.mobs-monster.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "TenPlus1/mobs_monster",
+  "release": "38244",
+  "archive_sha256": "486bf78b95e49b0bb3a45c46f30cc82acc6593a41c1756867cdfc0b34b8b658f"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game mobs_monster, specs in specs/mobs_monster/, classes in stems/mobs_monster.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/mobs-monster-v1.json",
+  "media_ledger": "pbr_packs/manifests/mobs-monster-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 50,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.mobs-monster.pack-1.0.0.zip",
+  "bytes": 45913676,
+  "sha256": "871aafc7fd341de6b33eeba9b4dde9bd04b02680fc924914705bfd9a7f296832"
+ }
+}

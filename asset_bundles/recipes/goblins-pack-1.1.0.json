@@ -1,0 +1,36 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.goblins.pack",
+ "version": "1.1.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre",
+  "asuna",
+  "hades_revisited",
+  "repixture"
+ ],
+ "source": {
+  "package": "FreeLikeGNU/goblins",
+  "release": "32959",
+  "archive_sha256": "7db9f7236cc8b134f56b0438c0f1363e027d7133908c077b6aa42cabe6825b78"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game goblins, specs in specs/goblins/, classes in stems/goblins.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/goblins-v1.json",
+  "media_ledger": "pbr_packs/manifests/goblins-v1.sources.json",
+  "note": "The goblins re-sculpted to the owner's rule (commit 21697061): all bare green skin in shade mode with merged plateaus, merge about 0.2, brows proud, mouth sunk, eyes a gentle bulge; gear unchanged. 1.0.0, published in epoch 2026.10.6 but never catalogued, is the soft-skin version."
+ },
+ "release": {
+  "texture_pairs": 23,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.goblins.pack-1.1.0.zip",
+  "bytes": 7339901,
+  "sha256": "d03634f884f972bae7dc1ee196a4af3d7e96f8a6cc34fd0b7e4717d835dc8985"
+ }
+}

@@ -3,12 +3,12 @@
  "review_version": "sum-airship-v1",
  "resolution": "authored",
  "derivation": {
-  "material_from": "tools/pbr_author/stems/sum_airship.classes.json, the classes the authoring agents chose per stem by reading the art",
+  "material_from": "tools/pbr_author/stems/sum_airship.classes.json, the classes the authoring agent chose per stem by reading the art",
   "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
   "notes": [
    "planks is the authoring tool's refinement of wood and is recorded as wood.",
    "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
-   "tiles is false for skins and model textures listed in the stems .mobs.txt file, which are UV atlases rather than repeating art."
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
   ]
  },
  "textures": {
@@ -22,7 +22,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Simple Airship authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/sum_airship.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Simple Airship authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/sum_airship.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   }
  }

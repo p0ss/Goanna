@@ -55,10 +55,6 @@ dfcaverns_nether_cap_stem, dfcaverns_tower_cap
 
 dfcaverns_slade, dfcaverns_slade_brick, dfcaverns_slade_sand
 
-## CC BY-SA 3.0: paramat
-
-bones_bottom, bones_front, bones_rear, bones_side, bones_top
-
 ## CC BY-SA 3.0: sofar (derived from paramat's pine textures)
 
 dfcaverns_spore_tree_top, dfcaverns_spore_tree_wood
@@ -117,3 +113,6 @@ dfcaverns_salt_crystal, dfcaverns_salty
 ## WTFPL: HeroOfTheWinds (caverealms)
 
 dfcaverns_fungi, dfcaverns_tower_cap_gills
+
+The bones textures DF Caverns copies from Minetest Game byte for byte are
+not in this pack: Minetest Game's own pack supplies their maps.

@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.mobs-animal.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "TenPlus1/mobs_animal",
+  "release": "39178",
+  "archive_sha256": "26724aa877187c37d31da26b6ce22c534d10a4696c7583a0e8045b0c51a3acc9"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game mobs_animal, specs in specs/mobs_animal/, classes in stems/mobs_animal.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/mobs-animal-v1.json",
+  "media_ledger": "pbr_packs/manifests/mobs-animal-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 21,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.mobs-animal.pack-1.0.0.zip",
+  "bytes": 12361708,
+  "sha256": "ff7684f7d3d33abf078eda5e95d15179862895d3dc58356200bce31d14538ede"
+ }
+}

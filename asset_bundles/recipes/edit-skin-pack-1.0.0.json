@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.edit-skin.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "Mr. Rar/edit_skin",
+  "release": "30155",
+  "archive_sha256": "e73b3aebd057c44869f634690140bfc48c2bfbf01fe7cc9774e6417b87c4269c"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game edit_skin, specs in specs/edit_skin/, classes in stems/edit_skin.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/edit-skin-v1.json",
+  "media_ledger": "pbr_packs/manifests/edit-skin-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 68,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.edit-skin.pack-1.0.0.zip",
+  "bytes": 7903944,
+  "sha256": "ed1b2b6c5eb665e9add6e44c60a5b0b1fbab87c20a2d47fc3bb11cfb00abb45b"
+ }
+}

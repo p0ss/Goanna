@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.moretrees.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "mt-mods/moretrees",
+  "release": "38501",
+  "archive_sha256": "aa8ff9deeb0b9942e16e1fc827bbd81365e117cc938340dda8b271b3a8d09fa9"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game moretrees, specs in specs/moretrees/, classes in stems/moretrees.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/moretrees-v1.json",
+  "media_ledger": "pbr_packs/manifests/moretrees-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 86,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.moretrees.pack-1.0.0.zip",
+  "bytes": 4699341,
+  "sha256": "f38d0ba7d03e883949953880e4b97e77320add8f5b6ad9fd29609bf262c05518"
+ }
+}

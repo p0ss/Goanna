@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.bees.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "TenPlus1/bees",
+  "release": "38367",
+  "archive_sha256": "10d2dc2a3086b6d0bd6239009634c5d21d2967b5c6f9730c703a6a6f680edb29"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game bees, specs in specs/bees/, classes in stems/bees.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/bees-v1.json",
+  "media_ledger": "pbr_packs/manifests/bees-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 7,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.bees.pack-1.0.0.zip",
+  "bytes": 277613,
+  "sha256": "67962f7afc2ddaed704e2bdec94fc90d2a7372fe462379b560fb7458bbd3e983"
+ }
+}

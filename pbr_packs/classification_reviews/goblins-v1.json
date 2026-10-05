@@ -3,12 +3,12 @@
  "review_version": "goblins-v1",
  "resolution": "authored",
  "derivation": {
-  "material_from": "tools/pbr_author/stems/goblins.classes.json, the classes the authoring agents chose per stem by reading the art",
+  "material_from": "tools/pbr_author/stems/goblins.classes.json, the classes the authoring agent chose per stem by reading the art",
   "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
   "notes": [
    "planks is the authoring tool's refinement of wood and is recorded as wood.",
    "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
-   "tiles is false for skins and model textures listed in the stems .mobs.txt file, which are UV atlases rather than repeating art."
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
   ]
  },
  "textures": {
@@ -22,7 +22,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_coal2": {
@@ -35,7 +35,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_cobble1": {
@@ -48,7 +48,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_cobble2": {
@@ -61,7 +61,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_copper1": {
@@ -74,7 +74,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_copper2": {
@@ -87,7 +87,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_diamond1": {
@@ -100,7 +100,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_diamond2": {
@@ -113,7 +113,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_digger": {
@@ -126,7 +126,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_dog": {
@@ -139,7 +139,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_fungler1": {
@@ -152,7 +152,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_fungler2": {
@@ -165,7 +165,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_gold1": {
@@ -178,7 +178,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_gold2": {
@@ -191,7 +191,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_hoarder": {
@@ -204,7 +204,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_iron1": {
@@ -217,7 +217,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_iron2": {
@@ -230,7 +230,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_king": {
@@ -243,7 +243,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_goblin_snuffer": {
@@ -256,7 +256,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_mushroom_brown": {
@@ -269,7 +269,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_mushroom_brown2": {
@@ -282,7 +282,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_mushroom_brown3": {
@@ -295,7 +295,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
    "review_required": false
   },
   "goblins_mushroom_brown4": {
@@ -308,7 +308,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Goblins authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "rationale": "The class the Goblins authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/goblins.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
    "review_required": false
   }
  }

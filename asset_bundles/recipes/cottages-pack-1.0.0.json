@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.cottages.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "Sokomine/cottages",
+  "release": "22105",
+  "archive_sha256": "a948fa118dcb5f651a7f5dbdf102530c941c16bd78afd61288a12156e493b1be"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game cottages, specs in specs/cottages/, classes in stems/cottages.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/cottages-v1.json",
+  "media_ledger": "pbr_packs/manifests/cottages-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 23,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.cottages.pack-1.0.0.zip",
+  "bytes": 1459458,
+  "sha256": "0ec701907c29d9f751bb9f3515f9b75a7747b9d156127c2495f192b6c7bc5d5d"
+ }
+}

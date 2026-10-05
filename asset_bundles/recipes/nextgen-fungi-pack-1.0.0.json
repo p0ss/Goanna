@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.nextgen-fungi.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "StarNinjas/nextgen_fungi",
+  "release": "20073",
+  "archive_sha256": "42686aa07959794e4a6153f4174ce8e9998cc610a35988710bd570c5ea3af797"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game nextgen_fungi, specs in specs/nextgen_fungi/, classes in stems/nextgen_fungi.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/nextgen-fungi-v1.json",
+  "media_ledger": "pbr_packs/manifests/nextgen-fungi-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 6,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.nextgen-fungi.pack-1.0.0.zip",
+  "bytes": 106682,
+  "sha256": "5a78e6bdcdf45676c7b742d1d37a6890f5ed059cc364cafefd4c05c85daa3cf1"
+ }
+}

@@ -3,12 +3,12 @@
  "review_version": "draconis-v1",
  "resolution": "authored",
  "derivation": {
-  "material_from": "tools/pbr_author/stems/draconis.classes.json, the classes the authoring agents chose per stem by reading the art",
+  "material_from": "tools/pbr_author/stems/draconis.classes.json, the classes the authoring agent chose per stem by reading the art",
   "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
   "notes": [
    "planks is the authoring tool's refinement of wood and is recorded as wood.",
    "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
-   "tiles is false for skins and model textures listed in the stems .mobs.txt file, which are UV atlases rather than repeating art."
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
   ]
  },
  "textures": {
@@ -22,7 +22,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_bone_pile_scorched": {
@@ -35,7 +35,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_draconic_forge_fire": {
@@ -48,7 +48,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_draconic_forge_ice": {
@@ -61,7 +61,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragon_ice": {
@@ -74,7 +74,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, ice). The bands are the pipeline's ice defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, ice). The bands are the pipeline's ice defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_black": {
@@ -87,7 +87,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_black_top": {
@@ -100,7 +100,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_bronze": {
@@ -113,7 +113,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_bronze_top": {
@@ -126,7 +126,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_gold": {
@@ -139,7 +139,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_gold_top": {
@@ -152,7 +152,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_green": {
@@ -165,7 +165,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_green_top": {
@@ -178,7 +178,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_light_blue": {
@@ -191,7 +191,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_light_blue_top": {
@@ -204,7 +204,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_red": {
@@ -217,7 +217,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_red_top": {
@@ -230,7 +230,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_sapphire": {
@@ -243,7 +243,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_sapphire_top": {
@@ -256,7 +256,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_silver": {
@@ -269,7 +269,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_silver_top": {
@@ -282,7 +282,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_slate": {
@@ -295,7 +295,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_slate_top": {
@@ -308,7 +308,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_white": {
@@ -321,7 +321,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonhide_block_white_top": {
@@ -334,7 +334,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonstone_block_fire": {
@@ -347,7 +347,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonstone_block_ice": {
@@ -360,7 +360,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonstone_bricks_fire": {
@@ -373,7 +373,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_dragonstone_bricks_ice": {
@@ -386,7 +386,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_black": {
@@ -399,7 +399,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_bronze": {
@@ -412,7 +412,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_egg_mesh_black": {
@@ -425,7 +425,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_egg_mesh_bronze": {
@@ -438,7 +438,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_egg_mesh_gold": {
@@ -451,7 +451,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_egg_mesh_green": {
@@ -464,7 +464,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_egg_mesh_red": {
@@ -477,7 +477,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_gold": {
@@ -490,7 +490,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_green": {
@@ -503,7 +503,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_dragon_red": {
@@ -516,7 +516,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_child_green": {
@@ -529,7 +529,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_child_orange": {
@@ -542,7 +542,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_child_red": {
@@ -555,7 +555,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_green": {
@@ -568,7 +568,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_orange": {
@@ -581,7 +581,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_fire_eyes_red": {
@@ -594,7 +594,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_egg_mesh_light_blue": {
@@ -607,7 +607,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_egg_mesh_sapphire": {
@@ -620,7 +620,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_egg_mesh_silver": {
@@ -633,7 +633,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_egg_mesh_slate": {
@@ -646,7 +646,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_egg_mesh_white": {
@@ -659,7 +659,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_light_blue": {
@@ -672,7 +672,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_sapphire": {
@@ -685,7 +685,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_silver": {
@@ -698,7 +698,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_slate": {
@@ -711,7 +711,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_dragon_white": {
@@ -724,7 +724,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_eyes_blue": {
@@ -737,7 +737,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_eyes_child_blue": {
@@ -750,7 +750,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_eyes_child_purple": {
@@ -763,7 +763,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_ice_eyes_purple": {
@@ -776,7 +776,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_jungle_wyvern_amber": {
@@ -789,7 +789,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_jungle_wyvern_aquamarine": {
@@ -802,7 +802,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_jungle_wyvern_jade": {
@@ -815,7 +815,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_jungle_wyvern_ruby": {
@@ -828,7 +828,7 @@
    "treatment": "terrain",
    "tiles": false,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, cloth). The bands are the pipeline's cloth defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_log_frozen": {
@@ -841,7 +841,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_log_frozen_top": {
@@ -854,7 +854,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_log_scorched": {
@@ -867,7 +867,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_log_scorched_top": {
@@ -880,7 +880,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, wood). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_soil_frozen": {
@@ -893,7 +893,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, soil). The bands are the pipeline's soil defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, soil). The bands are the pipeline's soil defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_soil_scorched": {
@@ -906,7 +906,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, soil). The bands are the pipeline's soil defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, soil). The bands are the pipeline's soil defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_stone_brick_frozen": {
@@ -919,7 +919,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_stone_brick_scorched": {
@@ -932,7 +932,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_stone_frozen": {
@@ -945,7 +945,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_stone_scorched": {
@@ -958,7 +958,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, stone). The bands are the pipeline's stone defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_wood_planks_frozen": {
@@ -971,7 +971,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   },
   "draconis_wood_planks_scorched": {
@@ -984,7 +984,7 @@
    "treatment": "terrain",
    "tiles": true,
    "confidence": 0.8,
-   "rationale": "The class the Draconis authoring agents chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
+   "rationale": "The class the Draconis authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/draconis.classes.json, planks). The bands are the pipeline's wood defaults, not a per texture judgement.",
    "review_required": false
   }
  }

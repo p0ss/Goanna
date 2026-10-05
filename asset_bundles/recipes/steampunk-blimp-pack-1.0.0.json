@@ -1,0 +1,33 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.steampunk-blimp.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "apercy/steampunk_blimp",
+  "release": "38331",
+  "archive_sha256": "b30cbeb314d6deb40ad24815681b2acd51c9dadb1d2d45ae68032f7cb2525ab3"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game steampunk_blimp, specs in specs/steampunk_blimp/, classes in stems/steampunk_blimp.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/steampunk-blimp-v1.json",
+  "media_ledger": "pbr_packs/manifests/steampunk-blimp-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 13,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.steampunk-blimp.pack-1.0.0.zip",
+  "bytes": 1192601,
+  "sha256": "749cd2158226704184bdeac6b6a4794f72afd8137ed85285d577e56cee8df468"
+ }
+}

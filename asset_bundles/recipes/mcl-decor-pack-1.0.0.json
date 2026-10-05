@@ -1,0 +1,31 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.mcl-decor.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "mineclonia",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "EmoryNB/mcl_decor",
+  "release": "35460",
+  "archive_sha256": "22bf1fa366323b13a16bc351bed62752d7f10fbfaf23c517e3ad0cd29b5047f2"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game mcl_decor, specs in specs/mcl_decor/, classes in stems/mcl_decor.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/mcl-decor-v1.json",
+  "media_ledger": "pbr_packs/manifests/mcl-decor-v1.sources.json",
+  "note": "Authored 2026-10-05; judged on offline previews only (Mineclonia only, not in the Minetest Game GPU pass)."
+ },
+ "release": {
+  "texture_pairs": 12,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.mcl-decor.pack-1.0.0.zip",
+  "bytes": 488159,
+  "sha256": "975c185b77c0b8add8ebc925f214d0bcce5efde2db07b07f4ae2e61b38c2f292"
+ }
+}

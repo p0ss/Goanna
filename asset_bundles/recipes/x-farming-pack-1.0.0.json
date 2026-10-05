@@ -1,0 +1,33 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.x-farming.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "SaKeL/x_farming",
+  "release": "38796",
+  "archive_sha256": "4925e635dd223f5fe8ff5b618082c77fef42980fb0c24fff37edbce82cf1e633"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game x_farming, specs in specs/x_farming/, classes in stems/x_farming.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/x-farming-v1.json",
+  "media_ledger": "pbr_packs/manifests/x-farming-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 331,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.x-farming.pack-1.0.0.zip",
+  "bytes": 24400483,
+  "sha256": "8e8a1f9c27dbfef667a4c1a6529cbc35965487f735d45babb6c174d314a46a0b"
+ }
+}

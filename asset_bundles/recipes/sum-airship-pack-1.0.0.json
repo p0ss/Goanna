@@ -21,7 +21,7 @@
   "authored": "tools/pbr_author/build_pack.py --game sum_airship, specs in specs/sum_airship/, classes in stems/sum_airship.classes.json",
   "classification_review": "pbr_packs/classification_reviews/sum-airship-v1.json",
   "media_ledger": "pbr_packs/manifests/sum-airship-v1.sources.json",
-  "note": "1 stem, the airship's model texture. Its envelope samples three flat swatches, so its panel lines follow the mod's UV quads. Checked in game on 2026-10-05: the airship's material carries its 1024 maps."
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
  },
  "release": {
   "texture_pairs": 1,

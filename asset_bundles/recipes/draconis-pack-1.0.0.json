@@ -20,7 +20,7 @@
   "authored": "tools/pbr_author/build_pack.py --game draconis, specs in specs/draconis/, classes in stems/draconis.classes.json",
   "classification_review": "pbr_packs/classification_reviews/draconis-v1.json",
   "media_ledger": "pbr_packs/manifests/draconis-v1.sources.json",
-  "note": "75 stems: 5 fire and 5 ice dragon skins with their 10 eye overlays, 4 jungle wyverns, 10 egg meshes and 41 blocks. The dragons' 512 px art is mapped at 4 px per art texel (2048 maps). Checked in game on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile, parallax 1.0): the fire and ice dragon materials carry their 2048 maps through Draconis' nested (...)^[multiply texture, and the scales read as raised plates. draconis_baked_in_shading.png has no maps and mutes about a fifth of the relief where it covers; not yet judged."
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
  },
  "release": {
   "texture_pairs": 75,

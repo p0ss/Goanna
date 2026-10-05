@@ -55,11 +55,6 @@ dfcaverns_tower_cap_gills
 dfcaverns_tower_cap_wood
 dfcaverns_tunnel_tube_wood_side
 dfcaverns_tunnel_tube_wood_top
-bones_bottom
-bones_front
-bones_rear
-bones_side
-bones_top
 dfcaverns_castle_coral
 dfcaverns_castle_coral_gradient
 dfcaverns_cave_coral

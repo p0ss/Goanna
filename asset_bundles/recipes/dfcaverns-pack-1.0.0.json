@@ -1,0 +1,32 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.dfcaverns.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "FaceDeer/dfcaverns",
+  "release": "22198",
+  "archive_sha256": "496f1a43bebed52cbee3abc61b91ae6209e825568a9d3cb8ff816796ad113585"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game dfcaverns, specs in specs/dfcaverns/, classes in stems/dfcaverns.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/dfcaverns-v1.json",
+  "media_ledger": "pbr_packs/manifests/dfcaverns-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 182,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.dfcaverns.pack-1.0.0.zip",
+  "bytes": 7189204,
+  "sha256": "0eda0d2062fb0424248abd570a21dac40d30ef88f7b9e340136e00e29eada1bb"
+ }
+}

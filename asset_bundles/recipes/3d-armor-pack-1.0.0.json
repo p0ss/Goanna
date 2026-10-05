@@ -1,0 +1,30 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.3d-armor.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game"
+ ],
+ "source": {
+  "package": "stu/3d_armor",
+  "release": "37711",
+  "archive_sha256": "b66815387d6957b96edf318bf9e27c5f83dcfa0e7fb81cc0213d563fae656b1f"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game 3d_armor, specs in specs/3d_armor/, classes in stems/3d_armor.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/3d-armor-v1.json",
+  "media_ledger": "pbr_packs/manifests/3d-armor-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 55,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.3d-armor.pack-1.0.0.zip",
+  "bytes": 3330439,
+  "sha256": "8d4dec171efeeb67f68e5f20c4b70480fcd41b34ca014b497f2ed54f363f0340"
+ }
+}

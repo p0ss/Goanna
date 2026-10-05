@@ -1,0 +1,33 @@
+{
+ "schema": "org.goanna.asset-recipe/v1",
+ "id": "org.goanna.animalia.pack",
+ "version": "1.0.0",
+ "tranche": "pack",
+ "games": [
+  "minetest",
+  "minetest_game",
+  "mineclonia",
+  "mineclone2",
+  "voxelibre"
+ ],
+ "source": {
+  "package": "ElCeejo/animalia",
+  "release": "34128",
+  "archive_sha256": "edbdfd2cb57e255e4810d279f3107fc9759244b99e6bd7a944bac8f5ec5038a2"
+ },
+ "pipeline": {
+  "version": "5",
+  "authored": "tools/pbr_author/build_pack.py --game animalia, specs in specs/animalia/, classes in stems/animalia.classes.json",
+  "classification_review": "pbr_packs/classification_reviews/animalia-v1.json",
+  "media_ledger": "pbr_packs/manifests/animalia-v1.sources.json",
+  "note": "Authored 2026-10-05 by the agent fleet under the owner's rules; checked on GPU frames on 2026-10-05 (Minetest Game, Goanna on the RTX 3090, Ultra profile) where the mod runs on Minetest Game."
+ },
+ "release": {
+  "texture_pairs": 70,
+  "rejected": [],
+  "known_failures": [],
+  "archive": "org.goanna.animalia.pack-1.0.0.zip",
+  "bytes": 14802189,
+  "sha256": "525bc3106a0b36b01c1aefd1f3706edc0947ae59fb0e53e168b6b9e1e504b18c"
+ }
+}
