@@ -34,6 +34,11 @@ put buildings in the world and have its characters build them.
   version happened to be installed, which could be the old blurry baked
   maps rather than the sharp authored ones. Old maps left in a world by an
   earlier version are cleared as it starts.
+- **The bundled materials install however Goanna is started.** A
+  release found its own Mineclonia materials, and Luanti's base textures,
+  only when started from inside its Goanna folder. Started from a desktop
+  shortcut, Steam or another folder, it never installed them and played
+  with an older pack or none.
 - **Material updates are on.** The Download material updates switch
   (Settings, Updates) starts on for everyone with this version, including
   anyone who had it off. Some had it off without choosing to: one of
