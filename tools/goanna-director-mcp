@@ -90,6 +90,8 @@ class Director:
         self.waiting = set()
         self.last_contact = 0.0
         self.catalogue_cache = {}
+        # The file transport, when the server uses it (FileLink below).
+        self.link = None
         # Message ids are this process's own. A server that last pulled
         # from another instance has acknowledged nothing of ours.
         self.instance = secrets.token_hex(8)
@@ -151,6 +153,8 @@ class Director:
                                             "status": "interrupted",
                                             "reason": "server_restarted"}
             self.outbox = []
+            if self.link:
+                self.link.server_restarted(self.results)
             self.model_seq = 0
             self.last_seq = 0
             self.events.clear()
@@ -202,7 +206,11 @@ class Director:
                 if reason:
                     msg["reason"] = str(reason)[:500]
             self.waiting.add(req)
-            self.outbox.append(msg)
+            if self.link and self.link.active():
+                msg["instance"] = self.instance
+                self.link.send(msg)
+            else:
+                self.outbox.append(msg)
             self.lock.notify_all()
             deadline = time.time() + timeout
             try:
@@ -249,6 +257,91 @@ class Director:
             late, self.late = self.late, []
             return {"session": self.known_session, "events": evs, "last_seq": self.model_seq,
                     "server_last_seq": self.last_seq, "gap": gap, "late_results": late}
+
+
+class FileLink:
+    """The file transport (goanna_server_mod/director/filelink.lua): the
+    server and this service exchange JSON files in <world>/goanna_director/
+    link. It needs nothing from the Luanti build or the operator, so it is
+    what a world started from Goanna uses; HTTP stays for a server elsewhere.
+
+    Every file is written under a name the other side ignores and then
+    renamed, so neither reads half of one."""
+
+    STALE_S = 10
+
+    def __init__(self, director, world):
+        self.director = director
+        self.base = pathlib.Path(world).expanduser() / "goanna_director" / "link"
+        self.inbox = self.base / "in"
+        self.outbox = self.base / "out"
+        self.sent = {}
+        self.server_seen = 0.0
+        for d in (self.inbox, self.outbox):
+            d.mkdir(parents=True, exist_ok=True)
+        threading.Thread(target=self._beat, daemon=True).start()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _write(self, path, value):
+        tmp = path.with_name(".%s.%d.part" % (path.name, os.getpid()))
+        tmp.write_text(json.dumps(value))
+        os.replace(tmp, path)
+
+    def active(self):
+        """Whether the server is talking through files right now."""
+        return time.time() - self.server_seen < self.STALE_S
+
+    def send(self, msg):
+        name = "%s-%010d.json" % (msg["instance"], int(msg["id"]))
+        self.sent[msg["req"]] = msg
+        self._write(self.inbox / name, msg)
+
+    def server_restarted(self, results):
+        # What the old session had not read is void, as HTTP's outbox is.
+        for f in self.inbox.glob("*.json"):
+            try:
+                f.unlink()
+            except OSError:
+                pass
+        for req, msg in self.sent.items():
+            if req not in results:
+                results[req] = {"id": req, "type": msg["type"], "status": "interrupted",
+                                "reason": "server_restarted"}
+        self.sent.clear()
+
+    def _beat(self):
+        while True:
+            try:
+                self._write(self.base / "director.json",
+                            {"instance": self.director.instance, "t": int(time.time()),
+                             "session": self.director.known_session, "pid": os.getpid()})
+            except OSError as exc:
+                log("could not write the heartbeat:", exc)
+            time.sleep(2)
+
+    def _read(self):
+        while True:
+            try:
+                hb = json.loads((self.base / "server.json").read_text())
+                if abs(time.time() - float(hb.get("t", 0))) <= self.STALE_S:
+                    if self.server_seen == 0 or not self.active():
+                        log("the server is talking through", self.base)
+                    self.server_seen = time.time()
+                    with self.director.lock:
+                        self.director.last_contact = time.time()
+            except (OSError, ValueError):
+                pass
+            for f in sorted(self.outbox.glob("*.json")):
+                try:
+                    envelope = json.loads(f.read_text())
+                    f.unlink()
+                except (OSError, ValueError):
+                    continue
+                self.director.on_push(envelope)
+                for env in envelope.get("batch") or []:
+                    if env.get("kind") in ("result", "reply"):
+                        self.sent.pop(str((env.get("body") or {}).get("id")), None)
+            time.sleep(0.05)
 
 
 class ToolError(RuntimeError):
@@ -712,10 +805,20 @@ def main(argv):
     conf = os.path.join(os.path.expanduser(world), "goanna_director.conf") if world else ""
     director = Director(conf, port_override)
     port = director.reload()
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), make_handler(director))
-    server.daemon_threads = True
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    log("listening on 127.0.0.1:%d for %s" % (port, conf or "(no world given)"))
+    # Both transports are ready; the server's goanna_director_transport
+    # decides which it uses. Files need only the world folder.
+    if world:
+        director.link = FileLink(director, world)
+    server = None
+    try:
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", port), make_handler(director))
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        log("listening on 127.0.0.1:%d for %s" % (port, conf or "(no world given)"))
+    except OSError as exc:
+        # Another world's service may hold the port; the file transport
+        # does not need it.
+        log("no HTTP endpoint on port %d (%s); files only" % (port, exc))
 
     for line in sys.stdin:
         line = line.strip()
@@ -761,7 +864,8 @@ def main(argv):
             reply(msg_id, {"prompts": []})
         elif msg_id is not None:
             reply(msg_id, error={"code": -32601, "message": "no method '%s'" % method})
-    server.shutdown()
+    if server:
+        server.shutdown()
     return 0
 
 

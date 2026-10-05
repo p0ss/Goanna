@@ -1310,7 +1310,25 @@ vendored copy in `project/vendor/goanna_server_mod` is kept identical, which
 
 ### Transport
 
-The server mod is the HTTP client, as [HTTP](#http) proposed.
+Since 5 October 2026 a world started from Goanna uses the file transport
+(`director/filelink.lua`), and HTTP is the choice for a server on another
+machine (`goanna_director_transport = http`). Goanna's bundled Linux server
+is built without curl, so on a machine with no other Luanti the HTTP
+transport could never work, and a player setting the director up had to
+find `secure.http_mods` in a configuration file the launcher rewrites. The
+file transport carries the same envelopes and messages through
+`<world>/goanna_director/link/`: one file per message in `in/`, one batch
+per server step in `out/`, and a heartbeat each way (`director.json`,
+`server.json`). Each file is written whole and renamed. The inbox is read
+on every server step, so a round trip, measured with the shell bridge
+against the bundled server, took 0.08 to 0.2 seconds, including starting
+the command each time. The catalogue, rewards and structures test
+(51 checks by then) passed over it, against the Flatpak server.
+Writes are a few small files a second at most, and none while nothing
+happens. Kythen's villages, if each gets an agent, share one service and
+one link, told apart by the envelope's `scope`.
+
+The HTTP transport, as [HTTP](#http) proposed:
 
 - `POST <url>/v1/push`, body `{"v": 1, "session": "...", "batch": [...]}`,
   where each element is an envelope (`v`, `kind`, `scope`, `session`, `t`,

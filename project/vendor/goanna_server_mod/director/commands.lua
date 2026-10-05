@@ -78,6 +78,14 @@ return function(D)
 				b.points_spent_last_hour, b.points_per_hour, b.live_entities, b.max_entities,
 				b.max_entities_per_player, b.speech_per_minute),
 		}
+		if not D.connected and may_operate(name) then
+			local how = core.get_worldpath() .. "/goanna_director/connect.txt"
+			local f = io.open(how, "r")
+			if f then
+				f:close()
+				lines[#lines + 1] = "To connect a game master, see " .. how
+			end
+		end
 		local p = D.players[name]
 		if p then
 			lines[#lines + 1] = p.optout

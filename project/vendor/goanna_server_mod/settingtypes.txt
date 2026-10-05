@@ -130,6 +130,13 @@ goanna_dig_progress (Remember dig progress) bool false
 #    and can opt out with /director optout.
 goanna_director (Director) bool false
 
+#    How the director service reaches this server. file: small files in
+#    <world>/goanna_director/link, for a service on this machine; needs nothing
+#    else. http: the service's HTTP endpoint at the url in
+#    <world>/goanna_director.conf, for a service elsewhere; needs a Luanti
+#    built with curl and goanna_server_mod in secure.http_mods.
+goanna_director_transport (Director transport) enum file file,http
+
 #    Encounter points the director may spend per hour, across all players. A
 #    mob costs its maximum health over 10 plus its damage: a Mineclonia
 #    zombie 5, a skeleton 4.

@@ -14,59 +14,53 @@ creature adapter, so on other games it can talk but not stage encounters.
 ## How the pieces fit
 
 ```
-model  <-- MCP -->  goanna-director-mcp  <-- HTTP, this machine only -->  Luanti server
-                   (tools/ in the Goanna                                 (goanna_server_mod
-                    repository)                                           with the director on)
+model  <-- MCP -->  goanna-director-mcp  <-- files in the world folder -->  Luanti server
+                   (Goanna/director/ in a                                  (goanna_server_mod
+                    release, tools/ in the                                  with the director on)
+                    repository)
 ```
 
-- The server mod connects to `tools/goanna-director-mcp` over loopback
-  HTTP, with a secret token, so **the director service runs on the same
-  machine as the Luanti server.**
+- The director service and the server talk through small files in
+  `<world>/goanna_director/link/`, so **the director service runs on the
+  same machine as the world.** That needs nothing from the Luanti build and
+  no permissions: it works with Goanna's bundled server, the Flatpak and a
+  distribution's package alike. An act reaches the server in about a tenth
+  of a second.
 - The model connects to the director service over MCP, the protocol most
   AI agent apps use for tools. The model itself can be anywhere: a hosted
   API or a model on your own computer.
-- The director service ships only in the Goanna repository for now, not in
-  the release zips. Get it with
-  `git clone https://github.com/p0ss/Goanna.git`. It needs Python 3 and
-  nothing else.
+- The director service ships with Goanna, in the `director` folder beside
+  the program (`Goanna/director/` in the release zip). It needs Python 3
+  and nothing else.
+- Players who join the world over the LAN need nothing at all: the
+  director acts through the server, and they see its characters and lines
+  as they would any others.
 
 ## 1. Turn the director on
 
 **A world started from Goanna's menu** already has it: Goanna installs the
-server mod, sets `goanna_director = true` and grants the mod HTTP access.
-Start the world once, then go on to step 2.
+server mod and sets `goanna_director = true`. Start the world once. Goanna
+then writes `<world>/goanna_director/connect.txt`, holding the exact
+commands for step 2 with this machine's paths filled in, and `/director`
+in game tells the operator where it is.
 
-**Any other Luanti server:**
+**Any other Luanti server on this machine:**
 
 1. Copy `goanna_server_mod/` from the Goanna repository into the world's
    `worldmods/` folder (or the server's `mods/` folder and enable it).
-2. Add to the server's configuration file (`minetest.conf`, or the file
-   given with `--config`):
-
-   ```
-   goanna_director = true
-   secure.http_mods = goanna_server_mod
-   ```
-
-   If `secure.http_mods` already lists other mods, add `goanna_server_mod`
-   to the list, separated by a comma. Without it the director cannot reach
-   the director service.
-3. Start the server once. The mod creates `<world>/goanna_director.conf`,
-   holding the `url` it will connect to (default
-   `http://127.0.0.1:30570`) and a random `token`. Keep the token private:
-   anyone with it can direct your world.
+2. Add `goanna_director = true` to the server's configuration file
+   (`minetest.conf`, or the file given with `--config`).
+3. Start the server once.
 
 Nothing happens to players until a director service connects.
 
 ## 2. Connect a model
 
-Pick one of the three below. Each runs `tools/goanna-director-mcp` with
-`--world` pointing at the world folder, so it can read the token and port.
-For a world Goanna started, the world folder is under Goanna's data folder,
-for example
-`~/.local/share/godot/app_userdata/Goanna/luanti/<luanti>/worlds/<world>`
-for its own Luanti, or `~/.var/app/org.luanti.luanti/.minetest/worlds/<world>`
-for the Flatpak.
+Pick one of the ways below. Each runs `goanna-director-mcp` with `--world`
+pointing at the world folder. For a world Goanna started, `connect.txt`
+has the commands already filled in; the examples here use
+`/path/to/Goanna/director/` for the folder holding the service (`tools/` in
+a clone of the repository).
 
 ### Claude Code on the server machine
 
@@ -74,7 +68,7 @@ The simplest route, and the one used to build it.
 
 ```sh
 claude mcp add goanna-director \
-    -- /path/to/Goanna/tools/goanna-director-mcp --world /path/to/worlds/<world>
+    -- /path/to/Goanna/director/goanna-director-mcp --world /path/to/worlds/<world>
 ```
 
 The `--` keeps `--world` for the director service rather than for
@@ -90,7 +84,7 @@ hosted model it offers. Most take a JSON configuration in this shape:
 {
   "mcpServers": {
     "goanna-director": {
-      "command": "/path/to/Goanna/tools/goanna-director-mcp",
+      "command": "/path/to/Goanna/director/goanna-director-mcp",
       "args": ["--world", "/path/to/worlds/<world>"]
     }
   }
@@ -116,18 +110,20 @@ expect lower frame rates while it runs.
 
 ### From a shell, or an agent that runs commands
 
-`tools/goanna-director-cli` keeps one director service running and takes
+`goanna-director-cli`, beside the service, keeps one director service running and takes
 tool calls as shell commands, so a person at a terminal, a script, or an
 agent that acts one command at a time can be the game master without an
 MCP app:
 
 ```sh
 W=~/.var/app/org.luanti.luanti/.minetest/worlds/<world>
-tools/goanna-director-cli --world $W serve &        # keep this running
-tools/goanna-director-cli --world $W tools          # what it offers
-tools/goanna-director-cli --world $W events '{"wait_s": 20}'
-tools/goanna-director-cli --world $W player '{"name": "alice"}'
-tools/goanna-director-cli --world $W speak \
+D=/path/to/Goanna/director
+$D/goanna-director-cli --world $W serve &        # keep this running
+$D/goanna-director-cli --world $W tools          # what it offers
+$D/goanna-director-cli --world $W status         # the brief
+$D/goanna-director-cli --world $W events '{"wait_s": 20}'
+$D/goanna-director-cli --world $W player '{"player": "alice"}'
+$D/goanna-director-cli --world $W speak \
     '{"as": "narrator", "to": "all", "text": "A cold wind rises."}'
 ```
 
@@ -143,7 +139,11 @@ them, while the player played in Goanna.
 
 ## A server on another machine
 
-The director service has to run where the server runs. An MCP app on your
+The director service has to run where the server runs: the files are in
+the world folder. (A server elsewhere can use HTTP instead, with
+`goanna_director_transport = http`, a Luanti built with curl and
+`goanna_server_mod` in `secure.http_mods`; the service listens for it at
+the `url` in `<world>/goanna_director.conf`, with that file's `token`.) An MCP app on your
 own computer can still use it, because MCP over standard input and output
 works through SSH:
 
@@ -152,7 +152,7 @@ works through SSH:
   "mcpServers": {
     "goanna-director": {
       "command": "ssh",
-      "args": ["you@server", "/path/to/Goanna/tools/goanna-director-mcp",
+      "args": ["you@server", "/path/to/Goanna/director/goanna-director-mcp",
                "--world", "/path/to/worlds/<world>"]
     }
   }
@@ -210,10 +210,11 @@ All are ordinary server settings; players can read them.
 ## When it does not work
 
 - **`/director` says "Director connected: no".** Is the director service
-  running, with `--world` pointing at this world? Is `goanna_server_mod` in
-  `secure.http_mods`? Does anything else hold the port in
-  `goanna_director.conf`? The director service prints what it is doing to
-  its error output, which most MCP apps show in their logs.
+  running, with `--world` pointing at this world's folder (the one holding
+  `world.mt`)? It writes `goanna_director/link/director.json` every two
+  seconds; if that file is not being updated, the service is not running.
+  It prints what it is doing to its error output, which most MCP apps show
+  in their logs.
 - **Encounters are refused.** Each refusal has a reason: `budget`,
   `pacing`, `opted_out`, `no_adapter` (a game other than Mineclonia) and
   others, listed in [Transport](director.md#transport).

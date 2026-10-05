@@ -227,7 +227,15 @@ return function(http)
 	dofile(MODPATH .. "/rewards.lua")(D)
 	dofile(MODPATH .. "/orders.lua")(D)
 	dofile(MODPATH .. "/commands.lua")(D)
-	dofile(MODPATH .. "/http.lua")(D)
+	-- The transport: files in the world folder (filelink.lua) unless the
+	-- operator chose HTTP, which a dedicated server elsewhere needs.
+	D.transport = setting("goanna_director_transport", "file")
+	if D.transport == "http" then
+		dofile(MODPATH .. "/http.lua")(D)
+	else
+		D.transport = "file"
+		dofile(MODPATH .. "/filelink.lua")(D)
+	end
 
 	-- The hook API for games and adapters (docs/director.md, "Lua hook API").
 	-- Only the parts phase 1 uses exist yet.
@@ -246,6 +254,7 @@ return function(http)
 		end,
 	})
 
-	core.log("action", ("[goanna director] on, session %s, endpoint %s, transport %s")
-		:format(D.session, D.url, http and "http" or "none (add goanna_server_mod to secure.http_mods)"))
+	core.log("action", ("[goanna director] on, session %s, transport %s"):format(D.session,
+		D.transport == "file" and "file" or (http and ("http " .. D.url)
+			or "http, but not granted (add goanna_server_mod to secure.http_mods)")))
 end

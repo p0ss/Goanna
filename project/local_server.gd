@@ -41,6 +41,7 @@ const TERRAIN_DIFFUSION_FILES := [
 const GOANNA_SERVER_MOD_FILES := ["init.lua", "surface.lua", "fine.lua", "surface_material.lua", "damage.lua", "dig_progress.lua", "mod.conf", "settingtypes.txt", "README.md",
 	"director/init.lua", "director/logic.lua", "director/orders.lua", "director/audit.lua", "director/events.lua",
 	"director/summaries.lua", "director/intents.lua", "director/commands.lua", "director/http.lua",
+	"director/filelink.lua",
 	"director/catalogue.lua", "director/structures.lua", "director/rewards.lua",
 	"director/adapters/mcl_mobs.lua", "director/adapters/mcl_items.lua",
 	"director/adapters/mcl_structures.lua"]
@@ -1330,6 +1331,47 @@ func _prepare_terrain_diffusion_meta(world: String) -> String:
 # Start a server for `gameid` on `worldname` (created under the data dir if
 # new). Picks a free-ish port and writes a log we can watch for readiness.
 # Returns "" on success, or an error message.
+# Where the AI game master's service is: in a release, the director folder
+# beside the program (package-release.sh); in a checkout, tools/. "" when
+# neither has it.
+static func director_tool(name: String) -> String:
+	var path := OS.get_executable_path().get_base_dir().path_join("director").path_join(name) \
+		if OS.has_feature("template") \
+		else ProjectSettings.globalize_path("res://../tools").path_join(name).simplify_path()
+	return path if FileAccess.file_exists(path) else ""
+
+# The commands that connect a game master to this world, with this machine's
+# paths filled in, in <world>/goanna_director/connect.txt. A player coming to
+# the director cold (or a model helping them) needs nothing else; /director
+# points an operator here.
+func _write_director_connect(world: String) -> void:
+	var service := director_tool("goanna-director-mcp")
+	var cli := director_tool("goanna-director-cli")
+	if service == "":
+		return
+	var py := "python" if OS.get_name() == "Windows" else "python3"
+	var q := func(p: String) -> String: return "\"%s\"" % p
+	var text := "\n".join([
+		"Connect an AI game master to this world (docs/director-setup.md in Goanna's source).",
+		"It needs Python 3 and nothing else; it talks to the world through files in this folder.",
+		"",
+		"From an MCP app, such as Claude Code:",
+		# The separator goes in as an argument: it ends claude's own options.
+		"  claude mcp add goanna-director %s %s %s --world %s" % ["--", py, q.call(service), q.call(world)],
+		"",
+		"From a shell, one command at a time (leave serve running):",
+		"  %s %s --world %s serve" % [py, q.call(cli), q.call(world)],
+		"  %s %s --world %s status" % [py, q.call(cli), q.call(world)],
+		"",
+		"Players are told a game master is present when it connects, and can opt out with",
+		"/director optout. The operator stops it with /director stop.",
+		""])
+	var dir := world.path_join("goanna_director")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var f := FileAccess.open(dir.path_join("connect.txt"), FileAccess.WRITE)
+	if f:
+		f.store_string(text)
+
 # The server mod that relays goanna_* settings to the client, copied into the
 # world as a worldmod so the grant written above reaches the client. A copy,
 # not a link: the flatpak sandbox sees the world directory and not the
@@ -1504,13 +1546,14 @@ func start_config(options: Dictionary) -> String:
 			cf.store_string("goanna_dig_progress = true\n")
 		# The director (docs/director.md), available for the same reason: the
 		# player who launched this server is its operator. Enabling it only
-		# makes it available; nothing happens until a director process
-		# connects at the url in <world>/goanna_director.conf, and anyone
-		# joining is told and can opt out. It talks to that process over
-		# Luanti's HTTP API, which a mod gets only when the operator lists it
-		# in secure.http_mods.
+		# makes it available; nothing happens until a director service
+		# connects, and anyone joining is told and can opt out. The service
+		# runs on this machine and talks to the server through files in the
+		# world folder (goanna_server_mod/director/filelink.lua), so the
+		# server needs no HTTP API: Goanna's bundled server is built without
+		# curl, and secure.http_mods granted nothing there.
 		cf.store_string("goanna_director = true\n")
-		cf.store_string("secure.http_mods = goanna_server_mod\n")
+		cf.store_string("goanna_director_transport = file\n")
 		# The player's own Far draw distance setting is the grant, floored at
 		# the old conservative bound. It is their machine paying for the
 		# mapgen and the drawing, so how vast the vista gets is their call;
@@ -1601,6 +1644,7 @@ func start_config(options: Dictionary) -> String:
 	var server_mod_error := _install_server_mod(world_path)
 	if server_mod_error != "":
 		return server_mod_error
+	_write_director_connect(world_path)
 	if pbr_materials and pbr_art_available(gameid):
 		var pbr_error := _install_pbr_mod(world_path, gameid)
 		if pbr_error != "":

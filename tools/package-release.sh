@@ -101,6 +101,13 @@ rm -rf "$PKG"
 mkdir -p "$PKG/Goanna" "$PKG/luanti/textures"
 cp -r "$STAGE"/* "$PKG/Goanna/"
 cp -r luanti/textures/base "$PKG/luanti/textures/"
+# The AI game master's service (docs/director-setup.md): what a model's MCP
+# app starts, and the shell bridge beside it. Python 3 with no dependencies;
+# it reaches a world Goanna started through files in the world folder, so a
+# player needs nothing from the repository.
+mkdir -p "$PKG/Goanna/director"
+cp tools/goanna-director-mcp tools/goanna-director-cli "$PKG/Goanna/director/"
+chmod +x "$PKG/Goanna/director/"goanna-director-*
 CORE_ASSET="${GOANNA_CORE_ASSET:-dist/assets/org.goanna.mineclonia.pack-1.3.1.zip}"
 test -f "$CORE_ASSET" || { echo "missing core asset bundle: $CORE_ASSET" >&2; exit 1; }
 mkdir -p "$PKG/assets"
