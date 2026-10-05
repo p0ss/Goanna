@@ -57,8 +57,13 @@ func _ready() -> void:
 		var size := str(cfg.get_value("settings", "voice_model", "base"))
 		model_size = size if MODELS.has(size) else "base"
 		language = str(cfg.get_value("settings", "voice_language", "auto"))
+	# The speech model needs AVX2, FMA and F16C (most processors from 2013
+	# on, and the Steam Deck). Without them voice typing is not offered,
+	# and T opens chat as it always did.
 	if ClassDB.class_exists("GoannaSpeechInput"):
 		_speech = ClassDB.instantiate("GoannaSpeechInput")
+		if not _speech.cpu_supported():
+			_speech = null
 	var layer := CanvasLayer.new()
 	layer.layer = 20
 	add_child(layer)

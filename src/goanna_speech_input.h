@@ -50,6 +50,9 @@ public:
     godot::Dictionary take_result();
     // Threads a transcription uses; by default half the cores, at most four.
     void set_threads(int threads) { m_threads = threads; }
+    // Whether this processor has the instructions the bundled ggml was
+    // built for (AVX2, FMA, F16C). Without them nothing here runs.
+    static bool cpu_supported();
 
 protected:
     static void _bind_methods();
