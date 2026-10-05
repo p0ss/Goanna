@@ -101,7 +101,8 @@ netherite.
   leggings, boots). Leather red covers the whole head as Mineclonia's
   helmet does. The diamond trim shows as gold lines.
 - The iron pickaxe in the hand reads pale blue and glassy, like ice or
-  glass rather than steel.
+  glass rather than steel. Diagnosed and fixed below, under "The glassy
+  iron pickaxe".
 - The minecart is drawn, dark iron with its wooden floor.
 - The decorated pot shows its four sherd faces (heart, archer, skull,
   miner) one per side, upright and flat on the side seen square on. The
@@ -207,3 +208,64 @@ same memory as the native 128 pack.
 
 At this distance the walls look alike at every size. The "zombie" frame
 has no zombie in it, in all four configurations.
+
+## The glassy iron pickaxe
+
+![pickaxe before and after](pickaxe.jpg)
+
+Shot 2026-10-06 from 06:53 to 08:00 through the render service, same
+setup as above. Jobs modelled on `4a-objects.json`: figures holding the
+iron, gold, diamond and netherite pickaxes, the iron sword and axe on
+`mcl_wieldview:wieldview`; the render player's own hotbar set to the iron
+pickaxe for the first person wield; a wieldview entity at a dropped item's
+size on the floor (`core.add_item` was tried first, and the server died
+without a log line two minutes into that job, cause not found); iron, gold
+and diamond blocks beside. Frames and jobs are under
+`~/.local/share/goanna-pbr-audit/render-backlog-2026-10-06/pickaxe/`.
+
+Not the cause, checked: the material picking. With
+`GOANNA_DEBUG_ENTITY_PBR` the client log shows the pickaxe built as an
+ordinary opaque entity material (class metal, `gem=0`, `alpha=false`,
+normal and spec maps bound); no glass, ice or diamond shader is involved,
+and `default_tool_steelpick` matches none of their words. The handle is
+`"metal": false` in the spec and in the built `_s` (green 10). Parallax
+never runs on an item (it has no face rectangle).
+
+Two causes, found by withholding one thing at a time:
+
+- **The normal map on the extrusion's edges.** A held or dropped flat item
+  is Luanti's extrusion mesh, whose edges are one quad per pixel row and
+  column of the image, each mapped to a strip under one pixel wide. The
+  pack's albedo is 256 pixels, so the pickaxe has 2,048 edge triangles of
+  2,052. The entity material read `_n` there too: the front face's texel
+  chamfers and brushed grain, turned onto the edge, drew as dense stripes
+  and bright seams down every edge, which is most of the glass look.
+  With the pack withheld the edges are plain. Fixed in
+  `EntityRenderer::buildItemMesh`: triangles whose texture coordinates stay
+  inside one pixel on an axis are a second surface drawn without `_n`
+  (commit 0ad91684).
+- **A mirror finish on a pale metal.** The iron tools' heads were authored
+  at smoothness 0.78 and the gold at 0.82. The art's pale grey is the
+  metal's F0, so the faces mirrored the clear sky, pale or navy blue by
+  angle. The edges fix alone left the faces blue; `_s` withheld (the metal
+  class's 0.55) or flattened to 0.5 read grey. The ten iron and gold hand
+  tool specs now give their metal 0.55 (commit 1a21c33a). These specs are
+  hand written, not generated. Built with `build_pack.py --check` (2,090
+  stems, none failing) and installed into a scratch pack; the shipped pack
+  is not rebuilt here.
+
+After both, at noon and low sun, the iron pickaxe, sword and axe read as
+grey steel and the gold pickaxe as solid gold. What remains: a bright seam
+still runs along the chamfer of each texel on the front face, so a close
+iron tool still has a faint tiled look, and at noon the faces keep a cool
+blue cast from the sky. The diamond pickaxe is unchanged (its blended gem
+shader is intended). The netherite pickaxe read dark and solid before and
+is not changed by the spec; its edges lose their stripes with the rest.
+The dropped item frame is too close to judge and looks the same before and
+after.
+
+The first diagnostic job also found two service faults, not fixed here: a
+`shoot` that starts the service waits up to 15 minutes for a "ready"
+status that never comes while other agents' jobs keep it busy, and the
+service kept reporting ready with a dead server, failing the next variant
+after a 10 minute connection wait.
