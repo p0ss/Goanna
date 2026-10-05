@@ -1,0 +1,6 @@
+nextgen_fungi_mushroom_brown
+nextgen_fungi_mushroom_brown_bottom
+nextgen_fungi_mushroom_brown_top
+nextgen_fungi_mushroom_red
+nextgen_fungi_mushroom_red_bottom
+nextgen_fungi_mushroom_red_top

@@ -1,0 +1,14 @@
+{
+ "class": "leaves",
+ "sss": 30,
+ "micro": "none",
+ "materials": {
+  "fungus": {
+   "mode": "shade",
+   "base": 0.2,
+   "span": 0.55,
+   "joints": false,
+   "smooth": 0.15
+  }
+ }
+}

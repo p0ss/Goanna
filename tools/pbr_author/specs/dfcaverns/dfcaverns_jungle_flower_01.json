@@ -1,0 +1,42 @@
+{
+ "class": "leaves",
+ "materials": {
+  "stem": {
+   "mode": "shade",
+   "base": 0.2,
+   "span": 0.55,
+   "joints": false,
+   "detail": 0.25,
+   "merge": 0.2
+  },
+  "petal": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.4,
+   "joints": false,
+   "emission": 0.45
+  }
+ },
+ "grid": [
+  "................",
+  "........p.......",
+  ".p.....pp....p..",
+  ".p.....pp...pp..",
+  ".pp...ppp...pp..",
+  ".pp...ppp...pp..",
+  ".ppp..ppp..ppp..",
+  "..ppp..p..ppp...",
+  "...pp.gggpp.....",
+  "....pggg........",
+  ".......g........",
+  "......gg........",
+  "......gg........",
+  "......gg........",
+  ".....gggg.......",
+  "....gggggg......"
+ ],
+ "legend": {
+  "g": "stem",
+  "p": "petal"
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "micro": "soil",
+ "materials": {
+  "rot": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.35,
+   "joints": false,
+   "smooth": 0.1
+  }
+ }
+}

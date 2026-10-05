@@ -1,0 +1,40 @@
+{
+ "class": "leaves",
+ "micro": "bark",
+ "materials": {
+  "lamella": {
+   "mode": "flat",
+   "base": 0.72,
+   "span": 0,
+   "smooth": 0.4
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "smooth": 0.34
+  }
+ },
+ "grid": [
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg"
+ ],
+ "legend": {
+  "L": "lamella",
+  "g": "gap"
+ }
+}

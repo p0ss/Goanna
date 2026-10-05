@@ -1,0 +1,13 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.24
+  }
+ }
+}

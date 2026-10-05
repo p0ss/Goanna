@@ -1,0 +1,12 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "materials": {
+  "streak": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0.0,
+   "smooth": 0.55
+  }
+ }
+}

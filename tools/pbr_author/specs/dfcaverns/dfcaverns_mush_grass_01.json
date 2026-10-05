@@ -1,0 +1,13 @@
+{
+ "class": "leaves",
+ "materials": {
+  "blade": {
+   "mode": "shade",
+   "base": 0.2,
+   "span": 0.55,
+   "joints": false,
+   "detail": 0.25,
+   "merge": 0.2
+  }
+ }
+}

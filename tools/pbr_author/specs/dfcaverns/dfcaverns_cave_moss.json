@@ -1,0 +1,14 @@
+{
+ "class": "soil",
+ "overlay": true,
+ "micro": "leaves",
+ "materials": {
+  "moss": {
+   "mode": "shade",
+   "base": 0.45,
+   "span": 0.35,
+   "joints": false,
+   "smooth": 0.12
+  }
+ }
+}

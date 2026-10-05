@@ -1,0 +1,12 @@
+{
+ "class": "leaves",
+ "sss": 110,
+ "materials": {
+  "turf": {
+   "mode": "shade",
+   "base": 0.25,
+   "span": 0.6,
+   "joint": 0.6
+  }
+ }
+}

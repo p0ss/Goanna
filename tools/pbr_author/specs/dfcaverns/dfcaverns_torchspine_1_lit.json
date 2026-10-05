@@ -1,0 +1,45 @@
+{
+ "class": "stone",
+ "strength": 12,
+ "materials": {
+  "spine": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.3,
+   "joints": false,
+   "smooth": 0.18,
+   "levels": 2
+  },
+  "ember": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.4,
+   "joints": false,
+   "smooth": 0.12,
+   "emission": 0.9,
+   "emission_shade": true
+  }
+ },
+ "grid": [
+  "eeeeeeeeeeeeeeee",
+  "eeeeeeeeeeeeeeee",
+  "eeeeeeeeeeeeeeee",
+  "eeeeeeeeeeeeeeee",
+  "eeeeeeeeeeeeesss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss",
+  "ssssssssssssssss"
+ ],
+ "legend": {
+  "s": "spine",
+  "e": "ember"
+ }
+}

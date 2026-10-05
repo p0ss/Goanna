@@ -1,0 +1,18 @@
+{
+ "class": "glass",
+ "micro": "glass",
+ "materials": {
+  "gem": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.35,
+   "levels": 3,
+   "joints": false,
+   "merge": 0.25,
+   "smooth": 0.88,
+   "smooth_spread": 0.04,
+   "f0": 0.16,
+   "emission": 0.55
+  }
+ }
+}

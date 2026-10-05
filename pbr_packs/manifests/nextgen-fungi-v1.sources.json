@@ -1,0 +1,50 @@
+{
+  "nextgen_fungi_mushroom_brown": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_brown.png"
+  },
+  "nextgen_fungi_mushroom_brown_bottom": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_brown_bottom.png"
+  },
+  "nextgen_fungi_mushroom_brown_top": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_brown_top.png"
+  },
+  "nextgen_fungi_mushroom_red": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_red.png"
+  },
+  "nextgen_fungi_mushroom_red_bottom": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_red_bottom.png"
+  },
+  "nextgen_fungi_mushroom_red_top": {
+    "author": "StarNinjas",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "README.txt: \"Author of media (textures)\" / \"StarNinjas (CC BY-SA 3.0):\"",
+    "package": "nextgen_fungi",
+    "release": 20073,
+    "source": "nextgen_fungi/nextgen_fungi/textures/nextgen_fungi_mushroom_red_top.png"
+  }
+}

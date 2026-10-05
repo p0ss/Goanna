@@ -1,0 +1,49 @@
+{
+ "class": "wood",
+ "micro": "leaves",
+ "materials": {
+  "pores": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.16,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": true,
+   "joint": 0.5,
+   "smooth": 0.2,
+   "smooth_spread": 0.04
+  },
+  "rib": {
+   "mode": "shade",
+   "base": 0.68,
+   "span": 0.1,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.28,
+   "smooth_spread": 0.03
+  }
+ },
+ "grid": [
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "rrrrrrrrrrrrrrrr",
+  "rrrrrrrrrrrrrrrr",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp",
+  "ppppppprrppppppp"
+ ],
+ "legend": {
+  "p": "pores",
+  "r": "rib"
+ }
+}

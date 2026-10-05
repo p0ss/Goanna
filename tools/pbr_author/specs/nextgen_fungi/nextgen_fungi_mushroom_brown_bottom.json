@@ -1,0 +1,58 @@
+{
+ "class": "leaves",
+ "sss": 40,
+ "micro": "wood",
+ "micro_dir": "v",
+ "materials": {
+  "rim": {
+   "mode": "shade",
+   "base": 0.66,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.42,
+   "smooth_spread": 0.04
+  },
+  "lamella": {
+   "mode": "shade",
+   "base": 0.42,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.36,
+   "smooth_spread": 0.03
+  },
+  "gap": {
+   "mode": "flat",
+   "base": 0.2,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.32
+  }
+ },
+ "grid": [
+  "................",
+  "................",
+  "................",
+  "...RRRRRRRRRR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RLgLgLgLgR...",
+  "...RRRRRRRRRR...",
+  "................",
+  "................",
+  "................"
+ ],
+ "legend": {
+  "R": "rim",
+  "L": "lamella",
+  "g": "gap"
+ }
+}

@@ -1,0 +1,94 @@
+{
+ "schema_version": 1,
+ "review_version": "nextgen-fungi-v1",
+ "resolution": "authored",
+ "derivation": {
+  "material_from": "tools/pbr_author/stems/nextgen_fungi.classes.json, the classes the authoring agent chose per stem by reading the art",
+  "bands_from": "the pipeline's per class defaults in tools/pbr_bake.py (pbr_review_from_defs.bands)",
+  "notes": [
+   "planks is the authoring tool's refinement of wood and is recorded as wood.",
+   "metalness_policy follows the authored _s: predominant where over a fifth of the texels carry the metal byte, partial where some do.",
+   "tiles is false for skins and model textures listed in the stems .mobs.txt file."
+  ]
+ },
+ "textures": {
+  "nextgen_fungi_mushroom_brown": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "nextgen_fungi_mushroom_brown_bottom": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "nextgen_fungi_mushroom_brown_top": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "nextgen_fungi_mushroom_red": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "nextgen_fungi_mushroom_red_bottom": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  },
+  "nextgen_fungi_mushroom_red_top": {
+   "primary_material": "leaves",
+   "secondary_materials": [],
+   "metalness_policy": "none",
+   "smoothness_min": 0.12,
+   "smoothness_max": 0.45,
+   "relief_strength": 0.16,
+   "treatment": "terrain",
+   "tiles": true,
+   "confidence": 0.8,
+   "rationale": "The class the Nextgen Fungi authoring agent chose for this stem on 2026-10-05 after reading its art (tools/pbr_author/stems/nextgen_fungi.classes.json, leaves). The bands are the pipeline's leaves defaults, not a per texture judgement.",
+   "review_required": false
+  }
+ }
+}

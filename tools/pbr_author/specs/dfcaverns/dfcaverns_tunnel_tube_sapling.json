@@ -1,0 +1,12 @@
+{
+ "class": "leaves",
+ "sss": 40,
+ "materials": {
+  "flesh": {
+   "mode": "flat",
+   "base": 0.45,
+   "span": 0,
+   "smooth": 0.26
+  }
+ }
+}

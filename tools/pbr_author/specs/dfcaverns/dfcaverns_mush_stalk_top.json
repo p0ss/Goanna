@@ -1,0 +1,49 @@
+{
+ "class": "wood",
+ "micro": "wood",
+ "materials": {
+  "face": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.1,
+   "joints": false,
+   "merge": 0.45,
+   "smooth": 0.3,
+   "smooth_spread": 0.04
+  },
+  "rind": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.16,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.26,
+   "smooth_spread": 0.04
+  }
+ },
+ "grid": [
+  "BBBBBBBBBBBBBBBB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BFFFFFFFFFFFFFFB",
+  "BBBBBBBBBBBBBBBB"
+ ],
+ "legend": {
+  "B": "rind",
+  "F": "face"
+ }
+}

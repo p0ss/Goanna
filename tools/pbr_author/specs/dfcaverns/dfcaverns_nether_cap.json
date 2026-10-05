@@ -1,0 +1,18 @@
+{
+ "class": "leaves",
+ "sss": 90,
+ "micro": "leaves",
+ "materials": {
+  "flesh": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.26,
+   "levels": 2,
+   "detail": 0.12,
+   "joints": false,
+   "merge": 0.45,
+   "smooth": 0.42,
+   "smooth_spread": 0.05
+  }
+ }
+}

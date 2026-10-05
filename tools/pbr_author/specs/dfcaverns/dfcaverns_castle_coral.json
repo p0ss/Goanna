@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "micro": "concrete",
+ "materials": {
+  "coral": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.55,
+   "joints": false,
+   "smooth": 0.15
+  }
+ }
+}

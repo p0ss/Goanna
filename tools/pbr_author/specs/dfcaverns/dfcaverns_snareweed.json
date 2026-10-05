@@ -1,0 +1,43 @@
+{
+ "class": "leaves",
+ "materials": {
+  "stalk": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.45,
+   "joints": false,
+   "detail": 0.25,
+   "merge": 0.2
+  },
+  "bead": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.4,
+   "joints": false,
+   "smooth": 0.45,
+   "emission": 0.6
+  }
+ },
+ "grid": [
+  ".......tt.......",
+  "......tbbt......",
+  ".....ttbbt......",
+  "....t..tt.......",
+  "........tt......",
+  ".......tbbt.....",
+  ".......tbbtt....",
+  ".......ttt..t...",
+  "......ttt.......",
+  ".....tbbt.......",
+  "....ttbbt.......",
+  "...t..tt........",
+  ".......tt.......",
+  "......tbbt......",
+  "......tbbtt.....",
+  ".......tt..t...."
+ ],
+ "legend": {
+  "t": "stalk",
+  "b": "bead"
+ }
+}

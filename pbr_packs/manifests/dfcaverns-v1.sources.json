@@ -1,0 +1,1504 @@
+{
+  "bones_bottom": {
+    "author": "paramat",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_bottom.png",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_bottom.png"
+  },
+  "bones_front": {
+    "author": "paramat",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_front.png",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_front.png"
+  },
+  "bones_rear": {
+    "author": "paramat",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_rear.png",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_rear.png"
+  },
+  "bones_side": {
+    "author": "paramat",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_side.png",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_side.png"
+  },
+  "bones_top": {
+    "author": "paramat",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "bones_loot/textures/bones_license.txt: \"Licenses of media (textures): Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) Copyright (C) 2016 paramat\"; byte-identical to Minetest Game mods/bones/textures/bones_top.png",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/bones_loot/textures/bones_top.png"
+  },
+  "dfcaverns_black_cap_gills": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_black_cap_sapling": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_black_cap_side": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_black_cap_top": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_black_cap_wood": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_blood_thorn_side": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_blood_thorn_spike_front": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_blood_thorn_spike_side": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_blood_thorn_top": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_blood_thorn_wood": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_castle_coral": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_castle_coral.png"
+  },
+  "dfcaverns_castle_coral_gradient": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_castle_coral_gradient.png"
+  },
+  "dfcaverns_cave_coral": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_cave_coral.png"
+  },
+  "dfcaverns_cave_coral_end": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_cave_coral_end.png"
+  },
+  "dfcaverns_cave_moss": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_cave_moss.png"
+  },
+  "dfcaverns_cave_pearl": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_cave_pearl.png"
+  },
+  "dfcaverns_cave_straw": {
+    "author": "PilzAdam, BlockMen, MasterGollum, Gambit (farming), modified by FaceDeer",
+    "media_license": "CC-BY-3.0",
+    "notice": "df_farming/textures/license.txt: \"Farming textures are released under CC Attribution 3.0 Unported (CC BY 3.0) and list the following authors: PilzAdam, BlockMen, MasterGollum, Gambit\" / \"dfcaverns_cave_straw - derived from farming straw\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_straw.png"
+  },
+  "dfcaverns_cave_wheat_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_1.png"
+  },
+  "dfcaverns_cave_wheat_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_2.png"
+  },
+  "dfcaverns_cave_wheat_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_3.png"
+  },
+  "dfcaverns_cave_wheat_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_4.png"
+  },
+  "dfcaverns_cave_wheat_5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_5.png"
+  },
+  "dfcaverns_cave_wheat_6": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_6.png"
+  },
+  "dfcaverns_cave_wheat_7": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_7.png"
+  },
+  "dfcaverns_cave_wheat_8": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_8.png"
+  },
+  "dfcaverns_cave_wheat_flattened": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_flattened.png"
+  },
+  "dfcaverns_cave_wheat_seed": {
+    "author": "PilzAdam, BlockMen, MasterGollum, Gambit (farming), modified by FaceDeer",
+    "media_license": "CC-BY-3.0",
+    "notice": "df_farming/textures/license.txt: \"Farming textures are released under CC Attribution 3.0 Unported (CC BY 3.0) and list the following authors: PilzAdam, BlockMen, MasterGollum, Gambit\" / \"dfcaverns_cave_wheat_seed - derived from farming wheat seed\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_cave_wheat_seed.png"
+  },
+  "dfcaverns_chest_lock_colours": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_chest_lock_colours.png"
+  },
+  "dfcaverns_chest_lock_plate": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_chest_lock_plate.png"
+  },
+  "dfcaverns_chest_mask_interior": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_chest_mask_interior.png"
+  },
+  "dfcaverns_dead_fungus": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dead_fungus.png"
+  },
+  "dfcaverns_dimple_cup_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dimple_cup_1.png"
+  },
+  "dfcaverns_dimple_cup_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dimple_cup_2.png"
+  },
+  "dfcaverns_dimple_cup_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dimple_cup_3.png"
+  },
+  "dfcaverns_dimple_cup_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dimple_cup_4.png"
+  },
+  "dfcaverns_dimple_cup_seed": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_dimple_cup_seed.png"
+  },
+  "dfcaverns_dripstone_streaks": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_dripstone_streaks.png"
+  },
+  "dfcaverns_floor_fungus": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_floor_fungus.png"
+  },
+  "dfcaverns_floor_fungus_fine": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_floor_fungus_fine.png"
+  },
+  "dfcaverns_fungi": {
+    "author": "HeroOfTheWinds (caverealms)",
+    "media_license": "WTFPL",
+    "notice": "\"dfcaverns_fungi - copied from caverealms\" (df_farming); byte-identical to caverealms-38:textures/caverealms_fungi.png in pinned caverealms release 38, whose README.md says \"Contributors: HeroOfTheWinds - everything\" and \"Licensing - WTFPL\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_fungi.png"
+  },
+  "dfcaverns_fungiwood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_fungiwood.png"
+  },
+  "dfcaverns_fungiwood_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_fungiwood_sapling.png"
+  },
+  "dfcaverns_fungiwood_shelf_underside": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_fungiwood_shelf_underside.png"
+  },
+  "dfcaverns_fungiwood_wood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_fungiwood_wood.png"
+  },
+  "dfcaverns_glow_amethyst": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_underworld_items/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_glow_mese": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_glow_ruby": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_glow_ruby4x": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_glow_ruby_ore": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_glow_ruby_quarter": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_goblin_cap": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_goblin_cap_gills": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_goblin_cap_gills.png"
+  },
+  "dfcaverns_goblin_cap_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_goblin_cap_sapling.png"
+  },
+  "dfcaverns_goblin_cap_stem": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_goblin_cap_stem.png"
+  },
+  "dfcaverns_goblin_cap_stem_wood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_goblin_cap_stem_wood.png"
+  },
+  "dfcaverns_goblin_cap_wood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_goblin_cap_wood.png"
+  },
+  "dfcaverns_ground_cover_pebble_fungus": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_ground_cover_pebble_fungus.png"
+  },
+  "dfcaverns_ground_cover_rock_rot": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_ground_cover_rock_rot.png"
+  },
+  "dfcaverns_ground_cover_sand_scum": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_ground_cover_sand_scum.png"
+  },
+  "dfcaverns_ground_cover_sponge_stone": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_ground_cover_sponge_stone.png"
+  },
+  "dfcaverns_ground_cover_stillworm": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_ground_cover_stillworm.png"
+  },
+  "dfcaverns_hoar_moss": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_hoar_moss.png"
+  },
+  "dfcaverns_inscription_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_inscription_1.png"
+  },
+  "dfcaverns_inscription_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_inscription_2.png"
+  },
+  "dfcaverns_inscription_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_inscription_3.png"
+  },
+  "dfcaverns_inscription_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_inscription_4.png"
+  },
+  "dfcaverns_jungle_fern_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_01.png"
+  },
+  "dfcaverns_jungle_fern_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_02.png"
+  },
+  "dfcaverns_jungle_fern_03": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_03.png"
+  },
+  "dfcaverns_jungle_fern_bark": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_bark.png"
+  },
+  "dfcaverns_jungle_fern_leaves_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_leaves_01.png"
+  },
+  "dfcaverns_jungle_fern_stem": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_fern_stem.png"
+  },
+  "dfcaverns_jungle_flower_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_flower_01.png"
+  },
+  "dfcaverns_jungle_glow_plant_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_glow_plant_01.png"
+  },
+  "dfcaverns_jungle_glow_plant_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_glow_plant_02.png"
+  },
+  "dfcaverns_jungle_grass_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_grass_01.png"
+  },
+  "dfcaverns_jungle_grass_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_grass_02.png"
+  },
+  "dfcaverns_jungle_grass_03": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_grass_03.png"
+  },
+  "dfcaverns_jungle_ivy_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_ivy_01.png"
+  },
+  "dfcaverns_jungle_leaves_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_leaves_01.png"
+  },
+  "dfcaverns_jungle_leaves_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_leaves_02.png"
+  },
+  "dfcaverns_jungle_mushroom_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_01.png"
+  },
+  "dfcaverns_jungle_mushroom_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_02.png"
+  },
+  "dfcaverns_jungle_mushroom_stem": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_stem.png"
+  },
+  "dfcaverns_jungle_mushroom_stem_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_stem_02.png"
+  },
+  "dfcaverns_jungle_mushroom_top_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_top_01.png"
+  },
+  "dfcaverns_jungle_mushroom_top_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_mushroom_top_02.png"
+  },
+  "dfcaverns_jungle_plant_grass_node_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_plant_grass_node_01.png"
+  },
+  "dfcaverns_jungle_plant_matter_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_plant_matter_01.png"
+  },
+  "dfcaverns_jungle_plant_packed_roots_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_plant_packed_roots_01.png"
+  },
+  "dfcaverns_jungle_root_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_root_01.png"
+  },
+  "dfcaverns_jungle_root_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_root_02.png"
+  },
+  "dfcaverns_jungle_sapling": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_primordial_items/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_jungle_thorns_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_thorns_01.png"
+  },
+  "dfcaverns_jungle_wood_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_wood_01.png"
+  },
+  "dfcaverns_jungle_wood_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_wood_02.png"
+  },
+  "dfcaverns_jungle_wood_03": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_wood_03.png"
+  },
+  "dfcaverns_jungle_wood_04": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_jungle_wood_04.png"
+  },
+  "dfcaverns_mush_cap": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_cap.png"
+  },
+  "dfcaverns_mush_giant_hypha": {
+    "author": "FaceDeer",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"Created by FaceDeer and also licened under CC BY 4.0 (as well as CC0 public domain)\" (file listed by name). CC0 is also offered.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_giant_hypha.png"
+  },
+  "dfcaverns_mush_gills": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_gills.png"
+  },
+  "dfcaverns_mush_gills_glow": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_gills_glow.png"
+  },
+  "dfcaverns_mush_glownode": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_glownode.png"
+  },
+  "dfcaverns_mush_grass_01": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_grass_01.png"
+  },
+  "dfcaverns_mush_grass_02": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_grass_02.png"
+  },
+  "dfcaverns_mush_orb": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_orb.png"
+  },
+  "dfcaverns_mush_orb_vert": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_orb_vert.png"
+  },
+  "dfcaverns_mush_pods": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_pods.png"
+  },
+  "dfcaverns_mush_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"Created by FaceDeer and also licened under CC BY 4.0 (as well as CC0 public domain)\" (file listed by name). CC0 is also offered.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_sapling.png"
+  },
+  "dfcaverns_mush_shaft_side": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_shaft_side.png"
+  },
+  "dfcaverns_mush_shaft_top": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_shaft_top.png"
+  },
+  "dfcaverns_mush_soil": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_soil.png"
+  },
+  "dfcaverns_mush_stalk_side": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_stalk_side.png"
+  },
+  "dfcaverns_mush_stalk_top": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_stalk_top.png"
+  },
+  "dfcaverns_mush_stalks": {
+    "author": "ClockGen",
+    "media_license": "CC-BY-4.0",
+    "notice": "df_primordial_items/textures/license.txt: \"All primordial item textures not explicitly listed here were created by ClockGen and licensed under the CC BY 4.0\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_primordial_items/textures/dfcaverns_mush_stalks.png"
+  },
+  "dfcaverns_nether_cap": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_nether_cap.png"
+  },
+  "dfcaverns_nether_cap_gills": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_nether_cap_gills.png"
+  },
+  "dfcaverns_nether_cap_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_nether_cap_sapling.png"
+  },
+  "dfcaverns_nether_cap_stem": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_nether_cap_wood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_nether_cap_wood.png"
+  },
+  "dfcaverns_pig_tail_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_1.png"
+  },
+  "dfcaverns_pig_tail_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_2.png"
+  },
+  "dfcaverns_pig_tail_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_3.png"
+  },
+  "dfcaverns_pig_tail_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_4.png"
+  },
+  "dfcaverns_pig_tail_5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_5.png"
+  },
+  "dfcaverns_pig_tail_6": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_6.png"
+  },
+  "dfcaverns_pig_tail_7": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_7.png"
+  },
+  "dfcaverns_pig_tail_8": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_8.png"
+  },
+  "dfcaverns_pig_tail_flattened": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_flattened.png"
+  },
+  "dfcaverns_pig_tail_seed": {
+    "author": "PilzAdam, BlockMen, MasterGollum, Gambit (farming), modified by FaceDeer",
+    "media_license": "CC-BY-3.0",
+    "notice": "df_farming/textures/license.txt: \"Farming textures are released under CC Attribution 3.0 Unported (CC BY 3.0) and list the following authors: PilzAdam, BlockMen, MasterGollum, Gambit\" / \"dfcaverns_pig_tail_seed - derived from farming wheat seed\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_pig_tail_seed.png"
+  },
+  "dfcaverns_pit_plasma_static": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_pit_plasma_static.png"
+  },
+  "dfcaverns_plump_helmet_cap": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_plump_helmet_cap.png"
+  },
+  "dfcaverns_plump_helmet_stem": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_plump_helmet_stem.png"
+  },
+  "dfcaverns_quarry_bush_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_quarry_bush_1.png"
+  },
+  "dfcaverns_quarry_bush_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_quarry_bush_2.png"
+  },
+  "dfcaverns_quarry_bush_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_quarry_bush_3.png"
+  },
+  "dfcaverns_quarry_bush_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_quarry_bush_4.png"
+  },
+  "dfcaverns_quarry_bush_5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_quarry_bush_5.png"
+  },
+  "dfcaverns_rock_nuts": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_rock_nuts.png"
+  },
+  "dfcaverns_salt_crystal": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_salty": {
+    "author": "FaceDeer, derived from caverealms by HeroOfTheWinds (WTFPL)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "WTFPL",
+    "notice": "df_mapitems/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_slade": {
+    "author": "PilzAdam (Nether mod)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_underworld_items/textures/license.txt: \"dfcaverns_slade, dfcaverns_slade_sand, dfcaverns_slade_brick, are all from the Nether mod by PilzAdam: Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)\". Not byte-identical to pinned nether release 33531, whose art has since changed.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_slade.png"
+  },
+  "dfcaverns_slade_block": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_slade_block.png"
+  },
+  "dfcaverns_slade_brick": {
+    "author": "PilzAdam (Nether mod)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_underworld_items/textures/license.txt: \"dfcaverns_slade, dfcaverns_slade_sand, dfcaverns_slade_brick, are all from the Nether mod by PilzAdam: Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)\". Not byte-identical to pinned nether release 33531, whose art has since changed.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_slade_brick.png"
+  },
+  "dfcaverns_slade_sand": {
+    "author": "PilzAdam (Nether mod)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_underworld_items/textures/license.txt: \"dfcaverns_slade, dfcaverns_slade_sand, dfcaverns_slade_brick, are all from the Nether mod by PilzAdam: Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)\". Not byte-identical to pinned nether release 33531, whose art has since changed.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_slade_sand.png"
+  },
+  "dfcaverns_snareweed": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_snareweed.png"
+  },
+  "dfcaverns_snareweed_roots": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_snareweed_roots.png"
+  },
+  "dfcaverns_spindlestem_cap": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spindlestem_cap.png"
+  },
+  "dfcaverns_spore_tree": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spore_tree.png"
+  },
+  "dfcaverns_spore_tree_ladder": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spore_tree_ladder.png"
+  },
+  "dfcaverns_spore_tree_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spore_tree_sapling.png"
+  },
+  "dfcaverns_spore_tree_top": {
+    "author": "sofar (derived from paramat's pine textures)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt does not list it, so its default line would claim it as FaceDeer's MIT/CC0 work, but it is byte-identical to Minetest Game mods/default/textures/default_aspen_tree_top.png, credited in MTG default/README.md to \"sofar (CC BY-SA 3.0)\". Recorded under the stricter, provable upstream licence.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spore_tree_top.png"
+  },
+  "dfcaverns_spore_tree_wood": {
+    "author": "sofar (derived from paramat's pine textures)",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt does not list it, so its default line would claim it as FaceDeer's MIT/CC0 work, but it is byte-identical to Minetest Game mods/default/textures/default_aspen_wood.png, credited in MTG default/README.md to \"sofar (CC BY-SA 3.0)\". Recorded under the stricter, provable upstream licence.",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_spore_tree_wood.png"
+  },
+  "dfcaverns_statue_eyes": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_statue_eyes.png"
+  },
+  "dfcaverns_statue_fang_overlay": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_underworld_items/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_underworld_items/textures/dfcaverns_statue_fang_overlay.png"
+  },
+  "dfcaverns_sweet_pod_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_1.png"
+  },
+  "dfcaverns_sweet_pod_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_2.png"
+  },
+  "dfcaverns_sweet_pod_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_3.png"
+  },
+  "dfcaverns_sweet_pod_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_4.png"
+  },
+  "dfcaverns_sweet_pod_5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_5.png"
+  },
+  "dfcaverns_sweet_pod_6": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_6.png"
+  },
+  "dfcaverns_sweet_pod_seed": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_farming/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_farming/textures/dfcaverns_sweet_pod_seed.png"
+  },
+  "dfcaverns_torchspine_0.5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_0.5.png"
+  },
+  "dfcaverns_torchspine_1": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_1.png"
+  },
+  "dfcaverns_torchspine_1.5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_1.5.png"
+  },
+  "dfcaverns_torchspine_1_lit": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_1_lit.png"
+  },
+  "dfcaverns_torchspine_2": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_2.png"
+  },
+  "dfcaverns_torchspine_2.5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_2.5.png"
+  },
+  "dfcaverns_torchspine_3": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_3.png"
+  },
+  "dfcaverns_torchspine_3.5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_3.5.png"
+  },
+  "dfcaverns_torchspine_4": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_4.png"
+  },
+  "dfcaverns_torchspine_4.5": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_torchspine_4.5.png"
+  },
+  "dfcaverns_tower_cap": {
+    "author": "FaceDeer, derived from Minetest Game's default textures (CC BY-SA 3.0)",
+    "decision": "owner's session, 2026-10-05: a derivative of the named source recorded under that source's licence, the strictest it could be under",
+    "media_license": "CC-BY-SA-3.0",
+    "notice": "df_trees/textures/license.txt:",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": ""
+  },
+  "dfcaverns_tower_cap_gills": {
+    "author": "HeroOfTheWinds (caverealms)",
+    "media_license": "WTFPL",
+    "notice": "\"dfcaverns_tower_cap_gills - from caverealms mushroom gills\" (df_trees); byte-identical to caverealms-38:textures/caverealms_mushroom_gills.png in pinned caverealms release 38, whose README.md says \"Contributors: HeroOfTheWinds - everything\" and \"Licensing - WTFPL\"",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tower_cap_gills.png"
+  },
+  "dfcaverns_tower_cap_wood": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tower_cap_wood.png"
+  },
+  "dfcaverns_tunnel_tube_sapling": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tunnel_tube_sapling.png"
+  },
+  "dfcaverns_tunnel_tube_wood_side": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tunnel_tube_wood_side.png"
+  },
+  "dfcaverns_tunnel_tube_wood_top": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_trees/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_trees/textures/dfcaverns_tunnel_tube_wood_top.png"
+  },
+  "dfcaverns_veins": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "df_mapitems/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/df_mapitems/textures/dfcaverns_veins.png"
+  },
+  "mine_gas": {
+    "author": "FaceDeer",
+    "media_license": "CC0-1.0",
+    "notice": "mine_gas/textures/license.txt: \"All textures not specifically listed here are created by FaceDeer and released under both the MIT license and under the Creative Commons CC0 license.\" (dual MIT; CC0 recorded)",
+    "package": "dfcaverns",
+    "release": 22198,
+    "source": "dfcaverns/dfcaverns/mine_gas/textures/mine_gas.png"
+  }
+}

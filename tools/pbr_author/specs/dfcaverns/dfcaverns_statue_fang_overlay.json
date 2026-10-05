@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "materials": {
+  "fang": {
+   "mode": "flat",
+   "base": 0.7,
+   "span": 0.0,
+   "micro": 0.03,
+   "smooth": 0.45
+  }
+ }
+}

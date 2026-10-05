@@ -1,0 +1,17 @@
+{
+ "class": "leaves",
+ "micro": "leaves",
+ "materials": {
+  "leaf": {
+   "mode": "shade",
+   "base": 0.6,
+   "span": 0.3,
+   "levels": 3,
+   "detail": 0.35,
+   "smooth": 0.32,
+   "smooth_spread": 0.06,
+   "emission": 0.3,
+   "emission_shade": true
+  }
+ }
+}

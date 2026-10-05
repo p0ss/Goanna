@@ -77,6 +77,13 @@
       "release": 33518,
       "repository": "https://github.com/adrido/darkage"
     },
+    "dfcaverns": {
+      "archive_sha256": "496f1a43bebed52cbee3abc61b91ae6209e825568a9d3cb8ff816796ad113585",
+      "contentdb": "https://content.luanti.org/packages/FaceDeer/dfcaverns/",
+      "declared_media_license": "MIT",
+      "release": 22198,
+      "repository": "https://github.com/FaceDeer/dfcaverns"
+    },
     "draconis": {
       "archive_sha256": "e4305c5165b9bc862beb33d1976b2bc920ccf7b1720840cbb2fc017986a39f57",
       "contentdb": "https://content.luanti.org/packages/ElCeejo/draconis/",
@@ -203,6 +210,13 @@
       "release": 17269,
       "repository": "https://github.com/Skandarella/naturalbiomes.git"
     },
+    "nextgen_fungi": {
+      "archive_sha256": "42686aa07959794e4a6153f4174ce8e9998cc610a35988710bd570c5ea3af797",
+      "contentdb": "https://content.luanti.org/packages/StarNinjas/nextgen_fungi/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 20073,
+      "repository": "https://github.com/starninjas/nextgen_fungi"
+    },
     "pixel_imperfection": {
       "archive_sha256": "8e6c29dcf0ba1949fe5859decf2762c5f998620c24a6d68b8ccdcfa2b167a20f",
       "contentdb": "https://content.luanti.org/packages/bramaudi/pixel_imperfection/",
@@ -258,6 +272,13 @@
       "declared_media_license": "CC0-1.0",
       "release": 32908,
       "repository": "https://gitlab.com/alerikaisattera/stainedglass"
+    },
+    "steampunk_blimp": {
+      "archive_sha256": "b30cbeb314d6deb40ad24815681b2acd51c9dadb1d2d45ae68032f7cb2525ab3",
+      "contentdb": "https://content.luanti.org/packages/apercy/steampunk_blimp/",
+      "declared_media_license": "CC-BY-SA-3.0",
+      "release": 38331,
+      "repository": "https://github.com/APercy/steampunk_blimp"
     },
     "sum_airship": {
       "archive_sha256": "bd59f3259a072dfbfebc59e37bdda29d9126b9e5286a6a26348ed3eb4d46a5c9",

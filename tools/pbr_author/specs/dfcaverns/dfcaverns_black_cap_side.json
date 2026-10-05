@@ -1,0 +1,42 @@
+{
+ "class": "wood",
+ "micro": "bark",
+ "materials": {
+  "stem": {
+   "mode": "parts",
+   "base": 0.4,
+   "span": 0.26,
+   "detail": 0.3,
+   "smooth": 0.3,
+   "smooth_spread": 0.05
+  }
+ },
+ "grid": [
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH",
+  "ABBBBCDDEFFFFGHH"
+ ],
+ "legend": {
+  "A": "stem",
+  "B": "stem",
+  "C": "stem",
+  "D": "stem",
+  "E": "stem",
+  "F": "stem",
+  "G": "stem",
+  "H": "stem"
+ }
+}

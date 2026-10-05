@@ -1,0 +1,18 @@
+{
+ "class": "glass",
+ "micro": "glass",
+ "materials": {
+  "salt": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.5,
+   "levels": 3,
+   "joints": false,
+   "merge": 0.3,
+   "smooth": 0.72,
+   "smooth_spread": 0.05,
+   "f0": 0.06,
+   "emission": 0.25
+  }
+ }
+}

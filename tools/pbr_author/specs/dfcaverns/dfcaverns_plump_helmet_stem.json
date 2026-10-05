@@ -1,0 +1,43 @@
+{
+ "class": "leaves",
+ "micro": "bark",
+ "materials": {
+  "stem": {
+   "mode": "parts",
+   "base": 0.4,
+   "span": 0.2,
+   "detail": 0.3,
+   "smooth": 0.36,
+   "smooth_spread": 0.05
+  }
+ },
+ "grid": [
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA",
+  "AAABCDEFGGHHAAAA"
+ ],
+ "legend": {
+  "A": "stem",
+  "B": "stem",
+  "C": "stem",
+  "D": "stem",
+  "E": "stem",
+  "F": "stem",
+  "G": "stem",
+  "H": "stem"
+ },
+ "sss": 90
+}

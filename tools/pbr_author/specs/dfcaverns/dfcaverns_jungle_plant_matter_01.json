@@ -1,0 +1,16 @@
+{
+ "class": "soil",
+ "materials": {
+  "matter": {
+   "mode": "shade",
+   "base": 0.35,
+   "span": 0.4,
+   "levels": 3,
+   "detail": 0.15,
+   "joints": false,
+   "merge": 0.35,
+   "smooth": 0.12,
+   "smooth_spread": 0.05
+  }
+ }
+}

@@ -1,0 +1,50 @@
+{
+ "class": "wood",
+ "micro": "wood",
+ "micro_dir": "v",
+ "materials": {
+  "flesh": {
+   "mode": "shade",
+   "base": 0.36,
+   "span": 0.24,
+   "levels": 3,
+   "detail": 0.1,
+   "joints": false,
+   "merge": 0.4,
+   "smooth": 0.38,
+   "smooth_spread": 0.05
+  },
+  "nodule": {
+   "mode": "shade",
+   "base": 0.74,
+   "span": 0.1,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.03
+  }
+ },
+ "grid": [
+  "rrrrrrrrrrrrnrrr",
+  "rrnrrrrrnrrrrrrr",
+  "rrrrrrrrrrrnrrrr",
+  "rrrrrnrnrrrrrrrr",
+  "rrrrrrrrrnrrrrrr",
+  "rrrrnrrrrrrrrrrr",
+  "rrrrrrrnrrrrrnrr",
+  "rrrrrnrrrrnrrrrr",
+  "rrrrrrrrrrrrrrrr",
+  "rrrnrrrrrrrrrnrr",
+  "rrrrrrrnrnrrrrrr",
+  "rrrrrrrrrrrrrrrr",
+  "rrrrnrrrrrrrnrrr",
+  "rrrrrrrnrrrrrrrr",
+  "rrnrrnrrrrnrrrrr",
+  "rrrrrrrrrrrrrrrr"
+ ],
+ "legend": {
+  "r": "flesh",
+  "n": "nodule"
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "class": "wood",
+ "micro": "wood",
+ "micro_dir": "v",
+ "materials": {
+  "wood": {
+   "mode": "shade",
+   "base": 0.7,
+   "span": 0.16,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.04
+  }
+ },
+ "chamfer": 3
+}

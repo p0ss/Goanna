@@ -1,0 +1,11 @@
+{
+ "class": "soil",
+ "materials": {
+  "soil": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.6,
+   "smooth": 0.15
+  }
+ }
+}

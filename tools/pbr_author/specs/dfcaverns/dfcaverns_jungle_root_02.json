@@ -1,0 +1,13 @@
+{
+ "class": "wood",
+ "micro": "none",
+ "materials": {
+  "root": {
+   "mode": "shade",
+   "base": 0.2,
+   "span": 0.55,
+   "joints": false,
+   "smooth": 0.2
+  }
+ }
+}

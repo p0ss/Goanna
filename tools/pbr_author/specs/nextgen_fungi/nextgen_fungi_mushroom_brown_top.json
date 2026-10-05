@@ -1,0 +1,25 @@
+{
+ "class": "leaves",
+ "sss": 40,
+ "micro": "leaves",
+ "materials": {
+  "crown": {
+   "mode": "flat",
+   "base": 0.62,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.44
+  },
+  "margin": {
+   "mode": "flat",
+   "base": 0.42,
+   "span": 0,
+   "micro": 0.06,
+   "smooth": 0.4
+  }
+ },
+ "palette": {
+  "#7b5d54": "crown",
+  "#a08e88": "margin"
+ }
+}

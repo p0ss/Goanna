@@ -1,0 +1,17 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "micro": "ice",
+ "materials": {
+  "salt": {
+   "mode": "shade",
+   "base": 0.55,
+   "span": 0.2,
+   "joints": false,
+   "smooth": 0.6,
+   "smooth_spread": 0.05,
+   "f0": 0.05,
+   "emission": 0.06
+  }
+ }
+}

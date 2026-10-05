@@ -1,0 +1,57 @@
+{
+ "class": "leaves",
+ "sss": 40,
+ "micro": "leaves",
+ "materials": {
+  "cap": {
+   "mode": "shade",
+   "base": 0.5,
+   "span": 0.3,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.42,
+   "smooth_spread": 0.05
+  },
+  "stalk": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.03
+  },
+  "spot": {
+   "mode": "flat",
+   "base": 0.86,
+   "span": 0,
+   "micro": 0.04,
+   "smooth": 0.3
+  }
+ },
+ "grid": [
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  ".....cccscc.....",
+  ".....cccccc.....",
+  ".....cccccc.....",
+  ".....cscccc.....",
+  ".....ccccsc.....",
+  ".....cccccc.....",
+  ".......tt.......",
+  ".......tt.......",
+  ".......tt......."
+ ],
+ "legend": {
+  "c": "cap",
+  "t": "stalk",
+  "s": "spot"
+ }
+}

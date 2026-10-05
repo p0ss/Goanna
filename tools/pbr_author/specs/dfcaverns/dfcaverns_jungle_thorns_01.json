@@ -1,0 +1,15 @@
+{
+ "class": "wood",
+ "micro": "none",
+ "strength": 18,
+ "materials": {
+  "thorn": {
+   "mode": "shade",
+   "base": 0.15,
+   "span": 0.7,
+   "joints": false,
+   "smooth": 0.3,
+   "smooth_spread": 0.12
+  }
+ }
+}

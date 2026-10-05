@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "materials": {
+  "carving": {
+   "mode": "flat",
+   "base": 0.1,
+   "span": 0.0,
+   "micro": 0.0,
+   "smooth": 0.25
+  }
+ }
+}

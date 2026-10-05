@@ -1,0 +1,17 @@
+{
+ "class": "stone",
+ "micro": "glass",
+ "materials": {
+  "pearl": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.4,
+   "joints": false,
+   "smooth": 0.65,
+   "smooth_spread": 0.06,
+   "f0": 0.05,
+   "emission": 0.12,
+   "emission_shade": true
+  }
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "class": "sand",
+ "materials": {
+  "scum": {
+   "mode": "shade",
+   "base": 0.3,
+   "span": 0.45,
+   "joints": false,
+   "smooth": 0.2
+  }
+ }
+}

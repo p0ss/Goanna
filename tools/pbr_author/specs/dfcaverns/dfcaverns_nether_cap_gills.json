@@ -1,0 +1,52 @@
+{
+ "class": "leaves",
+ "micro": "bark",
+ "materials": {
+  "lamella": {
+   "mode": "shade",
+   "base": 0.62,
+   "span": 0.22,
+   "levels": 2,
+   "detail": 0.35,
+   "joints": false,
+   "smooth": 0.4,
+   "smooth_spread": 0.04,
+   "emission": 0.45,
+   "emission_shade": true
+  },
+  "gap": {
+   "mode": "shade",
+   "base": 0.28,
+   "span": 0.1,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.34,
+   "smooth_spread": 0.03,
+   "emission": 0.45,
+   "emission_shade": true
+  }
+ },
+ "grid": [
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg",
+  "LgLgLgLgLgLgLgLg"
+ ],
+ "legend": {
+  "L": "lamella",
+  "g": "gap"
+ }
+}

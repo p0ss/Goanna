@@ -1,0 +1,13 @@
+{
+ "class": "stone",
+ "overlay": true,
+ "materials": {
+  "plate": {
+   "mode": "flat",
+   "base": 0.85,
+   "span": 0.0,
+   "micro": 0.03,
+   "smooth": 0.4
+  }
+ }
+}

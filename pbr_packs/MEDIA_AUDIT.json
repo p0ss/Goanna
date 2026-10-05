@@ -110,6 +110,16 @@
       "decision": "eligible",
       "evidence": "Release 38908: README.md and LICENSE put all media under CC BY-SA 4.0. Read on 2026-10-05.",
       "media_license": "CC-BY-SA-4.0"
+    },
+    "dfcaverns": {
+      "decision": "eligible",
+      "evidence": "Release 22198 is a modpack whose submods each carry textures/license.txt: FaceDeer's own art CC0 (also MIT), df_primordial_items by ClockGen CC BY 4.0, with per file exceptions derived from Minetest Game, farming, caverealms, moretrees, Nether, Wikimedia and NSF images; bones and fireflies copies are Minetest Game's. 185 node textures are recorded per file on 2026-10-05. Derivatives of Minetest Game textures are recorded CC BY-SA 3.0 and of caverealms WTFPL, the strictest licence each could be under. Excluded: the tunnel tube (from moretrees, unaudited), big webs and subterrane's dripstone (no media notice), the achievement and food icons, and textures named nowhere. ContentDB's MIT media label is wrong for much of the archive.",
+      "media_license": "CC0-1.0, CC-BY-3.0/4.0, CC-BY-SA-3.0 and WTFPL per file"
+    },
+    "nextgen_fungi": {
+      "decision": "eligible",
+      "evidence": "Release 20073 README.txt: code CC0, media 'StarNinjas (CC BY-SA 3.0)'; its six textures match nothing in Minetest Game. Read on 2026-10-05.",
+      "media_license": "CC-BY-SA-3.0"
     }
   }
 }
