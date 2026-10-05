@@ -1,9 +1,8 @@
 # Render backlog through the render service, 2026-10-06
 
 The first run of `tools/goanna-render` on the GPU, then a backlog of looks
-nobody had seen. Only the first part ran: the GPU went to another session's
-services for the rest of the window, and the backlog jobs are written but
-not shot.
+nobody had seen: portals, fire, worn armour and objects, and sculpted
+faces.
 
 Setup: RTX 3090, Godot 4.5.1, Luanti 5.17.0 server, Mineclonia release
 38561, profile High read back at every launch, adapter "NVIDIA GeForce RTX
@@ -58,12 +57,124 @@ The sidecar's material counts read 0 on every frame: they count only the
 client's per texture material map, which node arrays do not use. The
 documentation now says so.
 
-## Not run
+## 2 to 4. The backlog
 
-Jobs for the rest are in
-`~/.local/share/goanna-pbr-audit/render-backlog-2026-10-06/jobs/`
-(`make_backlog.py` writes them): Nether and End portals afternoon and
-night, the fire branch old against new with timing, worn armour, a
-pickaxe, a minecart, a decorated pot, heads and a chiseled bookshelf, and
-faces with `sculpt_crisp` against shipped. Their packs are built there
-under `packs/`. None of them has been shot.
+Shot in one service from 04:24 to 05:07, after the GPU came back. Builds:
+main's checkout at f585dbdd (portals, objects) and c25a246d (the faces
+reshoot), each with the same two dirty files; the fire branch's worktree at
+3d3d94a1, clean. Packs: main's pack built from the tools at dec70408 into a
+scratch directory (`build_pack.py --install`, 2090 sets), and the same with
+`GOANNA_PBR_VARIANT=sculpt_crisp` for the faces. No pose waited out its
+settle time and no frame logged a shader error.
+
+### Nether and End portals
+
+![portals](portals.jpg)
+
+Lit Nether portal in obsidian (placed with `swap_node`), a glass tank of
+water behind it, a villager in front; a ring of filled End frames round an
+End portal. Afternoon (0.62) and night (0.0). 245 s, one 22 s restart (a
+different pack).
+
+- Front and 35 degrees: the purple sheet is drawn with its swirl, and the
+  glass tank behind shows through it. At night the sheet still glows.
+- Grazing: the sheet is edge on and nearly invisible, as it should be.
+- From inside the water tank, behind the portal: **no sheet at all**. The
+  frame is empty and the villager on the far side shows through clearly,
+  at afternoon and night. The Nether sheet is not drawn from behind, or
+  not through water.
+- End, above, 35 degrees and close: the portal is a black starfield with
+  coloured points, flat under the frames' tops. Close up, a bright white
+  rim runs along the portal's edges against the frames, in daylight and at
+  night.
+
+### Armour, pickaxe, minecart, pot, heads, bookshelf
+
+![objects](objects.jpg)
+
+Noon and a low sun (0.27). 422 s, no restart. The armour is on figures with
+the player's model, dressed by Mineclonia's own item texture functions:
+iron, gold, chain, leather dyed `#b02e26`, diamond with a gold coast trim,
+netherite.
+
+- All six sets are drawn with the layers composed (helmet, chestplate,
+  leggings, boots). Leather red covers the whole head as Mineclonia's
+  helmet does. The diamond trim shows as gold lines.
+- The iron pickaxe in the hand reads pale blue and glassy, like ice or
+  glass rather than steel.
+- The minecart is drawn, dark iron with its wooden floor.
+- The decorated pot shows its four sherd faces (heart, archer, skull,
+  miner) one per side, upright and flat on the side seen square on. The
+  pot's neck and lid look lumpy.
+- The zombie wall head sits on the wall; the creeper and zombie floor heads
+  stand on the floor. The chiseled bookshelves show their books in the
+  slots, empty slots dark.
+- The low sun at 0.27 differs little from noon in these frames.
+
+### Faces, `sculpt_crisp` against shipped
+
+![faces](faces-heads.jpg)
+
+Zombie, pillager, villager and the default player, front and 35 degrees,
+time 0.27. The first shot of this job framed the sky above the heads (the
+poses were set for statues at y 0); it was reshot after the other jobs.
+242 s, two restarts (19 and 22 s).
+
+- Zombie: crisper steps between face texels in `sculpt_crisp`, most visible
+  at 35 degrees where texel edges catch the light.
+- Pillager: `sculpt_crisp` adds a step on the cheek beside the nose, a
+  bright vertical edge at 35 degrees.
+- Villager: almost no difference (mean grey level change 1.2 of 255
+  front).
+- Player: `sculpt_crisp` turns the pupils into dark glossy beads inside the
+  eye whites, and sharpens the beard texels. The pupils are the biggest
+  change of the four.
+
+### Fire, old flame against the flame material
+
+![fire, day](fire-day.jpg)
+![fire, night](fire-night.jpg)
+
+The fire branch's fixture moved onto the stage: campfire, fire on
+netherrack, soul fire, candles, a burning zombie, fire before water and
+beside glass, and a 9 by 9 fire field. `GOANNA_FLAME_MATERIAL=0` (old)
+against the default (new), day (0.5) and night (0.0). 1415 s, two
+restarts (23 and 30 s).
+
+**No shader failed to compile**: no frame's sidecar and neither client log
+has a shader error. The old client log builds the burning entity flame as
+an ordinary entity material; the new one does not, so the flame path is
+taken.
+
+- The job reports a fault: the soul fire never stayed placed (the node was
+  air at every check), so the soul fire frames show only the soul soil.
+  The burning zombie shows no flames in either variant: the burn did not
+  take on a statue whose `on_step` is shadowed.
+- New flames have soft edges and a brightness ramp; old ones are hard
+  pixel cut-outs. Candle flames go from blown-out white blobs to small
+  yellow tips. The campfire is less blown out.
+- Above the netherrack fire and the fire before the water, the new flame
+  leaves a band of dark, noisy pixels in the air (the glow pass's
+  shimmer), visible by day and by night.
+- The fire field is badly wrong with the new material: the far rows are
+  covered in cyan and green speckle, by day and by night. The old field is
+  bright flame throughout.
+- Water and glass behind flames keep their colour.
+
+GPU time per draw, six rounds of 600 at 1280 by 720, High:
+
+| pose | old day | new day | old night | new night |
+|---|---|---|---|---|
+| field | 4.87 ms | 5.48 ms | 4.91 ms | 5.48 ms |
+| row | 4.86 ms | 4.80 ms | 4.84 ms | 4.79 ms |
+
+The field filling the near frame costs about 0.6 ms more with the new
+material; the row of single flames costs the same.
+
+## Where the frames are
+
+`~/.local/share/goanna-pbr-audit/render-backlog-2026-10-06/`, one
+directory per item (`1-validate`, `2-portals`, `3-fire`, `4-objects`,
+`4-faces`; `4-faces-misframed` is the first faces shot), each with
+`sheet*.png`, every frame's sidecars and `result.json`. The jobs and the
+script that writes them are in `jobs/`.
