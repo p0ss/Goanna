@@ -5,12 +5,23 @@
    "mode": "flat",
    "base": 0.6,
    "span": 0.0,
-   "micro": 0.03,
-   "smooth": 0.46,
-   "smooth_spread": 0.12
+   "micro": 0.012,
+   "smooth": 0.58,
+   "smooth_spread": 0.16
   }
  },
- "strength": 12.0,
+ "strength": 22.0,
  "micro": "stone",
- "micro_strength": 0.2
+ "micro_strength": 0.5,
+ "finish": {
+  "rings": [
+   0.6,
+   0.08,
+   -0.15
+  ],
+  "top": 0.97,
+  "divots": 0.03,
+  "divot_smooth": 0.12
+ },
+ "chamfer": 3
 }

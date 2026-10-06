@@ -60,20 +60,46 @@ granite, deepslate, tuff and blackstone, smooth basalt, smooth and cut
 sandstone of both colours, smooth quartz) was built by the plain rule
 until 2026-10-06, so a smoothed wall was as deep as raw rock and
 DorfCraft's engravings, cut one glyph pixel per texel into such walls,
-were lost in it. Each now has a spec with one `flat` material: a per
-texel step of 0.03 from the art's own shades (`micro`), normal strength
-12 instead of the class's 22, the stone micro surface at 0.2 (pores of
-the concrete kind on sandstone), and a declared smoothness of 0.38 for
-smooth stone, 0.40 to 0.50 for smooth basalt, the polished stones and
-quartz, and 0.30 for sandstone, against 0.12 for raw stone. The texture
-keeps its colour and mottling and is told apart from the rough block by
-its flatness and sheen. Slab sides keep the art's seam as a second flat material 0.12
-lower, set by `rects`. Polished basalt keeps a shallow version of its
-drawn columns and rings (`shade`, span 0.12, two levels, no joints).
-Chiseled and brick variants keep the plain rule. `mcl_core_sandstone_top`
-and its red twin are also the top face of raw sandstone, and
-`mcl_nether_quartz_block_bottom` the bottom of the quartz block, so those
-faces went smooth too.
+were lost in it. Each now has a spec with one `flat` face material and
+a `"finish"` (extrude.py, "finished stone"):
+
+- **Bevels from the art.** Most of these textures draw an edge bevel in
+  colour: the border ring light on the top and left, dark on the bottom
+  and right, often with a fainter second ring inside. The finish takes
+  that drawn light out of the albedo (each side of a ring scaled to the
+  ring's mean) and builds the bevel in the height: each ring slopes, by
+  distance from the tile edge so the corners mitre, and neighbouring
+  blocks meet in a V groove. The outer ring rises 0.6 of the height at
+  the class's normal strength (22), so its depth matches the relief of
+  the rough blocks beside it; an inner ring rises 0.08. Polished
+  deepslate has a third ring that falls 0.15 into a sunk panel, because
+  its art draws one (dark top, light bottom). Slab sides are two stacked
+  panels (`"panels": 2`), each bevelled. Rings are only given where the
+  art draws them: smooth basalt, smooth sandstone (the plain sandstone
+  top) and smooth quartz draw no border and get none.
+- **Face.** Flat but for a per texel step of 0.012 from the art's shades
+  and shallow divots where the face is darker than its mean (0.03 of
+  the height on stone, 0.05 on sandstone, with a three pixel chamfer so
+  they read as dishes, not cliffs), each a little rougher.
+- **Shine.** Smoothness 0.50 for smooth stone, 0.52 to 0.62 for smooth
+  basalt, the polished stones and quartz and 0.40 for sandstone, against
+  0.12 for raw stone, with a wider spread by shade and the stone micro
+  surface at half strength, so the reflection is broken up by the
+  bevels, divots and chips rather than lying on the face like ice.
+
+The check holds only the face texels to the texel grid; the sloped
+rings are exempt. The modified albedos are listed in the pack's
+ATTRIBUTION.md. Polished basalt keeps a shallow version of its drawn
+columns and rings (`shade`, span 0.12, two levels, no joints). Chiseled
+and brick variants keep the plain rule. `mcl_core_sandstone_top` and
+its red twin are also the top face of raw sandstone, and
+`mcl_nether_quartz_block_bottom` the bottom of the quartz block, so
+those faces went smooth too.
+
+Judge these on the close-up ramp with `GOANNA_NORMAL_GAIN=2.0` (what
+the whole pack measures to in play): unpinned, the ramp works the gain
+out from the few stems it loads, and a row of flat finished stems is
+lifted to 4x, which makes every shallow divot a cliff.
 
 ### The 128, 256 and 512 px packs
 

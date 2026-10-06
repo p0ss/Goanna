@@ -707,11 +707,16 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     hgt, pos, joints, mat = heights(src, spec, cls)
     n = lib.SIZE // src.shape[1]
     up = lambda a: np.kron(a, np.ones((n, n), dtype=a.dtype))  # noqa: E731
+    sm, f0, metal, glow = surface(spec, cls, mat, pos, joints)
+    fin = spec.get("finish")
+    if fin:
+        src, hgt, sm = finish_texels(src, hgt, sm, fin)
     # A wider chamfer rounds a thin cut-out piece (a rail, a ladder rung)
     # so its edges catch the light; parallax cannot lift a cut-out's edge.
     hi = chamfer(up(hgt), chamfer_px(spec, n))
+    if fin:
+        hi = finish_bevel(hi, hgt, fin, n)
 
-    sm, f0, metal, glow = surface(spec, cls, mat, pos, joints)
     emission = up(glow) if glow.max() > 0 else None
     kind = micro_kind(stem, spec, cls)
     detail = None
@@ -737,6 +742,124 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
                     normal_strength=strength, metal_mask=up(metal), keep_mean=False,
                     emission=emission, f0=up(f0), fine_detail=1.0,
                     art_texels=src.shape[1], normal_detail=detail, sss=sss)
+
+
+# --- finished stone ----------------------------------------------------------
+# Smoothed and polished stone in Mineclonia's art (smooth stone, polished
+# andesite, cut sandstone and their kin) draws its edge bevel in colour: the
+# outer ring of texels is light on the top and left and dark on the bottom
+# and right, sometimes with a fainter second ring inside it, because colour
+# was all the artist had. Rendered as a flat face, that read as light and
+# dark material. A spec's "finish" takes the drawn light out of those rings
+# and builds the bevel in the height instead, so the renderer's own light,
+# normals and parallax self shadow carry it (owner, 2026-10-06):
+#
+#   "finish": {"rings": [0.6, 0.08],  rise of each ring from outside in,
+#                                     in height units; negative falls, as
+#                                     the step down into a sunk panel
+#              "top": 0.97,           the highest point of the profile
+#              "delight": 2,          how many of the rings to delight
+#                                     (default all)
+#              "divots": 0.1,         how far the face's darker texels sink
+#              "divot_smooth": 0.12,  and how much rougher they are
+#              "panels": 2}           stacked panels, each with its own
+#                                     rings (a slab's side draws two)
+#
+# The rings are measured from the tile edge, so neighbouring blocks meet
+# in a V groove as dressed stone does. The face keeps its flat material.
+# A texture whose art draws no border gets no rings ("rings": []), only
+# the divots: never invent a border the art does not draw.
+
+def _panel_rows(rows, fin):
+    """Each art row's row inside its panel, and the panel's height."""
+    p = int(fin.get("panels", 1)) if fin else 1
+    ph = rows // p
+    return np.arange(rows) % ph, ph
+
+
+def ring_mask(rows, cols, fin):
+    """Art texels inside a finish's border rings."""
+    k = len(fin.get("rings", [])) if fin else 0
+    if not k:
+        return np.zeros((rows, cols), bool)
+    ly, ph = _panel_rows(rows, fin)
+    y = ly[:, None]
+    x = np.arange(cols)[None, :]
+    d = np.minimum(np.minimum(y, ph - 1 - y), np.minimum(x, cols - 1 - x))
+    return d < k
+
+
+def _ring_sides(rows, cols, r):
+    """The lit (top row and left column) and shaded (bottom row and right
+    column) texels of ring r. The right column takes the top right corner
+    and the left column the bottom left, as Pixel Perfection draws them."""
+    e_y, e_x = rows - 1 - r, cols - 1 - r
+    lit = np.zeros((rows, cols), bool)
+    shade = np.zeros((rows, cols), bool)
+    lit[r, r:e_x] = True
+    lit[r:e_y + 1, r] = True
+    shade[r:e_y + 1, e_x] = True
+    shade[e_y, r + 1:e_x + 1] = True
+    return lit, shade
+
+
+def finish_texels(src, hgt, sm, fin):
+    """The art with its drawn bevel light taken out, the face's divots and
+    their roughness, at the art's size."""
+    src = src.copy()
+    rows, cols = src.shape[:2]
+    rgb = src[..., :3]
+    lum = lib.luminance(rgb)
+    rings = fin.get("rings", [])
+    for r in range(min(int(fin.get("delight", len(rings))), len(rings))):
+        _, ph = _panel_rows(rows, fin)
+        for p0 in range(0, rows, ph):
+            lit = np.zeros((rows, cols), bool)
+            shade = np.zeros((rows, cols), bool)
+            lit[p0:p0 + ph], shade[p0:p0 + ph] = _ring_sides(ph, cols, r)
+            ring = lit | shade
+            target = lum[ring].mean()
+            for side in (lit, shade):
+                m = lum[side].mean()
+                if m > 1e-4:
+                    rgb[side] = np.clip(rgb[side] * (target / m), 0.0, 1.0)
+    face = ~ring_mask(rows, cols, fin)
+    dv = float(fin.get("divots", 0.0))
+    if dv > 0 and face.any():
+        v = lum[face]
+        m, sd = v.mean(), max(v.std(), 1e-4)
+        t = np.clip((m - lum) / (2.0 * sd), 0.0, 1.0) * face
+        hgt = hgt - dv * t
+        sm = sm - float(fin.get("divot_smooth", 0.0)) * t
+    return src, hgt, sm
+
+
+def finish_bevel(hi, hgt, fin, n):
+    """The map's height with the finish's rings sloped: a profile across
+    the rings, by each pixel's distance from the nearest tile edge (so the
+    corners mitre), joining the face's own height at the inner edge."""
+    rings = [float(r) for r in fin.get("rings", [])]
+    if not rings:
+        return hi
+    rows, cols = hgt.shape
+    k = len(rings)
+    face = ~ring_mask(rows, cols, fin)
+    face_h = float(np.median(hgt[face])) if face.any() else float(hgt.mean())
+    # Heights at ring boundaries 0..k, from the tile edge inward, relative
+    # to the face, then lifted so the profile's top is "top".
+    bounds = np.concatenate([[0.0], np.cumsum(rings)])
+    bounds = bounds - bounds[-1]
+    lift = float(fin.get("top", 0.97)) - (face_h + bounds.max())
+    H, W = hi.shape
+    _, ph = _panel_rows(rows, fin)
+    py = ((np.arange(H) + 0.5) / n) % ph
+    px = (np.arange(W) + 0.5) / n
+    dy = np.minimum(py, ph - py)[:, None]
+    dx = np.minimum(px, cols - px)[None, :]
+    d = np.minimum(dy, dx)
+    prof = np.interp(d, np.arange(k + 1, dtype=np.float64), bounds) + face_h + lift
+    out = np.where(d < k, prof, hi + lift)
+    return np.clip(out, 0.0, 1.0).astype(hi.dtype)
 
 
 def sss_map(spec, cls, mat, n):
@@ -1123,7 +1246,10 @@ def check(stem, out_dir, game=lib.DEFAULT_GAME, spec=None):
     edge = min(chamfer_px(spec, cell) + 1, (cell - 1) // 2)
     hmap = n[..., 3].reshape(rows, cell, art, cell)[:, edge:cell - edge, :, edge:cell - edge]
     spread = hmap.max(axis=(1, 3)) - hmap.min(axis=(1, 3))
-    share = float((spread[drawn] <= 2.5 / 255).mean()) if drawn.any() else 1.0
+    # A finish's border rings are sloped on purpose (finish_bevel), so only
+    # the texels inside them are held to the grid.
+    graded = drawn & ~ring_mask(rows, art, spec.get("finish"))
+    share = float((spread[graded] <= 2.5 / 255).mean()) if graded.any() else 1.0
     line(share >= 0.98, "on the texel grid %.0f%% of drawn texels (want >= 98)" % (100 * share))
 
     # Relief exists: the drawn texels take several heights.

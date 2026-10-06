@@ -577,3 +577,20 @@ height and smoothness fields authored on it. Same licence, same
 attribution as the bake above.
 
 - textures: mcl_blackstone_basalt_side_polished, mcl_blackstone_basalt_smooth, mcl_blackstone_basalt_top_polished, mcl_blackstone_polished, mcl_core_andesite_smooth, mcl_core_diorite_smooth, mcl_core_granite_smooth, mcl_core_red_sandstone_smooth, mcl_core_red_sandstone_top, mcl_core_sandstone_smooth, mcl_core_sandstone_top, mcl_deepslate_polished, mcl_deepslate_tuff_polished, mcl_nether_quartz_block_bottom, mcl_stairs_andesite_smooth_slab, mcl_stairs_diorite_smooth_slab, mcl_stairs_granite_smooth_slab, mcl_stairs_stone_slab_side, mcl_stairs_stone_slab_top
+
+## Modified albedo, 2026-10-06
+
+The same nineteen textures were rebuilt again by tools/pbr_author/
+(the "finish" key of extrude.py). For the thirteen below the albedo is
+no longer the art upscaled unchanged: the art draws an edge bevel in
+colour (its border texels light on the top and left and dark on the
+bottom and right), and that drawn light and shade was taken out of the
+border rings by scaling each side to the ring's mean, so the bevel is
+carried by the height map instead. Nothing else in the art was changed.
+The result is a modified version of Mineclonia's textures, which are
+CC BY-SA 4.0 and based on Pixel Perfection by XSSheep and Pixel
+Perfection Legacy by Nova Wostra; these files are under the same
+licence with the same attribution as the bake above.
+
+- modified albedo: mcl_blackstone_polished, mcl_core_andesite_smooth, mcl_core_diorite_smooth, mcl_core_granite_smooth, mcl_core_red_sandstone_smooth, mcl_core_sandstone_smooth, mcl_deepslate_polished, mcl_deepslate_tuff_polished, mcl_stairs_andesite_smooth_slab, mcl_stairs_diorite_smooth_slab, mcl_stairs_granite_smooth_slab, mcl_stairs_stone_slab_side, mcl_stairs_stone_slab_top
+- maps only (albedo unchanged): mcl_blackstone_basalt_side_polished, mcl_blackstone_basalt_smooth, mcl_blackstone_basalt_top_polished, mcl_core_red_sandstone_top, mcl_core_sandstone_top, mcl_nether_quartz_block_bottom
