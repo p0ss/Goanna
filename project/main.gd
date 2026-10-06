@@ -42,6 +42,7 @@ var connect_automatically := true
 func _key_pressed(key: Key) -> bool:
 	return player_slot.key_pressed(key) if player_slot != null else Input.is_key_pressed(key)
 
+var overseer: Node
 var client: GoannaClient
 var ui: CanvasLayer
 var cam: Camera3D
@@ -1077,6 +1078,8 @@ func _body_lean() -> Vector3:
 			+ Vector3.DOWN * (BODY_LEAN_DOWN * (1.0 - cos(down)))
 
 func _unhandled_input(event: InputEvent) -> void:
+	if overseer != null and overseer.active:
+		return
 	# Same reason as the movement keys above: while a benchmark run is
 	# recording, nothing outside the run may turn the camera. Escape is in
 	# here too, because it toggles mouse capture and capture is what makes
@@ -1412,6 +1415,13 @@ func take_work_worst() -> Dictionary:
 	return result
 
 func _process(delta: float) -> void:
+	if overseer == null and client != null and cam != null:
+		overseer = preload("res://overseer.gd").new()
+		overseer.main = self
+		overseer.client = client
+		add_child(overseer)
+	if overseer != null:
+		overseer.tick(delta)
 	var work_clock := Time.get_ticks_usec() if profile_frame_work else 0
 	var frame_start := work_clock
 	t += delta
@@ -1465,7 +1475,7 @@ func _process(delta: float) -> void:
 			"aux1": _key_pressed(KEY_E),
 		}
 		var pad_play: bool = gamepad != null and gamepad.in_play()
-		if pad_play:
+		if pad_play and not (overseer != null and overseer.active):
 			gamepad.merge_keys(keys)
 			_gamepad_look(delta)
 		if OS.get_environment("GOANNA_WALKTEST") != "":
@@ -1486,7 +1496,7 @@ func _process(delta: float) -> void:
 		test_dig = false
 		test_plc_pressed = false
 		_test_hooks(keys)
-		var ui_blocks: bool = ui != null and ui.blocks_input()
+		var ui_blocks: bool = (ui != null and ui.blocks_input()) or (overseer != null and overseer.active)
 		if ui_blocks:
 			for k in keys:
 				keys[k] = false

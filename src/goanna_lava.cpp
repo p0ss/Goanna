@@ -2,6 +2,7 @@
 #include "goanna_lava.h"
 #include "goanna_session.h"
 #include "mapblock.h"
+#include "voxel.h"
 #include "nodedef.h"
 #include "IImage.h"
 #include <godot_cpp/classes/mesh.hpp>
@@ -52,10 +53,15 @@ namespace {
 class LavaFlow {
     GoannaSession &session;
     const NodeDefManager *ndef;
+    const VoxelManipulator *observations;
     std::map<v3s16, Vector3> cache;
     std::map<v3s16, bool> liquid_cache;
 
     MapNode node(v3s16 p) {
+        if (observations)
+            return observations->m_area.contains(p)
+                    ? observations->m_data[observations->m_area.index(p)]
+                    : MapNode(CONTENT_IGNORE);
         v3s16 bp = getNodeBlockPos(p);
         MapBlock *block = session.getBlock(bp);
         return block ? block->getNodeNoCheck(p - bp * MAP_BLOCKSIZE)
@@ -103,7 +109,8 @@ class LavaFlow {
         return value;
     }
 public:
-    explicit LavaFlow(GoannaSession &s) : session(s), ndef(s.nodeDefs()) {}
+    LavaFlow(GoannaSession &s, const VoxelManipulator *observed) :
+            session(s), ndef(s.nodeDefs()), observations(observed) {}
     Vector3 direction(Vector3 world) {
         // Outward gradient of the trilinear liquid occupancy. Unlike the
         // face normal, this is identical on both sides of a mesh corner.
@@ -175,7 +182,8 @@ public:
 };
 }
 
-void prepareLavaSurface(Array &arrays, GoannaSession &session) {
+void prepareLavaSurface(Array &arrays, GoannaSession &session,
+        const VoxelManipulator *observations) {
     const PackedVector3Array pos = arrays[Mesh::ARRAY_VERTEX];
     const PackedVector3Array norm = arrays[Mesh::ARRAY_NORMAL];
     const PackedColorArray colour = arrays[Mesh::ARRAY_COLOR];
@@ -188,7 +196,7 @@ void prepareLavaSurface(Array &arrays, GoannaSession &session) {
     PackedByteArray out_light;
     PackedInt32Array out_indices;
     PackedFloat32Array out_direction;
-    LavaFlow flow(session);
+    LavaFlow flow(session, observations);
     for (int t = 0; t < indices.size(); t += 3) {
         const int a = indices[t], b = indices[t+1], c = indices[t+2];
         // Eight segments per node. Both halves of a quad and neighbouring

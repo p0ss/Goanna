@@ -1600,6 +1600,259 @@ void GoannaClient::send_chat(const String &message) {
 int GoannaClient::hp() const { return m_session ? m_session->hp() : 0; }
 int GoannaClient::breath() const { return m_session ? m_session->breath() : 0; }
 
+// The same Luanti mesher and material factory as the near world, supplied
+// exclusively with the server's observations. Never copy the ordinary map:
+// its adjacent cells can contain a cave the fortress has not discovered.
+Ref<ArrayMesh> GoannaClient::overseer_mesh(const Dictionary &layer, Vector3i block_pos) {
+    Ref<ArrayMesh> result;
+    if (!m_session || !m_session->contentPrepared() || !layer.has("rect"))
+        return result;
+    const Dictionary rect = layer["rect"];
+    const int x0 = rect.get("x0", 0), x1 = rect.get("x1", -1);
+    const int z0 = rect.get("z0", 0), z1 = rect.get("z1", -1);
+    const int y = layer.get("y", 0);
+    const int width = x1 - x0 + 1, depth = z1 - z0 + 1;
+    const Array cells = layer.get("cells", Array()), floors = layer.get("floors", Array());
+    const Array palette = layer.get("palette", Array());
+    const Array below = layer.get("below", Array());
+    if (below.size() > 8) return result;
+    std::vector<Array> levels{cells};
+    if (below.is_empty()) levels.push_back(floors);
+    else for (int d = 0; d < below.size(); ++d) {
+        if (below[d].get_type() != Variant::DICTIONARY) return result;
+        const Dictionary slice = below[d];
+        const Array values = slice.get("cells", Array());
+        if (values.size() != cells.size()) return result;
+        levels.push_back(values);
+    }
+    const int bottom = y - (int)levels.size() + 1;
+    if (width < 1 || width > 64 || depth < 1 || depth > 64 ||
+            cells.size() != width * depth || floors.size() != cells.size() ||
+            std::abs(y) > 30999 || std::abs(x0) > 30999 || std::abs(x1) > 30999 ||
+            std::abs(z0) > 30999 || std::abs(z1) > 30999 || palette.size() > 8192)
+        return result;
+    const v3s16 bp(block_pos.x, block_pos.y, block_pos.z);
+    if (bp.X < getNodeBlockPos(v3s16(x0, bottom, z0)).X ||
+            bp.X > getNodeBlockPos(v3s16(x1, y, z1)).X ||
+            bp.Z < getNodeBlockPos(v3s16(x0, bottom, z0)).Z ||
+            bp.Z > getNodeBlockPos(v3s16(x1, y, z1)).Z ||
+            bp.Y < getNodeBlockPos(v3s16(x0, bottom, z0)).Y ||
+            bp.Y > getNodeBlockPos(v3s16(x1, y, z1)).Y)
+        return result;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    std::vector<MapNode> nodes{MapNode(CONTENT_AIR), MapNode(CONTENT_AIR)};
+    for (int i = 0; i < palette.size(); ++i) {
+        const Dictionary entry = palette[i];
+        const String name = entry.get("name", "");
+        const content_t id = m_session->nodeDefs()->getId(name.utf8().get_data());
+        nodes.emplace_back(id, 0, (u8)(int)entry.get("param2", 0));
+    }
+    MeshGrid grid{1};
+    MeshMakeData data(m_session->nodeDefs(), MAP_BLOCKSIZE, grid);
+    data.fillBlockDataBegin(bp);
+    auto &vm = data.m_vmanip;
+    for (u32 i = 0; i < vm.m_area.getVolume(); ++i) {
+        vm.m_data[i] = MapNode(CONTENT_AIR);
+        vm.m_flags[i] = 0;
+    }
+    for (int z = z0; z <= z1; ++z) {
+        for (int x = x0; x <= x1; ++x) {
+            const int i = (z - z0) * width + x - x0;
+            bool supplied = true;
+            for (int d = 0; d < (int)levels.size(); ++d) {
+                const int c = levels[d][i];
+                if (c < 0 || c >= (int)nodes.size()) return result;
+                supplied = supplied && c > 0;
+                const v3s16 at(x, y - d, z);
+                if (supplied && vm.m_area.contains(at))
+                    vm.m_data[vm.m_area.index(at)] = nodes[c];
+            }
+        }
+    }
+    // Separate known shaft walls can sit beneath a capped solid column.
+    // Never gather their geometry from the ordinary client's map cache.
+    for (int d = 0; d < below.size(); ++d) {
+        const Dictionary slice = below[d];
+        const Array walls = slice.get("walls", Array());
+        if (walls.is_empty()) continue;
+        if (walls.size() != cells.size()) return result;
+        for (int i = 0; i < walls.size(); ++i) {
+            const int code = walls[i];
+            if (code == 0) continue;
+            if (code < 2 || code >= (int)nodes.size()) return result;
+            const v3s16 at(x0 + i % width, y - d - 1, z0 + i / width);
+            if (vm.m_area.contains(at)) vm.m_data[vm.m_area.index(at)] = nodes[code];
+        }
+    }
+    struct Plant { v3s16 pos; MapNode node; };
+    std::vector<Plant> plants;
+    for (int z = z0; z <= z1; ++z) for (int x = x0; x <= x1; ++x)
+        for (int py = bottom; py <= y; ++py) {
+            const v3s16 at(x, py, z);
+            if (!vm.m_area.contains(at)) continue;
+            const MapNode n = vm.m_data[vm.m_area.index(at)];
+            if (m_session->nodeDefs()->get(n).drawtype != NDT_PLANTLIKE) continue;
+            if (getNodeBlockPos(at) == bp) plants.push_back({at, n});
+            vm.m_data[vm.m_area.index(at)] = MapNode(CONTENT_AIR);
+        }
+    // No gatherMeshData/meshGathered: those also read live map/carve state.
+    MapBlockMesh built(m_session->meshClient(), &data);
+    buildFakeLiquidTextures();
+    std::map<uint64_t, NearSurface> groups;
+    struct Vertex {
+        Vector3 p, n;
+        Vector2 uv, uv2;
+        Color c;
+        Vertex mix(const Vertex &b, float t) const {
+            return {p.lerp(b.p, t), n.lerp(b.n, t), uv.lerp(b.uv, t),
+                    uv2.lerp(b.uv2, t), c.lerp(b.c, t)};
+        }
+    };
+    const Vector3 lo(x0 - 0.5f, bottom - 0.5f, -z1 - 0.5f);
+    const Vector3 hi(x1 + 0.5f, y + 0.5f, -z0 + 0.5f);
+    for (int tile_layer = 0; tile_layer < MAX_TILE_LAYERS; ++tile_layer) {
+        scene::IMesh *mesh = built.getMesh(tile_layer);
+        if (!mesh) continue;
+        for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
+            scene::IMeshBuffer *buf = mesh->getMeshBuffer(b);
+            if (!buf || buf->getVertexType() != video::EVT_STANDARD || !buf->getVertexCount()) continue;
+            const auto *v = (const video::S3DVertex *)buf->getVertices();
+            const auto *indices = (const u16 *)buf->getIndices();
+            u16 base = 0;
+            MaterialKey key = keyForIrr(buf->getMaterial(), v[0].Aux & GOANNA_VERTEX_TEXTURE_MASK, &base);
+            auto *source = dynamic_cast<GoannaTexture *>(buf->getMaterial().getTexture(0));
+            auto *array = key.array_texture ? m_session->tsrc()->goannaTexture(key.texture_id) : nullptr;
+            for (u32 t = 0; t + 2 < buf->getIndexCount(); t += 3) {
+                MaterialKey own = key;
+                const u16 tex_layer = (v[indices[t]].Aux & GOANNA_VERTEX_TEXTURE_MASK) + base;
+                if (array) {
+                    own = arrayTileKey(key, array, tex_layer);
+                    const u32 special = specialLayer(array, tex_layer);
+                    if (special) { own.array_texture = false; own.texture_id = special; }
+                } else if (source && source->isArray() && tex_layer < source->layerNames().size()) {
+                    own.texture_id = m_session->tsrc()->getTextureId(source->layerNames()[tex_layer]);
+                }
+                std::vector<Vertex> polygon;
+                for (int k = 0; k < 3; ++k) {
+                    const auto &a = v[indices[t + k]];
+                    polygon.push_back({Vector3(a.Pos.X / BS + bp.X * MAP_BLOCKSIZE,
+                            a.Pos.Y / BS + bp.Y * MAP_BLOCKSIZE, -(a.Pos.Z / BS + bp.Z * MAP_BLOCKSIZE)),
+                            Vector3(a.Normal.X, a.Normal.Y, -a.Normal.Z),
+                            Vector2(a.TCoords.X, a.TCoords.Y),
+                            Vector2(own.array_texture ? (a.Aux & GOANNA_VERTEX_TEXTURE_MASK) + base : 0, 0),
+                            Color(a.Color.getRed() / 255.f, a.Color.getGreen() / 255.f,
+                                    a.Color.getBlue() / 255.f, a.Color.getAlpha() / 255.f)});
+                }
+                // Clip genuine triangles, including nodeboxes and mesh nodes
+                // that extend beyond their cell, to the selected slice.
+                for (int axis = 0; axis < 3; ++axis) {
+                    for (int side = 0; side < 2 && !polygon.empty(); ++side) {
+                        std::vector<Vertex> clipped;
+                        const float bound = side ? hi[axis] : lo[axis];
+                        auto distance = [&](const Vertex &a) { return side ? bound - a.p[axis] : a.p[axis] - bound; };
+                        Vertex a = polygon.back();
+                        float da = distance(a);
+                        for (const Vertex &b : polygon) {
+                            const float db = distance(b);
+                            if ((da >= 0) != (db >= 0)) clipped.push_back(a.mix(b, da / (da - db)));
+                            if (db >= 0) clipped.push_back(b);
+                            a = b; da = db;
+                        }
+                        polygon = std::move(clipped);
+                    }
+                }
+                if (polygon.size() < 3) continue;
+                NearSurface &acc = groups[own.hash()];
+                acc.key = own;
+                const int offset = acc.verts.size();
+                for (const auto &a : polygon) {
+                    acc.verts.push_back(a.p); acc.norms.push_back(a.n.normalized());
+                    acc.uvs.push_back(a.uv); acc.uv2s.push_back(a.uv2); acc.cols.push_back(a.c);
+                    // Neutral light attributes; the isolated scene supplies
+                    // lighting, never the hidden map's light/occlusion field.
+                    acc.custom0.push_back(0); acc.custom0.push_back(255);
+                    acc.custom0.push_back(255); acc.custom0.push_back(255);
+                }
+                for (int k = 1; k + 1 < (int)polygon.size(); ++k) {
+                    acc.idx.push_back(offset); acc.idx.push_back(offset + k); acc.idx.push_back(offset + k + 1);
+                }
+            }
+        }
+    }
+    for (const Plant &plant : plants) {
+        const auto &f = m_session->nodeDefs()->get(plant.node);
+        if (!f.visuals) continue;
+        // Keep the real node's texture, animation and colour. Only crossed
+        // plantlike cards are flattened; modelled plants keep their mesh.
+        for (int layer_index = 0; layer_index < MAX_TILE_LAYERS; ++layer_index) {
+            const TileLayer &tile = f.visuals->tiles[0].layers[layer_index];
+            if (tile.empty()) continue;
+            video::SMaterial material;
+            material.MaterialType = m_session->shsrc().getShaderInfo(tile.shader_id).material;
+            tile.applyMaterialOptions(material, layer_index);
+            material.setTexture(0, tile.texture);
+            MaterialKey key = keyForIrr(material, tile.texture_layer_idx);
+            key.backface_culling = false;
+            NearSurface &acc = groups[key.hash()];
+            acc.key = key;
+            const auto tint = tile.has_color ? tile.color : f.visuals->getColor(f, plant.node.param2);
+            const Color colour(tint.getRed()/255.f, tint.getGreen()/255.f, tint.getBlue()/255.f, 1);
+            const float half = std::min(0.5f, 0.5f * f.visual_scale);
+            const Vector3 centre(plant.pos.X, plant.pos.Y + 0.05f + layer_index * 0.002f, -plant.pos.Z);
+            const int offset = acc.verts.size();
+            for (const Vector2 uv : {Vector2(0,0), Vector2(1,0), Vector2(1,1), Vector2(0,1)}) {
+                acc.verts.push_back(centre + Vector3((uv.x-.5f)*2*half, 0, (uv.y-.5f)*2*half));
+                acc.norms.push_back(Vector3(0,1,0)); acc.uvs.push_back(uv);
+                acc.uv2s.push_back(Vector2(key.array_texture ? tile.texture_layer_idx : 0, 0));
+                acc.cols.push_back(colour);
+                acc.custom0.push_back(0); acc.custom0.push_back(255);
+                acc.custom0.push_back(255); acc.custom0.push_back(255);
+            }
+            for (int i : {0,1,2,0,2,3}) acc.idx.push_back(offset+i);
+        }
+    }
+    result.instantiate();
+    for (auto &entry : groups) {
+        auto &acc = entry.second;
+        Array arrays;
+        arrays.resize(Mesh::ARRAY_MAX);
+        arrays[Mesh::ARRAY_VERTEX] = acc.verts; arrays[Mesh::ARRAY_NORMAL] = acc.norms;
+        arrays[Mesh::ARRAY_TANGENT] = node_tangents(acc.verts, acc.norms, acc.uvs, acc.idx);
+        arrays[Mesh::ARRAY_TEX_UV] = acc.uvs; arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
+        arrays[Mesh::ARRAY_COLOR] = acc.cols; arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+        arrays[Mesh::ARRAY_INDEX] = acc.idx;
+        uint64_t flags = kNodeSurfaceFlags;
+        if (m_lava_tex.count(acc.key.texture_id)) {
+            prepareLavaSurface(arrays, *m_session, &vm);
+            flags |= uint64_t(Mesh::ARRAY_CUSTOM_RGB_FLOAT) << Mesh::ARRAY_FORMAT_CUSTOM1_SHIFT;
+        }
+        result->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, Array(), Dictionary(), flags);
+        result->surface_set_material(result->get_surface_count() - 1, materialFor(acc.key));
+    }
+    return result;
+}
+
+void GoannaClient::overseer_entities(Node3D *parent, const Dictionary &layer) {
+    ensureEntityRenderer();
+    m_entities->setOverseer(parent, layer);
+}
+
+bool GoannaClient::overseer_channel(const String &channel) {
+    return m_session && m_session->setOverseerChannel(channel.utf8().get_data());
+}
+
+void GoannaClient::overseer_send(const String &message) {
+    if (m_session) m_session->sendOverseer(message.utf8().get_data());
+}
+
+Array GoannaClient::overseer_take() {
+    Array out;
+    if (m_session)
+        for (const auto &message : m_session->takeOverseer())
+            out.push_back(String::utf8(message.c_str()));
+    return out;
+}
+
 Dictionary GoannaClient::hud_state() const {
     Dictionary d;
     if (!m_session)
@@ -8867,6 +9120,11 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("hp"), &GoannaClient::hp);
     ClassDB::bind_method(D_METHOD("breath"), &GoannaClient::breath);
     ClassDB::bind_method(D_METHOD("hud_state"), &GoannaClient::hud_state);
+    ClassDB::bind_method(D_METHOD("overseer_channel", "channel"), &GoannaClient::overseer_channel);
+    ClassDB::bind_method(D_METHOD("overseer_send", "message"), &GoannaClient::overseer_send);
+    ClassDB::bind_method(D_METHOD("overseer_take"), &GoannaClient::overseer_take);
+    ClassDB::bind_method(D_METHOD("overseer_mesh", "layer", "block_pos"), &GoannaClient::overseer_mesh);
+    ClassDB::bind_method(D_METHOD("overseer_entities", "parent", "layer"), &GoannaClient::overseer_entities);
     ClassDB::bind_method(D_METHOD("inventory_state"), &GoannaClient::inventory_state);
     ClassDB::bind_method(D_METHOD("inventory_state_at", "location"), &GoannaClient::inventory_state_at);
     ClassDB::bind_method(D_METHOD("detached_inventory_names"), &GoannaClient::detached_inventory_names);

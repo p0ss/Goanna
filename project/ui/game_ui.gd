@@ -502,12 +502,16 @@ var _last_toggle_frame := -1
 # to end its editing (Godot 4.4 and later), so from _unhandled_input it took
 # two.
 func _input(event: InputEvent) -> void:
+	if main != null and main.get("overseer") != null and main.overseer.active:
+		return
 	if chat_open and event is InputEventKey and event.pressed and not event.echo \
 			and event.keycode == KEY_ESCAPE:
 		_close_chat()
 		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if main != null and main.get("overseer") != null and main.overseer.active:
+		return
 	if client == null:
 		return
 	if event is InputEventKey and not event.pressed and event.keycode == KEY_T \

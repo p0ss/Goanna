@@ -45,6 +45,7 @@ public:
     ~EntityRenderer();
     // Sync visuals with session objects. Caller holds session.mapLock().
     void sync(GoannaSession &session, float dt, const godot::Vector3 &camera_pos);
+    void setOverseer(godot::Node3D *parent, const godot::Dictionary &layer);
     int count() const { return (int)m_nodes.size(); }
     // Positions (Godot space) of visible entities, for tests/UI.
     godot::Array positions() const;
@@ -239,6 +240,9 @@ private:
     void stepModelPreviews(float dt);
 
     godot::Node3D *m_root;
+    godot::Node3D *m_overseer_root = nullptr;
+    godot::Dictionary m_overseer_layer;
+    bool overseerVisible(GoannaSession &session, GoannaActiveObject &object) const;
     std::map<u16, EntityNode> m_nodes;
     std::map<std::string, godot::Ref<godot::StandardMaterial3D>> m_materials;
     std::map<std::string, godot::Ref<godot::Material>> m_mesh_materials;

@@ -196,6 +196,10 @@ public:
     std::vector<std::string> takeFarSummaries();
     void requestSurface(const std::string &revision, int step, int x, int z);
     std::vector<std::string> takeSurfaces();
+    // HUD-authorised private planning channel, separate from public options.
+    bool setOverseerChannel(const std::string &channel);
+    void sendOverseer(const std::string &message);
+    std::vector<std::string> takeOverseer();
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -542,6 +546,8 @@ private:
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
+    std::string m_overseer_channel; // under m_server_opts_mutex
+    std::vector<std::string> m_overseer_messages;
     std::vector<std::string> m_surfaces;
     std::vector<std::string> m_fine_blocks;
     std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex

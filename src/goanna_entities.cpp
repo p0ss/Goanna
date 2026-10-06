@@ -1669,6 +1669,68 @@ std::string EntityRenderer::chooseArmBone(GoannaSession &session, u16 self_id, c
     return std::string();
 }
 
+void EntityRenderer::setOverseer(Node3D *parent, const Dictionary &layer) {
+    m_overseer_layer = layer;
+    if (parent == m_overseer_root) return;
+    m_overseer_root = parent;
+    for (auto &entry : m_nodes) {
+        Node3D *node = entry.second.root;
+        if (!node) continue;
+        node->get_parent()->remove_child(node);
+        (parent ? parent : m_root)->add_child(node);
+        // sync() restores visibility after checking the new observation.
+        node->set_visible(false);
+    }
+}
+
+bool EntityRenderer::overseerVisible(GoannaSession &session, GoannaActiveObject &object) const {
+    if (!m_overseer_root) return true;
+    if (!m_overseer_layer.has("rect")) return false;
+    // Wielded tools, armour and other attachments inherit their body's
+    // permission, not a position near the origin from an attachment packet.
+    GoannaActiveObject *body = &object;
+    for (int depth = 0; body->attachmentParent() != 0; ++depth) {
+        if (depth >= 16) return false;
+        auto parent = session.objects().find(body->attachmentParent());
+        if (parent == session.objects().end()) return false;
+        body = parent->second.get();
+    }
+    const v3f p = body->position() / BS;
+    const int level = m_overseer_layer.get("y", 0);
+    const float foot = p.Y + body->props().collisionbox.MinEdge.Y;
+    const int down = level - (int)std::floor(foot + 0.51f);
+    const Array below = m_overseer_layer.get("below", Array());
+    if (down < 0 || down > below.size() || down > 8) return false;
+    const Dictionary rect = m_overseer_layer["rect"];
+    const int x0 = rect.get("x0", 0), x1 = rect.get("x1", -1);
+    const int z0 = rect.get("z0", 0), z1 = rect.get("z1", -1);
+    const int x = (int)std::floor(p.X + 0.5f), z = (int)std::floor(p.Z + 0.5f);
+    if (x < x0 || x > x1 || z < z0 || z > z1) return false;
+    const int index = (z - z0) * (x1 - x0 + 1) + x - x0;
+    const Array palette = m_overseer_layer.get("palette", Array());
+    for (int d = 0; d <= down; ++d) {
+        const Dictionary slice = d == 0 ? m_overseer_layer : (Dictionary)below[d - 1];
+        const Array cells = slice.get("cells", Array());
+        const Array states = slice.get("states", Array());
+        if (index < 0 || index >= cells.size()) return false;
+        // Remembered terrain must never disclose current actor activity.
+        if (!states.is_empty() && (index >= states.size() || (int)states[index] != 2)) return false;
+        const int code = cells[index];
+        if (code == 1) continue;
+        if (code < 2 || code - 2 >= palette.size()) return false;
+        const Dictionary entry = palette[code - 2];
+        const String name = entry.get("name", "");
+        const content_t id = session.nodeDefs()->getId(name.utf8().get_data());
+        if (id == CONTENT_IGNORE) return false;
+        const auto &def = session.nodeDefs()->get(id);
+        const auto plant = def.groups.find("plant");
+        if (def.walkable || !def.sunlight_propagates ||
+                !(def.drawtype == NDT_PLANTLIKE || (def.drawtype == NDT_MESH &&
+                        plant != def.groups.end() && plant->second > 0))) return false;
+    }
+    return true;
+}
+
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
     stepModelPreviews(dt);
     auto &objects = session.objects();
@@ -1687,7 +1749,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         EntityNode &en = m_nodes[kv.first];
         if (!en.root) {
             en.root = memnew(Node3D);
-            m_root->add_child(en.root);
+            (m_overseer_root ? m_overseer_root : m_root)->add_child(en.root);
         }
         // First-person body: draw our own model too (mesh visuals only; a
         // billboard self would just block the lens). The CAO init marks the
@@ -1697,6 +1759,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         bool visible = is_self
                 ? (obj.props().visual == OBJECTVISUAL_MESH && obj.props().is_visible)
                 : obj.isVisible();
+        visible = visible && overseerVisible(session, obj);
         en.root->set_visible(visible);
         if (!visible)
             continue;
@@ -1708,13 +1771,18 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // The animation commands processMessage queued, which needed the
         // mesh this visual was built from to resolve their tracks.
         obj.applyDeferredAnimation(session.player());
+        // An overhead camera projects a label above the head onto the head.
+        // Offset the billboard in its own screen plane so the live model is
+        // visible, then restore the ordinary label position on exit.
+        if (en.nametag)
+            en.nametag->set_offset(Vector2(0, m_overseer_root ? 32.0f : 0.0f));
         // "Show own body" hides the copy the camera sees, not the whole
         // entity: the shadow-only copy stays, so a player who does not want
         // to see their own legs still has a shadow to judge the sun by.
         if (is_self && en.skeleton)
-            en.skeleton->set_visible(m_show_body || m_third_person);
+            en.skeleton->set_visible(m_show_body || (m_third_person || m_overseer_root != nullptr));
         else if (is_self && en.visual)
-            en.visual->set_visible(m_show_body || m_third_person);
+            en.visual->set_visible(m_show_body || (m_third_person || m_overseer_root != nullptr));
         // pose: Luanti BS units, z mirrored; rotation.Y is yaw about Y
         v3f pos = obj.position();
         v3f rot = obj.rotation();
@@ -2023,8 +2091,8 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // playing on the object's mesh
         if (en.animator) {
             if (is_self) {
-                en.animator->setShrinkEnabled(!m_third_person);
-                en.animator->setFirstPerson(!m_third_person);
+                en.animator->setShrinkEnabled(!(m_third_person || m_overseer_root != nullptr));
+                en.animator->setFirstPerson(!(m_third_person || m_overseer_root != nullptr));
             }
             scene::AnimSpec none;
             scene::AnimSpec *anim = obj.meshAnimation();

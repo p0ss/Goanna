@@ -333,6 +333,11 @@ public:
     // HUD elements: [{id, type, pos, name, scale, text, number, item, dir, align,
     // offset, world_pos, size, z_index, text2, style}], plus flags/hotbar info.
     godot::Dictionary hud_state() const;
+    bool overseer_channel(const godot::String &channel);
+    void overseer_send(const godot::String &message);
+    godot::Array overseer_take();
+    godot::Ref<godot::ArrayMesh> overseer_mesh(const godot::Dictionary &layer, godot::Vector3i block_pos);
+    void overseer_entities(godot::Node3D *parent, const godot::Dictionary &layer);
     // Player inventory: {version, lists: {name: [{name, count, wear, description,
     // inventory_image, stack_max}]}}. Empty item names are empty slots.
     godot::Dictionary inventory_state();

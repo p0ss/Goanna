@@ -641,9 +641,72 @@ std::vector<std::string> GoannaSession::takeSurfaces() {
     return out;
 }
 
+bool GoannaSession::setOverseerChannel(const std::string &channel) {
+    if (!m_con) return false;
+    if (!channel.empty()) {
+        if (channel.size() != 44 || channel.compare(0, 12, "dorfcraft:o:") != 0)
+            return false;
+        bool granted = false;
+        std::lock_guard<std::mutex> lock(m_hud_mutex);
+        for (const auto &entry : m_hud)
+            if (entry.second.name == "dorfcraft:overseer" && entry.second.text == channel)
+                granted = true;
+        if (!granted) return false;
+    }
+    std::string previous;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if (channel == m_overseer_channel) return true;
+        previous = m_overseer_channel;
+        m_overseer_channel = channel;
+        m_overseer_messages.clear();
+    }
+    if (!previous.empty()) {
+        NetworkPacket pkt(TOSERVER_MODCHANNEL_LEAVE, 0);
+        pkt << previous;
+        send(pkt);
+    }
+    if (!channel.empty()) {
+        NetworkPacket pkt(TOSERVER_MODCHANNEL_JOIN, 0);
+        pkt << channel;
+        send(pkt);
+    }
+    return true;
+}
+
+void GoannaSession::sendOverseer(const std::string &message) {
+    if (!m_con || message.size() > 8192) return;
+    std::string channel;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        channel = m_overseer_channel;
+    }
+    if (channel.empty()) return;
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << channel << message;
+    send(pkt);
+}
+
+std::vector<std::string> GoannaSession::takeOverseer() {
+    std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_overseer_messages);
+    return out;
+}
+
 void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
     std::string channel, sender, message;
     pkt >> channel >> sender >> message;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if (!m_overseer_channel.empty() && channel == m_overseer_channel) {
+            // Relayed player messages are never authoritative, even on a
+            // capability channel. The engine uses an empty server sender.
+            if (sender.empty() && message.size() <= 60000 && m_overseer_messages.size() < 64)
+                m_overseer_messages.push_back(std::move(message));
+            return;
+        }
+    }
     if (channel != kGoannaChannel)
         return;
     // Only server-authored messages may grant capabilities or supply terrain.
