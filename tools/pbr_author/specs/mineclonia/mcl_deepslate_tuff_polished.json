@@ -6,7 +6,7 @@
    "base": 0.6,
    "span": 0.0,
    "micro": 0.03,
-   "smooth": 0.4,
+   "smooth": 0.44,
    "smooth_spread": 0.12
   }
  },

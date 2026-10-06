@@ -1,16 +1,16 @@
 {
- "class": "stone",
+ "class": "sand",
  "materials": {
   "face": {
    "mode": "flat",
    "base": 0.6,
    "span": 0.0,
    "micro": 0.03,
-   "smooth": 0.4,
+   "smooth": 0.3,
    "smooth_spread": 0.12
   }
  },
  "strength": 12.0,
- "micro": "stone",
+ "micro": "concrete",
  "micro_strength": 0.2
 }

@@ -53,6 +53,28 @@ pack is authored: stone read back as gravel and four stems rebuilt
 differently from the reviewed pack. A new stem missing from the file falls
 back to the inference; add it to the file once it is reviewed.
 
+### Smooth and polished stone
+
+Mineclonia's finished stone (smooth stone, polished andesite, diorite,
+granite, deepslate, tuff and blackstone, smooth basalt, smooth and cut
+sandstone of both colours, smooth quartz) was built by the plain rule
+until 2026-10-06, so a smoothed wall was as deep as raw rock and
+DorfCraft's engravings, cut one glyph pixel per texel into such walls,
+were lost in it. Each now has a spec with one `flat` material: a per
+texel step of 0.03 from the art's own shades (`micro`), normal strength
+12 instead of the class's 22, the stone micro surface at 0.2 (pores of
+the concrete kind on sandstone), and a declared smoothness of 0.38 for
+smooth stone, 0.40 to 0.50 for smooth basalt, the polished stones and
+quartz, and 0.30 for sandstone, against 0.12 for raw stone. The texture
+keeps its colour and mottling and is told apart from the rough block by
+its flatness and sheen. Slab sides keep the art's seam as a second flat material 0.12
+lower, set by `rects`. Polished basalt keeps a shallow version of its
+drawn columns and rings (`shade`, span 0.12, two levels, no joints).
+Chiseled and brick variants keep the plain rule. `mcl_core_sandstone_top`
+and its red twin are also the top face of raw sandstone, and
+`mcl_nether_quartz_block_bottom` the bottom of the quartz block, so those
+faces went smooth too.
+
 ### The 128, 256 and 512 px packs
 
 Texture resolution is a graphics tier (`docs/graphics-tiers.md`): 128 on

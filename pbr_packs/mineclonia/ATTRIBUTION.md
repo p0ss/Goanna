@@ -567,3 +567,13 @@ Only their maps are installed; the art itself is not.
 - licence file: `mods/PLAYER/mcl_skins/media_credits.txt`
 - textures: mcl_skins_bottom_2, mcl_skins_bottom_3, mcl_skins_bottom_4, mcl_skins_bottom_5, mcl_skins_character_1, mcl_skins_eye_2, mcl_skins_eye_3, mcl_skins_eye_4, mcl_skins_eye_5, mcl_skins_eye_6, mcl_skins_eye_7, mcl_skins_footwear_2, mcl_skins_footwear_3, mcl_skins_hair_10, mcl_skins_hair_11, mcl_skins_hair_2, mcl_skins_hair_3, mcl_skins_hair_4, mcl_skins_hair_5, mcl_skins_hair_6, mcl_skins_hair_7, mcl_skins_hair_8, mcl_skins_hair_9, mcl_skins_headwear_1, mcl_skins_headwear_2, mcl_skins_headwear_3, mcl_skins_headwear_4, mcl_skins_headwear_5, mcl_skins_headwear_6, mcl_skins_headwear_7, mcl_skins_mouth_1, mcl_skins_mouth_2, mcl_skins_mouth_3, mcl_skins_mouth_4, mcl_skins_mouth_5, mcl_skins_mouth_6, mcl_skins_mouth_7, mcl_skins_top_10, mcl_skins_top_2, mcl_skins_top_3, mcl_skins_top_4, mcl_skins_top_5, mcl_skins_top_6, mcl_skins_top_7, mcl_skins_top_8, mcl_skins_top_9
 - also read (colouring masks, not copied): mcl_skins_bottom_2_mask, mcl_skins_bottom_3_mask, mcl_skins_bottom_4_mask, mcl_skins_bottom_5_mask, mcl_skins_hair_10_mask, mcl_skins_hair_11_mask, mcl_skins_hair_2_mask, mcl_skins_hair_3_mask, mcl_skins_hair_4_mask, mcl_skins_hair_5_mask, mcl_skins_hair_6_mask, mcl_skins_hair_7_mask, mcl_skins_hair_8_mask, mcl_skins_hair_9_mask, mcl_skins_top_10_mask, mcl_skins_top_2_mask, mcl_skins_top_3_mask, mcl_skins_top_4_mask, mcl_skins_top_5_mask, mcl_skins_top_6_mask, mcl_skins_top_7_mask, mcl_skins_top_8_mask, mcl_skins_top_9_mask
+
+## Authored sets, 2026-10-06
+
+The following textures were rebuilt by tools/pbr_author/ from the
+same game art: the albedo is that art upscaled without repainting,
+and the normal, occlusion, height and specular maps are derived from
+height and smoothness fields authored on it. Same licence, same
+attribution as the bake above.
+
+- textures: mcl_blackstone_basalt_side_polished, mcl_blackstone_basalt_smooth, mcl_blackstone_basalt_top_polished, mcl_blackstone_polished, mcl_core_andesite_smooth, mcl_core_diorite_smooth, mcl_core_granite_smooth, mcl_core_red_sandstone_smooth, mcl_core_red_sandstone_top, mcl_core_sandstone_smooth, mcl_core_sandstone_top, mcl_deepslate_polished, mcl_deepslate_tuff_polished, mcl_nether_quartz_block_bottom, mcl_stairs_andesite_smooth_slab, mcl_stairs_diorite_smooth_slab, mcl_stairs_granite_smooth_slab, mcl_stairs_stone_slab_side, mcl_stairs_stone_slab_top

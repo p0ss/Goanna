@@ -1,0 +1,39 @@
+{
+ "class": "stone",
+ "materials": {
+  "face": {
+   "mode": "flat",
+   "base": 0.6,
+   "span": 0.0,
+   "micro": 0.03,
+   "smooth": 0.46,
+   "smooth_spread": 0.12
+  },
+  "seam": {
+   "mode": "flat",
+   "base": 0.48,
+   "span": 0.0,
+   "micro": 0.0,
+   "smooth": 0.36
+  }
+ },
+ "strength": 12.0,
+ "micro": "stone",
+ "micro_strength": 0.2,
+ "rects": [
+  [
+   "seam",
+   0,
+   8,
+   16,
+   9
+  ],
+  [
+   "seam",
+   0,
+   15,
+   16,
+   16
+  ]
+ ]
+}
