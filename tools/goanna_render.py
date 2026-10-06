@@ -72,7 +72,8 @@ TIERS = ("lowest", "low", "medium", "high", "ultra")
 # compute list that is not ours counts as a foreign GPU user.
 DESKTOP_GPU_USERS = ("kwin_wayland", "xwayland", "plasmashell", "firefox", "freetube",
                      "chrome", "chromium", "electron", "steamwebhelper", "krunner",
-                     "kded", "gnome-shell", "mutter", "discord", "code", "spectacle")
+                     "kded", "gnome-shell", "mutter", "discord", "code", "spectacle",
+                     "brave")
 LAUNCH_FIELDS = ("build", "pack", "tier", "size", "env", "maps", "launch_profile")
 # Profile keys the client reads only when it joins (texture_size reduces the
 # pack's images as the session is built, 2f3f6c35): a job's override of one
