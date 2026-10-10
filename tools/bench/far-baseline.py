@@ -7,6 +7,12 @@ Start a Terrain Diffusion showcase world with GOANNA_CONTROL set, wait until
 the player is standing at the intended showcase spawn, then run this tool.
 It anchors every view to the server-reported player position, records JSONL
 telemetry, captures fixed screenshots, and writes an aggregate summary.
+
+It starts nothing, so it measures whatever client it is pointed at, and the
+manifest records which kind that was: "desktop" for a window on the real
+present path, "headless" for one in headless gamescope or under Godot's
+--headless. A headless run's frame rates are relative only, comparable with
+another headless run of the same scene but not with a desktop one.
 """
 
 import argparse
@@ -191,8 +197,20 @@ def main():
                     'OS.get_processor_name(), "cores": OS.get_processor_count(), '
                     '"viewport": get_viewport().get_visible_rect().size}'
         })
+        # "run" rather than "eval": eval resolves bare names against main.
+        display = control.call("run", {
+            "src": 'return {"display_server": DisplayServer.get_name(), '
+                   '"gamescope": OS.get_environment("GAMESCOPE_WAYLAND_DISPLAY")}'})
+        display = display.get("value", display)
+        mode = "headless" if display.get("gamescope") or str(
+            display.get("display_server", "")).lower() == "headless" else "desktop"
+        print("mode: %s%s" % (mode, "" if mode == "desktop" else
+                               "; frame rates are relative only"))
         manifest = {
             "format": 1,
+            "mode": mode,
+            "relative_only": mode != "desktop",
+            "display": display,
             "created_unix": time.time(),
             "build_label": options.build_label,
             "machine": machine.get("value", machine),

@@ -66,6 +66,34 @@ The rest of this document says which one it means.
   channel's UI commands. The vanilla client is not driven at all; it is
   framed from the server side and photographed through gamescope.
 
+#### Benchmarks on the desktop
+
+Frame rate, 1% lows, hitch counts and a CPU or GPU bound verdict depend on
+the real present path: the desktop compositor, the display's refresh and
+the driver's presentation queue. Headless gamescope has none of them, and
+under it the GPU idles at low clocks between presents. So a benchmark that
+reports absolute frame pacing, `tools/bench/goanna-bench.py`, opens a real
+window, and that is the one exception to the rule above:
+
+- Desktop benchmark runs are run by the owner, or by an agent only when the
+  owner has said the machine is free.
+- They take the GPU lock themselves for the whole run, waiting for it
+  (`--lock-wait`, by default until it is free), and make the same checks as
+  `tools/goanna-headless` before the first client: no other game client or
+  compute job on the GPU and no recent driver errors. `GOANNA_GPU_LOCK`
+  names another lock file, and a lock the caller already holds is used.
+  `--dry-run` takes the lock and makes the checks without starting a client.
+- Agents may run headless A/B comparisons (`tools/bench/bench-local-play.py`,
+  `tools/bench/far-baseline.py` against a headless client, the render
+  service's `timing`). They are valid only as relative results: one case
+  against another in the same run, never against a desktop number.
+- Every benchmark report records its mode, desktop or headless.
+  `goanna-bench.py` reads it from the client and prints it under the
+  report's title; `bench-local-play.py` records `mode` and `relative_only`
+  with every result; `far-baseline.py` records them in its manifest.
+- A headless A/B result that will be acted on is confirmed with a desktop
+  run before it is treated as settled.
+
 #### Processes
 
 - Stop processes only by the PIDs you started, or through the launcher,

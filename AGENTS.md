@@ -34,7 +34,9 @@ differ, fix the detail, do not pick one.
    gamescope or under Godot's `--headless`, never as windows on the owner's
    desktop, and are driven from inside through the control channel. Never
    send input to the owner's display with xdotool, ydotool or anything
-   else. Detail: `docs/agent-interfaces.md`.
+   else. The one exception is a desktop benchmark, run only when the owner
+   says the machine is free; a headless one is relative only. Detail:
+   `docs/agent-interfaces.md`, "Benchmarks on the desktop".
 7. **Stop processes by PID only.** Stop only the PIDs you started, or go
    through the launcher. Never `pkill`, `killall` or `pgrep -f` by name.
    Leave nothing of yours running. Detail: `docs/agent-interfaces.md`.

@@ -29,6 +29,21 @@ so a smaller difference is not read as a result.
 
 Needs a display (the client renders for real), a running server, and a built
 project/bin. GODOT_BIN overrides the Godot binary.
+
+This is the one harness that opens a window on the desktop, because a frame
+rate, a 1% low or a hitch count depends on the real present path, which
+headless gamescope does not have. So it is run by the owner, or by an agent
+only when the owner has said the machine is free (docs/agent-interfaces.md,
+"Benchmarks on the desktop"). It takes the shared GPU lock for the whole
+run, the same lock and the same checks as tools/goanna-headless, waiting
+for it (--lock-wait) rather than starting beside another GPU client.
+GOANNA_GPU_LOCK names another lock file, and a lock this process already
+holds (under `flock LOCKFILE goanna-bench.py ...`) is used, not refused.
+--dry-run takes the lock, makes the checks and stops before any client.
+
+The report says the mode it was measured in. A client the harness finds in
+headless gamescope or under Godot's --headless (a plan's env can do that)
+is reported as headless, and its numbers as relative only.
 """
 
 import argparse
@@ -44,6 +59,12 @@ import time
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 DEFAULT_PORT = 30800
+sys.path.insert(0, str(REPO / "tools"))
+import goanna_headless as headless  # noqa: E402
+
+# The GPU lock, held from before the first client until the process exits,
+# and handed to every client so a client outliving the harness keeps it.
+GPU_LOCK_FD = None
 
 # Settings a running client cannot take. Everything else is applied over the
 # channel, which is the better way round: the world has already streamed
@@ -214,7 +235,8 @@ class Client:
         self.proc = subprocess.Popen(
             [godot_binary(), "--path", "project"], cwd=REPO, env=env,
             stdout=handle, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-            start_new_session=True)
+            start_new_session=True,
+            pass_fds=() if GPU_LOCK_FD is None else (GPU_LOCK_FD,))
         deadline = time.time() + 180.0
         while time.time() < deadline:
             if self.proc.poll() is not None:
@@ -270,8 +292,19 @@ class Client:
 MACHINE_SRC = ('return {"gpu": RenderingServer.get_video_adapter_name(), '
                '"cores": OS.get_processor_count(), '
                '"godot": Engine.get_version_info()["string"], '
+               '"display_server": DisplayServer.get_name(), '
+               '"gamescope": OS.get_environment("GAMESCOPE_WAYLAND_DISPLAY"), '
                '"viewport": [main.get_viewport().get_visible_rect().size.x, '
                'main.get_viewport().get_visible_rect().size.y]}')
+
+
+def bench_mode(machine):
+    """desktop or headless, from what the client itself reports. gamescope
+    sets GAMESCOPE_WAYLAND_DISPLAY for its children, and Godot's --headless
+    names its display server "headless"."""
+    if machine.get("gamescope") or str(machine.get("display_server", "")).lower() == "headless":
+        return "headless"
+    return "desktop"
 
 
 def describe_machine(control, plan):
@@ -284,6 +317,7 @@ def describe_machine(control, plan):
                                     "return true" % (int(size[0]), int(size[1]))})
         control.send("wait", {"frames": 10})
     got = control.send("run", {"src": MACHINE_SRC})["value"]
+    got["mode"] = bench_mode(got)
     vp = got.get("viewport") or [0, 0]
     if size and (int(vp[0]), int(vp[1])) != (int(size[0]), int(size[1])):
         # Wayland does not let a client size its own window, and the project
@@ -1034,6 +1068,15 @@ def build_report(plan, results, repeat_name):
     lines.append("Plan: %s. Control condition: %s." % (
         plan.get("label", "(unnamed)"), base["name"]))
     m = base.get("machine") or {}
+    mode = m.get("mode") or "unknown"
+    lines.append("")
+    if mode == "desktop":
+        lines.append("Mode: desktop. A window on the real present path, so the "
+                     "frame times are absolute for this machine.")
+    else:
+        lines.append("Mode: %s. Relative only: compare the rows of this report "
+                     "with each other, not with a desktop run. Confirm a result "
+                     "that will be acted on with a desktop run first." % mode)
     if m:
         vp = m.get("viewport") or [0, 0]
         lines.append("")
@@ -1293,6 +1336,37 @@ def build_report(plan, results, repeat_name):
 # --- entry point -------------------------------------------------------------
 
 
+def take_gpu(lock_wait):
+    """The shared GPU lock and the launcher's checks, as tools/goanna-headless
+    makes them for a GPU start. The lock is kept until the process exits."""
+    global GPU_LOCK_FD
+    try:
+        fd, _ = headless.acquire_gpu_lock(0)
+    except headless.LaunchError:
+        holders = headless._lock_holders()
+        print("waiting for the GPU lock %s%s" % (
+            headless.GPU_LOCK, " (held by %s)" % ", ".join(holders) if holders else ""),
+            flush=True)
+        try:
+            fd, _ = headless.acquire_gpu_lock(lock_wait)
+        except headless.LaunchError as exc:
+            raise BenchError(str(exc))
+    GPU_LOCK_FD = fd
+    if os.environ.get("GOANNA_SHARED_GPU") == "1":
+        return
+    busy = headless.gpu_clients()
+    if busy:
+        raise BenchError(
+            "another game client or compute job is on the GPU (%s); a benchmark beside "
+            "it measures both, and a GPU client started beside another has left the "
+            "NVIDIA driver needing a reboot"
+            % ", ".join("%s pid %d" % (name, pid) for pid, name in busy))
+    errors = headless.driver_errors()
+    if errors:
+        raise BenchError("the NVIDIA driver has logged %d errors in the last 30 minutes "
+                         "(last: %s)" % (len(errors), errors[-1]))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1316,6 +1390,12 @@ def main():
                          "state only plan with no relaunch setting in it")
     ap.add_argument("--no-live", dest="live", action="store_false",
                     help="give every variant its own process")
+    ap.add_argument("--lock-wait", type=float, default=float("inf"), metavar="SECONDS",
+                    help="how long to wait for the shared GPU lock (default: until "
+                         "it is free; 0 refuses at once)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="read the plan, take the GPU lock and make the GPU checks, "
+                         "then stop without starting a client")
     args = ap.parse_args()
 
     plan = json.loads(pathlib.Path(args.plan).read_text())
@@ -1353,6 +1433,14 @@ def main():
                          "not with %s in it: load and move_early need a world "
                          "nobody has seen, and that setting is read at startup"
                          % (", ".join(relaunch) or ", ".join(sorted(RELAUNCH_KEYS))))
+
+    take_gpu(args.lock_wait)
+    if args.dry_run:
+        print("dry run: %d variants, %s; the GPU lock %s is held and %s. No client started."
+              % (len(variants), "live" if live else "a process each", headless.GPU_LOCK,
+                 "the GPU checks were skipped (GOANNA_SHARED_GPU=1)"
+                 if os.environ.get("GOANNA_SHARED_GPU") == "1" else "the GPU is clear"))
+        return
 
     results = []
     started = time.time()

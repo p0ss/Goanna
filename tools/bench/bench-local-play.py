@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""Measure local players in one rendered process using a disposable world copy."""
+"""Measure local players in one rendered process using a disposable world copy.
+
+The client runs in headless gamescope (tools/goanna_headless.py), which has
+no real present path, so its frame rates are relative only: compare the
+cases of one run with each other, not with a desktop benchmark, and confirm
+a result that will be acted on with a desktop run (tools/bench/goanna-bench.py)
+before treating it as settled. Every result records its mode. A GPU run
+holds the shared GPU lock from the first client to the last, so nothing
+else renders between the cases it compares; --lock-wait waits for it.
+"""
 import argparse
 import importlib.util
 import json
@@ -19,6 +28,8 @@ import time
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools"))
 import goanna_headless as headless  # noqa: E402
+# The shared GPU lock, held for the whole run of a GPU benchmark.
+GPU_LOCK_FD = None
 spec = importlib.util.spec_from_file_location("benchmark", REPO / "tools/bench/goanna-bench.py")
 FEATURE_KEYS = re.findall(r'"(render_[a-z_]+)": true',
                          (REPO / "project/render_features.gd").read_text())
@@ -266,7 +277,8 @@ def trial(args, count, out, baseline):
             else:
                 instance = headless.start_goanna(args.project, port=port,
                     name="localbench", width=args.width, height=args.height,
-                    env=child_env, software=args.software, label=f"local benchmark: {count} players")
+                    env=child_env, software=args.software, label=f"local benchmark: {count} players",
+                    gpu_lock_fd=GPU_LOCK_FD)
             (out / "instance.json").write_text(json.dumps(instance, indent=2))
             control = benchmark.Control("127.0.0.1", instance["control_port"], timeout=120)
             if args.dummy:
@@ -374,6 +386,8 @@ return games.size()''')
                     result = control.send("bench", {"action": "stop", "dir": str(out / label)})
                     result["dummy_renderer"] = args.dummy
                     result["software_renderer"] = args.software
+                    result["mode"] = run_mode(args)
+                    result["relative_only"] = True
                     result["settled_before_recording"] = state["settled"]
                     result["profile"] = args.profile
                     result["scene"] = args.scene
@@ -444,8 +458,15 @@ return games.size()''')
                         server.wait()
 
 
+def run_mode(args):
+    """Never desktop: this harness only starts clients without a window."""
+    return "dummy" if args.dummy else "headless software" if args.software else "headless"
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    global GPU_LOCK_FD
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--project", type=Path, default=REPO / "project",
                         help="Frozen or current client project to render")
     parser.add_argument("--wall-check", action="store_true",
@@ -490,6 +511,8 @@ def main():
     parser.add_argument("--screen-aa", type=int, choices=[0, 1], help="Fixed FXAA enum")
     parser.add_argument("--warmup", type=float, default=5,
                         help="Seconds to warm up after each live feature change")
+    parser.add_argument("--lock-wait", type=float, default=0, metavar="SECONDS",
+                        help="Wait this long for the shared GPU lock (default 0: refuse if held)")
     args = parser.parse_args()
     if args.wall_check and (args.scene != "occlusion" or args.dummy):
         parser.error("wall checks require the rendered occlusion scene")
@@ -526,10 +549,18 @@ def main():
         setattr(args, attr, getattr(args, attr).resolve())
     if any(p < 1 or p > 16 for p in args.players):
         parser.error("players must be between 1 and 16")
-    if not args.dummy and not args.software and (headless.gpu_clients() or headless.driver_errors()):
-        parser.error("GPU is occupied or the driver has recent errors")
+    if not args.dummy and not args.software:
+        # The lock first, then the checks, as the launcher makes them.
+        try:
+            GPU_LOCK_FD, _ = headless.acquire_gpu_lock(args.lock_wait)
+        except headless.LaunchError as exc:
+            parser.error(str(exc))
+        if headless.gpu_clients() or headless.driver_errors():
+            parser.error("GPU is occupied or the driver has recent errors")
+    print(f"mode: {run_mode(args)}; frame rates are relative only", flush=True)
     args.output.mkdir(parents=True, exist_ok=False)
-    (args.output / "plan.json").write_text(json.dumps(vars(args), default=str, indent=2))
+    (args.output / "plan.json").write_text(json.dumps(
+        dict(vars(args), mode=run_mode(args), relative_only=True), default=str, indent=2))
     baseline = args.output / "baseline"
     snapshot_world(args.world, baseline)
     results = []

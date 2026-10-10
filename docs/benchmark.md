@@ -51,6 +51,26 @@ The client needs a display, a server, and `project/bin` built.
 tools/bench/goanna-bench.py tools/bench/bench_plans/graphics.json /tmp/bench-graphics
 ```
 
+This harness opens a real window on the desktop, because frame pacing
+depends on the real present path, and so it is the exception to the rule
+that test clients run headless: it is run by the owner, or by an agent only
+when the owner has said the machine is free. See
+[agent-interfaces.md](agent-interfaces.md), "Benchmarks on the desktop".
+Before the first client it takes the shared GPU lock and holds it for the
+whole run, waiting for it (`--lock-wait SECONDS`, by default until it is
+free), then refuses while another game client or compute job is on the GPU
+or the driver has logged errors in the last 30 minutes, as
+`tools/goanna-headless` does. With the owner's own Godot editor open that
+check refuses too; close it, or set `GOANNA_SHARED_GPU=1` knowing the
+numbers then include it. `--dry-run` takes the lock and makes the checks,
+then stops without starting a client.
+
+The report's first lines give the mode, which the harness reads from the
+client: desktop, or headless when a plan's `env` put the client in headless
+gamescope or under Godot's `--headless`. A headless report is relative only:
+its rows compare with each other and not with a desktop run, and a result
+from it that will be acted on is confirmed on the desktop first.
+
 A plan names the scene and the variants. `tools/bench/bench_plans/graphics.json`
 moves one graphics setting at a time and measures the steady state.
 `tools/bench/bench_plans/profiles.json` and

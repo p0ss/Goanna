@@ -222,6 +222,14 @@ python3 tools/bench/bench-local-play.py \
   --output /tmp/local-benchmark
 ```
 
+The client runs in headless gamescope, so the frame rates are relative only:
+compare the cases of one run with each other, not with a desktop benchmark,
+and confirm a result that will be acted on with `tools/bench/goanna-bench.py`
+on the desktop. Every result records `mode` and `relative_only`. A GPU run
+takes the shared GPU lock before the first client and holds it to the last,
+so nothing else renders between the cases it compares; `--lock-wait SECONDS`
+waits for it rather than refusing.
+
 The output directory must not already exist. The harness takes a read-only
 SQLite backup of the source databases, then gives each trial its own world
 copy, loopback server and client data directory. It leaves the source world

@@ -143,18 +143,26 @@ Current: the authoring, gates and bundle tools.
 ## bench: benchmarks and measurements
 
 - `goanna-bench.py`, `bench_plans/`: run a plan of graphics settings against
-  a world and report what each costs. See `docs/benchmark.md`. Current as a
-  library: `bench-local-play.py` and the `docs/perf` run scripts import it.
-  Run directly, it starts the client as a desktop window.
+  a world and report what each costs. See `docs/benchmark.md`. Desktop
+  exception: it opens a real window, because frame pacing depends on the
+  real present path, so it is run by the owner, or by an agent only when
+  the owner has said the machine is free. It takes the GPU lock for the
+  whole run, waiting for it, and its report records the mode. `--dry-run`
+  takes the lock and makes the GPU checks without a client. Also a library:
+  `bench-local-play.py` and the `docs/perf` run scripts import it.
 - `check-bench-plans.py`: check the plans' tier values against
   `project/graphics_profiles.gd`. Current; run before believing a profile
   report.
 - `bench-local-play.py`, `local-feature-fixture.lua`,
   `local-feature-scenes.json`: measure local players in one rendered process
-  on a disposable world copy, through `goanna_headless.py`. Current.
+  on a disposable world copy, through `goanna_headless.py`. Current. Headless,
+  so its frame rates are relative only, and every result says so; it holds
+  the GPU lock from the first client to the last (`--lock-wait`).
 - `test-local-bench.py`: unit tests for `bench-local-play.py`. Current.
 - `far-baseline.py`: record a far rendering baseline from a running client.
-  Current. See `docs/baseline.md`.
+  Current. See `docs/baseline.md`. It starts nothing; its manifest records
+  whether the client was on the desktop or headless, and a headless run's
+  frame rates are relative only.
 - `chart_summary.py`: reduce a lighting chart run to pass or fail lines.
   Current. See `project/lighting_chart.gd`.
 - `terrain-baked-review.py`, `terrain-storage-flight.py`,
