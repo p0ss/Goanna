@@ -174,7 +174,7 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     fineClear();
     m_lod_cached_summaries.clear();
     m_lod_primed_regions.clear();
-    m_mesh_pool.stop();
+    m_mesh_pool.stop(); // the outgoing session owns what any job is reading
     surfaceClear();
     // Luanti's base texture pack lives in the luanti/ checkout next to project/,
     // or in a release beside the Goanna folder. An exported game cannot
@@ -201,7 +201,6 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_fake_liquid_built = false;
     // Icon jobs point into the outgoing session's meshes and images.
     m_item_icons.clear();
-    m_shared_identity.clear();
     m_session = std::make_unique<GoannaSession>();
     // The camera is created before connect_to(), so _report_fov() normally
     // arrives before the session. Apply the retained cone before the first
@@ -217,7 +216,6 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     }
     if (!m_store_root.is_empty())
         m_session->setStoreRoot(std::string(m_store_root.utf8().get_data()));
-    m_mesh_pool.stop(); // the outgoing session owns what any job is reading
     // Meshes built against the outgoing session reference its tiles.
     m_near_ready.clear();
     m_near_inflight.clear();
