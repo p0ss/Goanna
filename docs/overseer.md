@@ -404,3 +404,29 @@ or completed-engraving test. No GPU client was started.
 The rebuilt native library requires restarting Goanna. This establishes a
 missing primary-button path in the current client; it does not establish
 which input or client build was used in the earlier successful playtest.
+
+## Terrain replacement and dwarf pose checks, 7 October 2026
+
+A whole `BLOCKDATA` replacement refreshed only its own mesh. The assumption
+that content edits always arrive as individual node packets was false:
+server-side voxel writes can replace a block without those packets. A
+changed replacement now invalidates all six loaded face neighbours, just
+as the first arrival does. Identical resends still skip mesh invalidation.
+
+`tools/test-block-updates.py` runs a Mineclonia fixture which removes a
+sealed dark room above a mapblock boundary through VoxelManip. Under Godot
+4.5.1's dummy renderer, Luanti 5.17.0 and Mineclonia 38561, the old client
+kept zero floor vertices after the cut; the rebuilt client produced 64.
+The retained test also checks that the room became air and the floor node
+stayed stone. Both the scratch reproduction and the saved runner passed
+with the fix. This establishes one missing-face path, not every possible
+cause of the maintainer's screenshot. Logs: `/tmp/overseer-tree-head/` and
+`/tmp/goanna-block-updates-j0klg4j4/`.
+
+A separate dummy-client probe kept exactly two dwarf skeletons through
+three cycles of sleeping, waking, appearance changes and entity replacement
+(12 checks). It did not reproduce the reported apparent duplicate bodies.
+DorfCraft corrected an independently verified server head-bone offset;
+its `docs/dwarf-body.md` records that fix and the server tests, including a
+failure in the broader combat suite. Neither test used the GPU or the
+maintainer's running world.

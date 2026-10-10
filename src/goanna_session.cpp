@@ -3141,7 +3141,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     MapSector *sector = m_map->emergeSector(v2s16(p.X, p.Z));
     MapBlock *block = sector->getBlockNoCreateNoEx(p.Y);
     // The server re-sends already-loaded blocks; only re-mesh when something
-    // actually changed, and only disturb the neighbours for a brand-new block.
+    // actually changed. Replacements can expose neighbouring boundary faces.
     bool is_new = (block == nullptr);
     uint64_t old_hash = is_new ? 0 : hashBlockNodes(block);
     if (is_new)
@@ -3165,15 +3165,13 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     bool changed = is_new || hashBlockNodes(block) != old_hash;
     if (changed) {
         queueBlockUpdate(p);
-        if (is_new) {
-            // A newly arrived block reveals its neighbours' boundary faces, so
-            // re-mesh the neighbours that are already present. A mere content
-            // change on a re-send does not (real node edits come via ADDNODE).
-            static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
-            for (const v3s16 &d : dirs)
-                if (m_map->getBlockNoCreateNoEx(p + d))
-                    queueBlockUpdate(p + d);
-        }
+        // Both arrivals and replacements change the boundary used to mesh
+        // neighbours. Server edits can arrive as BLOCKDATA (for example a
+        // VoxelManip write), without ADDNODE/REMOVENODE for each changed cell.
+        static const v3s16 dirs[6] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+        for (const v3s16 &d : dirs)
+            if (m_map->getBlockNoCreateNoEx(p + d))
+                queueBlockUpdate(p + d);
     }
     if (!m_content_prepared)
         m_preready_blocks.push_back(p);
