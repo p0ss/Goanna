@@ -354,7 +354,7 @@ public:
     std::map<u32, HudElement> &hudElements() { return m_hud; }
     std::mutex &hudLock() { return m_hud_mutex; }
     u32 hudFlags() const { return m_hud_flags; }
-    u32 hudVersion() const { return m_hud_version; }
+    u32 hudVersion() const { return m_hud_version; } // caller holds hudLock()
     s32 hotbarItemCount() const { return m_hotbar_itemcount; }
     // Caller holds hudLock().
     const std::string &hotbarImage() const { return m_hotbar_image; }
@@ -363,12 +363,13 @@ public:
     u16 breath() const { return m_breath; }
     // Player inventory (Luanti's own Inventory). Caller holds mapLock().
     Inventory *inventory() { return m_inventory.get(); }
-    u32 inventoryVersion() const { return m_inventory_version; }
+    u32 inventoryVersion() const { return m_inventory_version; } // caller holds mapLock()
     // Inventory at a Luanti inventory location: "current_player",
     // "detached:<name>" or "nodemeta:x,y,z"; nullptr if unknown. Caller
     // holds mapLock().
     Inventory *inventoryAt(const std::string &location);
-    // Bumped when any detached inventory or node metadata changes.
+    // Bumped when any detached inventory or node metadata changes. Caller
+    // holds mapLock().
     u32 detachedVersion() const { return m_detached_version; }
     const std::map<std::string, std::unique_ptr<Inventory>> &detachedInventories() const { return m_detached_inventories; }
     // Formspecs: the current inventory formspec, and a queue of shown formspecs
@@ -623,8 +624,8 @@ private:
     // inventory formspec, the prepend and the shown formspec queue. The
     // session thread writes them from packets; stepInteract, on the main
     // thread, also queues a node's own formspec. The main thread reads and
-    // drains. m_hud_version is bumped under it and read without it, as a
-    // change counter.
+    // drains. m_hud_version is bumped under it, and GoannaClient::hud_state
+    // reads it under it too.
     mutable std::mutex m_hud_mutex;
     std::vector<ChatLine> m_chat;
     std::map<u32, HudElement> m_hud;
@@ -638,8 +639,9 @@ private:
     // Set by main.gd through GoannaClient, read by prepareContentIfReady.
     std::atomic<bool> m_content_hold{false};
     std::atomic<u16> m_breath{10};
-    // The inventories are under mapLock(). Their version counters are bumped
-    // under it and read without it, as change counters.
+    // The inventories are under mapLock(), and so are their version
+    // counters: bumped under it by the session thread and read under it by
+    // GoannaClient::inventory_state and inventory_state_at.
     std::unique_ptr<Inventory> m_inventory;
     u32 m_inventory_version = 0;
     std::map<std::string, std::unique_ptr<Inventory>> m_detached_inventories;
