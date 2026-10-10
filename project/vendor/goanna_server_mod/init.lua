@@ -340,6 +340,50 @@ local function record_available(blob, i)
 	return blob:byte(i * REC + 1) % 32 >= 16
 end
 
+-- Records filed since the area's blob was last built. Splicing each one
+-- into the blob copied the whole 47 KB string per record, a third of what
+-- summaries cost the server thread on 2026-10-10, so a record waits here
+-- and the blob is built once, when something wants all of it: a reply, a
+-- save, or the face scan. A record's own flags are read from here first.
+local function area_flags(a, i)
+	local rec = a.pending[i]
+	if rec then
+		return rec:byte(1)
+	end
+	return a.blob:byte(i * REC + 1)
+end
+
+local function area_known(a, i)
+	return area_flags(a, i) % 16 >= 8
+end
+
+local function area_available(a, i)
+	return area_flags(a, i) % 32 >= 16
+end
+
+local function area_blob(a)
+	if a.npending > 0 then
+		local parts, blob, pending = {}, a.blob, a.pending
+		local from = 0
+		for i = 0, AREA_BLOCKS - 1 do
+			local rec = pending[i]
+			if rec then
+				if i > from then
+					parts[#parts + 1] = blob:sub(from * REC + 1, i * REC)
+				end
+				parts[#parts + 1] = rec
+				from = i + 1
+			end
+		end
+		if from < AREA_BLOCKS then
+			parts[#parts + 1] = blob:sub(from * REC + 1)
+		end
+		a.blob = table.concat(parts)
+		a.pending, a.npending = {}, 0
+	end
+	return a.blob
+end
+
 local function load_area(ax, ay, az)
 	local key = area_key(ax, ay, az)
 	local a = store[key]
@@ -349,7 +393,7 @@ local function load_area(ax, ay, az)
 	end
 	a = {
 		ax = ax, ay = ay, az = az, key = key,
-		blob = EMPTY_BLOB, known = 0, names = {}, name_index = {},
+		blob = EMPTY_BLOB, pending = {}, npending = 0, known = 0, names = {}, name_index = {},
 		checked = {}, nchecked = 0, dirty = false, saved = 0, touched = now(),
 	}
 	local s = storage:get_string(STORE_KEY .. key)
@@ -422,7 +466,7 @@ local function save_area(a)
 		end
 	end
 	storage:set_string(STORE_KEY .. a.key,
-			table.concat(a.names, ",") .. "|" .. core.encode_base64(a.blob) .. "|" ..
+			table.concat(a.names, ",") .. "|" .. core.encode_base64(area_blob(a)) .. "|" ..
 			table.concat(synth, ",") .. "|" .. far_provider_revision)
 	a.dirty = false
 	a.saved = now()
@@ -430,8 +474,11 @@ end
 
 local function set_record(a, i, rec)
 	assert(#rec == REC, "far summary record has the wrong size")
-	local was = record_known(a.blob, i)
-	a.blob = a.blob:sub(1, i * REC) .. rec .. a.blob:sub((i + 1) * REC + 1)
+	local was = area_known(a, i)
+	if not a.pending[i] then
+		a.npending = a.npending + 1
+	end
+	a.pending[i] = rec
 	if not was then
 		a.known = a.known + 1
 	end
@@ -573,7 +620,7 @@ local function synthesise_area(a)
 		-- Never replace real partial voxel data with the provider's height
 		-- estimate. Partial records are retried by summarise(); synthesis is
 		-- only for a block for which the map supplied nothing at all.
-		if not record_available(a.blob, i) then
+		if not area_available(a, i) then
 			local bx = i % AREA
 			local by = math.floor(i / AREA) % AREA
 			local bz = math.floor(i / (AREA * AREA))
@@ -715,8 +762,10 @@ local read_seq = 0
 local jobs_out = 0
 local batch = {}
 -- Server thread time the summary pass and the landing of its results take,
--- and the blocks read, for goanna_far_log_stats. Microseconds.
-local summary_stats = {pass_us = 0, land_us = 0, reads = 0}
+-- and the blocks read, for goanna_far_log_stats. Microseconds. Of the pass,
+-- read_us is the map reads and dispatch_us handing them to the workers; of
+-- the landing, file_us is packing and filing the records.
+local summary_stats = {pass_us = 0, land_us = 0, reads = 0, read_us = 0, dispatch_us = 0, file_us = 0}
 
 local function area_busy(key)
 	return (area_inflight[key] or 0) > 0
@@ -729,6 +778,7 @@ local function land_summary(bx, by, bz, s)
 	local a = load_area(ax, ay, az)
 	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
 	local synth = a.synth and a.synth[i]
+	local t0 = core.get_us_time()
 	local rec = s and pack_record(s, a.names, a.name_index)
 	if rec then
 		set_record(a, i, rec)
@@ -738,10 +788,11 @@ local function land_summary(bx, by, bz, s)
 			a.synth[i] = nil
 			reoffer[a.key] = a
 		end
-	elseif not record_available(a.blob, i) and not a.checked[i] then
+	elseif not area_available(a, i) and not a.checked[i] then
 		a.checked[i] = true
 		a.nchecked = a.nchecked + 1
 	end
+	summary_stats.file_us = summary_stats.file_us + core.get_us_time() - t0
 	if not settled[a.key] and area_settled(a) then
 		settled[a.key] = true
 		settled_dirty = true
@@ -750,6 +801,7 @@ end
 
 -- Send this step's reads to the workers, ASYNC_BATCH blocks to a job.
 local function dispatch_summaries()
+	local t_start = core.get_us_time()
 	while #batch > 0 do
 		local meta, vms = {}, {}
 		for _ = 1, math.min(ASYNC_BATCH, #batch) do
@@ -784,6 +836,7 @@ local function dispatch_summaries()
 			summary_stats.land_us = summary_stats.land_us + core.get_us_time() - t0
 		end, vms)
 	end
+	summary_stats.dispatch_us = summary_stats.dispatch_us + core.get_us_time() - t_start
 end
 
 -- Summarise one block into the store. Returns true when the map was read,
@@ -797,8 +850,8 @@ local function summarise(bx, by, bz, force, fresh)
 	local a = load_area(ax, ay, az)
 	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
 	local synth = a.synth and a.synth[i]
-	if not force and ((record_known(a.blob, i) and not (synth and fresh)) or
-			(a.checked[i] and not record_available(a.blob, i) and not fresh)) then
+	if not force and ((area_known(a, i) and not (synth and fresh)) or
+			(a.checked[i] and not area_available(a, i) and not fresh)) then
 		return false
 	end
 	local h = core.hash_node_position({x = bx, y = by, z = bz})
@@ -807,7 +860,9 @@ local function summarise(bx, by, bz, force, fresh)
 	end
 	last_summarised[h] = now()
 	summary_stats.reads = summary_stats.reads + 1
+	local t0 = core.get_us_time()
 	local vm, pmin = read_block(bx, by, bz)
+	summary_stats.read_us = summary_stats.read_us + core.get_us_time() - t0
 	if not async_summaries then
 		land_summary(bx, by, bz, far_summary.block(vm, pmin))
 		return true
@@ -875,7 +930,7 @@ local function send_area(job)
 	local a = load_area(fdiv(job.ox, AREA), fdiv(job.oy, AREA), fdiv(job.oz, AREA))
 	channel:send_all(string.format("farsum %s %d %d %d %d %d %d %s|%s",
 			job.who, FARSUM_VERSION, job.cell, job.ox, job.oy, job.oz, job.edge,
-			table.concat(a.names, ","), core.encode_base64(a.blob)))
+			table.concat(a.names, ","), core.encode_base64(area_blob(a))))
 end
 
 -- Blocks to summarise that nobody is waiting on: freshly generated ones
@@ -1267,7 +1322,7 @@ local function area_faces(ax, ay, az)
 		return false, false, false
 	end
 	local open_above, open_below = false, false
-	local blob = a.blob
+	local blob = area_blob(a)
 	for i = 0, AREA_BLOCKS - 1 do
 		local ly = math.floor(i / AREA) % AREA
 		if (ly == 0 or ly == AREA - 1) and record_known(blob, i) then
@@ -1471,13 +1526,17 @@ if far_log_stats then
 				"[goanna] far stats: areas_started=%d active=%d pending=%d " ..
 				"reply_queue=%d asked=%d generated_queue=%d cache_areas=%d " ..
 				"lua_mb=%.1f lag=%.3f max_lag=%.3f summary_reads=%d " ..
-				"summary_pass_ms=%.1f summary_land_ms=%.1f summary_async=%s jobs_out=%d",
+				"summary_pass_ms=%.1f summary_land_ms=%.1f summary_read_ms=%.1f " ..
+				"summary_dispatch_ms=%.1f summary_file_ms=%.1f summary_async=%s jobs_out=%d",
 				done, #pregen.active, #pregen.pending, #far_queue, asked,
 				generated, store_count, collectgarbage("count") / 1024,
 				server_lag(), core.get_server_max_lag(), summary_stats.reads,
 				summary_stats.pass_us / 1000, summary_stats.land_us / 1000,
-				tostring(async_summaries), jobs_out))
-		summary_stats.reads, summary_stats.pass_us, summary_stats.land_us = 0, 0, 0
+				summary_stats.read_us / 1000, summary_stats.dispatch_us / 1000,
+				summary_stats.file_us / 1000, tostring(async_summaries), jobs_out))
+		for k in pairs(summary_stats) do
+			summary_stats[k] = 0
+		end
 	end)
 end
 

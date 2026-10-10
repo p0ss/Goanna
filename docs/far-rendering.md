@@ -2816,3 +2816,33 @@ With summaries on the workers, the defaults are therefore 192 blocks a
 step and a cap of 32 jobs, and a server that sets
 `goanna_far_summary_blocks_per_step` keeps its own value. Still one client
 and one game.
+
+#### Where the server thread time goes, and filing records
+
+`goanna_far_log_stats` now splits the summary pass into the map reads
+(`summary_read_ms`) and handing them to the workers
+(`summary_dispatch_ms`), and the landing into packing and filing the
+records (`summary_file_ms`). Filing had spliced each record into its area's
+47 KB blob string, copying the whole string per record; records now wait
+in a table on the area and the blob is built once, when a reply, a save or
+the face scan wants all of it. 300 randomised areas of up to 1200 filings
+each built the same blob byte for byte as splicing.
+
+Same setup as the sweep above, default settings (192 blocks a step, 32
+jobs), the old and new filing alternated, four full windows each:
+
+| Filing | Blocks per 30 s | Read | Dispatch | File | Read per block | File per block |
+| --- | --- | --- | --- | --- | --- | --- |
+| Splice, run 1 | 56,527 | 2,760 ms | 298 ms | 1,205 ms | 49 us | 21 us |
+| Splice, run 2 | 58,356 | 2,568 ms | 265 ms | 1,128 ms | 44 us | 19 us |
+| Deferred, run 1 | 53,608 | 3,005 ms | 345 ms | 215 ms | 56 us | 4.0 us |
+| Deferred, run 2 | 51,613 | 3,446 ms | 377 ms | 278 ms | 67 us | 5.4 us |
+
+Filing fell by about four fifths, a fifth of the summary's server thread
+time. The reads in the deferred runs are not comparable: another session
+started a model server on four cores during them (load average 6 rising to
+19), and their reads per block climbed window by window, from 47 us to
+116 us in the last, while filing stayed at 4 to 6 us. On a quiet machine
+the map read is about 45 to 50 us a block, three quarters of what
+summaries still cost the server thread, so reading several blocks with one
+VoxelManip is the next thing to measure.
