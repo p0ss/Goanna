@@ -9,7 +9,7 @@
 // docs/systems/materials.md, "Diamond surfaces", has the whole picture.
 
 // How much of the recess shows through the gem face, 0 to 1: 0 leaves the
-// painted face as it is. Default only; project/diamond_study.gd flips it
+// painted face as it is. Default only; project/studies/diamond_study.gd flips it
 // for its comparison frames.
 uniform float diamond_ore_transmission : hint_range(0.0, 1.0) = 1.0;
 // How deep the recess's rear plane lies, in art texels (sixteenths of a

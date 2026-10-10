@@ -2,7 +2,7 @@
 //
 // Weather the client does not draw by shader (pollen, and all of it with
 // shader weather off) is drawn as particles, and Goanna's particles do not
-// collide, so it fell through every roof. ui/particles.gd draws such a
+// collide, so it fell through every roof. game/effects/particles.gd draws such a
 // spawner with this in place of its StandardMaterial3D: the same billboard,
 // kept scale, sprite sheet animation and blend (the variant's render_mode,
 // written ahead of this include), and one more test, nothing under the
@@ -12,7 +12,7 @@
 
 #include "res://shaders/weather_common.gdshaderinc"
 
-// Each is copied from the spawner's StandardMaterial3D by ui/particles.gd
+// Each is copied from the spawner's StandardMaterial3D by game/effects/particles.gd
 // (_covered): its
 // texture and colour, BILLBOARD_FIXED_Y or not, the sprite sheet's frames
 // across and down and whether it loops, and its alpha scissor threshold

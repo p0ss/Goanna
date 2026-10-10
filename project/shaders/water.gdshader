@@ -38,7 +38,7 @@
 //
 // Loaded as m_sh_water in GoannaClient::materialFor (src/goanna_client.cpp)
 // for every liquid tile that is not lava or ice, and for the far tiers'
-// water planes (m_lod_water there); project/water_seam.gd runs it too, to
+// water planes (m_lod_water there); project/studies/water_seam.gd runs it too, to
 // study the hand-off. materialFor sets albedo_tex, waving and lod_flatten;
 // every other uniform here is a default. The optics are in
 // docs/systems/water-optics.md.
@@ -158,7 +158,7 @@ global uniform vec4 goanna_ripple_state;
 // Far tiers use the same near sample at the hand-off, then converge on the
 // tile average only in the deep far field. materialFor sets lod_flatten true
 // on the near mesh as well as the far planes, so both run one curve;
-// the two distances, in nodes, are defaults (project/material_field.gd
+// the two distances, in nodes, are defaults (project/studies/material_field.gd
 // moves them for its studies). Switching immediately to the last
 // mip made otherwise flat water change colour at the near/far boundary.
 uniform bool lod_flatten = false;

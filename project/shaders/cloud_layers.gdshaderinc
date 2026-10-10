@@ -4,7 +4,7 @@
 // The three cloud decks' layout and the grid the block styles cut them
 // into, included by sky.gdshader and atmosphere_volume.gdshader so the far
 // deck the sky projects and the near body the fog volume fills are one
-// field. project/cloud_layers.gd is the GDScript side; where a function here
+// field. project/game/effects/cloud_layers.gd is the GDScript side; where a function here
 // says "Match", the two must agree.
 
 // One vec4 per deck, low to high: x the base height and y the depth, both

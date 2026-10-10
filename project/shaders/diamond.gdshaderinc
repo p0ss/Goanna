@@ -13,7 +13,7 @@
 // measurements are in docs/systems/materials.md, "Diamond surfaces".
 
 // Both default only in play, 1 to 0 to switch the effect off; the A/B
-// studies (project/diamond_study.gd, project/gem_study.gd) set them.
+// studies (project/studies/diamond_study.gd, project/studies/gem_study.gd) set them.
 // diamond_strength scales every gem term; the interior one only the
 // refracted inner planes.
 uniform float diamond_strength : hint_range(0.0, 1.0) = 1.0;

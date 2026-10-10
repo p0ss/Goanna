@@ -9,7 +9,7 @@
 // The node animation clock, seconds in [0, 60), set by
 // GoannaClient::step_node_animation.
 global uniform float goanna_node_anim_time;
-// A fixed clock for offline captures (project/portal_study.gd); below 0,
+// A fixed clock for offline captures (project/studies/portal_study.gd); below 0,
 // the default in play, the shared clock runs.
 uniform float preview_time = -1.0;
 varying vec3 portal_world;

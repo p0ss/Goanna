@@ -170,7 +170,7 @@ uniform float hair_shader_strength : hint_range(0.0, 1.0) = 0.0;
 // Every entity variant takes the gem, hair and micro shadow parts of
 // light(); these are not tier switches. What the tiers move are the
 // strengths: mat_micro_shadow, mat_parallax, mat_parallax_short and
-// mat_hair_shader in project/graphics_profiles.gd.
+// mat_hair_shader in project/game/graphics_profiles.gd.
 #define GOANNA_DIAMOND
 #define GOANNA_HAIR
 #define GOANNA_MICRO_SHADOW

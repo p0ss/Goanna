@@ -8,7 +8,7 @@
 // the camera and takes the lamp off a fragment a wall stands in front of.
 // GoannaClient::updateLampOcclusion (src/goanna_client.cpp) builds the grid
 // and sets all three globals, at most ten times a second;
-// project/portal_study.gd sets its own for the offline study.
+// project/studies/portal_study.gd sets its own for the offline study.
 
 // One float per node, in the cube's own cell space: -1 a full opaque node,
 // 0 open or unknown, n > 0 the cell of lamp n, whose position is texel

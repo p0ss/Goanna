@@ -11,7 +11,7 @@
 // GoannaClient::materialFor (src/goanna_client.cpp) when it builds an array
 // material, near or far (MaterialKey::lod); the *_strength ones by
 // GoannaClient::set_material_strength from the settings and the graphics
-// profiles (project/graphics_profiles.gd); the global ones per view by
+// profiles (project/game/graphics_profiles.gd); the global ones per view by
 // main.gd or GoannaClient. The study scenes (lighting_chart.gd,
 // material_ramp.gd and the like) set their own. Besides the uniforms it
 // holds the per node tiling helpers both shaders call.

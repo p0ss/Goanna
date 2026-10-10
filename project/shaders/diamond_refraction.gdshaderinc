@@ -11,7 +11,7 @@
 uniform sampler2D diamond_scene : hint_screen_texture, filter_linear, repeat_disable;
 uniform sampler2D diamond_depth : hint_depth_texture, filter_nearest, repeat_disable;
 // 0 keeps the plain alpha blended gem, 1 composes the refracted scene in
-// fully. Default only in play; project/diamond_study.gd sets it to compare.
+// fully. Default only in play; project/studies/diamond_study.gd sets it to compare.
 uniform float diamond_refraction : hint_range(0.0, 1.0) = 1.0;
 
 // The screen UV to read the scene through. A ray refracted by eta and one

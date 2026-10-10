@@ -39,7 +39,7 @@ uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 #include "res://shaders/flame_common.gdshaderinc"
 
 // The render feature switch render_fire_shimmer, 0 or 1, set by
-// project/render_features.gd from the graphics profile (on from Medium up).
+// project/game/render_features.gd from the graphics profile (on from Medium up).
 global uniform float goanna_render_fire_shimmer;
 
 // How far the quads are stretched up for the shimmer above the flame, in

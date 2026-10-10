@@ -10,7 +10,7 @@ shader_type spatial;
 render_mode blend_mix, cull_back, diffuse_burley, specular_schlick_ggx;
 
 // How far the crystal lets the scene through, 0 opaque. Default only in
-// play; project/diamond_study.gd sets it for comparisons.
+// play; project/studies/diamond_study.gd sets it for comparisons.
 uniform float diamond_transparency : hint_range(0.0, 1.0) = 1.0;
 #define GOANNA_DIAMOND_TRANSMISSION
 #include "res://shaders/entity_common.gdshaderinc"

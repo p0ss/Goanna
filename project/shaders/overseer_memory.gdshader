@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // The overseer's top down view, greyed where it shows remembered columns
-// rather than ones the server reported this time. project/overseer.gd puts
+// rather than ones the server reported this time. project/game/overseer.gd puts
 // this on the SubViewportContainer that holds the orthographic view, and
 // sets every uniform. docs/systems/overseer.md.
 shader_type canvas_item;

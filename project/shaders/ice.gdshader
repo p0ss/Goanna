@@ -29,7 +29,7 @@ uniform float roughness_strength = 1.0;
 uniform float specular_strength = 1.0;
 uniform float sss_strength = 1.0;
 uniform float ao_strength = 1.0;
-// Per view, from project/ice_transmission.gd: the scene behind the ice,
+// Per view, from project/game/effects/ice_transmission.gd: the scene behind the ice,
 // rendered without it at half size; whether that render is live this
 // frame (0 or 1); and the two shared noise volumes, a cellular one for
 // fractures and a Perlin one for cloudy inclusions.

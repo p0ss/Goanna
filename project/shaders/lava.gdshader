@@ -28,7 +28,7 @@ uniform float texture_scale : hint_range(0.25, 2.0) = 0.65;
 // are real and the crust may displace. False on the far plane.
 uniform bool surface_geometry = false;
 // A fixed clock in seconds for the tests and studies (project/tests/lava_*.gd,
-// project/portal_study.gd); negative, the default, runs on TIME.
+// project/studies/portal_study.gd); negative, the default, runs on TIME.
 uniform float preview_time = -1.0;
 // Set per tile by configureLavaMaterial (src/goanna_lava.cpp) from the art
 // itself: the 20th and 80th luminance percentiles, linear, between which a
