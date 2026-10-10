@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Headless regression: toggle existing near/LOD meshes without duplicating
-# surfaces, changing base terrain, or leaving grass-owned AA enabled.
+## Regression test for procedural grass: switching it on existing near and
+## far meshes adds and removes exactly one grass surface, leaves the terrain
+## as it was, and gives back the antialiasing grass took over. Headless, no
+## server or GPU. It writes settings, so give it scratch folders:
+## XDG_DATA_HOME=$(mktemp -d) XDG_CONFIG_HOME=$(mktemp -d) godot --headless --path project --script res://tests/procedural_grass.gd
 extends SceneTree
 
 class TestMain extends "res://game/main.gd":

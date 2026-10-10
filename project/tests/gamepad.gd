@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Tests controller input (input/gamepad.gd) with synthetic joypad events,
+## no controller needed. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/gamepad.gd
 #
 # Controller input (gamepad.gd) without a controller or a GPU: synthetic
 # InputEventJoypadButton and InputEventJoypadMotion events go in through
@@ -7,8 +10,6 @@
 # test checks what comes out: the keys dictionary main.gd hands the client,
 # look angles, hotbar and drop edges, the deadzone, and the cursor's pushed
 # mouse and key events outside play.
-#
-#   godot --headless --path project --script res://tests/gamepad.gd
 #
 # Exits 1 on any failure. Nothing here has been near a real controller.
 extends SceneTree

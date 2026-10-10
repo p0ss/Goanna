@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Tests how net/local_server.gd finds Luanti installs, against made up
+## machines. Headless, no server or GPU, and nothing is launched:
+## godot --headless --path project --script res://tests/local_server_discovery.gd
 #
 # Headless checks for finding Luanti. Every machine here is made up, a tree of
 # empty files laid out the way each kind of packaging lays Luanti out, and the

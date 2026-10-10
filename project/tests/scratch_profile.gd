@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Not a test: a helper preloaded by the tests that rewrite user://goanna.cfg,
+## so they refuse to run against the player's own profile.
 #
 # For the tests that write user://goanna.cfg. Run straight from a checkout,
 # user:// is the player's own profile, and those tests replaced it with a

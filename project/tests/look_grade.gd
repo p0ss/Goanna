@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Checks the colour grade (game/effects/look_grade.gd): no correction at
+## twilight or night, the curve's endpoints and monotonicity, and its
+## texture cache. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/look_grade.gd
 extends SceneTree
 
 const Grade := preload("res://game/effects/look_grade.gd")

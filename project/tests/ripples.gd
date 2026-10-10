@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/ripples.gd
+## Tests the ripple patch round the eye (game/effects/wake.gd and the water
+## shader) without drawing a frame. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/ripples.gd
 #
 # The ripple patch round the eye (docs/systems/weather.md, "Ripples"), as wake.gd
 # drives it, everything that can be checked without drawing a frame:

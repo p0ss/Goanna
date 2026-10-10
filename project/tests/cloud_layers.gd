@@ -1,4 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
+## Checks the cloud decks game/effects/cloud_layers.gd lays out: the
+## server's low cloud altitude is kept, upper decks stay above high ground
+## and in order, hidden clouds hide every deck, and a deck budget is kept.
+## Headless, no server or GPU:
+## godot --headless --path project --script res://tests/cloud_layers.gd
 extends SceneTree
 
 const Layers := preload("res://game/effects/cloud_layers.gd")

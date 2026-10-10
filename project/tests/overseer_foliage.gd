@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Known non-walkable vegetation must not hide live actors.
+## Live overseer test: known non-walkable vegetation must not hide live
+## workers in the overseer view. Needs the scratch overseer server in
+## docs/systems/overseer.md, "Tests"; dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_foliage.gd
 extends SceneTree
 var client: GoannaClient
 var failures := 0

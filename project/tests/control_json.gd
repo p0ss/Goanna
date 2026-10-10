@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Checks that control channel replies (agents/control_channel.gd) are
+## strict JSON, even for text carrying Luanti's colour escapes. Headless, no
+## server or GPU:
+## godot --headless --path project --script res://tests/control_json.gd
 #
 # Every control channel reply must be strict JSON. Luanti's coloured text
 # carries raw escape characters (core.colorize writes "\u001b(c@#...)"), and
 # Godot's JSON.stringify passes them through unescaped, so an entity list
 # with a coloured nametag could not be parsed by tools/goanna-control.
-#
-#   godot --headless --path project -s tests/control_json.gd
 extends SceneTree
 
 var failures := 0

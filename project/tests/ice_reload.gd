@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Run with a graphics device: --path project --script res://tests/ice_reload.gd
-# Recreate the world-owned ice renderer while retaining its cached shader.
+## Recreates the world's ice renderer (game/effects/ice_transmission.gd)
+## three times and checks it keeps its cached shader and draws the same
+## frame. It renders, so it is a GPU client (docs/agents/agent-interfaces.md, "The GPU");
+## frames go to GOANNA_ICE_TEST_OUT, else /tmp/goanna-ice-reload:
+## godot --path project --script res://tests/ice_reload.gd
 extends SceneTree
 
 class TestClient extends Node:

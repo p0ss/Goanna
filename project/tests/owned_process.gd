@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Checks net/owned_process.gd stops only the process it launched, and
+## leaves a reused PID alone. Linux only (it reads /proc); it starts and
+## stops its own /bin/sleep processes. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/owned_process.gd
 extends SceneTree
 
 const OwnedProcess := preload("res://net/owned_process.gd")

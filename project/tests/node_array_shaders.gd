@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/node_array_shaders.gd
+## Checks both node array shaders compile and declare every uniform the
+## client sets. Headless (the dummy renderer still compiles shaders), no
+## server or GPU:
+## godot --headless --path project --script res://tests/node_array_shaders.gd
 #
 # The two node array shaders, which GoannaClient::materialFor picks between
 # per tile (arrayTileKey in goanna_client.cpp): nodes_array.gdshader for a

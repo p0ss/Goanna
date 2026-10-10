@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless structural and behavioural checks for Goanna's formspec renderer.
+## Structural and behavioural checks for the formspec renderer
+## (ui/formspec.gd) and the inventory round it, from fixture formspecs and a
+## fake item source. Run it with tools/test/test-formspec.sh, which first
+## checks every upstream element has a status; see
+## docs/develop/formspec-conformance.md. Headless, no server or GPU.
 extends SceneTree
 
 const Formspec := preload("res://ui/formspec.gd")

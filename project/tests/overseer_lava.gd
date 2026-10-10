@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Observation-only lava attributes must not depend on cached hidden terrain.
+## Live overseer test: lava in the overseer view takes its attributes from
+## what was observed, not from hidden terrain in the client's ordinary
+## cache. Needs the scratch overseer server in docs/systems/overseer.md, "Tests";
+## dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_lava.gd
 extends SceneTree
 var client: GoannaClient
 func _initialize() -> void:

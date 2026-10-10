@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Inspect generated geometry after BLOCKDATA, without a GPU.
+## Checks the client remeshes after a block replacement: the fixture's
+## /mesh_cut clears the nodes above a stone floor at a mapblock boundary, and
+## the floor's top faces must still be drawn. Needs a server, so run it
+## through tools/test/test-block-updates.py, which makes a scratch Mineclonia
+## world with tools/test/block-update-fixture.lua and sets GOANNA_TEST_PORT.
+## Dummy renderer, no GPU.
 extends SceneTree
 var client: GoannaClient
 var ready = false

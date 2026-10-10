@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/weather.gd
+## Tests shader weather (game/effects/weather.gd, rain_cover.gd and the
+## hand-off from particles.gd) without drawing a frame. Headless, no server
+## or GPU:
+## godot --headless --path project --script res://tests/weather.gd
 #
 # Shader weather (docs/systems/weather.md), everything about it that can be checked
 # without drawing a frame:

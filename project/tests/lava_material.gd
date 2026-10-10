@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# GPU fixture: --path project --script res://tests/lava_material.gd
-# GOANNA_LAVA_TEXTURE optionally supplies an external tile/vertical strip.
+## GPU fixture for the lava material: control tiles and an authored one
+## over a pool, slope and fall. GOANNA_LAVA_TEXTURE supplies an external
+## tile or vertical strip, GOANNA_LAVA_TEST_OUT where frames go. It renders,
+## so it is a GPU client (docs/agents/agent-interfaces.md, "The GPU"):
+## godot --path project --script res://tests/lava_material.gd
 extends SceneTree
 
 var materials: Array[ShaderMaterial] = []

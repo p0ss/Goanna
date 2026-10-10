@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Checks the player agent channel (agents/player_agent_channel.gd) offers
+## no developer command. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/player_agent_boundary.gd
 #
 # The player agent interface must never grow a developer verb. Checks the
 # channel's own command list, the MCP wrapper's tool names and the CLI's
 # commands against the control channel's, and the channel's source for the
 # facilities that would make any command an escape hatch.
-#
-#   godot --headless --path project -s tests/player_agent_boundary.gd
 extends SceneTree
 
 # Names both interfaces use for different things: here they are an ordinary

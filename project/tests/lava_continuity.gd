@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# GPU regression: splitting a raised lava surface at a mapblock boundary must
-# not change its image. Also checks actual silhouette height against flat lava.
+## GPU regression: a raised lava surface split at a mapblock boundary must
+## draw the same image as an unsplit one, and stand as high as it should
+## beside flat lava. Builds on tests/lava_material.gd. It renders, so it is
+## a GPU client (docs/agents/agent-interfaces.md, "The GPU"):
+## godot --path project --script res://tests/lava_continuity.gd
 extends "res://tests/lava_material.gd"
 
 func capture() -> Image:

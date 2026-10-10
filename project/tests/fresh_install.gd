@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## End to end check of getting ready to play with no Luanti installed. Run
+## it only through tools/test/test-fresh-install.sh, which runs it headless
+## in clean distribution containers: it downloads the real game and starts a
+## real server. No GPU.
 #
 # Get ready to play on a computer with no Luanti, end to end: what menu.gd's
 # setup does, through the same local_server.gd calls. Find no install, copy

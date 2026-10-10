@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/wake.gd
+## Tests wake ripples on water (game/effects/wake.gd) without drawing a
+## frame. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/wake.gd
 #
 # Wake ripples on water (docs/systems/weather.md, "Wakes"), everything about them
 # that can be checked without drawing a frame:

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Draft lifecycle and accessible input contracts without a renderer.
+## Checks the overseer's draft lifecycle and accessible input, with the
+## stand ins from tests/overseer.gd. No renderer, server or GPU:
+## godot --headless --path project --script res://tests/overseer_ux.gd
 extends SceneTree
 const Unit := preload("res://tests/overseer.gd")
 const Overseer := preload("res://game/overseer.gd")

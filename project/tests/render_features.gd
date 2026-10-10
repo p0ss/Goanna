@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Exercise real player scenes, settings and environment state without a GPU.
+## Checks the render feature switches (game/render_features.gd) on real
+## game scenes: saved state at startup, lazy creation of what a switch
+## needs, and per player environments. Headless, no server or GPU. It
+## rewrites user://goanna.cfg, so it refuses to run without a scratch XDG_DATA_HOME:
+## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/render_features.gd
 extends SceneTree
 
 const Shell := preload("res://game/local_play.gd")

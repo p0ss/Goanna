@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Tests read aloud (ui/narrator.gd) with a fake voice. Headless, no server
+## or GPU:
+## godot --headless --path project --script res://tests/narrator.gd
 #
 # Read aloud (ui/narrator.gd), offline: what it says and when, with a fake
 # voice that writes down every utterance instead of speaking it.
-#
-#   godot --headless --path project -s tests/narrator.gd
 extends SceneTree
 
 const Narrator := preload("res://ui/narrator.gd")

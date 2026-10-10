@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Real-server routing check, using Godot's dummy renderer. The server must
-# provide both portals near (1024, 32, -1024), as portal-fixture.lua does.
+## Checks Nether and End portal faces reach their own shaders on a real
+## server, each with the player's own material. Run it through
+## tools/test/test-portals.py --game <mineclonia> --server <luantiserver>,
+## which builds the portals with tools/test/portal-fixture.lua and sets
+## GOANNA_TEST_PORT. Dummy renderer, no GPU.
 extends SceneTree
 
 var client: GoannaClient

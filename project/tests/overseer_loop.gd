@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Native planning and real worker execution with the camera kept open.
+## Live overseer test: plans made in the view are carried out by real
+## workers while the overseer camera stays open. Extends
+## tests/overseer_world.gd. Needs the scratch overseer server in
+## docs/systems/overseer.md, "Tests"; dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_loop.gd
 extends "res://tests/overseer_world.gd"
 func order(kind: String, a: Vector3i, b: Vector3i, item := "", facing := 0) -> void:
 	view.tool = kind

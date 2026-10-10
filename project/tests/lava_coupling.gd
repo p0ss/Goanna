@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Measure emitted brightness against actual displaced height, at two times.
+## Measures lava's emitted brightness against its displaced height at two
+## animation times, over adjacent tile meshes. Builds on
+## tests/lava_continuity.gd and, like it, is a GPU client:
+## godot --path project --script res://tests/lava_coupling.gd
 extends "res://tests/lava_continuity.gd"
 
 func run() -> void:

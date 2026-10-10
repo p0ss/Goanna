@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Tests the player agent's form actions on a real formspec, with no server.
+## Headless, no GPU:
+## godot --headless --path project --script res://tests/player_agent_forms.gd
 #
 # The player agent's form actions, offline: a real formspec, built by
 # ui/formspec.gd, observed and worked through player_agent_channel.gd with no
 # server. Checks that each element is reported as a player sees it, that each
 # action sends what a click on the element sends, and that hidden, changed and
 # mismatched elements are refused or stale.
-#
-#   godot --headless --path project -s tests/player_agent_forms.gd
 extends SceneTree
 
 const Formspec := preload("res://ui/formspec.gd")

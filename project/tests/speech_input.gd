@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Tests voice typing (ui/voice_input.gd and GoannaSpeechInput). Headless,
+## no server or GPU; GOANNA_TEST_WHISPER_MODEL adds real transcription:
+## GOANNA_TEST_WHISPER_MODEL=/path/ggml-base-q5_1.bin godot --headless --path project --script res://tests/speech_input.gd
 #
 # Voice typing (ui/voice_input.gd and GoannaSpeechInput). Always: the
 # resampling, the cleaning of what Whisper marks as not speech, and T as a
 # tap or a hold. With a model in GOANNA_TEST_WHISPER_MODEL and espeak-ng on
 # the path: real transcription of synthesised sentences, which espeak-ng
 # writes to a file, so nothing is played aloud.
-#
-#   GOANNA_TEST_WHISPER_MODEL=/path/ggml-base-q5_1.bin \
-#   godot --headless --path project -s tests/speech_input.gd
 extends SceneTree
 
 const VoiceInput := preload("res://ui/voice_input.gd")

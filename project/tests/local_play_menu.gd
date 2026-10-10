@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Checks the menu's local players screen (menu/menu.gd): device choices and
+## passwords survive the hand-off, names are remembered without passwords,
+## and the local graphics preset persists. Headless, no server or GPU. It
+## writes user://goanna.cfg, so give it scratch folders:
+## XDG_DATA_HOME=$(mktemp -d) XDG_CONFIG_HOME=$(mktemp -d) godot --headless --path project --script res://tests/local_play_menu.gd
 extends SceneTree
 
 var failures := 0

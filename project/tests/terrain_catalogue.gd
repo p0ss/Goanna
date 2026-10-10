@@ -1,3 +1,8 @@
+## Checks the terrain world catalogue (terrain_worlds.json, read through
+## net/local_server.gd) that the menu's world picker is built from. Set
+## GOANNA_TEST_TERRAIN_ARCHIVE and GOANNA_TEST_TERRAIN_ID to also unpack a
+## downloaded world (docs/develop/testing.md). Headless, no server or GPU:
+## godot --headless --path project --script res://tests/terrain_catalogue.gd
 extends SceneTree
 
 const LocalServer := preload("res://net/local_server.gd")

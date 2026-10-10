@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/water_optics.gd
+## Tests the water optics round the eye (game/effects/water_optics.gd)
+## without drawing a frame. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/water_optics.gd
 #
 # The water round the eye (docs/systems/water-optics.md), everything that can be
 # checked without drawing a frame:

@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Actual settings transitions in two views, without connecting or rendering.
+## Applies the graphics presets (game/graphics_profiles.gd) to real game
+## scenes in two split screen views, without connecting or rendering, and
+## checks what each transition leaves set. Headless, no server or GPU. It
+## rewrites user://goanna.cfg, so it refuses to run without a scratch XDG_DATA_HOME:
+## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/graphics_profiles.gd
 extends SceneTree
 
 const Profiles := preload("res://game/graphics_profiles.gd")

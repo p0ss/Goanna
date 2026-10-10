@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Run by tools/test/test-local-play.py against its disposable Luanti server.
+## Joins two or more split screen players (GOANNA_TEST_PLAYERS) to a real
+## server: each gets its own inventory, one player's move is accepted and
+## blocks only that player, and the rest survive one leaving. Run it through
+## tools/test/test-local-play.py, which starts a disposable devtest server
+## and sets GOANNA_TEST_PORT and XDG_DATA_HOME. Dummy renderer, no GPU.
 extends SceneTree
 
 const Shell := preload("res://game/local_play.gd")

@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Exercise the vanilla formspec route without joining the overseer channel.
+## Live overseer test: the plan form reaches a client that never joins the
+## overseer channel, over the vanilla formspec route. Needs the scratch
+## overseer server in docs/systems/overseer.md, "Tests"; dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_fallback.gd
 extends SceneTree
 var client: GoannaClient
 var forms: Array = []

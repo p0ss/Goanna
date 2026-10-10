@@ -1,3 +1,8 @@
+## Checks the asset bundle catalogue wiring: bootstrap_assets.json names an
+## absolute https catalogue, and every bundle url in it is absolute.
+## GOANNA_TEST_CATALOGUE points it at another catalogue file. Headless, no
+## server or GPU:
+## godot --headless --path project --script res://tests/asset_catalogue.gd
 extends SceneTree
 
 const AssetStore := preload("res://update/asset_store.gd")

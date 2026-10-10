@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Capture the real planning UI and a live scratch-world observation stream.
+## Captures the overseer planning interface over a live scratch world, at
+## two window sizes and a large text size, into /tmp/overseer-ux/. A scene,
+## not a --script test, and it renders: run res://tests/overseer_ux_render.tscn
+## through tools/goanna-headless fixture while the scratch overseer server
+## from docs/systems/overseer.md, "Tests", is running.
 extends Node
 const Unit := preload("res://tests/overseer.gd")
 var client: GoannaClient

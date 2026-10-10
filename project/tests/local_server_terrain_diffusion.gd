@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless check for the downloaded Terrain Diffusion world setup. It deliberately
-# does not launch Luanti or touch a user's worlds.
+## Checks the setup of a downloaded Terrain Diffusion world
+## (net/local_server.gd) in a temporary folder. It does not launch Luanti or
+## touch the player's worlds. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/local_server_terrain_diffusion.gd
 extends SceneTree
 
 const LocalServer := preload("res://net/local_server.gd")

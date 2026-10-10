@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless checks for Goanna's own updater (updater.gd): which versions count
-# as newer, that only the maintainer's signature is accepted, and that the
-# file swap is all or nothing. Nothing is downloaded and nothing is run.
+## Tests Goanna's own updater (update/updater.gd): which versions count as
+## newer, that only the maintainer's signature is accepted, and that the
+## file swap is all or nothing. Nothing is downloaded or run. Headless, no
+## server or GPU:
+## godot --headless --path project --script res://tests/updater.gd
 extends SceneTree
 
 const Updater := preload("res://update/updater.gd")

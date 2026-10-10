@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# GPU fixture: --path project --script res://tests/node_animation.gd
+## Checks animated node tiles in the node array shaders draw the frame
+## Luanti's rule picks. It renders, so it is a GPU client
+## (docs/agents/agent-interfaces.md, "The GPU"):
+## godot --path project --script res://tests/node_animation.gd
 #
 # Animated node tiles in the array shaders (docs/systems/node-animation.md). Builds
 # an animation array the way GoannaTextureSource does, each

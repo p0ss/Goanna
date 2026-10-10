@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Live session recovery and worker execution in the opt-in scratch fixture.
+## Live overseer test: the session recovers, and workers still carry out
+## orders. Needs the scratch overseer server in docs/systems/overseer.md, "Tests";
+## dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_recovery.gd
 extends SceneTree
 const Overseer := preload("res://game/overseer.gd")
 const Unit := preload("res://tests/overseer.gd")

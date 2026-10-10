@@ -1,3 +1,7 @@
+## Installs a bundle built by tools/pbr/pbr_bundle.py into an empty asset
+## store, the way update/asset_updater.gd installs a finished download.
+## Headless, no server or GPU; needs python3 with Pillow:
+## godot --headless --path project --script res://tests/asset_bundle_install.gd
 extends SceneTree
 
 # A real bundle, built by the real bundler, installed into a fresh store the

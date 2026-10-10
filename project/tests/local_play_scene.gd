@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Real player scenes and menus, with networking disabled and a dummy renderer.
+## Runs real game scenes (game/main.tscn) in the split screen shell, with
+## networking off and the dummy renderer. Headless, no server or GPU. It
+## rewrites user://goanna.cfg, so it refuses to run without a scratch XDG_DATA_HOME:
+## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/local_play_scene.gd
 extends SceneTree
 
 const Shell := preload("res://game/local_play.gd")

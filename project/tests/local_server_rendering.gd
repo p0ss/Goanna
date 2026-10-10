@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Verify the generated local-server grant and its required transport.
+## Checks the server config net/local_server.gd writes for a local world
+## grants far rendering and turns on mod channels, which carry it. /bin/true
+## stands in for the server, so nothing runs. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/local_server_rendering.gd
 extends SceneTree
 
 const LocalServer := preload("res://net/local_server.gd")

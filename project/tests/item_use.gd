@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Real primary-button packets; run through tools/test/test-item-use.py.
+## Sends real primary button packets with DorfCraft's tools on Mineclonia
+## and checks what the server makes of them. Needs a server, so run it
+## through tools/test/test-item-use.py --dorfcraft <checkout>, which makes a
+## scratch world with tools/test/item-use-fixture.lua and sets
+## GOANNA_TEST_PORT. Dummy renderer, no GPU.
 extends SceneTree
 var client: GoannaClient
 var messages = ""

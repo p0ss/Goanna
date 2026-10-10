@@ -1,3 +1,8 @@
+## Installs one published asset bundle into a scratch store and checks its
+## archive hash and composed profile. Set GOANNA_TEST_ASSET_BUNDLE to the zip
+## and GOANNA_TEST_ASSET_SHA256 to the hash it must match (the full command
+## is in docs/develop/testing.md). Headless, no server or GPU:
+## godot --headless --path project --script res://tests/asset_store_install.gd
 extends SceneTree
 
 const AssetStore := preload("res://update/asset_store.gd")

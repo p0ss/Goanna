@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Headless: --headless --path project --script res://tests/crack_overlay.gd
+## Checks the dig crack shader compiles and declares every uniform the
+## client sets on it. Headless (the dummy renderer still compiles shaders),
+## no server or GPU:
+## godot --headless --path project --script res://tests/crack_overlay.gd
 #
 # The dig crack's second pass (shaders/crack_overlay.gdshader) is loaded only
 # when a block is first dug, so a shader error would pass unnoticed until

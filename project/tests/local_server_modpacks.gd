@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Modpack choices must expand into Luanti leaf mod names.
+## Checks that a world's chosen modpacks are written to world.mt as the leaf
+## mod names Luanti loads, and read back for the menu (net/local_server.gd).
+## Headless, no server or GPU; works under user://modpack-activation-test:
+## godot --headless --path project --script res://tests/local_server_modpacks.gd
 extends SceneTree
 const Server = preload("res://net/local_server.gd")
 var failures = 0

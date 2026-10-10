@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# CPU-only checks for slot ownership, routing, layout and shader isolation.
+## Checks split screen local play (game/local_play.gd) with stand in games:
+## which slot owns which device, input routing, layout, and per player
+## shader isolation. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/local_play.gd
 extends SceneTree
 
 const Shell := preload("res://game/local_play.gd")

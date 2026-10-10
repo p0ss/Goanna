@@ -1,3 +1,8 @@
+## Checks which bundles update/asset_updater.gd queues for a server's media
+## announcement, with a stub in place of GoannaClient: a stem two games share
+## queues neither, installed bundles are skipped, and the game is inferred
+## and remembered per server. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/asset_updater.gd
 extends SceneTree
 
 const AssetStore := preload("res://update/asset_store.gd")

@@ -1,3 +1,8 @@
+## Checks update/asset_store.gd against archives it packs itself: catalogue
+## parsing, finding installed bundles, composing a game's profile, the hash
+## gate, stems that prefix one another, and pruning. Headless, no server or
+## GPU; works in a scratch folder under user://:
+## godot --headless --path project --script res://tests/asset_store.gd
 extends SceneTree
 
 const AssetStore := preload("res://update/asset_store.gd")
