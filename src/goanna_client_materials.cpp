@@ -150,8 +150,13 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // Per vertex node light and occlusion, docs/systems/mesh-attributes.md. Here
     // rather than as fixed uniforms so they can be swept at runtime, which is
     // the only way to A/B them without the world streaming differently between
-    // two runs and swamping the difference being measured.
-    {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.0f},
+    // two runs and swamping the difference being measured. vertex_ao_light
+    // is how much the traced occlusion may touch direct light: 0.3, so the
+    // corners still read under the sun (nodes_array_common.gdshaderinc says
+    // why). The shader moved to 0.3 on 2026-08-24 but this table kept 0
+    // until 2026-10-11, and since it is set on every material, play ran at
+    // 0 on every tier (docs/perf/vertex-ao-2026-10-11).
+    {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.3f},
     // stale is 0: pulling remembered terrain toward grey is a per tier
     // signal painted into the frame, and the far field is judged by there
     // being none (docs/develop/launch-target.md, "Rendering acceptance":

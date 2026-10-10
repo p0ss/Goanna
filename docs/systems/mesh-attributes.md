@@ -237,9 +237,13 @@ So occlusion reaches the shading correctly, and what is missing is something to
 occlude. Ambient is a negligible share of the current image, which is the
 balance `docs/design/pbr-plan.md` step 3 exists to rework, and it agrees with
 the earlier finding that SDFGI replaces environment ambient outright. The
-default stays honest rather than flattering: occlusion multiplies ambient only,
-because occlusion is not shadow, and it will become visible when ambient is
-worth occluding rather than by being allowed to darken the sun.
+default was at first 0, occlusion multiplying ambient only because occlusion
+is not shadow. That lost to the picture on 2026-08-24: with the sun overhead
+the corners vanished and the world read flat at noon, so occlusion now
+reaches direct light at 0.3 (`vertex_ao_light`). The shader took 0.3 that
+day, but the client's own table, which sets the uniform on every material,
+kept 0 until 2026-10-11, so play ran without it on every tier until then
+([the record](../perf/vertex-ao-2026-10-11/README.md)).
 
 ## What it costs
 

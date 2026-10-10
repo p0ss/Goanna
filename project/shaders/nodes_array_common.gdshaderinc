@@ -104,7 +104,8 @@ global uniform vec3 goanna_sun_dir;
 // which is what makes an interior read as an interior instead of being lit by
 // the sky through its own roof.
 uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
-// vertex_ao_strength scales the traced occlusion. It multiplies ambient only.
+// vertex_ao_strength scales the traced occlusion. It multiplies ambient in
+// full, and direct light as far as vertex_ao_light_strength lets it.
 uniform float vertex_ao_strength : hint_range(0.0, 1.0) = 1.0;
 // How much occlusion is allowed to touch direct light. It began at 0 on the
 // principle that occlusion is not shadow, and the principle lost to the
@@ -112,7 +113,9 @@ uniform float vertex_ao_strength : hint_range(0.0, 1.0) = 1.0;
 // is most of every frame, and the world reads flat at noon (the vanilla
 // look multiplies its corner darkening into everything, which is why its
 // blocks read at any distance). 0.3 keeps direct light dominant while the
-// corners stay present.
+// corners stay present. The client sets every _strength uniform from
+// kMatStrengthDefaults in goanna_client_materials.cpp, so that table, not
+// this default, is what play gets; the two must agree.
 uniform float vertex_ao_light_strength : hint_range(0.0, 1.0) = 0.3;
 // Sky fill: Luanti's sky light, added as a flat fill in the colour of the
 // sky, scaled by the environment. This is what the vanilla client's own

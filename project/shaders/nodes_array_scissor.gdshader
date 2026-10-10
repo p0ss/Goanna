@@ -310,10 +310,12 @@ void fragment() {
 		NORMAL_MAP_DEPTH = 1.0;
 	}
 
-	// Node light and occlusion. Occlusion multiplies ambient and, by default,
-	// leaves direct light alone: a corner is dark because less sky reaches it,
-	// not because the sun stopped shining on it. Sky visibility attenuates the
-	// same ambient, which is what darkens interiors and caves.
+	// Node light and occlusion. Occlusion multiplies ambient in full and
+	// direct light by vertex_ao_light_strength (0.3 in play, set from
+	// kMatStrengthDefaults): a corner is dark mostly because less sky reaches
+	// it, and a little under the sun as well, or it vanishes at noon. Sky
+	// visibility attenuates the same ambient, which is what darkens interiors
+	// and caves.
 	float sky_vis = mix(1.0, v_nodelight.g, sky_light_strength);
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);

@@ -1,0 +1,290 @@
+{
+ "label": "vertex AO light, Lowest: 0 against 0.3, noon",
+ "out": "/home/poss/.local/share/goanna-pbr-audit/vertex-ao-2026-10-11/lowest",
+ "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-a182c229dacf6e69d",
+ "tier": "lowest",
+ "time": 0.5,
+ "weather": "clear",
+ "anchor": [
+  3,
+  2,
+  0
+ ],
+ "nodes": [
+  {
+   "box": [
+    [
+     1,
+     0,
+     10
+    ],
+    [
+     8,
+     2,
+     10
+    ]
+   ],
+   "node": "mcl_core:stonebrick"
+  },
+  {
+   "box": [
+    [
+     8,
+     0,
+     3
+    ],
+    [
+     8,
+     2,
+     9
+    ]
+   ],
+   "node": "mcl_core:stonebrick"
+  },
+  {
+   "box": [
+    [
+     6,
+     0,
+     9
+    ],
+    [
+     7,
+     0,
+     9
+    ]
+   ],
+   "node": "mcl_core:cobble"
+  },
+  {
+   "box": [
+    [
+     -10,
+     0,
+     11
+    ],
+    [
+     -4,
+     2,
+     11
+    ]
+   ],
+   "node": "mcl_trees:wood_oak"
+  },
+  {
+   "box": [
+    [
+     -10,
+     2,
+     7
+    ],
+    [
+     -4,
+     2,
+     10
+    ]
+   ],
+   "node": "mcl_trees:wood_oak"
+  },
+  {
+   "box": [
+    [
+     -10,
+     0,
+     7
+    ],
+    [
+     -10,
+     1,
+     10
+    ]
+   ],
+   "node": "mcl_trees:wood_oak"
+  },
+  {
+   "box": [
+    [
+     -7,
+     0,
+     -8
+    ],
+    [
+     1,
+     4,
+     -3
+    ]
+   ],
+   "node": "mcl_core:stone"
+  },
+  {
+   "box": [
+    [
+     -4,
+     0,
+     -8
+    ],
+    [
+     -2,
+     1,
+     -3
+    ]
+   ],
+   "node": "air"
+  },
+  {
+   "box": [
+    [
+     -4,
+     2,
+     -4
+    ],
+    [
+     -2,
+     2,
+     -3
+    ]
+   ],
+   "node": "air"
+  },
+  {
+   "box": [
+    [
+     12,
+     -1,
+     3
+    ],
+    [
+     20,
+     -1,
+     7
+    ]
+   ],
+   "node": "mcl_core:dirt_with_grass"
+  },
+  {
+   "box": [
+    [
+     12,
+     0,
+     10
+    ],
+    [
+     20,
+     3,
+     10
+    ]
+   ],
+   "node": "mcl_core:cobble"
+  },
+  {
+   "box": [
+    [
+     12,
+     0,
+     8
+    ],
+    [
+     20,
+     0,
+     9
+    ]
+   ],
+   "node": "mcl_core:dirt_with_grass"
+  }
+ ],
+ "verify": [
+  {
+   "pos": [
+    7,
+    0,
+    9
+   ],
+   "node": "mcl_core:cobble"
+  },
+  {
+   "pos": [
+    -3,
+    0,
+    -6
+   ],
+   "node": "air"
+  },
+  {
+   "pos": [
+    -7,
+    2,
+    8
+   ],
+   "node": "mcl_trees:wood_oak"
+  }
+ ],
+ "poses": [
+  {
+   "name": "corner",
+   "pos": [
+    4.0,
+    1.6,
+    6.0
+   ],
+   "look_at": [
+    7.5,
+    0.3,
+    9.5
+   ],
+   "fov": 60
+  },
+  {
+   "name": "overhang",
+   "pos": [
+    -7.0,
+    1.4,
+    3.0
+   ],
+   "look_at": [
+    -7.0,
+    0.3,
+    10.5
+   ],
+   "fov": 65
+  },
+  {
+   "name": "cave",
+   "pos": [
+    -3.0,
+    1.8,
+    3.0
+   ],
+   "look_at": [
+    -3.0,
+    0.6,
+    -6.0
+   ],
+   "fov": 60
+  },
+  {
+   "name": "grass_wall",
+   "pos": [
+    16.0,
+    2.2,
+    4.5
+   ],
+   "look_at": [
+    16.0,
+    0.5,
+    9.5
+   ],
+   "fov": 65
+  }
+ ],
+ "variants": [
+  {
+   "name": "ao_light_0",
+   "env": {
+    "GOANNA_MAT": "vertex_ao_light=0"
+   }
+  },
+  {
+   "name": "ao_light_default"
+  }
+ ]
+}
