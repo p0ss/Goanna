@@ -142,6 +142,18 @@ godot-cpp is), so the file's header carries the full copyright and
 permission notice. The sun gate and the analytic stand-in for Godot's DFG
 table are Goanna's.
 
+## Designs we credit
+
+No code from these is in the repository or the binary, so they carry no
+licence obligation, but Goanna's design learnt from them.
+
+**Freeminer's far view**, <https://github.com/freeminer/freeminer>. The far
+field's chain of coarser levels and its server side summaries follow
+Freeminer's far meshing. Freeminer gave permission, in a Discord chat, for
+Goanna to base its far meshing on their code outside the GPL; Goanna wrote
+its own implementation. `docs/far-rendering.md`, "Freeminer's far view",
+has the detail.
+
 ## Media in this repository
 
 The screenshots under `docs/` are renders of worlds served by Luanti games,

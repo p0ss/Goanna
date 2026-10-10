@@ -21,6 +21,55 @@ what would reopen it.
 Goanna is not affiliated with or endorsed by the Freeminer project or the
 Luanti project, and nothing here should be read as either.
 
+## Update of 10 October 2026
+
+Read from Freeminer `master` at `aacb27b26` (5 October 2026, still merged
+with Luanti 5.17.0). Code reading only; nothing was built or run for this
+update.
+
+**Permission for the far field.** Freeminer gave Goanna permission, in a
+Discord chat, to base its far meshing on their code outside the GPL. Goanna
+used it as leave to learn from the design and wrote its own
+implementation, so the licence position under "Licensing" below is
+unchanged for any code that would actually be compiled. The credit is in
+`docs/far-rendering.md`, "Freeminer's far view", and in `THIRD-PARTY.md`.
+The chat is not archived in this repository, and its exact scope (which
+code, and whether it speaks for contributors other than the maintainer) is
+not recorded; check it before relying on it for anything beyond design.
+
+**The multithreaded server does not run game Lua in parallel.** Freeminer
+gives block sending, far blocks, liquids, lighting, map saving, ABM
+scanning and world merging their own threads (`src/fm_server.h`). Lua stays
+one state behind one recursive mutex, `m_luastackmutex`
+(`src/script/cpp_api/s_internal.h:21`), so mods, which are where most
+Luanti server lag comes from, still run one at a time. Where the lock is
+busy, three callbacks take it with `std::try_to_lock` and return without
+running: globalsteps (`s_env.cpp:145`), ABM actions (`s_env.cpp:583`) and
+entity `on_step` (`s_entity.cpp:238`). The skipped tick's `dtime` is not
+carried into the next one (`serverenvironment.cpp:1340`,
+`server/luaentity_sao.cpp:226`), so under load a game's timers, mob AI and
+growth run slow or skip. Freeminer's own `defaultsettings.cpp` comments
+that more than one emerge thread is "too unstable", while the server's
+default is still automatic, which matches the emerge thread crashes in the
+runs below. So a Freeminer server is not an answer to Luanti's single
+threaded Lua, and recommending one for that would trade lag for changed
+game behaviour. Not measured in play.
+
+**LLM work is on the client.** Freeminer added an MCP server to its client
+in May 2026 (`enable_mcp`, `doc/mcp.md`, `src/client/fm_client_mcp.cpp`):
+an agent moves, looks, digs, places and chats as the player over loopback.
+That is the same kind of thing as Goanna's own MCP server and needs no
+adapter. Freeminer also has a `terraindiffusion` mapgen
+(`src/mapgen/README_terraindiffusion.md`), which reaches Goanna as ordinary
+terrain.
+
+**32-bit worlds wait for Luanti.** Work on 32-bit positions is under way in
+Luanti, and Freeminer's implementation has been pointed out to that work.
+Goanna waits for it to land upstream and inherits it through the submodule,
+rather than building against Freeminer's tree. Until then a protocol 53
+client on a 32-bit Freeminer world is limited to 32,767 nodes from the
+origin (see the table under "What else a Luanti client receives").
+
 ## Sources
 
 Read, not recalled:
@@ -432,7 +481,9 @@ data to test against. Risks: an undocumented protocol with one maintainer
 a protocol 53 client asking for far blocks, which nobody else does; GPL
 code arriving by copy rather than by reading.
 
-**Phase 4, 32-bit worlds.** Months, and rejected for the reasons above.
+**Phase 4, 32-bit worlds.** Months by Goanna's own route, and not taken
+for the reasons above. Waiting instead for the 32-bit work in Luanti
+(update of 10 October 2026).
 
 ## Recommendation
 

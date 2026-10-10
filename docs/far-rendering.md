@@ -78,6 +78,29 @@ buffer, the one shader family and the one lighting environment that the rest
 of this file depends on. CPU meshing with merged quads into per region
 meshes is the right trade here, and it is what rung 3 already is.
 
+### Freeminer's far view
+
+Goanna's far field also owes a debt to Freeminer
+(<https://github.com/freeminer/freeminer>), the long lived fork of Luanti,
+whose far view does this job inside the Luanti family: the server keeps
+coarser copies of generated terrain, each step halving the resolution with
+a representative node per group of cells, and serves them to a client that
+draws them beyond the live range. Goanna's derived chain and its server
+side summaries from `goanna_server_mod` follow the same line of thought.
+
+The implementation is Goanna's own and none of Freeminer's code was copied.
+Freeminer's own files are GPL-3.0-or-later; Freeminer gave Goanna
+permission, in a Discord chat, to base its far meshing on their code
+outside the GPL, so that Goanna's binary stays under the terms set out in
+`THIRD-PARTY.md`. Goanna has used that as leave to learn from the design,
+not to take code. Two things still differ by design: Goanna never runs a
+mapgen on the client to fill gaps, which Freeminer does, and it draws far
+terrain only where the server grants it (below), where Freeminer serves far
+blocks to any client that asks. `docs/freeminer-plan.md` describes
+Freeminer's far view in detail.
+
+Goanna is not affiliated with or endorsed by the Freeminer project.
+
 ## The three problems, which are separable
 
 Treating this as one feature is what makes it look impossible. It is three,
