@@ -70,6 +70,7 @@ add_library(goanna SHARED
     src/goanna_client_far.cpp
     src/goanna_client_materials.cpp
     src/goanna_client_light.cpp
+    src/goanna_client_player.cpp
     src/goanna_render_scope.cpp
     src/goanna_lava.cpp
     src/goanna_flame.cpp
