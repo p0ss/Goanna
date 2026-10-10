@@ -2341,3 +2341,47 @@ started a model server on four cores during them (load average 6 rising to
 the map read is about 45 to 50 us a block, three quarters of what
 summaries still cost the server thread, so reading several blocks with one
 VoxelManip is the next thing to measure.
+
+### Reads, worker code and detail replies, 2026-10-10
+
+Reading several blocks with one VoxelManip is not worth doing. A test mod
+timed 1024 groups of 2 by 2 by 2 blocks on a copy of `fdfd3w`: a block
+read for the first time, loaded from the map database as backfill loads
+it, cost 56 to 63 us read singly and 53 to 61 us as part of a group; a
+block already in memory, 12 us against 9. The cold cost is Luanti loading
+and decoding the block, which a group does not share. `core.emerge_area`
+would load blocks on the emerge threads, but from Lua it always allows
+generation, and summaries never generate. The cold read is paid once per
+block of a world older than the store; freshly generated and changed
+blocks are in memory already.
+
+`far_summary.lua`'s `summarise_vm` was rewritten for speed: index
+arithmetic in place of `VoxelArea:index`, one cached kind per content id,
+and `surface_material.lua`'s vote written inline instead of through a
+sampling closure. Under LuaJIT on terrain shaped blocks it takes 77 to
+92 us against 214 to 290 us, and it gave the same summary on 1000 test
+blocks, including emerged areas larger than the block, part generated ones
+and missing light values, and the same records as the original server
+thread code on the 400 block test. On the server at 384 blocks a step,
+where the workers had been the limit, the old and new code alternated
+twice with the machine shared (load average 5 to 12):
+
+| Worker code | Blocks per 30 s, last three windows | Jobs out |
+| --- | --- | --- |
+| Old, run 1 | 57,445, 48,776, 59,019 | 16 to 33 |
+| Old, run 2 | 55,909, 66,234, 64,109 | 0 to 33 |
+| New, run 1 | 75,939, 76,590, 76,096 | 0 to 32 |
+| New, run 2 | 75,406, 76,111, 75,516 | 1 to 32 |
+
+The new code keeps up with the step's budget, 384 blocks a step, so the
+workers are no longer the limit there. The default stays at 192 a step,
+which leaves the cores to the game's own work.
+
+`fine.lua`'s full detail replies now encode on the async workers too, with
+up to 16 out at once; the step reads the block and sends the reply. One
+headless client in the same setup asked for about 550 detail blocks per
+30 seconds either way. Encoded in the step they cost 240 to 280 ms of the
+server thread per 30 seconds, about 0.45 ms each and up to 2 ms in a step;
+on the workers, 14 to 17 ms. A small saving on one client, but it no
+longer grows with the number of players asking.
+

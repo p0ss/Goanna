@@ -51,8 +51,9 @@ goanna_far_summary_lag (Far summary lag limit) float 0.5 0.0 60.0
 #    Summarise blocks on Luanti's async worker threads rather than in the
 #    server step. The map is still read in the step, which is quick; the Lua
 #    that folds each block into its summary, most of the cost, runs on the
-#    workers, several at once. Needs Luanti 5.9 or later; older servers, or
-#    false here, summarise in the step as before.
+#    workers, several at once. The full detail blocks sent nearby are
+#    encoded there too. Needs Luanti 5.9 or later; older servers, or false
+#    here, do both in the step as before.
 goanna_far_summary_async (Far summaries off the server thread) bool true
 
 #    Summary jobs that may be waiting on the async workers at once, 16

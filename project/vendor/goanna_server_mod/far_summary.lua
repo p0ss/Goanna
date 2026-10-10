@@ -7,7 +7,7 @@
 -- two places. init.lua loads it with dofile for servers without an async
 -- environment, and registers it with core.register_async_dofile, where it
 -- runs on Luanti's async workers against a copy of the VoxelManip
--- (docs/far-rendering.md, "Summaries off the server thread").
+-- (docs/history/far-rendering-log.md, "Summaries off the server thread").
 --
 -- What it returns holds content ids, not the area palette indices the wire
 -- record carries. The palette belongs to the area in the server thread's
@@ -21,8 +21,6 @@
 --     liquid    one liquid content id for the block, or nil
 --     mask      8 bytes, the 64-bit per-cell liquid mask
 
-local modname = core.get_current_modname and core.get_current_modname() or "goanna_server_mod"
-local surface_material = dofile(core.get_modpath(modname) .. "/surface_material.lua")
 
 local c_ignore = core.CONTENT_IGNORE
 local c_air = core.CONTENT_AIR
@@ -63,86 +61,139 @@ end
 
 -- A coarse cell chooses a representative from its 4 cubed nodes: any filled
 -- node keeps the cell occupied. Its material represents the visible top
--- area, so a trunk buried in a crown cannot repaint that crown as wood.
+-- area, so a trunk buried in a crown cannot repaint that crown as wood; the
+-- vote is surface_material.lua's, written out here.
+--
+-- Written for speed on 2026-10-10: index arithmetic instead of
+-- VoxelArea:index, one cached kind per content id, and the surface vote
+-- inline rather than through a sampling closure. About 2.8 times faster
+-- under LuaJIT on terrain shaped blocks (80 us against 220 to 290), and
+-- identical on 1000 test blocks, including emerged areas larger than the
+-- block, part generated ones and missing light values. It matters once the
+-- async workers rather than the server step are the limit
+-- (docs/history/far-rendering-log.md, "Summaries off the server thread").
+-- content id -> 0 empty or not drawn, 1 filled, 2 filled liquid.
+local kind_cache = {}
+local function kind(cid)
+	local k = kind_cache[cid]
+	if k then
+		return k
+	end
+	local c = classify(cid)
+	k = c.liquid and 2 or c.filled and 1 or 0
+	kind_cache[cid] = k
+	return k
+end
+
 local function summarise_vm(vm, pmin)
 	local emin, emax = vm:get_emerged_area()
 	local data = vm:get_data()
 	local light = vm:get_light_data()
-	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
-	local cells, liquid_tops, liquid_cells = {}, {}, {}
+	local ystride = emax.x - emin.x + 1
+	local zstride = ystride * (emax.y - emin.y + 1)
+	-- Index of the block's own corner; VoxelArea:index without the calls.
+	local base0 = (pmin.z - emin.z) * zstride + (pmin.y - emin.y) * ystride +
+			(pmin.x - emin.x) + 1
+	local cells, tops, mask = {}, {}, {0, 0, 0, 0, 0, 0, 0, 0}
 	local block_liquid = nil
 	local block_known, block_complete = false, true
 	local block_day, block_night = 0, 0
+	local counts, order = {}, {}
 	for cz = 0, 3 do
 		for cy = 0, 3 do
 			for cx = 0, 3 do
 				local ci = (cz * 4 + cy) * 4 + cx
+				local cbase = base0 + cz * 4 * zstride + cy * 4 * ystride + cx * 4
 				local chosen_liquid = nil
 				local liquid_top = 0
 				local cell_known, day, night = false, 0, 0
-				for z = pmin.z + cz * 4, pmin.z + cz * 4 + 3 do
-					for y = pmin.y + cy * 4, pmin.y + cy * 4 + 3 do
-						for x = pmin.x + cx * 4, pmin.x + cx * 4 + 3 do
-							local vi = area:index(x, y, z)
+				for z = 0, 3 do
+					for y = 0, 3 do
+						local vi = cbase + z * zstride + y * ystride
+						for _ = 0, 3 do
 							local cid = data[vi]
 							if cid ~= c_ignore then
-								cell_known, block_known = true, true
+								cell_known = true
 								local li = light[vi] or 0
-								day = math.max(day, li % 16)
-								night = math.max(night, math.floor(li / 16) % 16)
-								local c = classify(cid)
-								if c.filled then
-									if c.liquid then
-										liquid_top = math.max(liquid_top,
-											y - (pmin.y + cy * 4) + 1)
-										chosen_liquid, block_liquid = cid, cid
-									end
+								local d = li % 16
+								if d > day then day = d end
+								local n = (li - d) / 16 % 16
+								if n > night then night = n end
+								if kind(cid) == 2 then
+									if y + 1 > liquid_top then liquid_top = y + 1 end
+									chosen_liquid = cid
 								end
 							else
 								block_complete = false
 							end
+							vi = vi + 1
 						end
 					end
 				end
-				local chosen = surface_material(4, function(x, y, z)
-					local cid = data[area:index(pmin.x + cx * 4 + x,
-						pmin.y + cy * 4 + y, pmin.z + cz * 4 + z)]
-					local c = classify(cid)
-					if c.filled and not c.liquid then return cid end
-				end)
-				if not cell_known then
-					cells[ci] = -1
-				else
-					cells[ci] = chosen or false
+				-- The visible top area votes: in each column, the highest
+				-- filled node that is not liquid. Ties go to the content
+				-- seen last among those with the most columns, as
+				-- surface_material.lua decides.
+				local norder = 0
+				for z = 0, 3 do
+					for x = 0, 3 do
+						local vi = cbase + z * zstride + 3 * ystride + x
+						for _ = 3, 0, -1 do
+							local cid = data[vi]
+							if kind(cid) == 1 then
+								local c = counts[cid]
+								if not c then
+									norder = norder + 1
+									order[norder] = cid
+									counts[cid] = 1
+								else
+									counts[cid] = c + 1
+								end
+								break
+							end
+							vi = vi - ystride
+						end
+					end
 				end
-				liquid_cells[ci] = chosen_liquid ~= nil
-				liquid_tops[ci] = chosen_liquid and liquid_top < 4 and liquid_top or 0
-				block_day = math.max(block_day, day)
-				block_night = math.max(block_night, night)
+				local chosen, best = nil, 0
+				for k = 1, norder do
+					local cid = order[k]
+					local c = counts[cid]
+					if c >= best then chosen, best = cid, c end
+					counts[cid] = nil
+				end
+				if cell_known then
+					block_known = true
+					cells[ci] = chosen or false
+				else
+					cells[ci] = -1
+				end
+				if chosen_liquid then
+					block_liquid = chosen_liquid
+					local b = math.floor(ci / 8)
+					mask[b + 1] = mask[b + 1] + 2 ^ (ci % 8)
+					if liquid_top < 4 then
+						local t = math.floor(ci / 4)
+						tops[t] = (tops[t] or 0) + liquid_top * 2 ^ ((ci % 4) * 2)
+					end
+				end
+				if day > block_day then block_day = day end
+				if night > block_night then block_night = night end
 			end
 		end
 	end
 	if not block_known then
 		return nil
 	end
-	local tops = {}
+	local top_chars = {}
 	for i = 0, 15 do
-		local packed = 0
-		for j = 0, 3 do
-			packed = packed + (liquid_tops[i * 4 + j] or 0) * 2 ^ (j * 2)
-		end
-		tops[#tops + 1] = string.char(packed)
+		top_chars[i + 1] = string.char(tops[i] or 0)
 	end
-	local mask = {}
-	for b = 0, 7 do
-		local packed = 0
-		for j = 0, 7 do
-			if liquid_cells[b * 8 + j] then packed = packed + 2 ^ j end
-		end
-		mask[#mask + 1] = string.char(packed)
+	for b = 1, 8 do
+		mask[b] = string.char(mask[b])
 	end
 	return {
-		complete = block_complete, cells = cells, tops = table.concat(tops),
+		complete = block_complete, cells = cells, tops = table.concat(top_chars),
 		day = block_day, night = block_night, liquid = block_liquid,
 		mask = table.concat(mask),
 	}

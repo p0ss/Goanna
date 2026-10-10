@@ -74,7 +74,7 @@ local function options()
 end
 
 -- Far terrain summaries: the "places you have not been" half of far
--- rendering (docs/far-rendering.md). A Goanna client may ask for a coarse
+-- rendering (docs/systems/far-rendering.md). A Goanna client may ask for a coarse
 -- summary of an area of the map, and this answers from terrain the server
 -- has already generated, never generating any: an ungenerated block is
 -- reported unknown and stays a hole. It reads the same map any player would
@@ -540,7 +540,7 @@ end
 -- offer it; the client asks for the same summaries as before.
 local register_surface_tiles = dofile(core.get_modpath(core.get_current_modname()) ..
 		"/surface.lua")(channel, far_enabled, far_provider_distance, storage)
-dofile(core.get_modpath(core.get_current_modname()) .. "/fine.lua")(channel, far_enabled, far_provider_distance)
+local fine_stats = dofile(core.get_modpath(core.get_current_modname()) .. "/fine.lua")(channel, far_enabled, far_provider_distance)
 -- Shared dig damage: whether one client's account of a block it is chipping at
 -- is relayed to everyone else. A Goanna client already carves what it digs on
 -- its own screen and needs nothing from a server to do it; this is only about
@@ -1265,7 +1265,7 @@ end)
 -- for went in behind the whole backlog. Measured on mineclonia, one such
 -- batch is up to about three seconds of mapgen, and 400 blocks around a
 -- player arriving somewhere new took 5.3 seconds to arrive where the same
--- world with pregeneration off took 4.0 (docs/far-rendering.md,
+-- world with pregeneration off took 4.0 (docs/history/far-rendering-log.md,
 -- "Pregeneration yields to the player").
 --
 -- So an area is emerged a slice at a time, `pregen_slice` mapblocks on a
@@ -1360,8 +1360,8 @@ end
 -- terrain carries on that way: ground at its ceiling for upward, air along
 -- its floor for downward. Sky above a plain and rock under it are never
 -- asked for, and a mountain or a valley is followed to its end. The same
--- rule the client's request walk uses (docs/far-rendering.md, "Lids, layers
--- and the vertical walk").
+-- rule the client's request walk uses (docs/history/far-rendering-log.md,
+-- "Lids, layers and the vertical walk").
 local PREGEN_LAYERS = 5
 local function pregen_pick()
 	local best, best_d
@@ -1527,13 +1527,16 @@ if far_log_stats then
 				"reply_queue=%d asked=%d generated_queue=%d cache_areas=%d " ..
 				"lua_mb=%.1f lag=%.3f max_lag=%.3f summary_reads=%d " ..
 				"summary_pass_ms=%.1f summary_land_ms=%.1f summary_read_ms=%.1f " ..
-				"summary_dispatch_ms=%.1f summary_file_ms=%.1f summary_async=%s jobs_out=%d",
+				"summary_dispatch_ms=%.1f summary_file_ms=%.1f summary_async=%s jobs_out=%d " ..
+				"fine_replies=%d fine_ms=%.1f fine_out=%d",
 				done, #pregen.active, #pregen.pending, #far_queue, asked,
 				generated, store_count, collectgarbage("count") / 1024,
 				server_lag(), core.get_server_max_lag(), summary_stats.reads,
 				summary_stats.pass_us / 1000, summary_stats.land_us / 1000,
 				summary_stats.read_us / 1000, summary_stats.dispatch_us / 1000,
-				summary_stats.file_us / 1000, tostring(async_summaries), jobs_out))
+				summary_stats.file_us / 1000, tostring(async_summaries), jobs_out,
+				fine_stats.replies, fine_stats.us / 1000, fine_stats.out))
+		fine_stats.replies, fine_stats.us = 0, 0
 		for k in pairs(summary_stats) do
 			summary_stats[k] = 0
 		end

@@ -149,7 +149,8 @@ the jobs come back. `goanna_far_summary_async = false` keeps it all in the
 step, and `goanna_far_summary_async_jobs` caps how many jobs may be waiting
 at once. Because a block then costs the step a fifth of what it did, the
 step reads 192 blocks rather than 96 unless
-`goanna_far_summary_blocks_per_step` is set.
+`goanna_far_summary_blocks_per_step` is set. The full detail blocks that
+`fine.lua` sends nearby are encoded on the same workers.
 
 What the store does not do yet is tell a client that a block it already has
 changed. A client never asks twice for an area that came back complete, so

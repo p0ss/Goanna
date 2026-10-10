@@ -1,10 +1,62 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- Actual node data for the detailed LOD rungs. Read-only VoxelManip reads do
 -- not generate terrain; ignore is an unavailable reply, never invented air.
+--
+-- Encoding a block is Lua over 4096 nodes, so since 2026-10-10 it runs on
+-- Luanti's async workers where there are any: this file is also registered
+-- with core.register_async_dofile, and there only defines the encoder. The
+-- step reads the block, which is quick, and sends the reply when the worker
+-- returns it. Older servers encode in the step under the old 2 ms bound.
+local function u16(v) return string.char(math.floor(v/256),v%256) end
+local function encode(vm,lo)
+ local hi={x=lo.x+15,y=lo.y+15,z=lo.z+15}
+ local emin,emax=vm:get_emerged_area()
+ local area=VoxelArea:new{MinEdge=emin,MaxEdge=emax}
+ local data,light,param2=vm:get_data(),vm:get_light_data(),vm:get_param2_data()
+ local names,indices,runs={}, {}, {}
+ local last,count
+ local function flush() if last then runs[#runs+1]=u16(count)..last end end
+ for z=lo.z,hi.z do for y=lo.y,hi.y do for x=lo.x,hi.x do
+  local i=area:index(x,y,z)
+  local cid=data[i]
+  if cid==core.CONTENT_IGNORE then return '-' end
+  local index=indices[cid]
+  if not index then
+   names[#names+1]=core.get_name_from_content_id(cid)
+   index=#names;indices[cid]=index
+  end
+  local record=u16(index)..string.char(light[i] or 0,param2[i] or 0)
+  if record==last and count<4096 then count=count+1
+  else flush();last,count=record,1 end
+ end end end
+ flush()
+ local body=table.concat(names,',')..'|'..core.encode_base64(core.compress(table.concat(runs),'deflate',1))
+ -- Unusually varied blocks can exceed one packet. A bounded unavailable
+ -- reply lets the normal live-block path supply those without truncation.
+ if #body>60000 then return '-' end
+ return body
+end
+-- The async environment has no players; the server's does. An error that
+-- escapes an async job stops the server, hence the pcall.
+if not core.get_player_by_name then
+ rawset(_G,'goanna_fine_encode',function(vm,lo)
+  local ok,body=pcall(encode,vm,lo)
+  if ok then return body end
+  core.log('warning','[goanna] fine block failed: '..tostring(body))
+  return '-'
+ end)
+end
 return function(channel, enabled, distance)
  local queue,pending,watch={}, {}, {}
  local function key(x,y,z) return x..':'..y..':'..z end
- local function u16(v) return string.char(math.floor(v/256),v%256) end
+ local async=core.handle_async~=nil and core.register_async_dofile~=nil and
+   core.register_mapgen_script~=nil and
+   core.settings:get_bool('goanna_far_summary_async',true)
+ if async then
+  core.register_async_dofile(core.get_modpath(core.get_current_modname())..'/fine.lua')
+ end
+ -- Replies sent and server thread time spent on them, for the far stats line.
+ local stats={replies=0,us=0,out=0}
  core.register_on_modchannel_message(function(name,who,msg)
   if name~='goanna:v1' or not enabled then return end
   local token,x,y,z=msg:match('^farfine%? 1 (%d+) (%-?%d+) (%-?%d+) (%-?%d+)$')
@@ -26,49 +78,49 @@ return function(channel, enabled, distance)
  end)
  local function read(job)
   local lo={x=job.x*16,y=job.y*16,z=job.z*16}
-  local hi={x=lo.x+15,y=lo.y+15,z=lo.z+15}
-  local vm=core.get_voxel_manip(lo,hi)
-  local emin,emax=vm:get_emerged_area()
-  local area=VoxelArea:new{MinEdge=emin,MaxEdge=emax}
-  local data,light,param2=vm:get_data(),vm:get_light_data(),vm:get_param2_data()
-  local names,indices,runs={}, {}, {}
-  local last,count
-  local function flush() if last then runs[#runs+1]=u16(count)..last end end
-  for z=lo.z,hi.z do for y=lo.y,hi.y do for x=lo.x,hi.x do
-   local i=area:index(x,y,z)
-   local cid=data[i]
-   if cid==core.CONTENT_IGNORE then return '-' end
-   local index=indices[cid]
-   if not index then
-    names[#names+1]=core.get_name_from_content_id(cid)
-    index=#names;indices[cid]=index
-   end
-   local record=u16(index)..string.char(light[i] or 0,param2[i] or 0)
-   if record==last and count<4096 then count=count+1
-   else flush();last,count=record,1 end
-  end end end
-  flush()
-  local body=table.concat(names,',')..'|'..core.encode_base64(core.compress(table.concat(runs),'deflate',1))
-  -- Unusually varied blocks can exceed one packet. A bounded unavailable
-  -- reply lets the normal live-block path supply those without truncation.
-  if #body>60000 then return '-' end
-  return body
+  return core.get_voxel_manip(lo,{x=lo.x+15,y=lo.y+15,z=lo.z+15}),lo
  end
+ local function reply(job,body)
+  if not channel or not channel:is_writeable() or not core.get_player_by_name(job.who) then return end
+  channel:send_all(string.format('farfine %s 1 %s %d %d %d %s',job.who,job.token,job.x,job.y,job.z,body))
+  watch[key(job.x,job.y,job.z)]=core.get_us_time()
+  stats.replies=stats.replies+1
+ end
+ -- On the workers, a reply waits on its job, so the step only bounds how
+ -- many are out: sixteen, the most one player may have queued.
+ local MAX_OUT=16
  core.register_globalstep(function()
   if not channel or not channel:is_writeable() then return end
   local start=core.get_us_time()
+  if async then
+   while stats.out<MAX_OUT and #queue>0 do
+    local job=table.remove(queue,1)
+    pending[job.key]=nil
+    if core.get_player_by_name(job.who) then
+     local vm,lo=read(job)
+     stats.out=stats.out+1
+     core.handle_async(function(v,l) return goanna_fine_encode(v,l) end,function(body)
+      local t0=core.get_us_time()
+      stats.out=stats.out-1
+      reply(job,body or '-')
+      stats.us=stats.us+core.get_us_time()-t0
+     end,vm,lo)
+    end
+   end
+   stats.us=stats.us+core.get_us_time()-start
+   return
+  end
   for _=1,4 do
    local job=table.remove(queue,1)
    if not job then break end
    pending[job.key]=nil
    if core.get_player_by_name(job.who) then
-    local body=read(job)
-    channel:send_all(string.format('farfine %s 1 %s %d %d %d %s',job.who,job.token,job.x,job.y,job.z,body))
-    local k=key(job.x,job.y,job.z)
-    watch[k]=core.get_us_time()
+    local vm,lo=read(job)
+    reply(job,encode(vm,lo))
    end
    if core.get_us_time()-start>=2000 then break end
   end
+  stats.us=stats.us+core.get_us_time()-start
  end)
  local function changed(pos)
   local x,y,z=math.floor(pos.x/16),math.floor(pos.y/16),math.floor(pos.z/16)
@@ -88,4 +140,5 @@ return function(channel, enabled, distance)
   for k,t in pairs(watch) do if now-t>60000000 then watch[k]=nil end end
  end)
  if enabled then goanna_announce('far_fine','1') end
+ return stats
 end
