@@ -41,7 +41,7 @@ EXCLUDES=(':!:luanti/**' ':!:godot-cpp/**' ':!:whisper.cpp/**' ':!:build/**'
           ':!:src/transplant/**'
           ':!:project/.godot/**' ':!:*.import' ':!:LICENSE'
           ':!:docs/develop/style.md' ':!:tools/check-style.sh')
-PATTERNS=('*.md' '*.gd' '*.h' '*.cpp' '*.cmake' 'CMakeLists.txt' '*.sh'
+PATTERNS=('*.md' '*.gd' '*.h' '*.cpp' '*.cmake' 'CMakeLists.txt' '*.sh' '*.yml'
           '*.gdextension' '*.godot' '*.py' '*.lua' '*.gdshader' '*.gdshaderinc')
 
 # Tracked files, and new files git would offer to add (not ignored).
