@@ -95,7 +95,10 @@ void fragment() {
 	vec2 offset = wave * shimmer_strength * w / max(dist, 0.75) * 2.0;
 	vec3 bent = textureLod(screen_tex, SCREEN_UV + offset, 0.0).rgb;
 	vec3 here = textureLod(screen_tex, SCREEN_UV, 0.0).rgb;
-	// Already seen through any water: no absorption on top.
-	ALBEDO = bent - here;
+	// Already seen through any water: no absorption on top. Limited, because
+	// the pixel this adds to already holds the flames drawn over the opaque
+	// scene: a bend from a bright face into a dark joint behind them cut
+	// thin black cracks into the flame (seen 2026-10-10 on netherrack).
+	ALBEDO = clamp(bent - here, vec3(-0.08), vec3(0.08));
 	ALPHA = 1.0;
 }
