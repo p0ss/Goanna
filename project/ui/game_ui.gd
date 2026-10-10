@@ -78,6 +78,8 @@ var drag_picked := false               # the held press is what picked the curso
 var drag_slots: Array = []             # left drag: slots to share the cursor stack out over
 var drag_amount := 0                   # what the cursor held when the left drag began
 var pending_craft := false
+var craft_drop_target := {}             # release before the craft reply arrived
+var craft_location := "current_player"
 var shift_craft_location := ""         # non-empty: a shift-crafted stack is due a ring move
 var chat_printed := 0
 var hud_scale := 1.0
@@ -1904,6 +1906,9 @@ func _click_slot(location: String, listname: String, index: int, button: int) ->
 # is going away.
 func _clear_cursor() -> void:
 	selected = {}
+	pending_craft = false
+	shift_craft_location = ""
+	craft_drop_target = {}
 	drag_button = 0
 	drag_picked = false
 	drag_slots = []
@@ -1944,14 +1949,19 @@ func _slot_takes_selected(location: String, listname: String, index: int) -> boo
 func _move_selected(location: String, listname: String, index: int, amt: int) -> void:
 	if selected.is_empty() or amt <= 0:
 		return
-	client.inventory_action("Move %d %s %s %d %s %s %d" % [amt,
-		selected["location"], selected["listname"], selected["index"],
-		location, listname, index])
-	if selected["listname"] == "craftresult":
-		# taking the result out is what performs the craft, so the cursor
-		# cannot go on pointing at it
-		selected = {}
+	var result: bool = selected["listname"] == "craftresult"
+	var dst := get_list_item(location, listname, index)
+	var capacity := _stack_max(String(selected.get("name", ""))) - int(dst.get("count", 0))
+	if result and (not _slot_takes_selected(location, listname, index) or capacity <= 0):
+		# A crafted result cannot swap the destination item into craftresult.
+		# Let the server find a compatible stack or free slot in this list.
+		client.inventory_action("MoveSomewhere %d %s craftresult %d %s %s" % [amt,
+			selected["location"], selected["index"], location, listname])
 	else:
+		client.inventory_action("Move %d %s %s %d %s %s %d" % [amt,
+			selected["location"], selected["listname"], selected["index"],
+			location, listname, index])
+	if not result:
 		selected["amount"] = int(selected["amount"]) - amt
 		if selected["amount"] <= 0:
 			selected = {}
@@ -2077,6 +2087,8 @@ func _on_slot_released(location: String, listname: String, index: int, button: i
 		location = form_context
 	if button != drag_button:
 		return
+	if pending_craft and listname != "" and listname != "craftpreview" and listname != "craftresult":
+		craft_drop_target = {"location": location, "listname": listname, "index": index}
 	var slots: Array = drag_slots
 	var amount := drag_amount
 	var picked := drag_picked
@@ -2089,7 +2101,7 @@ func _on_slot_released(location: String, listname: String, index: int, button: i
 	if button == MOUSE_BUTTON_LEFT and slots.size() > 1:
 		_share_out_drag(slots, amount)
 		return
-	if listname == "":
+	if listname == "" or listname == "craftpreview" or listname == "craftresult":
 		return
 	var same_slot: bool = selected["location"] == location \
 		and selected["listname"] == listname and selected["index"] == index
@@ -2133,8 +2145,10 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		return
 	if listname == "craftpreview":
 		# The preview only shows what the grid would make; the real item is in
-		# the hidden "craftresult" list, and picking that up is what performs
-		# the craft (GUIFormSpecMenu::updateSelectedItem does the same).
+		# the hidden "craftresult" list. Craft counts recipe repetitions, not
+		# the number of output items in the preview.
+		if pending_craft or shift_craft_location != "":
+			return
 		if selected.is_empty():
 			if shift and button == MOUSE_BUTTON_LEFT and count > 0:
 				# Shift click crafts a full stack: ask for as many repeats as
@@ -2151,12 +2165,17 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 			if int(res.get("count", 0)) > 0:
 				selected = {"location": location, "listname": "craftresult", "index": 0,
 					"amount": int(res["count"]), "name": res.get("name", "")}
+				drag_picked = press
 				hud.queue_redraw()
 			elif count > 0:
 				# No craftresult (the server only filled the preview): ask for
 				# the craft itself. ICraftAction is "Craft <count> <location>";
 				# count 0 means craft as many as the grid allows.
-				client.inventory_action("Craft %d %s" % [count, location])
+				var repeats := 10 if button == MOUSE_BUTTON_MIDDLE else 1
+				client.inventory_action("Craft %d %s" % [repeats, location])
+				craft_location = location
+				craft_drop_target = {}
+				drag_picked = press
 				pending_craft = true
 		return
 	if selected.is_empty():
@@ -2197,11 +2216,15 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 func _after_inventory_update() -> void:
 	# after a craft the result sits in craftresult: pick it up, as vanilla does
 	if pending_craft:
-		pending_craft = false
-		var res := get_list_item("current_player", "craftresult", 0)
+		var res := get_list_item(craft_location, "craftresult", 0)
 		if res.get("count", 0) > 0:
-			selected = {"location": "current_player", "listname": "craftresult", "index": 0,
+			pending_craft = false
+			selected = {"location": craft_location, "listname": "craftresult", "index": 0,
 				"amount": res["count"], "name": res.get("name", "")}
+			if not craft_drop_target.is_empty():
+				var dst := craft_drop_target
+				craft_drop_target = {}
+				_move_selected(dst.location, dst.listname, dst.index, int(res["count"]))
 	elif shift_craft_location != "":
 		# The full stack a shift click asked for is in craftresult now; send
 		# it straight to the next list in the ring instead of the cursor, the
@@ -2225,6 +2248,8 @@ func _after_inventory_update() -> void:
 			else:
 				var dst: String = form_context if nxt["location"] == "context" else nxt["location"]
 				client.inventory_action("MoveSomewhere %d %s craftresult 0 %s %s" % [amt, loc, dst, nxt["listname"]])
+				selected = {"location": loc, "listname": "craftresult", "index": 0,
+					"amount": amt, "name": res.get("name", "")}
 				shift_craft_location = ""
 	elif not selected.is_empty():
 		var cur := get_list_item(selected["location"], selected["listname"], selected["index"])

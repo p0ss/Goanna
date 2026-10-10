@@ -592,7 +592,39 @@ func _test_click_and_craft_paths() -> void:
 	_equal(ui.client.actions,
 		["Move 4 current_player craftresult 0 current_player main 0"],
 		"a craft result is put down on the press, never held back for a split")
-	_check(ui.selected.is_empty(), "and the cursor lets go of the craft result")
+	_check(not ui.selected.is_empty(), "craft result stays visible until the server confirms the move")
+	ui.inv_cache["lists"]["craftresult"] = [{}]
+	ui._after_inventory_update()
+	_check(ui.selected.is_empty(), "confirmed result move clears the cursor")
+	_discard_inventory_ui(ui)
+
+
+	# A recipe preview of four items is one recipe run, not four runs.
+	ui = _new_inventory_ui({"main": [_stack("default:stone", 12), {}],
+		"craft": [_stack("default:stone", 8)], "craftpreview": [_stack("default:apple", 4)],
+		"craftresult": [{}]})
+	ui._on_slot_clicked("current_player", "craftpreview", 0, MOUSE_BUTTON_LEFT, false)
+	_equal(ui.client.actions, ["Craft 1 current_player"], "ordinary craft requests one recipe batch")
+	ui._on_slot_released("current_player", "main", 0, MOUSE_BUTTON_LEFT)
+	ui._after_inventory_update()
+	_check(ui.pending_craft, "an intermediate empty result update does not lose the pending craft")
+	ui.inv_cache["lists"]["craftresult"] = [_stack("default:apple", 4)]
+	ui._after_inventory_update()
+	_equal(ui.client.actions[-1], "MoveSomewhere 4 current_player craftresult 0 current_player main",
+		"dropping a new craft onto an occupied slot asks the server for a free slot")
+	_check(not ui.selected.is_empty(), "result remains visible while the destination is pending")
+	ui._after_inventory_update()
+	_check(not ui.selected.is_empty(), "a refused move into a full inventory keeps the result held")
+	ui.inv_cache["lists"]["craftresult"] = [_stack("default:apple", 3)]
+	ui._after_inventory_update()
+	_equal(ui.selected.get("amount"), 3, "partial result move keeps the unplaced remainder held")
+	_discard_inventory_ui(ui)
+
+	ui = _new_inventory_ui({"main": [{}], "craftpreview": [_stack("default:apple", 4)], "craftresult": [{}]})
+	ui._on_slot_clicked("current_player", "craftpreview", 0, MOUSE_BUTTON_MIDDLE, false)
+	_equal(ui.client.actions, ["Craft 10 current_player"], "middle click requests ten recipe batches")
+	ui._clear_cursor()
+	_check(not ui.pending_craft and ui.craft_drop_target.is_empty(), "closing a form clears pending drag state")
 	_discard_inventory_ui(ui)
 
 	# width is a minimum; long names must not be clipped to five em.
