@@ -8,6 +8,8 @@ Until it is, start with:
 
 - [Architecture in brief](index.md#architecture-in-brief), on the
   developer page.
+- [The Godot project](../../project/README.md), for where the GDScript,
+  scenes and shaders live.
 - [Transplanting Luanti code](transplanting.md), for the boundary between
   Luanti's code and Goanna's.
 - [Protocol coverage](../systems/protocol-coverage.md), for what the session

@@ -18,6 +18,8 @@ and the optional server mod in `goanna_server_mod/`. The `luanti/`,
 - [Transplanting Luanti code](transplanting.md): how Luanti's code is
   carried, and the inventory of copied files.
 - [Architecture](architecture.md): how the pieces fit. Not written yet.
+- [The Godot project](../../project/README.md): what each folder under
+  `project/` holds, and how to move a script without breaking it.
 
 ## Testing and measuring
 
