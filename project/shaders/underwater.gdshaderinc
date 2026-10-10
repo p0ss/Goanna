@@ -18,12 +18,20 @@
 // above. Their share, exp(-density * distance), is given back here, so
 // what is left of a surface's light is the absorption alone and the fog
 // only adds the glow.
+//
+// Included by the node array shaders, waving_leaves, waving_plants,
+// grass_volume, water, the entity shaders (entity_common.gdshaderinc),
+// flame_common.gdshaderinc and portal_common.gdshaderinc. The guard lets a
+// shader reach it through more than one include. Every tier runs it; it
+// costs one early return while the eye is dry.
 #ifndef GOANNA_UNDERWATER
 #define GOANNA_UNDERWATER
 
-// 1 while the eye is in water (GoannaClient.is_underwater).
+// 1 while the eye is in water, else 0: set by GoannaClient::is_underwater
+// (src/goanna_client.cpp), which main.gd calls every frame.
 global uniform float goanna_eye_underwater;
-// The water's absorption per node, red, green, blue (water_optics.gd).
+// The water's absorption per node, red, green, blue, as an exponent:
+// exp(-absorption * nodes) is what is left (water_optics.gd sets it).
 global uniform vec3 goanna_water_absorption;
 // x the height of the water's surface over the eye, world space; y the
 // density of the fog and the scattering volume together. Set by main.gd
@@ -43,6 +51,9 @@ vec3 goanna_underwater_keep(vec3 vertex, mat4 inv_view, vec3 eye) {
 	// Seen up through the surface: only the stretch under it is water.
 	if (world.y > surface && rise > 1e-4)
 		path *= clamp((surface - eye.y) / rise, 0.0, 1.0);
+	// One exp for both: the fog's own dimming given back (+density * dist)
+	// and the water's taken (-absorption * path), each capped at 64 nodes so
+	// a distant surface cannot be given back an unbounded gain.
 	return clamp(exp(goanna_water_surface.y * min(dist, 64.0)
 			- goanna_water_absorption * min(path, 64.0)), vec3(0.0), vec3(1.0));
 }

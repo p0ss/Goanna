@@ -17,6 +17,11 @@
 // time: godotengine/godot#60388. The LabPBR decode below is duplicated
 // from nodes_array.gdshader rather than shared; see
 // nodes_array_common.gdshaderinc for why.
+//
+// Loaded and set up by GoannaClient::materialFor (src/goanna_client.cpp)
+// exactly as nodes_array.gdshader is, with the same uniforms from the same
+// includes; project/tests/node_array_shaders.gd checks the two still
+// declare everything the client sets. Every graphics tier uses it.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -134,6 +139,8 @@ void fragment() {
 	}
 	// See nodes_array.gdshader: the wetness block reads porosity.
 	float porosity = 0.35;
+	// The _s decode, channel for channel as nodes_array.gdshader, whose
+	// comments explain the roughness, F0, emission and porosity encodings.
 	if (has_spec) {
 		vec4 sp = textureGrad(spec_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 		float sm = sp.r;
@@ -151,9 +158,8 @@ void fragment() {
 			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
 		}
 	}
-	// Keep the complete micro-PBR response on the same distance ramp as the
-	// albedo and normal detail. Otherwise a flat averaged canopy retains the
-	// close tile's sharp highlight and becomes reflective at the LOD handoff.
+	// Gems: the same block as nodes_array.gdshader, which says what each
+	// step does.
 	float gem = goanna_diamond_mask(tile.rgb, layer_diamond[layer]) * (1.0 - flatten);
 	vec3 gem_normal = relief_normal * 0.5 + 0.5;
 	// Authored maps are upscaled; the gem's art remains a 16-texel tile.
@@ -203,6 +209,9 @@ void fragment() {
 		}
 	}
 
+	// Keep the complete micro-PBR response on the same distance ramp as the
+	// albedo and normal detail. Otherwise a flat averaged canopy retains the
+	// close tile's sharp highlight and becomes reflective at the LOD handoff.
 	ROUGHNESS = mix(ROUGHNESS, mix(1.0, lod_avg_rough[layer], roughness_strength), flatten);
 	// The relief that flattening just removed, returned as roughness. Added in
 	// squared roughness, which is where a slope distribution's variance

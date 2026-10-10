@@ -3,7 +3,9 @@
 // The parallax depth table, shared by the node array shaders
 // (nodes_array_common.gdshaderinc) and the entity ones
 // (entity_common.gdshaderinc), so a block and a mob of one material march
-// the same depth when their map gives none of its own.
+// the same depth when their map gives none of its own. No uniforms: the
+// table is constant, and each includer's parallax_depth scales all of it
+// at once.
 
 // Depth of the height map's full range, in nodes, by material class. The
 // classes are src/goanna_materials.h's: 0 none, 1 stone, 2 wood, 3 leaves,

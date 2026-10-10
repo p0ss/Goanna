@@ -5,6 +5,16 @@
 // fragment() itself, not from a function it calls, so the LabPBR decode is
 // duplicated in nodes_array.gdshader and nodes_array_scissor.gdshader rather
 // than shared. Change one, change the other.
+//
+// Included by nodes_array.gdshader, nodes_array_scissor.gdshader and
+// crack_overlay.gdshader. The per tile and per layer uniforms are set by
+// GoannaClient::materialFor (src/goanna_client.cpp) when it builds an array
+// material, near or far (MaterialKey::lod); the *_strength ones by
+// GoannaClient::set_material_strength from the settings and the graphics
+// profiles (project/graphics_profiles.gd); the global ones per view by
+// main.gd or GoannaClient. The study scenes (lighting_chart.gd,
+// material_ramp.gd and the like) set their own. Besides the uniforms it
+// holds the per node tiling helpers both shaders call.
 
 // The tile colours. Declared here rather than in each shader because the
 // stochastic sampling below has to reach all three arrays, and Godot will not
@@ -15,6 +25,8 @@
 uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
+// Whether the pack gave this array its _n and _s companions, so
+// normal_array and spec_array are bound. Both false under GOANNA_NO_PBR.
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 // Per channel strengths. A LabPBR pack is authored for someone else's
@@ -46,6 +58,12 @@ uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 // flatten trades it for roughness. The self shadow marches from the hit
 // point toward goanna_sun_dir through the same height field and takes the
 // sun off the texel where the surface is in its own way.
+//
+// parallax_strength is the "parallax" material strength: 0 on the Lowest
+// graphics profile, 1 elsewhere, and 0 skips the march entirely. The other
+// three are defaults the client never changes; material_ramp.gd sets them
+// for its studies. parallax_range is in nodes, parallax_depth a multiplier
+// on the depth table, parallax_shadow_strength 0 (no self shadow) to 1.
 uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
 uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
@@ -57,14 +75,17 @@ uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
 // parallax_short_range nodes of the eye, fading to the plain normal map
 // over the outer half of that. A joint's wall and shadow are worth the
 // march only close up, where a texel is many pixels; further out the micro
-// shadow in light() (direct_light.gdshaderinc) carries the recesses.
+// shadow in light() (direct_light.gdshaderinc) carries the recesses. The
+// Low profile sets it to 1; parallax_short_range, in nodes, is a default.
 uniform float parallax_short_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float parallax_short_range : hint_range(0.0, 64.0) = 8.0;
 // Experimental: a march that leaves the node's tile through a face edge
 // discards the fragment, so joints and pits cut the block's silhouette.
 // Only right on a single node quad; a merged quad's inner boundaries are
-// not edges. Off by default.
+// not edges. Off by default; only material_ramp.gd turns it on.
 uniform float parallax_silhouette : hint_range(0.0, 1.0) = 0.0;
+// Unit world space direction toward the sun, set per view by main.gd
+// (_apply_sky); straight up when there is no sun.
 global uniform vec3 goanna_sun_dir;
 
 // Per vertex node light and occlusion, packed into CUSTOM0 by
@@ -75,7 +96,9 @@ global uniform vec3 goanna_sun_dir;
 //
 // How much each channel is allowed to do is a uniform rather than a constant,
 // because the balance is judged on lighting_chart.tscn and is expected to move
-// (docs/design/pbr-plan.md step 3).
+// (docs/design/pbr-plan.md, "Current implementation": lighting defaults are
+// judged on that chart, not on an uncontrolled world view). Each is a
+// material strength, set through GoannaClient::set_material_strength.
 //
 // sky_light_strength attenuates ambient by how much sky reaches the vertex,
 // which is what makes an interior read as an interior instead of being lit by
@@ -106,8 +129,8 @@ global uniform vec3 goanna_sky_fill;
 // The lower half of the fill: what bounces up off the ground, warmer and
 // dimmer than the sky above. The fill blends between the two by the world
 // normal, so a ceiling is not lit by the sky through the roof of the world
-// and a wall gets the horizon's mix, which is the hemisphere ambient of
-// docs/design/pbr-plan.md's "The macro scale". Set beside goanna_sky_fill.
+// and a wall gets the horizon's mix: a hemisphere ambient, sky above and
+// ground below. Set beside goanna_sky_fill in main.gd's _apply_sky.
 global uniform vec3 goanna_ground_fill;
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
@@ -115,7 +138,9 @@ uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 // Block light as emission. Off by default: Goanna already places real Godot
 // lights for light emitting nodes, so adding it here would count torches
 // twice. The far tiers, which are past the range those lights reach, turn it
-// on; see docs/systems/far-rendering.md.
+// on: GoannaClient::materialFor sets it to 1 on every LOD material (see
+// docs/history/far-rendering-log.md, "One light, from your feet to the
+// horizon"). A multiplier on the block light channel; the studies set 0.
 uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
 // Where the light pool's real lamps end, in view distance, set per frame by
 // GoannaClient::update_lights. Past it the near mesh fades in the same
@@ -136,16 +161,17 @@ global uniform float goanna_wetness;
 uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 
 // Staleness: CUSTOM0.a is 255 on a live block and lower on one the far
-// tiers drew from the local store (docs/history/far-rendering-log.md, "Staleness"),
-// and the shader can pull such surfaces toward grey by this much. Off by
-// default: a grey far field is a per tier signal painted into the frame,
-// and the far field is judged by there being none (docs/develop/launch-target.md,
-// "one light, one air"). The channel stays so the signal can be turned on
-// to see what is remembered rather than seen.
+// tiers drew from the local store (docs/systems/mesh-attributes.md, on
+// CUSTOM0.a), and the shader can pull such surfaces toward grey by this
+// much. Off by default: a grey far field is a per tier signal painted into
+// the frame, and the far field is judged by there being none
+// (docs/develop/launch-target.md, "Rendering acceptance": near and far
+// share one colour and light path). The channel stays so the signal can
+// be turned on to see what is remembered rather than seen.
 uniform float stale_strength : hint_range(0.0, 1.0) = 0.0;
 
-// Far tiers only (docs/systems/far-rendering.md, "Shade the far field as a far
-// field"): a region quad's UV still repeats once per node, which is right up
+// Far tiers only (docs/history/far-rendering-log.md, "Stipple and close
+// tiling"): a region quad's UV still repeats once per node, which is right up
 // close where a tile is a tile's width away, but a merged quad can span a
 // couple of hundred nodes, and at that scale the repeat aliases into a
 // shimmer no amount of ordinary mipmapping fixes without anisotropic
@@ -199,12 +225,18 @@ uniform float lod_avg_spec[256];
 // real material does. Detail going sub-pixel does not make a surface smoother;
 // it makes it rougher at a scale the highlight can no longer resolve, and that
 // is what this puts back. Same 256 layer cap as above.
+//
+// lod_flatten and all the lod_* arrays are set together by
+// GoannaClient::materialFor on a LOD material, and nowhere on a near one.
 uniform float lod_normal_variance[256];
+// How much of that lost relief comes back as roughness (0 none, 1 all of
+// it) and how much of the coverage darkening applies. Defaults only.
 uniform float lod_variance_roughness : hint_range(0.0, 2.0) = 1.0;
 uniform float lod_coverage_strength : hint_range(0.0, 1.0) = 1.0;
 // Keep the hand-off range visually identical to the near renderer. Detail is
 // only flattened once fog and screen footprint make an individual tile too
 // small to read. These are camera distances, not distances from world zero.
+// In nodes; defaults, though material_field.gd moves them for its frames.
 uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 384.0;
 uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
 
@@ -215,6 +247,8 @@ uniform float lod_flatten_far : hint_range(0.0, 4096.0) = 1024.0;
 // dressed it. Same 256 layer cap as lod_avg_colour.
 uniform int layer_class[256];
 // Independent of the host material: a diamond ore tile is mostly stone.
+// Each layer's gem code, 0 for none, as diamond.gdshaderinc decodes it
+// (goanna_gem_kind, goanna_gem_mode); set by GoannaClient::materialFor.
 uniform int layer_diamond[256];
 // Relief depth per layer as a fraction of a node, measured from the map
 // itself (its normal slope against its height gradient, see
@@ -239,19 +273,19 @@ uniform float layer_coarse[256];
 // Material identity limits dry bark's polished patches. Applied before rain
 // so wet bark can still change, and after LOD so it stays rough at distance.
 uniform float layer_roughness_floor[256];
+// The layer_coarse share above which a tile is a picture and keeps its
+// authored UVs rather than shifting per node. Default only.
 uniform float detail_max_coarse : hint_range(0.0, 1.0) = 0.35;
 // Surface detail: how much of the per class treatment runs. 0 is the plain
 // single sample this shader has always done, which is what the far tiers and
 // modest hardware want; the Material tab drives it as mat_detail.
 uniform float detail_strength : hint_range(0.0, 2.0) = 1.0;
-// How hard the three cell weights are pushed toward the nearest one. High
-// values keep pixel art crisp and take one texture read instead of three
-// over most of the screen; low values cross fade and blur.
 // Whether a node may also turn its tile by a right angle, as well as shift
 // it. Off by default, and it is a look decision rather than a tuning one:
 // on an isotropic texture like stone or gravel a turn adds variety for
 // nothing, but sand's ripple runs in one direction on purpose, and turning
-// it per node reads as a woven quilt rather than as a dune.
+// it per node reads as a woven quilt rather than as a dune. The client
+// leaves it at 0; only material_field.gd turns it on, for comparison.
 uniform float detail_turn : hint_range(0.0, 1.0) = 0.0;
 
 // Goanna: animated node tiles. An animation array (built by

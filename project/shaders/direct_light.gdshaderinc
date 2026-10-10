@@ -40,6 +40,16 @@
 // RIM_TINT, zero for none) in fragment(). RIM and RIM_TINT themselves do
 // nothing once a shader has a light(), which is why they travel here.
 //
+// Who includes it: nodes_array.gdshader, nodes_array_scissor.gdshader,
+// crack_overlay.gdshader, waving_leaves.gdshader, waving_plants.gdshader
+// and the entity shaders through entity_common.gdshaderinc. Three defines,
+// set by the including shader before the include, add optional parts:
+// GOANNA_DIAMOND the gem fire and interior (diamond.gdshaderinc, nodes and
+// entities), GOANNA_MICRO_SHADOW the micro shadow (all but crack_overlay)
+// and GOANNA_HAIR the hair lobes (entities only). None is a graphics tier
+// switch: the tiers reach these parts through the material strength
+// uniforms below, which a strength of 0 turns off.
+//
 // goanna_direct_light and the helpers it calls are adapted from Godot Engine,
 // which is MIT licensed, so its notice travels with them. See THIRD-PARTY.md.
 //
@@ -117,7 +127,8 @@ float goanna_micro_shadow(float ao, float ndotl) {
 // in fully. 0.05 lies between Luanti's levels 1 and 2 on the default light
 // curve (0.024 and 0.059), and open sky beside a level 14 lamp, the brightest
 // artificial light there is, still stands 0.082 above it, so surface sun is
-// never dimmed by a torch or by lava.
+// never dimmed by a torch or by lava. In light bank units (0 to 1); the
+// default is all anything uses, nothing sets it.
 uniform float sun_gate_width : hint_range(0.001, 0.5) = 0.05;
 
 float goanna_sun_gate(float day, float night) {
@@ -158,6 +169,9 @@ void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenua
 	float cndotl = max(ndotl, 0.0);
 	vec3 h = normalize(v + l);
 	float cldoth = clamp(dot(l, h), 0.0, 1.0);
+	// Burley's diffuse: Lambert with a Fresnel shaped retroreflection that
+	// brightens rough surfaces at grazing angles. BACKLIGHT is the light let
+	// through to the far side (leaves, the sss channel).
 	if (metallic < 1.0) {
 		float fd90_minus_1 = 2.0 * cldoth * cldoth * roughness - 0.5;
 		float fdv = 1.0 + fd90_minus_1 * goanna_schlick_fresnel(cndotv);
@@ -166,6 +180,12 @@ void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenua
 		diffuse += light_color * diffuse_brdf_nl * attenuation;
 		diffuse += light_color * (vec3(1.0 / PI) - diffuse_brdf_nl) * backlight * attenuation;
 	}
+	// GGX specular: d the GGX distribution, g Godot's approximate height
+	// correlated Smith visibility, f Schlick's Fresnel. F0 is Godot's
+	// SPECULAR mapping, 0.16 * s * s, so the default 0.5 gives the 0.04 of
+	// a dielectric; f90 fades to zero for an F0 too dark to be real, which
+	// is Godot's specular occlusion trick. `energy` puts back the light the
+	// single scattering lobe loses on rough surfaces.
 	if (roughness > 0.0) {
 		float cndoth = clamp(dot(n, h), 0.0, 1.0);
 		float alpha_ggx = roughness * roughness;
@@ -200,6 +220,11 @@ void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenua
 // normal is turned along the strand by up to 45 degrees across each face
 // (v_hair_strand.w), as if the box were rounded: for the specular only, the
 // diffuse keeps the box.
+//
+// The hair uniforms below are defaults only, judged in the hair studies
+// (docs/perf/hair-aniso-2026-10-02, hair-shader-2026-10-03). Whether hair
+// is drawn at all is the "hair" and "hair_shader" material strengths, read
+// in entity_common.gdshaderinc and hair_strands.gdshaderinc.
 varying float v_hair;
 varying vec4 v_hair_strand;
 // Hair drawn by the shader (hair_strands.gdshaderinc): x its weight, which
@@ -309,6 +334,8 @@ void light() {
 	float gate = LIGHT_IS_DIRECTIONAL ? v_sun_gate : 1.0;
 	// The carried light sits at the camera and has no node emitter. Keep it
 	// independent, including when a static lamp lies on the same view ray.
+	// goanna_lamp_visibility (lamp_occlusion.gdshaderinc) is 1 unless the
+	// experimental lamp_occlusion switch has published a grid.
 	if (!LIGHT_IS_DIRECTIONAL && ATTENUATION > 0.0001 && dot(LIGHT, VIEW) < 0.999999)
 		gate *= goanna_lamp_visibility(v_lamp_world,
 				normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz));

@@ -13,6 +13,12 @@
 // and drifts with the deck. The threshold is wider than the sky's own
 // (0.34 against 0.16), so the shadow of a soft cloud is a soft dimming
 // rather than a plate with the cloud's outline.
+//
+// Both are set per view by main.gd from the lowest cloud layer that lies
+// above the regional terrain. The render_cloud_shadows switch zeroes the
+// strength, which makes goanna_cloud_dim return 1 before any noise is read.
+// goanna_cloud_geom: x noise cycles per node, y the deck's height in world
+// nodes, zw the shadow's xz shift per node of height below the deck.
 global uniform vec4 goanna_cloud_shadow;
 global uniform vec4 goanna_cloud_geom;
 
@@ -39,9 +45,14 @@ float goanna_cloud_fbm(vec2 p) {
 		p = p * 2.03 + vec2(7.3, 1.7);
 		a *= 0.5;
 	}
+	// 0.9375 is the four amplitudes' sum, so the result spans 0 to 1.
 	return v / 0.9375;
 }
 
+// How much of its light a surface at `world` keeps, 1 for no cloud. The
+// callers multiply it into ALBEDO, so it dims fill and sun alike.
+// The sample point is slid toward the sun by its height under the deck, so
+// the shadow lands where that cloud is between the point and the sun.
 float goanna_cloud_dim(vec3 world) {
 	float strength = goanna_cloud_shadow.w;
 	if (strength <= 0.002 || world.y >= goanna_cloud_geom.y)

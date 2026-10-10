@@ -16,13 +16,25 @@
 // and both shaders sample the same arrays. The LabPBR decode below
 // is duplicated there rather than shared; see nodes_array_common.gdshaderinc
 // for why.
+//
+// Loaded by GoannaClient::materialFor (src/goanna_client.cpp), which builds
+// its materials for the near mesh and for the far tiers (lod_flatten on)
+// and sets their uniforms; they are all declared in the includes and
+// commented there. The material study scenes
+// (material_ramp.gd, lighting_chart.gd and others) load it directly.
+// docs/systems/materials.md, "Which shader draws a tile", has the routing.
+// Every graphics tier draws terrain with it; the tiers differ only in the
+// material strengths they set (parallax off on Lowest, the short march on
+// Low).
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// LabPBR companions, when a resource pack ships them (see docs): _n carries
-// the tangent normal in RG with ambient occlusion in B, _s carries perceptual
-// smoothness in R, F0/metalness in G and emission in A.
-// Linear, unlike the albedo. Nearest is right for the colour, which is
+// LabPBR companions, when a resource pack ships them
+// (docs/systems/materials.md): _n carries the tangent normal in RG with
+// ambient occlusion in B and height in A, _s carries perceptual
+// smoothness in R, F0/metalness in G and emission in A. The samplers are
+// declared in nodes_array_common.gdshaderinc; the companions are sampled
+// linear, unlike the albedo. Nearest is right for the colour, which is
 // pixel art and wants its hard edges, but a normal map is a direction field:
 // this pack tilts a texel by 19 degrees on average and up to 51 at the ninth
 // decile, so snapping between neighbouring texels swings the specular
@@ -134,6 +146,9 @@ void fragment() {
 		// A quad straddling a node boundary sees the per node shift as a
 		// derivative and gets a basis of nothing; those pixels stay flat.
 		if (abs(det) > 1e-12) {
+			// Invert the 2x2 map from tile units to screen pixels and apply
+			// it to the position derivatives: d_tu and d_tv are the world
+			// vectors one unit of u and of v run along.
 			vec3 d_tu = (dpx * tuv_dy.y - dpy * tuv_dx.y) / det;
 			vec3 d_tv = (dpy * tuv_dx.x - dpx * tuv_dy.x) / det;
 			float lu = max(dot(d_tu, d_tu), 1e-8);
@@ -314,6 +329,12 @@ void fragment() {
 			BACKLIGHT = ALBEDO * sss * sss_strength * (1.0 - flatten);
 		}
 	}
+	// Gems (diamond.gdshaderinc; docs/systems/materials.md, "Diamond
+	// surfaces"). The mask picks the gem's texels out of the tile by colour;
+	// the surface term sets the polished response and the fire light()
+	// adds. The interior below looks through the gem: how much of the gem
+	// surrounds a texel stands in for its thickness, the eye ray is bent
+	// through that thickness, and the tile is read again where it lands.
 	float gem = goanna_diamond_mask(tile.rgb, layer_diamond[layer]) * (1.0 - flatten);
 	vec3 gem_normal = relief_normal * 0.5 + 0.5;
 	// Authored maps are upscaled; the gem's art remains a 16-texel tile.

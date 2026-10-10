@@ -25,6 +25,12 @@
 // separates the two in depth at any view angle without moving the crack
 // sideways across the tile. It does not write depth, and casts no shadow
 // (the MeshInstance3D turns that off too).
+//
+// Loaded by GoannaClient::materialFor; GoannaClient::crackOverlayMaterial
+// (src/goanna_client.cpp) builds one material per stage and scale and sets
+// the crack uniforms below. The node light strengths from the include keep
+// the shader defaults until a settings slider moves them, when
+// set_material_strength reaches this material like any other.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -33,6 +39,8 @@ render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_sch
 #include "res://shaders/nodes_array_common.gdshaderinc"
 #include "res://shaders/direct_light.gdshaderinc"
 
+// The crack: the game's crack_anylength.png, one square frame per stage
+// stacked down the image.
 uniform sampler2D crack_tex : source_color, filter_nearest, repeat_disable;
 // Frames in the strip and the one drawn, already clamped to the strip.
 uniform int crack_frames = 5;
@@ -41,10 +49,11 @@ uniform int crack_frame = 0;
 // tile image, the tile's own scale for a world aligned texture.
 uniform float crack_scale = 1.0;
 // Cut the crack to the tile's own alpha test, so an alpha tested tile's
-// holes stay holes.
+// holes stay holes. Set, with albedo_array and layer_anim, only for a tile
+// on an alpha tested array.
 uniform bool base_alpha_test = false;
 // In nodes. Two millimetres: too small to see at digging range, and many
-// times the depth buffer's resolution there.
+// times the depth buffer's resolution there. Default only.
 uniform float crack_lift = 0.002;
 
 void vertex() {
@@ -95,6 +104,8 @@ void fragment() {
 	AO = clamp(occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
 	ALBEDO *= goanna_cloud_dim(v_world);
+	// The sky fill and the baked lamp light, as nodes_array.gdshader writes
+	// them: see goanna_sky_fill and goanna_lamp_reach in the common include.
 	float fill_up = clamp(0.5 + 0.5 * v_wnormal.y, 0.0, 1.0);
 	vec3 fill_col = mix(goanna_ground_fill, goanna_sky_fill, fill_up);
 	float fill_shape = mix(0.65, 1.0, fill_up);

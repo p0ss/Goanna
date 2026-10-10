@@ -1,10 +1,33 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Coarse node-lamp visibility, using only this player's received full cubes.
+//
+// Unshadowed point lights shine through walls. With the experimental
+// lamp_occlusion switch on (off in every graphics tier, see
+// docs/systems/graphics-tiers.md), light() in direct_light.gdshaderinc walks
+// each node lamp's ray through a 64 node cube of full opaque nodes around
+// the camera and takes the lamp off a fragment a wall stands in front of.
+// GoannaClient::updateLampOcclusion (src/goanna_client.cpp) builds the grid
+// and sets all three globals, at most ten times a second;
+// project/portal_study.gd sets its own for the offline study.
+
+// One float per node, in the cube's own cell space: -1 a full opaque node,
+// 0 open or unknown, n > 0 the cell of lamp n, whose position is texel
+// n - 1 of goanna_lamp_occlusion_sources.
 global uniform sampler3D goanna_lamp_occlusion_grid : filter_nearest, repeat_disable;
+// One texel per light slot: xyz the lamp's world position, w 1 while the
+// slot is in use.
 global uniform sampler2D goanna_lamp_occlusion_sources : filter_nearest, repeat_disable;
+// xyz the world position of the grid's low corner, w its edge in nodes; an
+// edge under 1 means no grid, and every lamp stays visible.
 global uniform vec4 goanna_lamp_occlusion_box;
 varying vec3 v_lamp_world;
 
+// 1 if the lamp along `direction` reaches `world`, 0 if a full node is in
+// the way. An Amanda and Woo voxel walk: `crossing` holds the ray distance
+// to the next cell boundary on each axis and `stride` the distance between
+// boundaries, so each step enters exactly the next cell the ray crosses.
+// The start is nudged 0.06 off the surface so a face does not block itself.
+// Capped at 56 cells and 16 nodes, well past a node lamp's useful reach.
 float goanna_lamp_visibility(vec3 world, vec3 direction) {
 	float edge = goanna_lamp_occlusion_box.w;
 	if (edge < 1.0) return 1.0;

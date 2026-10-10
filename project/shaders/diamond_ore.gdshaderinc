@@ -2,7 +2,18 @@
 // Copyright (C) 2026 the Goanna contributors
 // A crystal-filled recess below the existing ore face. The visible gem
 // mask defines its walls; all rays terminate in local rock, never scenery.
+//
+// Included by nodes_array.gdshader and nodes_array_scissor.gdshader after
+// direct_light.gdshaderinc, whose GOANNA_DIAMOND part brings in
+// diamond.gdshaderinc: the gem mask, kinds and optical tables used here.
+// docs/systems/materials.md, "Diamond surfaces", has the whole picture.
+
+// How much of the recess shows through the gem face, 0 to 1: 0 leaves the
+// painted face as it is. Default only; project/diamond_study.gd flips it
+// for its comparison frames.
 uniform float diamond_ore_transmission : hint_range(0.0, 1.0) = 1.0;
+// How deep the recess's rear plane lies, in art texels (sixteenths of a
+// node). Default only.
 uniform float diamond_ore_depth : hint_range(0.0, 4.0) = 2.5;
 
 vec3 goanna_ore_rock(int code, vec2 uv, int layer, vec2 dx, vec2 dy, vec3 fallback) {
@@ -44,6 +55,10 @@ vec3 goanna_ore_interior(int code, vec2 uv, int layer, vec2 dx, vec2 dy,
 		}
 	}
 	vec3 rock = goanna_ore_rock(code, at, layer, dx, dy, front);
+	// Beer-Lambert through the gem over the path the ray actually ran, then
+	// Schlick's Fresnel decides how much of the face is window rather than
+	// reflection. `footprint` is art texels per screen pixel; the recess
+	// fades out between 0.5 and 1.5 of them, where the walk would only alias.
 	vec3 transmitted = rock * exp(-GEM_ORE_ABSORB[kind] * path);
 	float fresnel = 0.17 + 0.83 * pow(1.0 - clamp(dot(normalize(eye), normalize(normal)), 0.0, 1.0), 5.0);
 	float clear = (1.0 - fresnel) * diamond_ore_transmission * GEM_CLARITY[kind]
