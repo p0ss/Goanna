@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Launch an isolated live grass review. World and profiles stay in /tmp."""
+"""Launch an isolated live grass review. World and profiles stay in /tmp.
+
+The client runs in headless gamescope through tools/goanna_headless.py, on
+the GPU, so no window reaches the desktop and the shots are the viewport's
+own pixels. The launcher takes the shared GPU lock; --lock-wait says how
+long to wait for it. --headless runs Godot's own --headless instead, which
+draws nothing and takes no shot. capture.py, close.py, compare.py,
+features.py, motion.py and water.py drive the client this leaves running
+with --keep.
+"""
 import argparse
 import json
 import os
@@ -7,9 +16,12 @@ from pathlib import Path
 import shutil
 import socket
 import subprocess
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / 'tools'))
+import goanna_headless as headless  # noqa: E402
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--out', type=Path, default=ROOT/'build/grass-review')
 parser.add_argument('--keep', action='store_true')
@@ -19,6 +31,8 @@ parser.add_argument('--server-port', type=int, default=30567)
 parser.add_argument('--scratch', type=Path, default=Path('/tmp/goanna-grass-review'))
 parser.add_argument('--grass', choices=['on','off','saved'], default='on',
     help='Initial grass state; saved omits the environment override')
+parser.add_argument('--lock-wait', type=float, default=1800,
+    help='Seconds to wait for the shared GPU lock')
 args = parser.parse_args()
 out = args.out.resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -42,22 +56,35 @@ config = scratch/'server.conf'
 config.write_text(f'mg_name = singlenode\ncreative_mode = true\nenable_damage = false\nserver_announce = false\nport = {args.server_port}\nmax_block_send_distance = 20\nmax_block_generate_distance = 20\nmax_forceloaded_blocks = 0\ntime_speed = 0\nenable_mod_channels = true\ngoanna_far_rendering = true\ngoanna_far_rendering_distance = 1024\n')
 server_log = (out/'server.log').open('w')
 client_log = (out/'client.log').open('w')
-server = subprocess.Popen(['flatpak','run',f'--filesystem={scratch}', '--command=luanti',
+server = subprocess.Popen(['flatpak','run','--die-with-parent',f'--filesystem={scratch}', '--command=luanti',
     'org.luanti.luanti','--server','--world',str(world),'--gameid','minetest',
     '--config',str(config),'--logfile',str(scratch/'luanti.log')], stdout=server_log, stderr=subprocess.STDOUT)
 env = os.environ.copy()
-env.update(GOANNA_HOST='127.0.0.1',GOANNA_PORT=str(args.server_port),
+child_env = dict(GOANNA_HOST='127.0.0.1',GOANNA_PORT=str(args.server_port),
     GOANNA_NAME='grassreview',GOANNA_CONTROL=str(args.port),GOANNA_NO_PBR='1',
     GOANNA_VIEW_RANGE='20',GOANNA_TOD='0.38',
     XDG_DATA_HOME=str(scratch/'profile'),XDG_CONFIG_HOME=str(scratch/'config'))
+env.update(child_env)
 if args.grass == 'saved':
     env.pop('GOANNA_GRASS',None)
+    child_env['GOANNA_GRASS']=''
 else:
-    env['GOANNA_GRASS']='1' if args.grass=='on' else '0'
+    env['GOANNA_GRASS']=child_env['GOANNA_GRASS']='1' if args.grass=='on' else '0'
 time.sleep(2)
-client = subprocess.Popen([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),
-    '--path',str(ROOT/'project'),'--resolution','1280x720','--position','40,40',
-    '--log-file',str(out/'godot.log')]+(['--headless'] if args.headless else []), env=env,stdout=client_log,stderr=subprocess.STDOUT)
+if args.headless:
+    client = subprocess.Popen([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),
+        '--path',str(ROOT/'project'),'--resolution','1280x720',
+        '--log-file',str(out/'godot.log'),'--headless'], env=env,stdout=client_log,stderr=subprocess.STDOUT)
+else:
+    try:
+        client = headless.Instance(headless.start_goanna(ROOT, control_port=args.port,
+            port=args.server_port, name='grassreview', width=1280, height=720,
+            env=child_env, label='grass review', lock_wait=args.lock_wait,
+            software=os.environ.get('GOANNA_SOFTWARE') == '1'))
+    except headless.LaunchError:
+        server.terminate()
+        server.wait(timeout=10)
+        raise
 
 def call(cmd, **params):
     with socket.create_connection(('127.0.0.1',args.port), timeout=5) as s:
@@ -94,3 +121,5 @@ finally:
     for proc in (client,server):
         try: proc.wait(timeout=10)
         except subprocess.TimeoutExpired: proc.kill()
+    if not args.headless and client.log:
+        shutil.copyfile(client.log, out/'godot.log')

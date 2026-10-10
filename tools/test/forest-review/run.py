@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-"""Isolated cold TDL forest review; never visits or modifies the user's world."""
-import argparse, json, os, shutil, socket, subprocess, time
+"""Isolated cold TDL forest review; never visits or modifies the user's world.
+
+The client runs in headless gamescope through tools/goanna_headless.py, on
+the GPU, taking the shared GPU lock (--lock-wait), so no window reaches the
+desktop. --headless runs Godot's own --headless instead: no GPU, no shot.
+The bake is hard linked into the scratch world, so --scratch must be on the
+same filesystem as --bake.
+"""
+import argparse, json, os, shutil, socket, subprocess, sys, time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0,str(ROOT/'tools'))
+import goanna_headless as headless  # noqa: E402
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--bake',type=Path,default=Path('/tmp/goanna-horizon-shore/world/terrain_diffusion'))
 p.add_argument('--scratch',type=Path,default=Path('/tmp/goanna-forest-review'))
@@ -16,6 +25,7 @@ p.add_argument('--z',type=float,default=1500)
 p.add_argument('--headless',action='store_true')
 p.add_argument('--keep',action='store_true')
 p.add_argument('--project',type=Path,default=ROOT/'project',help='Project copy for isolated native-build comparisons')
+p.add_argument('--lock-wait',type=float,default=1800,help='Seconds to wait for the shared GPU lock')
 a=p.parse_args(); scratch=a.scratch.resolve(); world=scratch/'world'; out=a.out.resolve()
 world.mkdir(parents=True,exist_ok=True);out.mkdir(parents=True,exist_ok=True)
 if not (world/'terrain_diffusion').exists():
@@ -28,10 +38,17 @@ if not (world/'map_meta.txt').exists():
 config=scratch/'server.conf'
 config.write_text(f'port = {a.server_port}\nname = forestreview\ncreative_mode = true\nenable_damage = false\nanticheat_flags = digging,interaction,nomovement\nserver_announce = false\nmax_block_send_distance = 6\nmax_block_generate_distance = 6\ntime_speed = 0\ndefault_privs = interact,shout,fly,fast,noclip,teleport,settime,server\nenable_mod_channels = true\ngoanna_far_rendering = true\ngoanna_far_rendering_distance = 1024\ngoanna_far_provider_distance = 2048\ngoanna_far_pregenerate = false\n')
 server_log=(out/'server.log').open('w'); client_log=(out/'client.log').open('w')
-server=subprocess.Popen(['flatpak','run',f'--filesystem={scratch}','--command=luanti','org.luanti.luanti','--server','--world',str(world),'--config',str(config),'--logfile',str(scratch/'server-debug.log')],stdout=server_log,stderr=subprocess.STDOUT)
-env=os.environ.copy();env.update(GOANNA_HOST='127.0.0.1',GOANNA_PORT=str(a.server_port),GOANNA_NAME='forestreview',GOANNA_CONTROL=str(a.port),GOANNA_NO_PBR='1',GOANNA_VIEW_RANGE='6',GOANNA_FAR_DISTANCE='1024',GOANNA_TOD='0.4',XDG_DATA_HOME=str(scratch/'profile'),XDG_CONFIG_HOME=str(scratch/'config'))
+server=subprocess.Popen(['flatpak','run','--die-with-parent',f'--filesystem={scratch}','--command=luanti','org.luanti.luanti','--server','--world',str(world),'--config',str(config),'--logfile',str(scratch/'server-debug.log')],stdout=server_log,stderr=subprocess.STDOUT)
+child_env=dict(GOANNA_NO_PBR='1',GOANNA_VIEW_RANGE='6',GOANNA_FAR_DISTANCE='1024',GOANNA_TOD='0.4',XDG_DATA_HOME=str(scratch/'profile'),XDG_CONFIG_HOME=str(scratch/'config'))
+env=os.environ.copy();env.update(child_env,GOANNA_HOST='127.0.0.1',GOANNA_PORT=str(a.server_port),GOANNA_NAME='forestreview',GOANNA_CONTROL=str(a.port))
 time.sleep(2)
-client=subprocess.Popen([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),'--path',str(a.project.resolve()),'--resolution','1280x720','--log-file',str(out/'godot.log')]+(['--headless'] if a.headless else []),env=env,stdout=client_log,stderr=subprocess.STDOUT)
+if a.headless:
+    client=subprocess.Popen([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),'--path',str(a.project.resolve()),'--resolution','1280x720','--log-file',str(out/'godot.log'),'--headless'],env=env,stdout=client_log,stderr=subprocess.STDOUT)
+else:
+    try:
+        client=headless.Instance(headless.start_goanna(a.project.resolve(),control_port=a.port,port=a.server_port,name='forestreview',width=1280,height=720,env=child_env,label='forest review',lock_wait=a.lock_wait,software=os.environ.get('GOANNA_SOFTWARE')=='1',ready_timeout=180))
+    except headless.LaunchError:
+        server.terminate();server.wait(timeout=10);raise
 def call(cmd,**args):
     with socket.create_connection(('127.0.0.1',a.port),timeout=3) as s:
         s.settimeout(60);s.sendall((json.dumps(dict(id=1,cmd=cmd,args=args))+'\n').encode());r=json.loads(s.makefile().readline())
@@ -67,3 +84,4 @@ finally:
     for proc in (client,server):
         try:proc.wait(timeout=5)
         except subprocess.TimeoutExpired:proc.kill()
+    if not a.headless and client.log:shutil.copyfile(client.log,out/'godot.log')

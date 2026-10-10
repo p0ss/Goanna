@@ -6,10 +6,12 @@ building its PBR packs. Every Python and shell script prints its usage on
 
 Status says whether a tool is part of current work or kept as the record of how
 something was made or measured. Historical tools are not maintained against the
-current code, so expect to fix something first. Several of them start the client
-as an ordinary window on the desktop, which `AGENTS.md` rule 6 now forbids: do
-not run those as they stand, but start a client with `tools/goanna-headless` and
-drive it instead.
+current code, so expect to fix something first. Every harness here that starts a
+GPU client does it through `tools/goanna-headless` (or its module,
+`goanna_headless.py`), which takes the shared GPU lock and keeps the window off
+the desktop. Two exceptions are marked: the desktop benchmark, which opens a
+real window by design and takes the lock itself (see `AGENTS.md` rule 6), and
+`pbr/mm_export.py`, which opens a Material Maker window and has not been moved.
 
 ## Entry points
 
@@ -96,7 +98,13 @@ Current: the authoring, gates and bundle tools.
   them. Historical, from August 2026.
 - `mm_export.py`, `mm_export.gd`, `pbr_from_mm.py`: export Material Maker
   materials and pack them as LabPBR sets. Historical. `mm_export.py` opens a
-  Material Maker window for the duration.
+  Material Maker window on the desktop for the duration and takes no GPU
+  lock, so do not run it as it stands. It was not moved to headless
+  gamescope because the launcher starts only Goanna and the Luanti Flatpak:
+  running the Material Maker Flatpak there needs a new kind of instance in
+  `goanna_headless.py` (its own sandbox flags to reach gamescope's X display,
+  and a stop that kills only its own sandbox), which is not a mechanical
+  change.
 - `mc_texture_map.py`: build the game texture to Minecraft path map that
   lets Goanna read an unmodified Minecraft resource pack. Current.
 - `texture_census.py`: count the textures a multi game pack would need, as a
@@ -138,9 +146,15 @@ Current: the authoring, gates and bundle tools.
   `shaderpack_check.py` alone checks a saved shot.
 - `dig-review/`, `forest-review/`, `grass-review/`, `ice-review/`,
   `lava-review/`: live capture harnesses behind the reviews in `docs/perf/`.
-  Historical. Most start the client as a desktop window; read the script
-  before running one. `dig-review/check_kythen.py` checks the radial damage
-  reference copy against a Kythen checkout and needs no client.
+  Historical. The ones that start a client (`dig-review/run.py` and
+  `boundary.py`, `forest-review/run.py`, `grass-review/run.py`,
+  `lava-review/run_mineclonia.py`) start it in headless gamescope and take
+  the GPU lock (`--lock-wait`, or `GOANNA_LOCK_WAIT` for
+  `run_mineclonia.py`; `GOANNA_SOFTWARE=1` renders on lavapipe, which is
+  too slow for most of them); the rest drive a client already running on
+  their control port. `lava-review/run_mineclonia.py` needs its cave server
+  started by hand first. `dig-review/check_kythen.py` checks the radial
+  damage reference copy against a Kythen checkout and needs no client.
 
 ## bench: benchmarks and measurements
 

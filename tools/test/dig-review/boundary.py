@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 """Live surface regression: fixed hits, cancelled cuts and chunk corner reveals.
-Run after run.py has generated /tmp/goanna-dig-local/world_master.
+Run after run.py has generated its world master (--master).
 Uses its own world/profile and never touches a player's world.
+The client runs in headless gamescope through tools/goanna_headless.py, on
+the GPU, taking the shared GPU lock (--lock-wait), so no window reaches the
+desktop.
 """
-import argparse, json, os, shutil, socket, subprocess, time
+import argparse, json, os, shutil, socket, subprocess, sys, time
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--gif",action="store_true",help="record centre and corner digs")
 parser.add_argument("--rhythm",action="store_true",help="capture contact timing and the Mineclonia arm")
+parser.add_argument("--master",default="/tmp/goanna-dig-review/world_master",help="the world run.py generated")
+parser.add_argument("--lock-wait",type=float,default=1800,help="seconds to wait for the shared GPU lock")
 options=parser.parse_args()
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0,str(ROOT/'tools'))
+import goanna_headless as headless  # noqa: E402
 SCRATCH=Path('/tmp/goanna-dig-boundary')
 OUT=ROOT/('build/dig-rhythm' if options.rhythm else 'build/dig-gif' if options.gif else 'build/dig-boundary')
 OUT.mkdir(parents=True,exist_ok=True)
 world=SCRATCH/'world'
 if world.exists(): shutil.rmtree(world)
-shutil.copytree('/tmp/goanna-dig-local/world_master',world)
+shutil.copytree(options.master,world)
 shutil.copyfile(ROOT/'tools/test/dig-review/boundary.lua',world/'worldmods/dig_review/init.lua')
 game = 'mineclonia' if options.rhythm else 'minetest'
 if options.rhythm:
@@ -45,12 +52,11 @@ server=launch(['flatpak','run','--die-with-parent',f'--filesystem={SCRATCH}','--
 client=None
 try:
     time.sleep(4)
-    env=os.environ.copy()
-    env.update(GOANNA_HOST='127.0.0.1',GOANNA_PORT='30579',GOANNA_NAME='digboundary',GOANNA_CONTROL='30879',GOANNA_VIEW_RANGE='5',GOANNA_TOD='0.5',GOANNA_DEBUG_ARM='1' if options.rhythm else '',GOANNA_BODY='1' if options.rhythm else '0',GOANNA_CARVE='0.12',GOANNA_NO_PBR='1',GOANNA_SDFGI='0',GOANNA_AMBIENT='2',GOANNA_BEVEL='0',XDG_DATA_HOME=str(SCRATCH/'profile'),XDG_CONFIG_HOME=str(SCRATCH/'config'))
+    env=dict(GOANNA_VIEW_RANGE='5',GOANNA_TOD='0.5',GOANNA_DEBUG_ARM='1' if options.rhythm else '',GOANNA_BODY='1' if options.rhythm else '0',GOANNA_CARVE='0.12',GOANNA_NO_PBR='1',GOANNA_SDFGI='0',GOANNA_AMBIENT='2',GOANNA_BEVEL='0',XDG_DATA_HOME=str(SCRATCH/'profile'),XDG_CONFIG_HOME=str(SCRATCH/'config'))
     if options.rhythm:
         env.update(GOANNA_NO_PBR='', GOANNA_PBR_SET='1', GOANNA_PACK=str(ROOT/'pbr_packs/mineclonia/textures'), GOANNA_PACK_SET='1')
-        env.pop('GOANNA_NO_NORMAL', None)
-    client=launch([str(ROOT.parent/'Godot_v4.5.1-stable_linux.x86_64'),'--path',str(ROOT/'project'),'--resolution','1280x720','--position','40,40'],'client.log',env)
+        env['GOANNA_NO_NORMAL']=''
+    client=headless.Instance(headless.start_goanna(ROOT,control_port=30879,port=30579,name='digboundary',width=1280,height=720,env=env,label='dig boundary review',lock_wait=options.lock_wait,software=os.environ.get('GOANNA_SOFTWARE')=='1'))
     for _ in range(90):
         try:
             result=cmd('status')
@@ -133,4 +139,5 @@ finally:
         try: proc.wait(timeout=8)
         except subprocess.TimeoutExpired: proc.kill();proc.wait()
     for log in logs: log.close()
+    if client is not None: shutil.copyfile(client.log,OUT/'client.log')
 print(OUT)

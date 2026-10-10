@@ -12,15 +12,23 @@ thing being reviewed.
 
 World and profiles stay in a scratch directory. Adapted from
 tools/test/grass-review/run.py, which is the pattern for every live review here.
+
+The client runs in headless gamescope through tools/goanna_headless.py, on
+the GPU, so no window reaches the desktop and the shots are the viewport's
+own pixels. The launcher takes the shared GPU lock for each run; --lock-wait
+says how long to wait for it.
 """
 import argparse
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / 'tools'))
+import goanna_headless as headless  # noqa: E402
 ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument('--out', type=Path, default=ROOT / 'build/dig-review')
 ap.add_argument('--server-port', type=int, default=30571)
@@ -31,6 +39,8 @@ ap.add_argument('--demo', type=int, default=8,
                 help='world Y of the static carve demo row, 0 = off')
 ap.add_argument('--digsecs', type=float, default=6.0,
                 help='how long to hold the dig button')
+ap.add_argument('--lock-wait', type=float, default=1800,
+                help='seconds to wait for the shared GPU lock')
 args = ap.parse_args()
 
 out = args.out.resolve()
@@ -82,9 +92,7 @@ def run(label, carve):
          '--gameid', 'minetest', '--config', str(config),
          '--logfile', str(scratch / f'luanti-{label}.log')],
         stdout=server_log, stderr=subprocess.STDOUT)
-    env = os.environ.copy()
-    env.update(GOANNA_HOST='127.0.0.1', GOANNA_PORT=str(args.server_port),
-               GOANNA_NAME=f'digreview{label}', GOANNA_NO_PBR='1',
+    env = dict(GOANNA_NO_PBR='1',
                GOANNA_VIEW_RANGE='12', GOANNA_TOD='0.38',
                GOANNA_DIGTEST='1', GOANNA_SHOT=str(shots), GOANNA_BODY='0', GOANNA_DIGSECS=str(args.digsecs),
                GOANNA_CARVE_DEMO=str(args.demo), GOANNA_CARVE_DEMO_Z='3',
@@ -92,15 +100,20 @@ def run(label, carve):
                XDG_DATA_HOME=str(scratch / f'profile-{label}'),
                XDG_CONFIG_HOME=str(scratch / f'config-{label}'))
     time.sleep(6)
-    client = subprocess.Popen(
-        [str(ROOT.parent / 'Godot_v4.5.1-stable_linux.x86_64'),
-         '--path', str(ROOT / 'project'), '--resolution', '1280x720',
-         '--position', '40,40', '--log-file', str(out / f'godot-{label}.log')],
-        env=env, stdout=client_log, stderr=subprocess.STDOUT)
+    # The dig runs on the client's own clock from its start, so the wait is
+    # counted from here, not from when the launcher returns.
+    launched = time.monotonic()
     try:
-        client.wait(timeout=args.seconds)
-    except subprocess.TimeoutExpired:
-        pass
+        client = headless.Instance(headless.start_goanna(
+            ROOT, port=args.server_port, name=f'digreview{label}', width=1280,
+            height=720, env=env, label=f'dig review {label}', lock_wait=args.lock_wait,
+            software=os.environ.get('GOANNA_SOFTWARE') == '1'))
+    except headless.LaunchError:
+        server.terminate()
+        server.wait(timeout=10)
+        raise
+    client.wait(timeout=max(0.0, args.seconds - (time.monotonic() - launched)))
+    shutil.copyfile(client.log, out / f'godot-{label}.log')
     for proc in (client, server):
         proc.terminate()
         try:
