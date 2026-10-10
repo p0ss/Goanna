@@ -354,12 +354,13 @@ func _receive(msg: Dictionary) -> void:
 func _update_materials(value: Variant) -> void:
 	material_catalog = value if value is Array else []
 	if not pending.is_empty(): return
-	var wanted: String = {"wall": "block", "floor": "block", "stairs": "stairs", "door": "door", "furniture": "furniture"}.get(tool, "")
+	var fallback: String = {"wall": "block", "floor": "block", "stairs": "stairs", "door": "door", "furniture": "furniture"}.get(tool, "")
+	var wanted: String = str(tool_definition().get("material", fallback))
 	var available: Array = []
 	for entry in material_catalog:
 		if str(entry.get("kind", "block")) == wanted:
 			available.append(entry)
-	facing_picker.visible = tool in ["stairs", "door", "furniture"]
+	facing_picker.visible = bool(tool_definition().get("facing", tool in ["stairs", "door", "furniture"]))
 	build_material.visible = not wanted.is_empty()
 	if available == build_materials and (wanted.is_empty() or build_material.item_count > 0):
 		return
@@ -374,11 +375,16 @@ func _update_materials(value: Variant) -> void:
 			available.append({"name": selected_name, "title": "Unavailable: " + selected_name, "kind": wanted, "missing": true})
 	build_materials = available
 	build_material.clear()
+	var matched := false
 	for entry in build_materials:
 		build_material.add_item(str(entry.title).split("\n")[0])
 		build_material.set_item_tooltip(build_material.item_count - 1, str(entry.title))
 		if str(entry.name) == selected_name:
 			build_material.select(build_material.item_count - 1)
+			matched = true
+	if tool == "workshop" and not matched:
+		build_material.select(-1)
+		build_material.text = "Choose workshop type..."
 	if build_materials.is_empty() and not wanted.is_empty():
 		build_material.add_item("No suitable item in stock")
 		build_material.set_item_disabled(0, true)
@@ -828,7 +834,7 @@ func choose_tool(id: String) -> void:
 			return
 		tool = id
 		_update_materials(material_catalog)
-		inspector.text = "Select a cell." if id == "inspect" else "Choose two corners. Selecting does not submit work."
+		inspector.text = str(tool_definition().get("help", "Select a cell." if id == "inspect" else "Choose two corners. Selecting does not submit work."))
 		ui.refresh()
 
 func can_submit() -> bool:
@@ -840,7 +846,9 @@ func can_submit() -> bool:
 	if definition.get("single", false) and first_corner != last_corner: return false
 	var count: int = (abs(int(first_corner.x - last_corner.x)) + 1) * (abs(int(first_corner.z - last_corner.z)) + 1)
 	if count * int(definition.get("height", 1)) > 512: return false
-	if tool in ["wall", "floor", "stairs", "door", "furniture"]:
+	if definition.has("width") and abs(int(first_corner.x - last_corner.x)) + 1 != int(definition.width): return false
+	if definition.has("depth") and abs(int(first_corner.z - last_corner.z)) + 1 != int(definition.depth): return false
+	if not str(definition.get("material", "")).is_empty():
 		if build_materials.is_empty() or build_material.selected < 0: return false
 		if build_materials[build_material.selected].get("missing", false): return false
 	return true
@@ -856,6 +864,13 @@ func draft_summary() -> String:
 	if tool == "floor": summary += "\nReplaces the floor on level %d" % (y - 1)
 	if tool == "furniture": summary += "\nBed footprint: two cells along the facing"
 	if tool == "door": summary += "\nDoor footprint: two levels"
+	if tool == "workshop":
+		summary += "\nRequires 3 x 3: station, barrel, chest, ledger and torch."
+		if build_material.selected >= 0 and build_material.selected < build_materials.size():
+			summary += "\n" + str(build_materials[build_material.selected].title)
+		else:
+			summary += "\nChoose a workshop type before submitting."
+		summary += "\nVisit the ledger for keeper and production orders."
 	if tool_definition().get("single", false) and first_corner != last_corner: summary += "\nChoose the same cell for both corners."
 	if y != level: summary += "\nReturn to level %d to edit or submit." % y
 	if not pending.is_empty(): summary += "\nSending. Retry is safe; it does not create another order."

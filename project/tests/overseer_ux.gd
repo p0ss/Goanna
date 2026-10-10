@@ -19,7 +19,8 @@ func run() -> void:
 	var tools := [{"id":"inspect", "title":"Inspect", "family":"Select"},
 		{"id":"dig", "title":"Dig", "family":"Terrain", "height":2},
 		{"id":"harvest", "title":"Harvest", "family":"Gather", "disabled":true, "reason":"No gathering authority"},
-		{"id":"wall", "title":"Wall", "family":"Build", "material":"block"}]
+		{"id":"wall", "title":"Wall", "family":"Build", "material":"block"},
+		{"id":"workshop", "title":"Set up workshop", "family":"Build", "material":"station", "width":3, "depth":3, "help":"Visit the ledger"}]
 	view._receive({"v":1,"t":"hello","claim":{"min":{"x":-32,"y":-32,"z":-32},"max":{"x":32,"y":32,"z":32}},
 		"y":0,"body":{"x":0,"y":0,"z":0},"tools":tools})
 	view.ui.choose_family("Terrain"); view.choose_tool("dig")
@@ -60,6 +61,21 @@ func run() -> void:
 	view.select_cell({"x":0,"y":0,"z":0});view.select_cell({"x":0,"y":0,"z":0})
 	view._update_materials([{"name":"wood","title":"Wood","kind":"block"}])
 	check(not view.can_submit() and view.build_materials[view.build_material.selected].name=="stone", "stock change cannot silently substitute another material")
+	view.discard_draft()
+	view.choose_tool("workshop")
+	check(view.inspector.text == "Visit the ledger", "workshop selection explains the physical ledger")
+	view._update_materials([])
+	view.select_cell({"x":0,"y":0,"z":0});view.select_cell({"x":2,"y":0,"z":2})
+	check(not view.can_submit(), "workshop needs a station selection")
+	view._update_materials([{"name":"still","title":"Brewing - Still","kind":"station"}, {"name":"table","title":"Woodworking - Crafting table","kind":"station"}])
+	check(view.build_material.selected == -1 and not view.can_submit(), "workshop never defaults to the first stocked station")
+	view.build_material.select(1);view.refresh_draft()
+	check(view.draft_summary().contains("Woodworking - Crafting table"), "review explicitly names the selected workshop")
+	view._update_materials(view.material_catalog)
+	check(view.build_materials[view.build_material.selected].name == "table", "catalogue refresh preserves the selected workshop")
+	check(view.can_submit(), "workshop accepts a 3 by 3 site and station")
+	view.last_corner={"x":3,"y":0,"z":2}
+	check(not view.can_submit(), "workshop rejects a wrongly sized footprint")
 	view.discard_draft()
 	view.ui.choose_family("Plans")
 	view.ui.update_plans([{"id":"o1","kind":"dig","state":"Queued","by":"A","total":2,"done":0,"can_cancel":true,"pos":{"x":4,"y":3,"z":5}}])

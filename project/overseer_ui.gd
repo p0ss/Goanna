@@ -5,6 +5,7 @@ extends RefCounted
 var view: Node
 var header: Label
 var title: Label
+var material_label: Label
 var actions: VBoxContainer
 var context: VBoxContainer
 var rail: VBoxContainer
@@ -117,11 +118,14 @@ func build(host: Node) -> void:
 	view.palette = OptionButton.new() # Retained for older test harnesses.
 	view.palette.hide()
 	context.add_child(view.palette)
+	material_label = label(context, "Material")
 	view.build_material = OptionButton.new()
 	view.build_material.custom_minimum_size.y = 44
 	view.build_material.fit_to_longest_item = false
 	view.build_material.item_selected.connect(func(_i: int) -> void: view.refresh_draft())
 	context.add_child(view.build_material)
+	context.move_child(material_label, 1)
+	context.move_child(view.build_material, 2)
 	view.facing_picker = OptionButton.new()
 	view.facing_picker.custom_minimum_size.y = 44
 	for name in ["Facing +Z", "Facing +X", "Facing -Z", "Facing -X"]:
@@ -248,7 +252,7 @@ func refresh_tools() -> void:
 	for t in view.tools:
 		if str(t.id) == "cancel" or tool_family(t) != family: continue
 		var b := button(actions, str(t.get("title", t.id)), view.choose_tool.bind(str(t.id)))
-		b.tooltip_text = str(t.get("reason", ""))
+		b.tooltip_text = str(t.get("reason", t.get("help", "")))
 		b.set_meta("tool", str(t.id))
 		b.toggle_mode = true
 		# Keep unavailable controls focusable so their reason can be read.
@@ -288,6 +292,9 @@ func refresh() -> void:
 	view.facing_picker.disabled = not view.pending.is_empty()
 	view.room_name.editable = view.pending.is_empty()
 	view._update_materials(view.material_catalog)
+	material_label.text = "Workshop type" if view.tool == "workshop" else "Material"
+	material_label.visible = view.build_material.visible and not is_plans
+	if is_plans: view.build_material.hide()
 	if is_plans and not plans.get_selected_items().is_empty(): select_plan(plans.get_selected_items()[0])
 
 func update_plans(value: Array) -> void:
