@@ -48,7 +48,6 @@ void MeshPool::stop() {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_queue.clear();
     m_ready.clear();
-    m_inflight.clear();
 }
 
 void MeshPool::setLimits(int queued, int noncoverage, int refinement, int ready) {
@@ -193,7 +192,6 @@ void MeshPool::workerMain() {
                 return;
             if (!takeLocked(q))
                 continue;
-            m_inflight[q.key] = q.generation;
             ++m_active;
         }
 
@@ -206,9 +204,6 @@ void MeshPool::workerMain() {
                         (int)m_ready.size() < m_max_ready;
             });
             --m_active;
-            auto it = m_inflight.find(q.key);
-            if (it != m_inflight.end() && it->second == q.generation)
-                m_inflight.erase(it);
             if (!m_running.load(std::memory_order_acquire))
                 return;
             Done d;

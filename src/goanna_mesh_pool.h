@@ -92,11 +92,10 @@ public:
 };
 
 // The workers and their queues. A job goes from m_queue (submitted, waiting)
-// to a worker (counted in m_active, its key in m_inflight) to m_ready
-// (finished, waiting for the main thread). A worker that finishes while
-// m_ready is full waits for the main thread to collect, which is the back
-// pressure that keeps finished meshes from piling up faster than they can be
-// published.
+// to a worker (counted in m_active) to m_ready (finished, waiting for the
+// main thread). A worker that finishes while m_ready is full waits for the
+// main thread to collect, which is the back pressure that keeps finished
+// meshes from piling up faster than they can be published.
 class MeshPool {
 public:
     MeshPool() = default;
@@ -193,10 +192,10 @@ private:
     int effectivePriorityLocked(const Done &d) const;
     bool canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const;
 
-    // Guards m_queue, m_ready, m_inflight, m_active, the limits and
-    // m_rejected. The main thread takes it to submit, collect, cancel and
-    // read stats; a worker takes it to take a job and to hand its result back,
-    // never while run() is executing.
+    // Guards m_queue, m_ready, m_active, the limits and m_rejected. The
+    // main thread takes it to submit, collect, cancel and read stats; a
+    // worker takes it to take a job and to hand its result back, never while
+    // run() is executing.
     mutable std::mutex m_mutex;
     // Wakes workers for two things: a job was queued (submit), and space
     // opened in m_ready (next) for a worker waiting to hand a result back.
@@ -208,7 +207,6 @@ private:
     // Finished and not yet collected. Written by the workers, drained by the
     // main thread through next(), which may push one back (requeueReady).
     std::deque<Done> m_ready;
-    std::map<MeshJobKey, uint64_t> m_inflight; // key -> generation being run
     // Created by start() and joined by stop(), both on the main thread.
     std::vector<std::thread> m_threads;
     // Written by start() and stop() (under m_mutex in stop, so a worker
