@@ -16,6 +16,10 @@
 // sheet of ice is patches of frost that barely reflect around slicks that
 // do, under a hard overall cap: ice is a scattering solid, not standing
 // water, and the texture must stay the majority of what you see.
+//
+// Loaded as m_sh_glass in GoannaClient::materialFor (src/goanna_client.cpp),
+// which also uses it for a liquid drawtype solid that is not ice. The whole
+// material, uniforms included, is in glass_common.gdshaderinc.
 shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_back, diffuse_burley, specular_schlick_ggx;
 

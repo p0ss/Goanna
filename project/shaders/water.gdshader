@@ -35,17 +35,30 @@
 // flatten) is a continuous function of view distance, never of which mesh a
 // pixel came from. That is the whole hand-off strategy: two materials that
 // agree at every distance cannot draw a seam, wherever the near mesh ends.
+//
+// Loaded as m_sh_water in GoannaClient::materialFor (src/goanna_client.cpp)
+// for every liquid tile that is not lava or ice, and for the far tiers'
+// water planes (m_lod_water there); project/water_seam.gd runs it too, to
+// study the hand-off. materialFor sets albedo_tex, waving and lod_flatten;
+// every other uniform here is a default. The optics are in
+// docs/systems/water-optics.md.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
+// The liquid's tile, set by materialFor; Godot's opaque scene colour and
+// depth behind the surface, for refraction, absorption and the march.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
+
+// Waves, default only. A multiplier on TIME for the whole field.
 uniform float wave_speed = 0.6;
 // Wavelength of the longest train, in nodes. Each octave is 1.18 times the
 // frequency of the one before, so nine octaves span roughly 9 nodes down to 2.
 uniform float wave_length = 9.0;
+// How much of the wave normal is mixed into the flat face normal, 0 to 1,
+// before the distance and sea state scales below.
 uniform float wave_strength = 0.5;
 // Slope of the summed field, before wave_strength blends it against the flat
 // face normal. Relief rather than height: nothing is displaced.
@@ -53,6 +66,7 @@ uniform float wave_relief = 0.75;
 // How hard each octave pulls the ones after it sideways. This is what breaks
 // the grid: without it the sum is still periodic, however many trains it has.
 uniform float wave_drag = 0.28;
+// Octaves near the eye; distance drops them to 3 (fragment()).
 uniform int wave_octaves : hint_range(3, 16) = 9;
 // The screen space march stops past this distance and the sky answer stands
 // alone. Out there a reflected bank subtends a few pixels; the march is all
@@ -106,7 +120,13 @@ global uniform vec4 goanna_water_sea;
 // project/studies/water_ramp.tscn, 2026-09-15: deep water sat at 0.7 of the dry
 // sand's luma and 0.45 saturation against the sand's 0.27.
 uniform float body_gain : hint_range(0.0, 1.0) = 0.35;
+// Whether the waves and the reflection march run: false for a still liquid
+// tile, set by materialFor from Luanti's material type; the far planes set
+// it true. The render_water_waves and render_water_reflections switches
+// (feature_flags.gdshaderinc) gate the same two per view, and every
+// graphics tier leaves both on.
 uniform bool waving = true;
+// Default only: false skips every reflection, the sky answer included.
 uniform bool reflections = true;
 // Goanna: 1.0 while the eye is in a liquid, set by GoannaClient. Seen from
 // above, the undersides of sloped flowing tops and of neighbouring faces
@@ -136,7 +156,10 @@ global uniform vec4 goanna_ripple_area;
 global uniform vec4 goanna_ripple_state;
 
 // Far tiers use the same near sample at the hand-off, then converge on the
-// tile average only in the deep far field. Switching immediately to the last
+// tile average only in the deep far field. materialFor sets lod_flatten true
+// on the near mesh as well as the far planes, so both run one curve;
+// the two distances, in nodes, are defaults (project/material_field.gd
+// moves them for its studies). Switching immediately to the last
 // mip made otherwise flat water change colour at the near/far boundary.
 uniform bool lod_flatten = false;
 uniform float lod_flatten_near : hint_range(0.0, 2048.0) = 384.0;
@@ -187,14 +210,8 @@ vec3 scene_position(vec2 uv, mat4 inv_proj) {
 	return v.xyz / v.w;
 }
 
-// How much to trust the screen for a reflected ray at screen x: fully on
-// screen, and still fully a little way past either side, where the column
-// at the edge stands in for what is just off it. On water the reflection of
-// a point runs almost straight up the screen from it, so the edge column is
-// nearly always the right neighbourhood. Fading to the sky at the sides
-// instead drew a band of sky down each edge of the screen that turned with
-// the camera, bright at night against a black far bank, where the moonlit
-// horizon glow stood in for trees.
+// Value noise and its hash for the froth on the ripple patch: cheap,
+// deterministic per world cell, nothing more is asked of it.
 float foam_hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -239,6 +256,14 @@ float foam_bubbles(vec2 p, float cell, float fill, float t) {
 	return best;
 }
 
+// How much to trust the screen for a reflected ray at screen x: fully on
+// screen, and still fully a little way past either side, where the column
+// at the edge stands in for what is just off it. On water the reflection of
+// a point runs almost straight up the screen from it, so the edge column is
+// nearly always the right neighbourhood. Fading to the sky at the sides
+// instead drew a band of sky down each edge of the screen that turned with
+// the camera, bright at night against a black far bank, where the moonlit
+// horizon glow stood in for trees.
 float edge_keep(float x) {
 	float past = max(-x, x - 1.0);
 	return 1.0 - smoothstep(0.15, 0.6, past);
@@ -287,6 +312,8 @@ vec3 wave_normal(vec2 pos, float t, int octaves, float base_freq, float amp) {
 	float h = wave_height(pos, t, octaves, base_freq);
 	float hx = wave_height(pos + vec2(e, 0.0), t, octaves, base_freq);
 	float hz = wave_height(pos + vec2(0.0, e), t, octaves, base_freq);
+	// The normal of a height field y = h(x, z) is (-dh/dx, 1, -dh/dz); here
+	// scaled through by e, which keeps it unnormalised until the end.
 	return normalize(vec3((h - hx) * amp, e, (h - hz) * amp));
 }
 
@@ -426,7 +453,8 @@ void fragment() {
 	// near mesh is fully absorbed anyway. The far tiers need the same answer
 	// forced, because a tier's water plane sits directly on the tier terrain
 	// and its measured thickness is near zero, which let the ground show
-	// through a sea (docs/history/far-rendering-log.md, "the far tier water plane").
+	// through a sea (docs/history/far-rendering-log.md, "The near/far water
+	// hand-off").
 	float deep_far = smoothstep(160.0, 420.0, here);
 	thick = max(thick, 64.0 * deep_far);
 	// How far the floor is straight down, which is what "shallow" means to
@@ -468,6 +496,8 @@ void fragment() {
 	if (goanna_ripple_state.x > 0.5 && FRONT_FACING && face_up > 0.7
 			&& abs(world_pos.y - goanna_ripple_area.w) < 0.4 && below < 8.0) {
 		float sun_k = clamp(dot(goanna_sun_glow, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+		// The sun ray bent into the water (index 1.33), walked back up from
+		// the bed to the point on the surface it came in through.
 		vec3 into = refract(-normalize(goanna_sun_dir), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
 		if (sun_k > 0.01 && into.y < -0.2) {
 			vec2 entry = floor_world.xz - into.xz * (below / -into.y);
@@ -480,6 +510,8 @@ void fragment() {
 						+ texture(goanna_ripple_height, cuv + vec2(0.0, texel)).r
 						+ texture(goanna_ripple_height, cuv - vec2(0.0, texel)).r;
 				float span = texel * goanna_ripple_area.z;
+				// The five point Laplacian of the height: positive in a
+				// trough, which spreads the light, negative under a crest.
 				float curvature = (around - 4.0 * c) / (span * span);
 				float focus = 1.0 / max(1.0 + CAUSTIC_FOCUS * below * curvature, 0.05);
 				seen *= mix(1.0, clamp(focus, CAUSTIC_RANGE.x, CAUSTIC_RANGE.y),
@@ -488,6 +520,7 @@ void fragment() {
 		}
 	}
 
+	// Beer-Lambert: per colour transmission over the water's thickness.
 	vec3 trans = exp(-goanna_water_absorption * thick);
 	// Two things come up out of the water and they are lit differently. The
 	// bed, seen through the column, was lit when the opaque pass drew it and

@@ -3,6 +3,19 @@
 // Diamond's polished planes follow the art's colour plateaus. No animated
 // noise: a glint moves because the eye or a real light moves. Keep the
 // authored relief and add a small, constant tilt to each coloured plane.
+//
+// The gem surfaces of nodes and items: diamond, emerald, amethyst, mese and
+// nether quartz, in ore, as blocks and on tools and armour. Included by
+// direct_light.gdshaderinc under GOANNA_DIAMOND, which nodes_array.gdshader,
+// nodes_array_scissor.gdshader and entity_common.gdshaderinc define; the
+// functions lean on the includer's normal_strength, roughness_strength,
+// specular_strength and sss_strength sliders. The picture and its
+// measurements are in docs/systems/materials.md, "Diamond surfaces".
+
+// Both default only in play, 1 to 0 to switch the effect off; the A/B
+// studies (project/diamond_study.gd, project/gem_study.gd) set them.
+// diamond_strength scales every gem term; the interior one only the
+// refracted inner planes.
 uniform float diamond_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float diamond_interior_strength : hint_range(0.0, 1.0) = 1.0;
 varying float v_diamond;
@@ -29,6 +42,7 @@ varying flat vec4 v_gem_optics;
 // there is one: refractive index, dispersion as a share of diamond's, and
 // absorption that leaves each gem its body colour. Mese is fictional and
 // borrows citrine's.
+// Kinds in order: diamond, emerald, amethyst, mese, nether quartz.
 const int GEM_KINDS = 5;
 const vec3 GEM_KEY[5] = { vec3(0.0), vec3(-0.654, 0.266, -0.708),
 		vec3(0.533, -0.24, 0.811), vec3(0.074, 0.078, -0.994), vec3(0.0) };
@@ -76,6 +90,8 @@ vec4 goanna_gem_optics(int code) {
 // the world. In particular an ore never samples scenery behind its stone.
 vec2 goanna_diamond_travel(vec3 eye, float thickness, int code) {
 	vec3 ray = refract(-normalize(eye), vec3(0.0, 0.0, 1.0), GEM_ETA[goanna_gem_kind(code)]);
+	// Tangent space, so z is down into the gem: the sideways travel to the
+	// rear plane is the slope times its depth, with a floor on the cosine.
 	return ray.xy * thickness / max(-ray.z, 0.25);
 }
 
@@ -87,15 +103,21 @@ vec2 goanna_diamond_travel(vec3 eye, float thickness, int code) {
 vec3 goanna_diamond_interior(int code, vec3 front, vec3 middle, vec3 rear,
 		float thickness, float amount, float footprint, vec2 travel,
 		inout vec3 colour, out vec3 scatter) {
+	// footprint is source texels per screen pixel: past about one the
+	// planes cannot be resolved, and the interior fades rather than shimmer.
 	float resolved = 1.0 - smoothstep(0.5, 1.5, footprint);
 	float weight = amount * diamond_strength * diamond_interior_strength * resolved;
 	int kind = goanna_gem_kind(code);
+	// Beer-Lambert: per colour transmission falls off exponentially with
+	// the path length through the stone.
 	vec3 absorption = exp(-GEM_ABSORB[kind] * thickness);
 	// Distinct planes remain crisp. Absorption deepens the rear plane's
 	// turquoise; the pale front contribution keeps a clear surface skin.
 	vec3 inside = mix(middle, rear * absorption, 0.65);
 	colour = mix(colour, mix(front, inside, 0.92 * GEM_CLARITY[kind]), weight);
 	float shade = dot(rear, vec3(0.2126, 0.7152, 0.0722));
+	// 2.39996 radians is the golden angle, so neighbouring shade steps get
+	// slopes far apart in direction instead of a gradual swing.
 	float angle = floor(shade * 12.0) * 2.39996 + 1.1;
 	vec2 slope = vec2(cos(angle), sin(angle)) * 0.32;
 	// Thickness controls transmitted light, independently of the surface
@@ -168,6 +190,8 @@ vec3 goanna_diamond_fire(vec3 n, vec3 l, vec3 v, vec3 axis, float spread) {
 	vec3 red = normalize(facet - tangent * spread);
 	vec3 blue = normalize(facet + tangent * spread);
 	vec3 alignment = clamp(vec3(dot(red, h), dot(facet, h), dot(blue, h)), 0.0, 1.0);
+	// A very tight lobe per colour: exp((cos - 1) * k) is about a Gaussian
+	// in the angle off the half vector, a fraction of a degree wide here.
 	vec3 fire = exp((alignment - 1.0) * 900.0);
 	return fire * max(dot(n, l), 0.0) * 1.2;
 }

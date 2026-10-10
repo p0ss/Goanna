@@ -11,6 +11,10 @@
 // shadowed the floor under it as if solid. Without depth, overlapping
 // frames blend in draw order, which only decides which of two thin frame
 // lines is on top.
+//
+// Loaded as m_sh_glass_clear in GoannaClient::materialFor
+// (src/goanna_client.cpp) for a backface culled clear glass tile. The
+// material is glass_common.gdshaderinc.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_schlick_ggx;
 

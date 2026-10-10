@@ -2,21 +2,37 @@
 // Copyright (C) 2026 the Goanna contributors
 // Ice stays in the opaque depth pass. A separate background view supplies
 // transmission, including water, without depending on transparent sorting.
+//
+// Translucent ice nodes: loaded as m_sh_ice in GoannaClient::materialFor
+// (src/goanna_client.cpp) for a tile in m_ice_tex. The body colour is a
+// procedural interior marched along a refracted ray, not the tile. See
+// docs/systems/ice-rendering.md.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
+// The tile and its LabPBR companions (_n tangent normal in RG and AO in B,
+// _s smoothness in R), set by materialFor; has_ flags false where no pack
+// covers the tile.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D normal_tex : filter_linear_mipmap, repeat_enable;
 uniform sampler2D spec_tex : filter_linear_mipmap, repeat_enable;
 uniform bool has_normal = false;
 uniform bool has_spec = false;
+// The Solid ice video setting (GoannaClient::set_solid_ice), set by
+// materialFor: no transmission, a fixed pale body instead.
 uniform bool solid = false;
+// The settings panel's mat_ channels, 1 neutral, set by materialFor and
+// moved by GoannaClient::set_material_strength.
 uniform float normal_strength = 1.0;
 uniform float roughness_strength = 1.0;
 uniform float specular_strength = 1.0;
 uniform float sss_strength = 1.0;
 uniform float ao_strength = 1.0;
+// Per view, from project/ice_transmission.gd: the scene behind the ice,
+// rendered without it at half size; whether that render is live this
+// frame (0 or 1); and the two shared noise volumes, a cellular one for
+// fractures and a Perlin one for cloudy inclusions.
 global uniform sampler2D goanna_ice_background;
 global uniform float goanna_ice_transmission_ready;
 global uniform sampler3D goanna_ice_fractures : repeat_enable, filter_linear;
@@ -28,6 +44,8 @@ void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
+// The divisors are the volumes' world periods in nodes, 11 and 12, chosen
+// apart so the two never repeat together.
 float cloud(vec3 p) {
 	return texture(goanna_ice_clouds, p / 11.0).r;
 }
@@ -39,6 +57,7 @@ float fracture(vec3 p) {
 	return texture(goanna_ice_fractures, (p + warp * 0.65) / 12.0).r;
 }
 
+// The usual sine hash: three pseudo random numbers in 0 to 1 per cell.
 vec3 cell_hash(vec3 p) {
 	return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)),
 			dot(p, vec3(269.5, 183.3, 246.1)),
@@ -56,6 +75,8 @@ float bubbles(vec3 p) {
 }
 
 void fragment() {
+	// render_ice_detail (feature_flags.gdshaderinc), on at every graphics
+	// tier; off, the plain tile below with a faint transmission.
 	if (goanna_render_ice_detail > 0.5) {
 		vec3 geometric_normal = NORMAL;
 		// Recover the face's frame; Luanti's non-array meshes have no tangents.
@@ -76,6 +97,9 @@ void fragment() {
 		float right = dot(texture(albedo_tex, UV + vec2(texel.x, 0.0)).rgb, luminance);
 		float up = dot(texture(albedo_tex, UV - vec2(0.0, texel.y)).rgb, luminance);
 		float down = dot(texture(albedo_tex, UV + vec2(0.0, texel.y)).rgb, luminance);
+		// Central differences of luminance as height, per UV unit, scaled
+		// down to a slope and clamped so a hard texel edge cannot fold the
+		// normal over.
 		vec2 facets = clamp(vec2(left - right, up - down) / (2.0 * texel)
 				* 0.09, vec2(-0.45), vec2(0.45));
 		slope += facets * normal_strength;
@@ -88,6 +112,7 @@ void fragment() {
 		// not a measurement of the full thickness of a connected ice formation.
 		vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(geometric_normal, 0.0)).xyz);
 		vec3 incident = normalize(world_pos - CAMERA_POSITION_WORLD);
+		// 1.31 is the refractive index of ice.
 		vec3 ray = refract(incident, world_normal, 1.0 / 1.31);
 		float facing = max(abs(dot(world_normal, ray)), 0.35);
 		float path = 1.15 / facing;
@@ -107,6 +132,8 @@ void fragment() {
 			float mist = smoothstep(0.48, 0.61, c);
 			float air = bubbles(p) * (1.0 - smoothstep(0.03, 0.12, footprint));
 			float density = 0.95 + mist * 1.1 + cracks * 7.0 + air * 8.0;
+			// Front to back compositing: each step's Beer-Lambert opacity
+			// adds its colour weighted by what still gets through.
 			float opacity = 1.0 - exp(-density * step_length);
 			vec3 ice_colour = mix(vec3(0.055, 0.23, 0.32), vec3(0.52, 0.76, 0.82),
 					clamp(cracks * 0.8 + mist * 0.45 + air, 0.0, 1.0));

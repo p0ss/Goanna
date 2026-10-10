@@ -5,15 +5,21 @@
 // way it is flying, turned about that line to face the eye. The particles
 // are aligned with their velocity (align_y), so the particle's own y axis
 // is the line. Round billboards read as white bubbles coming out of the
-// body, not as water thrown up off it.
+// body, not as water thrown up off it. splashes.gd draws the droplets as
+// GPU particles with this as their material, and sets both uniforms from
+// its DROP_COLOUR and DROP_SIZE.
 shader_type spatial;
 render_mode blend_mix, cull_disabled, depth_draw_never, specular_schlick_ggx;
 
+// The water's tint and peak opacity, multiplied by the particle's own
+// COLOR, which fades it over its life.
 uniform vec4 colour : source_color = vec4(0.86, 0.93, 1.0, 0.8);
 // Across and along, nodes, at a particle scale of 1.
 uniform vec2 size = vec2(0.025, 0.1);
 
 void vertex() {
+	// A hand built billboard: the basis is the flight line, the axis across
+	// it facing the eye, and their cross product, scaled by the particle's.
 	vec3 centre = MODEL_MATRIX[3].xyz;
 	vec3 along = MODEL_MATRIX[1].xyz;
 	float scale = length(along);

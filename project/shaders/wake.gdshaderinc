@@ -11,6 +11,10 @@
 // Presentation only: the points come from positions the client already has.
 // With no point live, goanna_wake_state.x is 0 and the whole term is one
 // uniform branch.
+//
+// Included by water.gdshader, which adds goanna_wake's slope to its normal
+// and its crest to the foam. The three globals below are set by wake.gd
+// through PlayerContext.shader_parameter.
 
 // One point per texel along the first row: world x, world z, the wake clock
 // at its birth, and its strength, 0 to 1.

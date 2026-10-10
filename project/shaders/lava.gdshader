@@ -1,19 +1,45 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // One world-space material across sources, sloping tops and vertical falls.
 // Near lava's UV contains a continuous projected velocity, not per-face tiles.
+//
+// Loaded as m_sh_lava in GoannaClient::materialFor (src/goanna_client.cpp)
+// for every liquid tile on a lava texture, and for the far tiers' lava plane
+// beside m_lod_water. The near mesh comes from prepareLavaSurface
+// (src/goanna_lava.cpp): UV is the flow vector, COLOR.a the shoreline
+// coverage and CUSTOM1 the shared displacement direction. The far plane
+// has none of that and runs with surface_geometry off. The design is in
+// docs/systems/lava-material.md, "Surface and flow".
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
+// Set by materialFor. The tile is the lava source's surface art; the
+// emission is 4.8 times the square of the node's light_source over 14, so
+// a dimmer lava glows less.
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float emission_energy : hint_range(0.0, 8.0) = 4.8;
+// Default only: flow_speed turns the flow vector into drift in nodes a
+// second, crust_height is how high crust stands in nodes, and
+// texture_scale is texture repeats per node.
 uniform float flow_speed : hint_range(0.0, 1.0) = 0.32;
 uniform float crust_height : hint_range(0.0, 0.3) = 0.14;
 uniform float texture_scale : hint_range(0.25, 2.0) = 0.65;
+// True on the near mesh, set by materialFor: the vertex attributes above
+// are real and the crust may displace. False on the far plane.
 uniform bool surface_geometry = false;
+// A fixed clock in seconds for the tests and studies (project/tests/lava_*.gd,
+// project/portal_study.gd); negative, the default, runs on TIME.
 uniform float preview_time = -1.0;
+// Set per tile by configureLavaMaterial (src/goanna_lava.cpp) from the art
+// itself: the 20th and 80th luminance percentiles, linear, between which a
+// texel turns from crust to melt, and how much crust the tile may have at
+// all, 0 for nearly uniform or wholly bright art.
 uniform vec2 crust_range = vec2(0.025, 0.50);
 uniform float crust_strength = 1.0;
+
+// render_lava_detail (feature_flags.gdshaderinc) gates the flow, the crust
+// and the displacement; off, the tile slides at a constant drift. Every
+// graphics tier leaves it on.
 
 varying vec3 surface_pos;
 varying vec3 world_normal;
@@ -37,6 +63,9 @@ vec3 lava_colour(vec3 p, vec2 velocity, float t, float lod) {
 			cos(p.z * 0.79 - p.x * 0.53 + t * 0.16)) * 0.035;
 	// Two overlapping advection cycles prevent unbounded stretching as time
 	// increases. Both phases and their weights are shared across every block.
+	// Each phase drags the texture for 12 seconds and snaps back; the two are
+	// half a cycle apart and the triangle weight hides each one's snap while
+	// the other is at full weight.
 	float cycle = t / 12.0;
 	float a = fract(cycle);
 	float b = fract(cycle + 0.5);
@@ -97,6 +126,9 @@ void fragment() {
 			crust_at(surface_pos+vec3(0,e,0),flow,t,height_lod)-crust_at(surface_pos-vec3(0,e,0),flow,t,height_lod),
 			crust_at(surface_pos+vec3(0,0,e),flow,t,height_lod)-crust_at(surface_pos-vec3(0,0,e),flow,t,height_lod)) * (crust_height/(2.0*e));
 		vec3 dx = dFdx(surface_pos), dy = dFdy(surface_pos);
+		// The surface gradient of the shoreline coverage, from its screen
+		// derivatives (Mikkelsen's bump mapping without tangents), so the
+		// taper to the shore tilts the normal as well as the height.
 		vec3 rx = cross(dy,n), ry = cross(n,dx);
 		float determinant = dot(dx,rx);
 		vec3 shore_gradient = vec3(0.0);
@@ -104,6 +136,8 @@ void fragment() {
 			shore_gradient = (rx*dFdx(crust_weight)+ry*dFdy(crust_weight))/determinant;
 		gradient = gradient*crust_weight + crust_height*geometric_crust*shore_gradient;
 		float fade = 1.0-smoothstep(32.0,80.0,length(surface_pos-CAMERA_POSITION_WORLD));
+		// Tilt by the height gradient's part in the surface plane, scaled by
+		// how far this face looks along the displacement it shares.
 		n = normalize(n-(gradient-n*dot(gradient,n))*abs(dot(n,normalize(displacement_direction)))*fade);
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);

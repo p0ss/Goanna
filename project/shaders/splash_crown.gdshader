@@ -11,9 +11,12 @@
 // The mesh is a plain ring of quads (UV.x round it, UV.y from the foot of
 // the sheet to its lip); everything else is here, driven by one number, the
 // crown's age, so a crown costs a material instance and no CPU per vertex.
+// splashes.gd shares one material between every crown and sets the
+// instance uniforms below per MeshInstance3D.
 shader_type spatial;
 render_mode blend_mix, cull_disabled, depth_draw_never, specular_schlick_ggx;
 
+// Per crown, set by splashes.gd when it throws one and each frame after.
 // 0 when it is thrown, 1 when it is gone.
 instance uniform float crown_age = 0.0;
 // x the radius of its foot, fully spread, nodes; y its height at most.
@@ -22,6 +25,7 @@ instance uniform vec2 crown_size = vec2(0.6, 0.8);
 // w a seed so no two crowns have the same fingers.
 instance uniform vec4 crown_push = vec4(0.0);
 
+// The water's tint. Default only.
 uniform vec4 colour : source_color = vec4(0.84, 0.92, 1.0, 1.0);
 // How many fingers round the lip.
 const float FINGERS = 18.0;
@@ -32,6 +36,8 @@ varying float finger;
 // How far a finger stands up at this angle: narrow peaks, uneven in height
 // and spacing.
 float fingers_at(float a, float seed) {
+	// Low harmonics added to the phase move each finger off the regular
+	// spacing; the seed shifts every term so crowns differ.
 	float wobble = 1.6 * sin(a * 3.0 + seed * 11.0) + 0.9 * sin(a * 5.0 + seed * 23.0);
 	float f = 0.5 + 0.5 * cos(a * FINGERS + seed * 6.28 + wobble);
 	// Rounded at the top, the way a finger of water ends in a bead.
@@ -45,6 +51,8 @@ void vertex() {
 	vec2 around = vec2(cos(a), sin(a));
 	float t = clamp(crown_age, 0.0, 1.0);
 	// Up fast and slowing, then back down.
+	// pow(t, 0.55) runs the first half of the sine early, so the peak
+	// comes at a little over a quarter of its life rather than half.
 	float rise = sin(PI * pow(t, 0.55));
 	float push = dot(around, crown_push.xy) * crown_push.z;
 	float tall = crown_size.y * rise * clamp(1.0 + 0.9 * push, 0.25, 2.0);

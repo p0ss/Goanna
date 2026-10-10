@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
-// The glass material, shared by glass.gdshader (culled) and
-// glass_double_sided.gdshader (glass doors and other tiles a game draws from
-// both sides). Culling is a render mode, so the two are separate shaders.
+// The glass material, shared by glass.gdshader (culled, blended glass and
+// stained glass), glass_clear.gdshader (culled clear glass, no depth write)
+// and glass_double_sided.gdshader (glass doors and other tiles a game draws
+// from both sides). Culling and depth are render modes, so they are separate
+// shaders. GoannaClient::materialFor (src/goanna_client.cpp) picks between
+// them and sets the textures and has_ flags; ice has its own ice.gdshader.
+
+// Textures. albedo_tex is the tile, set by materialFor; the screen and
+// depth are Godot's, read for refraction and the reflection march.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
@@ -11,10 +17,20 @@ uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 // sides), _s carries perceptual smoothness in R and F0 in G.
 uniform sampler2D normal_tex : filter_linear_mipmap, repeat_enable;
 uniform sampler2D spec_tex : filter_linear_mipmap, repeat_enable;
+// Set by materialFor from companionTexture; both stay false, and the
+// fallbacks below run, when no pack covers the tile or GOANNA_NO_PBR is set.
 uniform bool has_normal = false;
 uniform bool has_spec = false;
+// Scale on the authored _n's tilt. The settings panel's normal slider
+// (GoannaClient::set_material_strength) reaches every built material,
+// glass included.
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
+
+// Fixed response, default only: glass has no slider of its own.
+// How far the bent normal shifts the screen lookup behind the pane, in
+// screen UV per unit of normal tilt.
 uniform float refraction = 0.015;
+// Light pass roughness where there is no _s to give it per texel.
 uniform float roughness = 0.08;
 // How hard the texture's own relief bends the surface normal when there is
 // no authored _n: the tile's luminance stands in as a height field, one
@@ -30,8 +46,8 @@ uniform float reflect_strength : hint_range(0.0, 1.0) = 0.22;
 // in water.gdshader.
 uniform float reflect_range : hint_range(0.0, 4096.0) = 512.0;
 
-// The same globals water.gdshader reflects with, set in _apply_sky; the
-// glow is zero at night and when a weather sky hides the disc.
+// The same globals water.gdshader reflects with, set in main.gd's
+// _apply_sky; the glow is zero at night and when a weather sky hides the disc.
 global uniform float goanna_eye_underwater;
 global uniform vec3 goanna_sky_top;
 global uniform vec3 goanna_sky_horizon;
@@ -50,6 +66,8 @@ float scene_distance(vec2 uv, mat4 inv_proj) {
 // the node meshes carry no tangents: the standard tangentless bump mapping.
 bool uv_frame(vec3 p, vec2 uv, out vec3 t_u, out vec3 t_v) {
 	vec2 duvdx = dFdx(uv), duvdy = dFdy(uv);
+	// Invert the 2x2 screen to UV Jacobian: t_u and t_v are how far the
+	// surface moves per unit of u and v, the tangent and bitangent.
 	float det = duvdx.x * duvdy.y - duvdx.y * duvdy.x;
 	if (abs(det) < 1e-12)
 		return false;
@@ -85,6 +103,8 @@ void fragment() {
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
 	vec3 nrm = surface_normal(NORMAL, VERTEX, UV);
 	NORMAL = nrm;
+	// Refraction as a screen offset along the view space normal: not a ray
+	// through the pane, but a pane is thin and the bend only has to read.
 	vec2 ofs = nrm.xy * refraction;
 	vec3 behind = texture(screen_tex, SCREEN_UV + ofs).rgb;
 	vec3 body = mix(behind, tex.rgb, tex.a);
@@ -169,5 +189,7 @@ void fragment() {
 	// The _s answers for the light pass too: frost scatters the sun where a
 	// slick keeps its highlight tight.
 	ROUGHNESS = has_spec ? clamp(1.0 - sm, 0.04, 1.0) : roughness;
+	// LabPBR's G is F0 for a dielectric; Godot's SPECULAR maps 0.5 to an F0
+	// of 0.04 and grows as its square, hence the root over 0.16.
 	SPECULAR = has_spec ? clamp(sqrt(texture(spec_tex, UV).g / 0.16), 0.0, 1.0) : 0.6;
 }
