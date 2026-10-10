@@ -42,6 +42,7 @@ extends Node3D
 # the whole frame at an oblique angle, the worst case for the parallax
 # march since every pixel runs it, and the GPU frame time is printed with
 # parallax off, the march alone, and the march with its self shadow.
+# GOANNA_WALL_GRAZE=1 looks along the wall at a few degrees instead.
 # GOANNA_RAMP_STEMS="a,b,c" replaces the pack row's stems (labels are the
 # stems), for looking at a batch the table above does not list. An entry
 # "side+top" dresses a cube the way the world dresses a log: the first
@@ -558,8 +559,20 @@ func _wall_cost(stem: String, mesh: ArrayMesh) -> void:
 	cam = Camera3D.new()
 	cam.fov = 50
 	cam.position = Vector3(0.0, 4.0, 3.2)
+	var target := Vector3(1.5, 5.0, 0.0)
+	# GOANNA_WALL_GRAZE=1: along the wall at a few degrees, as ground is seen
+	# from standing height, where the march takes its longest steps.
+	if OS.get_environment("GOANNA_WALL_GRAZE") == "1":
+		cam.position = Vector3(-8.0, 5.0, 2.2)
+		target = Vector3(0.0, 4.6, 0.0)
+	# GOANNA_WALL_CAM="px,py,pz,tx,ty,tz,fov" places the camera by hand.
+	var place := OS.get_environment("GOANNA_WALL_CAM").split_floats(",")
+	if place.size() == 7:
+		cam.position = Vector3(place[0], place[1], place[2])
+		target = Vector3(place[3], place[4], place[5])
+		cam.fov = place[6]
 	add_child(cam)
-	cam.look_at(Vector3(1.5, 5.0, 0.0), Vector3.UP)
+	cam.look_at(target, Vector3.UP)
 	cam.current = true
 	_apply_gain()
 	_apply_case(CASES["low"], Vector3.ZERO)
