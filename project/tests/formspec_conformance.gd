@@ -595,6 +595,15 @@ func _test_click_and_craft_paths() -> void:
 	_check(ui.selected.is_empty(), "and the cursor lets go of the craft result")
 	_discard_inventory_ui(ui)
 
+	# width is a minimum; long names must not be clipped to five em.
+	var wide := _new_form("formspec_version[6]size[16,11]"
+		+ "tablecolumns[text,width=5;text,width=4]table[0.5,2;15,4;shops;Leatherworker,Long worker name;1]")
+	var tree: Tree = wide.fields["shops"]
+	var font := tree.get_theme_font("font")
+	_check(tree.get_column_width(0) >= font.get_string_size("Leatherworker", HORIZONTAL_ALIGNMENT_LEFT, -1, wide._font_size()).x,
+		"table column fits its longest cell despite a small width option")
+	_discard(wide)
+
 
 func _stack(item_name: String, count: int) -> Dictionary:
 	return {"name": item_name, "description": item_name, "count": count, "wear": 0}

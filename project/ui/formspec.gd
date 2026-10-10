@@ -3273,8 +3273,10 @@ func _table(parts: PackedStringArray) -> void:
 	var cols: Array = table_columns.duplicate(true) if not table_columns.is_empty() \
 		else [{"type": "text", "opts": {}}]
 	var visible: Array = []
-	for c in cols:
+	for ci in cols.size():
+		var c: Dictionary = cols[ci]
 		if c["type"] == "text" or c["type"] == "image":
+			c["source_column"] = ci + 1
 			visible.append(c)
 	if visible.is_empty():
 		visible = [{"type": "text", "opts": {}}]
@@ -3288,6 +3290,8 @@ func _table(parts: PackedStringArray) -> void:
 
 	var t := Tree.new()
 	t.columns = visible.size()
+	t.set_meta("source_columns", visible.map(func(c: Dictionary) -> int:
+		return int(c.get("source_column", 1))))
 	t.hide_root = true
 	t.column_titles_visible = false
 	t.select_mode = Tree.SELECT_ROW
@@ -3302,7 +3306,7 @@ func _table(parts: PackedStringArray) -> void:
 		var opts: Dictionary = visible[i]["opts"]
 		if opts.has("width"):
 			t.set_column_custom_minimum_width(i, int(float(opts["width"]) * em))
-		t.set_column_expand(i, not opts.has("width"))
+		t.set_column_expand(i, true)
 
 	var root_item := t.create_item()
 	var opendepth := int(table_options.get("opendepth", "0"))
@@ -3362,6 +3366,19 @@ func _table(parts: PackedStringArray) -> void:
 				if tex:
 					item.set_icon(ci, tex)
 
+	# width is a minimum in formspec tables, not a clipping boundary.
+	# Measure the actual cell text, then share spare space across columns.
+	# If the contents exceed the form width, Tree supplies horizontal scroll.
+	var font := t.get_theme_font("font")
+	for ci in visible.size():
+		var width := int(float(visible[ci]["opts"].get("width", 0)) * em)
+		var row := root_item.get_next_in_tree()
+		while row != null:
+			var text_width := font.get_string_size(row.get_text(ci), HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size()).x
+			var icon := row.get_icon(ci)
+			width = maxi(width, ceili(text_width + em * 2 + (icon.get_width() if icon else 0)))
+			row = row.get_next_in_tree()
+		t.set_column_custom_minimum_width(ci, width)
 	_add(t, _pos(v), _list_geom(g))
 	var sel := int(parts[4]) if parts.size() >= 5 and parts[4].strip_edges() != "" else 0
 	if sel > 0:
@@ -3370,9 +3387,9 @@ func _table(parts: PackedStringArray) -> void:
 	_register_named_control(tname, t)
 	_apply_style(t, tname)
 	t.item_selected.connect(func() -> void:
-		submit({tname: "CHG:" + str(_table_row(t))}, false))
+		submit({tname: _table_event(t, "CHG")}, false))
 	t.item_activated.connect(func() -> void:
-		submit({tname: "DCL:" + str(_table_row(t))}, false))
+		submit({tname: _table_event(t, "DCL")}, false))
 
 # GUITable::setTable's options over the skin's defaults: text colour,
 # background, border, highlight and highlight text.
@@ -3392,6 +3409,15 @@ func _apply_table_options(t: Tree) -> void:
 		parse_color(String(table_options.get("color", "")), Color.WHITE),
 		parse_color(String(table_options.get("highlight", "")), Color8(70, 120, 50)),
 		parse_color(String(table_options.get("highlight_text", "")), Color.WHITE))
+
+# Tables require type:row:column; the two-part textlist format is rejected
+# by Luanti's explode_table_event. Include non-visible tablecolumns in the
+# source index (colour, indent and tree columns also occupy a field).
+static func _table_event(t: Tree, kind: String) -> String:
+	var columns: Array = t.get_meta("source_columns", [1])
+	var selected := t.get_selected_column()
+	var column := int(columns[selected]) if selected >= 0 and selected < columns.size() else 0
+	return "%s:%d:%d" % [kind, _table_row(t), column]
 
 # The 1-based row the table reports, which is the row it was built from
 # rather than its position among the currently expanded items.
