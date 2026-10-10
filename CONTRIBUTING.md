@@ -195,6 +195,17 @@ nothing about it.
   main to it, then remove the worktree and its branch. Worktrees are full
   checkouts, and once a client is built in one it holds gigabytes.
 
+## Documentation
+
+The documentation is a site built from `docs/` by Material for MkDocs and
+published to GitHub Pages; `mkdocs.yml` holds its navigation. Put a page
+in the section for its reader (play, host, develop, agents) or its kind
+(systems for how something works now, design for plans, history for dated
+logs and investigations), and add it to the `nav` in `mkdocs.yml`. A dated
+entry goes in a log under `docs/history/`, not in a systems page. Build it
+with `mkdocs build --strict` before committing; `tools/README.md`, "docs",
+says how.
+
 ## Building
 
 See `docs/develop/building.md`. If it does not work on your machine, that is a

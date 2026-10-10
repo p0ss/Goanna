@@ -1,0 +1,63 @@
+# Build the documentation site and publish it to GitHub Pages.
+#
+# The site is docs/ built by Material for MkDocs (mkdocs.yml), with the
+# versions pinned in tools/docs/requirements.txt. The build runs in strict
+# mode, so a broken link or a page missing from the nav fails it rather
+# than publishing. Pages must be set to deploy from GitHub Actions in the
+# repository settings.
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "tools/docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a newer push does not cancel one under way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: pip install -r tools/docs/requirements.txt
+
+      - name: Build
+        run: mkdocs build --strict --site-dir site
+
+      - uses: actions/configure-pages@v5.0.0
+
+      - uses: actions/upload-pages-artifact@v3.0.1
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4.0.5

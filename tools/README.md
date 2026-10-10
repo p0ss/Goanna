@@ -209,3 +209,23 @@ All current. See `docs/develop/building.md` and `docs/develop/asset-bundles.md`.
 - `menu-background.sh`: retake the main menu stills in headless gamescope.
   Current. Needs the GPU free.
 - `make-icon.py`: draw `project/icon.svg` from a voxel list. Current.
+
+## docs: the documentation site
+
+- `requirements.txt`: the pinned MkDocs and Material for MkDocs versions
+  the site builds with. Current.
+- `mkdocs_hooks.py`: the build hook that points links to source files and
+  to `docs/perf/` at GitHub, since neither is part of the site. Current.
+
+Build the site from the repository root in a virtual environment of its
+own, never system wide:
+
+```sh
+python3 -m venv /tmp/goanna-docs
+/tmp/goanna-docs/bin/pip install -r tools/docs/requirements.txt
+/tmp/goanna-docs/bin/mkdocs build --strict
+```
+
+`mkdocs.yml` holds the navigation: a new page goes in its `nav` as well,
+or the strict build fails. `.github/workflows/docs.yml` publishes the site
+to GitHub Pages on a push to main.

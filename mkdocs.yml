@@ -1,0 +1,191 @@
+# The documentation site, built with Material for MkDocs and published to
+# GitHub Pages by .github/workflows/docs.yml. Build it locally with
+#   python3 -m venv /tmp/goanna-docs
+#   /tmp/goanna-docs/bin/pip install -r tools/docs/requirements.txt
+#   /tmp/goanna-docs/bin/mkdocs build --strict
+# or serve it with "mkdocs serve". The text style in docs/develop/style.md
+# applies to every page.
+
+site_name: Goanna
+site_description: A Godot client for Luanti worlds
+site_url: https://p0ss.github.io/Goanna/
+repo_url: https://github.com/p0ss/Goanna
+repo_name: p0ss/Goanna
+edit_uri: edit/main/docs/
+docs_dir: docs
+copyright: Goanna is LGPL-2.1-or-later. Not affiliated with or endorsed by the Luanti project.
+
+# docs/perf holds measurement records and the scripts that made them; the
+# scripts name paths inside it, so it stays where it is and is not built.
+# The hook points links into it, and into source outside docs/, at GitHub.
+exclude_docs: |
+  perf/
+
+hooks:
+  - tools/docs/mkdocs_hooks.py
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+plugins:
+  - search
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Play:
+      - play/index.md
+      - Installing Goanna: play/install.md
+      - Starting and joining: play/starting.md
+      - Controls: play/controls.md
+      - Game controllers: play/controllers.md
+      - Settings: play/settings.md
+      - Accessibility: play/accessibility.md
+      - Local multiplayer: play/local-multiplayer.md
+      - System requirements: play/requirements.md
+  - Host:
+      - host/index.md
+      - Setting up a director: host/director-setup.md
+  - Develop:
+      - develop/index.md
+      - Building and running: develop/building.md
+      - Architecture: develop/architecture.md
+      - Text style: develop/style.md
+      - Transplanting Luanti code: develop/transplanting.md
+      - Testing:
+          - develop/testing.md
+          - Launch target: develop/launch-target.md
+          - Formspec conformance: develop/formspec-conformance.md
+          - Shader pack testing: develop/shaderpack-testing.md
+      - Benchmarks:
+          - Benchmarking graphics settings: develop/benchmark.md
+          - Rendering baseline: develop/baseline.md
+      - Materials pipeline:
+          - PBR authoring playbook: develop/pbr-authoring-playbook.md
+          - Community PBR review: develop/pbr-community-review.md
+          - Asset bundles: develop/asset-bundles.md
+  - Agents:
+      - agents/index.md
+      - Agent interfaces: agents/agent-interfaces.md
+      - Control channel: agents/control-channel.md
+      - The director: agents/director.md
+  - Systems:
+      - systems/index.md
+      - Terrain:
+          - Far rendering: systems/far-rendering.md
+          - Prepared terrain storage: systems/terrain-storage.md
+          - Terrain surfaces: systems/terrain-surface.md
+          - Baked terrain: systems/baked-terrain.md
+          - Forest previews: systems/forest-previews.md
+          - Mesh attributes: systems/mesh-attributes.md
+          - Animated node tiles: systems/node-animation.md
+      - Materials and surfaces:
+          - Materials: systems/materials.md
+          - Lava: systems/lava-material.md
+          - Ice: systems/ice-rendering.md
+          - Portals: systems/portal-materials.md
+          - Water optics: systems/water-optics.md
+          - Procedural grass: systems/procedural-grass.md
+      - Light, sky and weather:
+          - Sky orchestration: systems/sky-orchestration.md
+          - Shader weather: systems/weather.md
+          - Particle coverage: systems/particle-coverage.md
+      - Graphics settings:
+          - Graphics tiers: systems/graphics-tiers.md
+          # Stays at its old path until the fire-fix branch lands; it then
+          # moves to systems/render-feature-switches.md.
+          - Render feature switches: render-feature-switches.md
+      - Players and interface:
+          - First person body: systems/first-person-body.md
+          - Knees, elbows and strokes: systems/limbs.md
+          - Interface style: systems/interface-style.md
+          - Local multiplayer architecture: systems/local-multiplayer.md
+          - Overseer camera: systems/overseer.md
+      - Protocol coverage: systems/protocol-coverage.md
+  - Design:
+      - design/index.md
+      - The founding plan: design/plan.md
+      - Roadmap: design/roadmap.md
+      - Far rendering plan: design/far-rendering-plan.md
+      - Materials and shading: design/pbr-plan.md
+      - A material format: design/material-format.md
+      - Iris shader packs: design/iris-compat.md
+      - Capabilities: design/capabilities.md
+      - Validating capabilities: design/validation.md
+      - Director design: design/director-design.md
+      - Freeminer servers: design/freeminer-plan.md
+  - History:
+      - history/index.md
+      - Development log: history/development-log.md
+      - Far rendering log: history/far-rendering-log.md
+      - Director log: history/director-log.md
+      - Materials log: history/materials-log.md
+      - Overseer log: history/overseer-log.md
+      - Material calibration: history/material-calibration.md
+      - Performance inventory: history/performance-inventory.md
+      - Default look checkpoint: history/default-look.md
+  - Releases:
+      - releases/index.md
+      - Unreleased: releases/unreleased.md
+      - 0.13.0-alpha: releases/v0.13.0-alpha.md
+      - 0.12.0-alpha: releases/v0.12.0-alpha.md
+      - 0.11.0-alpha: releases/v0.11.0-alpha.md
+      - 0.10.0-alpha: releases/v0.10.0-alpha.md
+      - 0.9.0-alpha: releases/v0.9.0-alpha.md
+      - 0.8.0-alpha: releases/v0.8.0-alpha.md
+      - 0.7.0-alpha: releases/v0.7.0-alpha.md
+      - 0.6.1-alpha: releases/v0.6.1-alpha.md
+      - 0.6.0-alpha: releases/v0.6.0-alpha.md

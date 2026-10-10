@@ -5,6 +5,8 @@ build/
 *.so
 compile_commands.json
 .cache/
+# mkdocs build output (mkdocs.yml)
+/site/
 
 # Godot
 project/.godot/
