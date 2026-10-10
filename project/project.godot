@@ -22,7 +22,7 @@ driver/enable_input=true
 
 [autoload]
 
-Gamepad="*res://gamepad.gd"
+Gamepad="*res://input/gamepad.gd"
 
 [display]
 

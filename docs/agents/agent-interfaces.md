@@ -544,7 +544,7 @@ the same endpoint with actions.
 Deliverable: a scripted policy can play through ordinary mechanics. Planning,
 memory and autonomous goal selection remain external.
 
-Status: a first version is in `project/player_agent_channel.gd`, protocol
+Status: a first version is in `project/agents/player_agent_channel.gd`, protocol
 `goanna-player/0.5`, described below under "The player agent protocol". What
 has been seen to work, and what has not, is listed at the end of it.
 
@@ -569,11 +569,11 @@ faction diplomacy, culture generation or multi-agent society.
 
 ## The player agent protocol
 
-`goanna-player/0.5`, served by `project/player_agent_channel.gd`. It shares
-no code path with the control channel: no dispatcher, no `eval`, no method
-call by name. `project/tests/player_agent_boundary.gd` fails if the channel,
-`tools/goanna-player` or `tools/goanna-player-mcp` gains any of the control
-channel's verbs (`eval`, `run`, `call`, `tp`, `pose`, `inspect`, `time`,
+`goanna-player/0.5`, served by `project/agents/player_agent_channel.gd`. It
+shares no code path with the control channel: no dispatcher, no `eval`, no
+method call by name. `project/tests/player_agent_boundary.gd` fails if the
+channel, `tools/goanna-player` or `tools/goanna-player-mcp` gains any of the
+control channel's verbs (`eval`, `run`, `call`, `tp`, `pose`, `inspect`, `time`,
 `weather`, `set`, `shot`, `reload_shader` and the rest), or if the channel's
 source gains a dynamic call, a pose write or a second shell call.
 

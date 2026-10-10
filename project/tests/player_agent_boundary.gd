@@ -27,8 +27,8 @@ func check(ok: bool, what: String) -> void:
 		print("FAIL: ", what)
 
 func _init() -> void:
-	var player: GDScript = load("res://player_agent_channel.gd")
-	var developer: GDScript = load("res://control_channel.gd")
+	var player: GDScript = load("res://agents/player_agent_channel.gd")
+	var developer: GDScript = load("res://agents/control_channel.gd")
 	check(player != null and player.can_instantiate(), "player_agent_channel.gd compiles")
 	check(developer != null, "control_channel.gd loads")
 	var constants: Dictionary = player.get_script_constant_map()
@@ -48,9 +48,9 @@ func _init() -> void:
 
 	# The source: no dispatcher into arbitrary code, no method by name, no
 	# position write, and the one shell call is the token file's umask.
-	var source := FileAccess.get_file_as_string("res://player_agent_channel.gd")
+	var source := FileAccess.get_file_as_string("res://agents/player_agent_channel.gd")
 	for pattern in ["_dispatch(", "callv(", ".call(", "Expression.new(", "GDScript.new(",
-			"set_player_pose", "teleport_to(", "inventory_action(", "res://control_channel",
+			"set_player_pose", "teleport_to(", "inventory_action(", "res://agents/control_channel",
 			"\"/teleport", "execute_with_pipe", "create_process"]:
 		check(not source.contains(pattern), "player channel source contains %s" % pattern)
 	check(source.count("OS.execute(") == 1 and source.contains("umask 077"),

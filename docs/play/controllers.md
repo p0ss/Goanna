@@ -41,7 +41,7 @@ left, D-pad right and Back are unbound. The drop action is new to Goanna:
 the keyboard still has no drop key.
 
 The bindings are InputMap actions (`goanna_jump`, `goanna_dig` and so on),
-declared at startup in `project/gamepad.gd` from one table. They cannot be
+declared at startup in `project/input/gamepad.gd` from one table. They cannot be
 rebound from the settings screen yet.
 
 Movement is analogue: a stick part way over walks part speed, as upstream's
@@ -69,8 +69,8 @@ and the buttons click with it:
 | D-pad | Move focus through Goanna's own menus and settings |
 
 Each click is an ordinary mouse event pushed into the window at the cursor,
-the same path the control channel uses (`project/control_ui.gd`), so a form
-cannot tell it from a mouse. That is why this was chosen over focus
+the same path the control channel uses (`project/agents/control_ui.gd`), so a
+form cannot tell it from a mouse. That is why this was chosen over focus
 navigation for forms: it reaches everything a mouse reaches, in every game,
 with no per element work.
 

@@ -18,7 +18,7 @@
 # here on its own once a second clock and correlated with the frames by
 # elapsed time.
 #
-# Driven from the control channel (project/control_channel.gd, the "bench"
+# Driven from the control channel (project/agents/control_channel.gd, the "bench"
 # and "route" commands) and by tools/bench/goanna-bench.py, which turns a plan of
 # setting variants into runs and a report. See docs/develop/benchmark.md.
 extends Node

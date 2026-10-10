@@ -11,7 +11,7 @@
 extends SceneTree
 
 const Formspec := preload("res://ui/formspec.gd")
-const Channel := preload("res://player_agent_channel.gd")
+const Channel := preload("res://agents/player_agent_channel.gd")
 
 var failures := 0
 var checks := 0

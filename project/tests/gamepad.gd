@@ -13,7 +13,7 @@
 # Exits 1 on any failure. Nothing here has been near a real controller.
 extends SceneTree
 
-const Pad := preload("res://gamepad.gd")
+const Pad := preload("res://input/gamepad.gd")
 
 class Recorder extends Node:
 	var events: Array = []

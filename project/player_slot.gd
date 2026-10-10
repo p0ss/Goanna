@@ -2,7 +2,7 @@
 # Copyright (C) 2026 the Goanna contributors
 extends Control
 
-const Gamepad := preload("res://gamepad.gd")
+const Gamepad := preload("res://input/gamepad.gd")
 
 var shell: Node
 var slot_index := 0

@@ -291,7 +291,7 @@ for game in games:
     var profile = load("res://graphics_profiles.gd").PROFILES[profile_name]
     for key in profile:
         game.ui._apply_setting(key, profile[key])
-var recorder = load("res://local_bench.gd").new()
+var recorder = load("res://bench/local_bench.gd").new()
 recorder.main = main
 recorder.games = games
 main.bench = recorder

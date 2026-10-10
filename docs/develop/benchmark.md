@@ -34,7 +34,7 @@ world nobody has seen. `steady` and `move_full` share the settled one.
 read `Engine.get_frames_per_second()`, which is a smoothed average. A 1% low,
 a frame time distribution and a hitch count cannot be recovered from it.
 
-`project/bench.gd` records every frame into arrays sized once when a run
+`project/bench/bench.gd` records every frame into arrays sized once when a run
 starts, so recording costs an index write and allocates nothing: elapsed
 time, the frame period measured between consecutive `_process` calls, the
 frame setup and viewport draw CPU time, the measured GPU time, the distance

@@ -211,7 +211,7 @@ Godot `InputEvent` handed to `Input.parse_input_event`, the entry an OS event
 takes: it updates `Input`'s own state (a held key moves the player), then
 goes through the window, the viewport, the GUI and `_unhandled_input` as a
 player's would. A formspec button pressed this way sends the server what a
-click sends. The code is `project/control_ui.gd`; the formspec is read
+click sends. The code is `project/agents/control_ui.gd`; the formspec is read
 through `describe()` in `project/ui/formspec.gd`, which only reads.
 
 ```sh

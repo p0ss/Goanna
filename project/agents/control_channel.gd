@@ -114,7 +114,7 @@ func _ready() -> void:
 		get_tree().quit(3)
 		return
 	print("control: listening on 127.0.0.1:%d" % _port)
-	_ui = (load("res://control_ui.gd") as GDScript).new()
+	_ui = (load("res://agents/control_ui.gd") as GDScript).new()
 	_ui.main = main
 	_ui.tree = get_tree()
 	label = OS.get_environment("GOANNA_TEST_LABEL")
@@ -769,7 +769,7 @@ func _run_snippet(src: String) -> Variant:
 	return {"value": v}
 
 
-# The frame recorder (project/bench.gd). It is built at startup under
+# The frame recorder (project/bench/bench.gd). It is built at startup under
 # GOANNA_BENCH rather than on demand, because its load stamps begin at
 # process start and no driver can be connected that early; a client launched
 # without it can still be asked, and says so.

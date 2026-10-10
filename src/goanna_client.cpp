@@ -2976,7 +2976,7 @@ Dictionary GoannaClient::horizon_bake_poll() {
 }
 
 // How far one movement direction is held, from 0 to 1. A key arrives as a
-// bool; a controller stick (project/gamepad.gd) arrives as a float, already
+// bool; a controller stick (project/input/gamepad.gd) arrives as a float, already
 // past its deadzone. The type is tested rather than converted, because a
 // Variant holding an int or a bool does not convert to double reliably in
 // godot-cpp.

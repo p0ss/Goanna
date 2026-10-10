@@ -120,7 +120,7 @@ func _run() -> void:
 			"Lowest gates expensive air passes")
 	check(first.render_features.render_ice_transmission and first.render_features.render_sky_clouds,
 			"Lowest keeps transparent ice and a clouded sky")
-	var bench := preload("res://local_bench.gd").new()
+	var bench := preload("res://bench/local_bench.gd").new()
 	bench.games = [first, second]
 	bench.configure_scene({}, {})
 	check(bench.set_feature_variant(["render_sky_clouds"]), "Diagnostic feature variant accepted")

@@ -311,7 +311,7 @@ var iris: GoannaIrisEffect
 var test_started := 0.0
 var showcase_mode := false
 var showcase_placed := false
-# project/bench.gd when GOANNA_BENCH is set: the per frame recorder and
+# project/bench/bench.gd when GOANNA_BENCH is set: the per frame recorder and
 # the scripted route. Null in an ordinary session, so every use is guarded.
 var bench: Node = null
 # The profile this machine would open on, worked out in
@@ -900,8 +900,8 @@ func _ready() -> void:
 	# can be driven and questioned while it runs instead of being relaunched
 	# for each question. Development only; see docs/agents/control-channel.md.
 	if OS.get_environment("GOANNA_CONTROL") != "" and (player_slot == null or player_slot.slot_index == 0):
-		if ResourceLoader.exists("res://control_channel.gd"):
-			var cc: Node = (load("res://control_channel.gd") as GDScript).new()
+		if ResourceLoader.exists("res://agents/control_channel.gd"):
+			var cc: Node = (load("res://agents/control_channel.gd") as GDScript).new()
 			cc.main = self
 			add_child(cc)
 		else:
@@ -910,8 +910,8 @@ func _ready() -> void:
 	# own small vocabulary of ordinary player actions: it deliberately cannot
 	# reach the privileged control dispatcher.
 	if OS.get_environment("GOANNA_PLAYER_AGENT") != "" and (player_slot == null or player_slot.slot_index == 0):
-		if ResourceLoader.exists("res://player_agent_channel.gd"):
-			var pa: Node = (load("res://player_agent_channel.gd") as GDScript).new()
+		if ResourceLoader.exists("res://agents/player_agent_channel.gd"):
+			var pa: Node = (load("res://agents/player_agent_channel.gd") as GDScript).new()
 			pa.main = self
 			player_agent = pa
 			add_child(pa)
@@ -923,8 +923,8 @@ func _ready() -> void:
 	# control channel so its _process runs after this node has moved the
 	# camera, and the frame it records is the one that was just drawn.
 	if OS.get_environment("GOANNA_BENCH") != "" and (player_slot == null or player_slot.slot_index == 0):
-		if ResourceLoader.exists("res://bench.gd"):
-			bench = (load("res://bench.gd") as GDScript).new()
+		if ResourceLoader.exists("res://bench/bench.gd"):
+			bench = (load("res://bench/bench.gd") as GDScript).new()
 			bench.main = self
 			add_child(bench)
 		else:

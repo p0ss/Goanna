@@ -228,8 +228,8 @@ leave the server streaming the old position. Fixed-height routes can cross
 terrain, so inspect the saved composition screenshots and terrain counters
 before accepting a result.
 
-`project/local_bench.gd` extends the existing recorder. Frame periods cover
-the entire application. Render CPU/GPU counters are summed across player
+`project/bench/local_bench.gd` extends the existing recorder. Frame periods
+cover the entire application. Render CPU/GPU counters are summed across player
 viewports and the root composition, with frame setup counted once. These
 sums are diagnostic work totals, not independently measured GPU elapsed
 time. Per-player terrain counters, viewport sizes, application video-memory

@@ -17,7 +17,7 @@ func check(ok: bool, what: String) -> void:
 		print("FAIL: ", what)
 
 func _init() -> void:
-	var channel: GDScript = load("res://control_channel.gd")
+	var channel: GDScript = load("res://agents/control_channel.gd")
 	var esc := char(27)
 	var tag := esc + "(c@#ff0000)Bob" + esc + "(c@#ffffff)"
 	var msg := {"id": 1, "ok": true, "result": {"entities": [

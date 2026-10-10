@@ -763,7 +763,7 @@ minutes after the tag, so the whole run sits in this section.
   any machine but this one.
 
 - Game controller input, 2026-09-26. Upstream Luanti 5.17's SDL gamepad
-  layout, read through Godot's joypad input (`project/gamepad.gd`, an
+  layout, read through Godot's joypad input (`project/input/gamepad.gd`, an
   autoload): the sticks and buttons fold into the same keys dictionary,
   look angles and dig and place flags as the keyboard and mouse, and
   `step_player` now reads a direction as an analogue amount rather than a

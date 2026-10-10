@@ -11,9 +11,9 @@ the harness, view range 6, far distance 1024, time 0.4. The world and client
 cache were already partly warm; surface tiles were still arriving. These
 settings do not establish performance in the user's regular play configuration.
 
-Attached the existing `project/bench.gd` recorder through the control channel;
-it disables vsync and enables GPU timestamps. Recorded a fly route at 20
-nodes/second, looping through (Godot coordinates):
+Attached the existing `project/bench/bench.gd` recorder through the control
+channel; it disables vsync and enables GPU timestamps. Recorded a fly route at
+20 nodes/second, looping through (Godot coordinates):
 `[1600,800,1500]`, `[1856,800,1500]`, `[1856,800,1756]`,
 `[1600,800,1756]`, `[1600,800,1500]`, pitch -20, yaw 0. The regular fly branch
 sends player poses to the server, but server position was not independently

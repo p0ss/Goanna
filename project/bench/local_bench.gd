@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 # Development-only recorder, installed through the control channel.
-extends "res://bench.gd"
+extends "res://bench/bench.gd"
 
 var games: Array = []
 var views: Array = []
