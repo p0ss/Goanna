@@ -147,7 +147,9 @@ cost, runs on Luanti's async worker threads (`far_summary.lua`), in jobs of
 16 blocks that the workers take in parallel, and the records are filed when
 the jobs come back. `goanna_far_summary_async = false` keeps it all in the
 step, and `goanna_far_summary_async_jobs` caps how many jobs may be waiting
-at once.
+at once. Because a block then costs the step a fifth of what it did, the
+step reads 192 blocks rather than 96 unless
+`goanna_far_summary_blocks_per_step` is set.
 
 What the store does not do yet is tell a client that a block it already has
 changed. A client never asks twice for an area that came back complete, so

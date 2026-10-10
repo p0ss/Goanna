@@ -696,7 +696,17 @@ end
 -- The cap on jobs in flight is what stops a busy server queueing work faster
 -- than the workers clear it: at the cap, no new reads start.
 local ASYNC_BATCH = 16
-local async_max_jobs = conf_num("goanna_far_summary_async_jobs", 16)
+local async_max_jobs = conf_num("goanna_far_summary_async_jobs", 32)
+-- With the summaries on the workers, a block costs the step about 60
+-- microseconds rather than 300, so the step can afford to read twice as
+-- many. Measured on 2026-10-10 against an explored Mineclonia world, one
+-- client: 96 a step filled about 38,000 blocks in 30 seconds and the cap on
+-- jobs never bound, 192 filled 60,000 for 13% of the server thread, and 384
+-- filled only 68,000 because the 14 workers were then the limit. An
+-- operator's own setting is kept as it is.
+if async_summaries and core.settings:get("goanna_far_summary_blocks_per_step") == nil then
+	blocks_per_step = 192
+end
 
 local reoffer = {}
 local inflight = {}       -- block hash -> sequence of its newest read

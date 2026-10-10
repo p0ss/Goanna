@@ -27,6 +27,8 @@ goanna_far_provider_distance (Procedural far-provider distance) int 256 64 8192
 #    on a world older than the store, so this paces the reading, not the
 #    answering: an area the store knows is answered at once. Lower it on a
 #    busy server; 0 does not disable the feature, goanna_far_rendering does.
+#    Left unset, it is 192 when summaries run on the async workers (see
+#    goanna_far_summary_async) and 96 when they run in the step.
 goanna_far_summary_blocks_per_step (Far summary blocks per step) int 96 1 512
 
 #    Read the areas around each player into the summary store in the
@@ -56,7 +58,7 @@ goanna_far_summary_async (Far summaries off the server thread) bool true
 #    Summary jobs that may be waiting on the async workers at once, 16
 #    mapblocks each. At this many, no new blocks are read until some return,
 #    so a server whose workers are busy is not handed more than they clear.
-goanna_far_summary_async_jobs (Far summary async jobs) int 16 1 64
+goanna_far_summary_async_jobs (Far summary async jobs) int 32 1 64
 
 #    Generate terrain around each player out to the far rendering distance,
 #    one 128 node area at a time, a slice of an area per emerge call, and

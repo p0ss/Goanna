@@ -2780,7 +2780,8 @@ and of filing results, per 30 seconds, over the windows after the join:
 
 So backfill had been taking about half of the server thread, and now takes
 about a tenth, for roughly four fifths of the throughput at 16 jobs. The
-default cap is 16 for that reason. The remaining server thread cost is the
+cap of 16 chosen from this was not what bound it; see the second sweep
+below. The remaining server thread cost is the
 map read and filing the record, of which `set_record` rebuilding the
 area's 47 KB blob string for every record is the obvious next target.
 
@@ -2791,3 +2792,27 @@ before that are counted. One run per row, with the server thread rows
 repeated. Not yet measured: a server with several players, and Kythen or
 VoxeLibre. `fine.lua`'s full detail replies and the far surface provider's
 synthesis still run on the server thread.
+
+The same evening, with the machine idle (load average under 5 at every
+start), a second sweep of the same setup, 190 seconds a run, averaging the
+four full windows after each join:
+
+| Blocks per step | Job cap | Blocks read per 30 s | Server thread ms per 30 s | Per block |
+| --- | --- | --- | --- | --- |
+| 96 | 16 (twice) | 37,408 and 38,086 | 3,152 and 2,875 (10%) | 84 and 75 us |
+| 96 | 32 (twice) | 37,959 and 38,054 | 3,291 and 2,480 (10%) | 87 and 65 us |
+| 96 | 64 | 37,176 | 2,949 (10%) | 79 us |
+| 192 | 32 (twice) | 60,478 and 60,354 | 3,804 and 3,816 (13%) | 63 us |
+| 384 | 64 (twice) | 68,161 and 67,450 | 4,434 and 4,210 (14%) | 65 and 62 us |
+
+Mean max lag was 0.051 to 0.055 s in every run. At 96 blocks a step no run
+ever had more than 12 jobs out, whatever the cap: the per step read budget
+was the limit, not the workers. Doubling it to 192 gave 1.6 times the
+throughput, a quarter more than the server thread alone managed, for a
+little more server thread time. At 384 the jobs out sat at the 32 or 33 the
+14 workers (Luanti's automatic pool on 16 cores) could keep in hand, so
+the workers had become the limit and every core was busy for 12% more.
+With summaries on the workers, the defaults are therefore 192 blocks a
+step and a cap of 32 jobs, and a server that sets
+`goanna_far_summary_blocks_per_step` keeps its own value. Still one client
+and one game.
