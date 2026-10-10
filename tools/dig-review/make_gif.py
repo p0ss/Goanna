@@ -10,7 +10,7 @@ frames=[]
 for index in range(21):
     frame=Image.new('RGB',(1280,482),(24,26,29))
     draw=ImageDraw.Draw(frame)
-    for side,(name,title) in enumerate([('centre','Centre strike'),('corner','Corner strike — chunk boundary')]):
+    for side,(name,title) in enumerate([('centre','Centre strike'),('corner','Corner strike: chunk boundary')]):
         shot=Image.open(source/name/f'{index:02d}.png').convert('RGB')
         frame.paste(shot.crop((320,160,960,600)),(side*640,42))
         draw.text((side*640+18,9),title,font=font,fill='white')

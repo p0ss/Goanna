@@ -36,10 +36,10 @@
 -- provisional: it is guessed ahead of the server's own gate on whether the
 -- blow was diggable at all (`core.get_dig_params`, the tool and the node's
 -- own groups), and a Goanna client has no way to know a game's own dig
--- timing or wear rules in advance. A GAME that computes damage itself --
--- Kythen's `form_damage.lua`, which derives it from those same server side
+-- timing or wear rules in advance. A GAME that computes damage itself
+-- (Kythen's `form_damage.lua`, which derives it from those same server side
 -- checks and writes the result to the SAME `goanna_carve` metadata key this
--- file writes -- is a second, authoritative writer of that key, and the two
+-- file writes) is a second, authoritative writer of that key, and the two
 -- must not fight over it: whichever write lands last wins, so a client's
 -- provisional guess could overwrite the game's own authoritative answer with
 -- a shape the game itself never validated.
@@ -51,7 +51,7 @@
 -- is unaffected, since that needs nothing from a server, but nothing here
 -- writes it to node metadata for other players to see, leaving that
 -- entirely to the game's own mod. The setting is the GAME's own, not this
--- one's -- it is not declared in `settingtypes.txt` here, because a general
+-- one's: it is not declared in `settingtypes.txt` here, because a general
 -- purpose relay has no default opinion about who owns a specific game's own
 -- metadata, and a game that wants it sets it itself (Kythen's own game
 -- settings, not this mod's).

@@ -8409,7 +8409,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // Far blocks are drawn by their region's mesh at their tier, never one
         // by one: see lodBuildRegion and docs/far-rendering.md.
         int tier = lodTierFor(bp, m_lod_centre, true);
-        // The network handler has already persisted the compact serialized
+        // The network handler has already persisted the compact serialised
         // block. Do not synchronously derive a second exact hierarchy for a
         // block about to receive an exact near mesh: cell-1 made this poll
         // take 90--127 ms while streaming. If it later leaves the live set,
