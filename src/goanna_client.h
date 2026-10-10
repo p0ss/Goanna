@@ -1012,6 +1012,9 @@ private:
     // The full camera cone reported by main.gd. It may be set before a
     // GoannaSession exists, so retain it across connection and reconnection.
     float m_view_fov = 70.0f;
+    // The view range in map blocks, from the settings, which game_ui.gd
+    // applies before connect_to: retained for the same reason.
+    int m_view_range = 12;
     bool m_far_distance_explicit = false;
     std::set<v3s16> m_far_blocks;
     // Where the bounded out-of-range sweeps in lodUpdateFar resume. Walking

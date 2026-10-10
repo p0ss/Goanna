@@ -1048,10 +1048,11 @@ int GoannaClient::prune_blocks(int radius) {
 int GoannaClient::resident_blocks() { return m_session ? (int)m_session->residentBlocks() : 0; }
 
 void GoannaClient::set_view_range(int blocks) {
+    m_view_range = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
     if (m_session)
-        m_session->wantedRange = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
+        m_session->wantedRange = m_view_range;
 }
-int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : 12; }
+int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : m_view_range; }
 // The camera's enclosing circular field of view, in degrees. Not the vertical
 // angle Godot's Camera3D carries: the server culls against a circular cone, so
 // it has to reach the window corners. main.gd works it out because the
@@ -1398,6 +1399,9 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // player-position packet or the server streams only its 70 degree
     // default and cuts vertical wedges from a wide viewport.
     m_session->cameraFov = m_view_fov;
+    // Likewise the view range: the settings are applied before the session
+    // exists, and the session's own default is 12 whatever the tier said.
+    m_session->wantedRange = m_view_range;
     if (m_session->tsrc()) {
         m_session->tsrc()->setInferredReliefStrength(m_auto_bump);
         m_session->tsrc()->setTextureSize((u32)m_texture_size);
