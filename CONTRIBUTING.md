@@ -125,6 +125,8 @@ This section is the one statement of the commit format; `AGENTS.md` and
   the spike or stage where relevant, for example `E0b stage 3`.
 - The text style applies: Australian spelling, no em dashes.
 - Sign off with `git commit -s`.
+- `tools/git-hooks/commit-msg` checks all of the above. Run
+  `tools/install-git-hooks.sh` once per checkout to turn it on.
 - Keep transplants in their own commits, separate from Goanna code that uses
   them, so a reviewer can diff a transplant against upstream cleanly.
 - Screenshots are welcome and should say whether they are from the live

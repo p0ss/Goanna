@@ -89,7 +89,7 @@ Sizing, by what happens to those ~57k lines:
 - **E0b, the pipe (the founding estimate). Stages 1 and 2 done 2026-08-15,
   about three hours from empty repo.** What exists: `luanti_core`, a static
   library of ~50 Luanti source files (network layer, settings/log/porting,
-  serialization, node/item definitions, MapBlock/Map, inventory/metadata,
+  serialisation, node/item definitions, MapBlock/Map, inventory/metadata,
   the SRP auth stack, vendored mini-gmp/sha256/jsoncpp) compiled with
   server-build semantics (no Irrlicht render/GUI/scene types, header-only
   math kept), linked into the GDExtension with `--no-undefined`; one shim
