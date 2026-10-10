@@ -154,8 +154,9 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.0f},
     // stale is 0: pulling remembered terrain toward grey is a per tier
     // signal painted into the frame, and the far field is judged by there
-    // being none (docs/develop/launch-target.md, "one light, one air"). The channel
-    // stays so the signal can be turned on to see what is remembered.
+    // being none (docs/develop/launch-target.md, "Rendering acceptance":
+    // near and far share one colour and light path). The channel stays so
+    // the signal can be turned on to see what is remembered.
     {"sky_fill", 1.0f}, {"stale", 0.0f}, {"debug_nodelight", 0.0f},
     // Per class surface treatment, the stochastic tiling in
     // nodes_array_common.gdshaderinc. It is the one channel here that costs

@@ -705,7 +705,8 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             // the hand-off. Waving used to be off here, and the reflection
             // march was gated on it, which left the far sea a dark band
             // against the reflecting near water (the R2 recorded in
-            // docs/history/far-rendering-log.md, "the far tier water plane").
+            // docs/history/far-rendering-log.md, "The near/far water
+            // hand-off, 2026-08-28").
             auto wit = m_lod_water.find(sf.texture_id);
             if (wit == m_lod_water.end()) {
                 Ref<ShaderMaterial> wm;
