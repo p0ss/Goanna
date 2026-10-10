@@ -314,10 +314,15 @@ def list_records():
 # desktop's own clients (the compositor, browsers) are not on the list: every
 # recorded fault came from a game client beside a headless gamescope.
 GPU_GAME_CLIENTS = ("godot", "gamescope", "luanti", "minetest")
-# Compute jobs the owner runs on the same card (model training, ComfyUI),
-# listed by nvidia-smi as python and the like. A driver reset would kill
-# them, so they count as busy too. Desktop programs do not.
-GPU_COMPUTE_JOBS = ("python", "comfy", "torch")
+# Desktop programs nvidia-smi lists beside a game. Every other compute user
+# is a job the owner runs on the same card (model training, ComfyUI, a
+# language model server) and counts as busy: a driver reset would kill it,
+# and a name list of jobs missed ollama's llama-server, holding 21 GB of the
+# card, on 2026-10-10.
+DESKTOP_GPU_USERS = ("kwin_wayland", "xwayland", "plasmashell", "firefox", "freetube",
+                     "chrome", "chromium", "electron", "steamwebhelper", "krunner",
+                     "kded", "gnome-shell", "mutter", "discord", "code", "spectacle",
+                     "brave")
 
 
 def driver_errors(minutes=30):
@@ -366,7 +371,7 @@ def gpu_clients():
     for line in out.splitlines():
         pid, _, name = line.partition(",")
         base = os.path.basename(name.strip().split()[0]) if name.strip() else ""
-        if any(word in base.lower() for word in GPU_GAME_CLIENTS + GPU_COMPUTE_JOBS):
+        if base and not any(word in base.lower() for word in DESKTOP_GPU_USERS):
             found.append((int(pid), base))
     # A game client does not always appear in nvidia-smi's compute list: the
     # owner's own Goanna, open 20 minutes, was missing from it on 2026-09-27
