@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Posing joints from several animation tracks at once, after Irrlicht's
+// AnimatedMeshSceneNode::animateJoints and copyOldTransforms. See
+// goanna_animation.h.
+
 #include "goanna_animation.h"
 
 #include <algorithm>

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// EntityRenderer: the materials and companions for entity textures, mesh,
+// item, sprite and upright sprite visuals, model[] previews, and the per
+// frame sync that poses, lights and animates every drawn object. Main thread
+// only, with the caller holding the session's map lock wherever a
+// GoannaSession is passed in; see goanna_entities.h.
+
 #include "goanna_entities.h"
 
 #include "goanna_materials.h"
@@ -1248,6 +1254,10 @@ void EntityRenderer::updateWallPlate(GoannaSession &session, GoannaActiveObject 
                 " face=", wp.face, " out=", wp.side, " seen quad=", seen);
 }
 
+// Throws the visual away and builds it again from the object's current
+// properties, whenever the session bumps its visual version. The old
+// animator is kept until the new one exists so the new skeleton starts from
+// the pose the old one showed rather than snapping to rest for a frame.
 void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en) {
     if (en.visual) {
         en.visual->queue_free();
@@ -1772,6 +1782,10 @@ bool EntityRenderer::overseerVisible(GoannaSession &session, GoannaActiveObject 
     return true;
 }
 
+// Once a frame, from GoannaClient::sync_entities after the session has
+// stepped the objects, under the map lock: drop nodes for objects that went,
+// make nodes for new ones, rebuild changed visuals, then pose, light and
+// animate each drawn object and its attachments.
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
     stepModelPreviews(dt);
     auto &objects = session.objects();

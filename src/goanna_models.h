@@ -12,6 +12,15 @@
 //
 // Coordinates: mesh units are Luanti world units (BS = 10 per node), z is
 // mirrored into Godot's right-handed space, index order is kept.
+//
+// Threads: main thread only. The session owns one ModelCache (models()), and
+// everything that loads a model runs on the main thread: node visuals for
+// mesh nodes in GoannaSession::prepareContentIfReady, wield and item meshes,
+// item icons, and EntityRenderer. None of these types has a lock, so a model
+// must not be loaded from the session thread or a mesh worker. A ModelAnimator
+// belongs to one entity or model[] preview and is stepped from
+// EntityRenderer::sync. Main types: ModelLoader, ModelCache, GodotModel and
+// ModelAnimator.
 
 #include <functional>
 #include <map>

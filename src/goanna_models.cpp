@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Loading models through Irrlicht's own readers, converting them to Godot
+// meshes with bones (and the knee and elbow cuts of goanna_limbs), and the
+// per frame animator: tracks, bone overrides, first person posing, limb
+// bends and body motion. Also the stand-in Client's getMesh. Main thread
+// only; see goanna_models.h.
+
 #include "goanna_models.h"
 
 #include <algorithm>

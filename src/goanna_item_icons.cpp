@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// The node item icon cache: which items get a drawn icon, the job each one
+// becomes (upstream's item mesh, colours and materials), and the batched,
+// threaded rasterise and upload in flush(). See goanna_item_icons.h for the
+// thread rules.
+
 #include "goanna_item_icons.h"
 
 #include <algorithm>

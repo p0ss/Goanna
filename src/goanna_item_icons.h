@@ -20,6 +20,14 @@
 // window, and redrawn in place when that changes, so the textures already
 // handed out stay valid and sharp. Smaller uses (the hotbar, a form too big
 // for the window) scale them down, unfiltered.
+//
+// Threads: the main thread, with one exception. flush() hands the
+// rasterising, and only that, to as many short lived threads as the batch
+// needs (one per 16 icons, up to the core count), which take icons off a
+// shared atomic counter, read nothing but the jobs' meshes and images, write
+// only their own icon's pixels, and are joined before flush() returns. The
+// cache itself has no lock because nothing but the main thread touches it.
+// Main types: ItemIconCache, and IconJob from goanna_icon_raster.h.
 
 #include <cstdint>
 #include <memory>
@@ -56,6 +64,9 @@ bool itemIconKey(Client *client, const ItemStack &stack, std::string &key);
 bool buildItemIconJob(Client *client, GoannaShaderSource &shsrc, const ItemStack &stack,
         IconJob &job);
 
+// Node item icons by item, overlay and colour. Owned by GoannaClient
+// (m_item_icons), which asks for icons from item_icon() and flushes from its
+// frame_pre_draw hook; cleared when the session changes.
 class ItemIconCache {
 public:
     ItemIconCache();

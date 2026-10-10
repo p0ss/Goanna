@@ -3,7 +3,9 @@
 //
 // An Iris or OptiFine shader pack on disk: shaders.properties, the programs
 // it ships, the const directives its sources carry, and #include resolution.
-// Nothing here touches the GPU; see goanna_iris_effect.h for that.
+// Nothing here touches the GPU; see goanna_iris_effect.h for that. It is
+// read on the main thread, from GoannaIrisEffect::load_pack. Main type:
+// iris::Pack.
 #pragma once
 
 #include "iris_glsl.h"

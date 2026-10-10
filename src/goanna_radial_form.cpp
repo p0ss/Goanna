@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Sub node shape and damage, v3: the baselines, the strike, the wire codec,
+// the local dig search, the greedy surfaces and the carve store. See
+// goanna_radial_form.h for the model and for which thread uses what.
+// goanna_radial_form_test checks the baselines, strike, damage test and
+// codec against vectors generated from Kythen's Lua, so a change to that
+// maths has to land in both implementations.
+
 #include "goanna_radial_form.h"
 
 #include "goanna_mesh_flags.h"

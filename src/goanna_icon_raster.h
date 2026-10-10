@@ -20,6 +20,12 @@
 // --headless, where the formspec tests run.
 //
 // No Godot types: the native test links this file on its own.
+//
+// Threads: rasteriseItemIcon keeps no state and only reads its job, so
+// ItemIconCache::flush runs it on several threads at once, one icon each.
+// The job is built on the main thread (buildItemIconJob) and points into
+// meshes and images the session owns; it must not outlive them. Main types:
+// IconJob, IconBuffer and IconBlend.
 
 #include <vector>
 

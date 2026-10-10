@@ -34,6 +34,11 @@
 // breaststroke (arms together, reaching and sweeping out, a frog kick) while
 // it is upright in deep water and moving, which is how Mineclonia has a
 // player go through water when not sprinting.
+//
+// Threads: no state and no locks. findLimbs and splitLimbs run where a model
+// is converted (buildGodotModel), and the angle functions where
+// ModelAnimator steps, both on the main thread. Main types: LimbBend,
+// LimbMeshData, LimbAngles, WaterPose and BodyMotion.
 #pragma once
 
 #include <vector>

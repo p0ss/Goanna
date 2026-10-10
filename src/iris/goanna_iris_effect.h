@@ -7,6 +7,15 @@
 // render thread, and drawn as a full screen triangle into the colortex it
 // declares with DRAWBUFFERS; final draws into the scene's colour buffer.
 // The gbuffers programs are not run here; see docs/design/iris-compat.md.
+//
+// Threads: two. main.gd, on the main thread, makes the effect, loads the
+// pack and only then puts it in the Compositor, and feeds it world state
+// every frame. Godot calls _render_callback on its rendering thread, which
+// builds and uses every RID here. They are freed at NOTIFICATION_PREDELETE,
+// when the last reference goes, by which time no Compositor holds the
+// effect. The world state is the one thing both threads touch
+// while the effect is live, so it alone has a lock. Main type:
+// GoannaIrisEffect.
 #pragma once
 
 #include "iris/iris_pack.h"
@@ -28,6 +37,10 @@
 
 namespace goanna {
 
+// One loaded pack and the GPU objects that run it. The pack and its
+// translated passes are written by load_pack before the effect is attached
+// and are read only after that, so they need no lock; load a new pack into
+// a new effect rather than reloading a live one.
 class GoannaIrisEffect : public godot::CompositorEffect {
     GDCLASS(GoannaIrisEffect, godot::CompositorEffect)
 
@@ -105,7 +118,8 @@ private:
     bool m_labpbr = false;
     bool m_bridge_colour = true;
 
-    // GPU state, render thread only
+    // GPU state, render thread only. report() reads m_gpu_ready and m_dead
+    // from the main thread without a lock, for printing only.
     bool m_gpu_ready = false;
     bool m_dead = false;
     godot::RID m_ubo;
@@ -126,6 +140,8 @@ private:
     godot::Transform3D m_prev_cam;
     godot::Projection m_prev_proj;
 
+    // m_world_mutex guards m_world: set_world_state writes it on the main
+    // thread each frame and fillUniforms copies it out on the render thread.
     std::mutex m_world_mutex;
     World m_world;
 };

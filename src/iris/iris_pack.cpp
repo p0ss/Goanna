@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Reading a shader pack from disk: shaders.properties, the program list,
+// const directives and #include resolution. See iris_pack.h.
+
 #include "iris_pack.h"
 
 #include <algorithm>

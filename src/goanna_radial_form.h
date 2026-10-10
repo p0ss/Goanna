@@ -2,13 +2,19 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #pragma once
-#include <map>
-#include <mutex>
-#include <tuple>
 
 // Sub node shape and per node damage, v3. Ported from Kythen's
-// mods/kythen/core/radial_form.lua at commit 809475f (branch form/damage);
-// docs/architecture/radial-form.md is the design, in that same repository.
+// mods/kythen/core/radial_form.lua at commit 809475f (branch form/damage).
+// The design is Kythen's own docs/architecture/radial-form.md, in the Kythen
+// repository; Goanna has no copy of it.
+//
+// Threads: the shape and damage maths is pure and runs wherever it is
+// called: on the main thread for a local dig (`FormDig`, driven from
+// GoannaClient), and on the mesh workers and the main thread while a block
+// is meshed (content_mapblock reads a carve through `g_goanna_carve_block`).
+// `CarveStore` is the one piece of shared state and has its own lock; see
+// its comment. Main types: `RadialForm`, `FormBaseline`, `FormDamage`,
+// `CarveStore`, `CarveSnapshot`, `FormDig` and `FormSurface`.
 //
 // WHAT CHANGED FROM v1, AND WHY THIS FILE LOOKS DIFFERENT NOW. v1 measured
 // damage as a three-axis inset from the CUBE's own six faces (the old
@@ -52,7 +58,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
+#include <mutex>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace goanna {
@@ -318,6 +327,15 @@ struct CarveSnapshot {
 
 // Each connection owns what that server has sent that player. Coordinates
 // alone cannot identify knowledge shared between local players or servers.
+//
+// Threads: `m_lock` guards `m_entries`. The session thread writes it, from
+// block data, node metadata and node removal (GoannaSession::takeBlockCarves,
+// takeCarveMetadata, onRemoveNode). Readers are the mesh workers, each of
+// which snapshots one block in meshGathered (goanna_mesher.cpp), and the
+// main thread, which reads a node's carve when a local dig starts
+// (GoannaClient::step_interact) and snapshots blocks so a lamp's occlusion
+// sees the holes (updateLampOcclusion). Every method takes the lock, so no
+// caller needs the map lock to use it.
 class CarveStore {
 public:
     void set(int x, int y, int z, const FormDamage &damage);
@@ -334,6 +352,8 @@ private:
 
 // The snapshot the current thread is meshing against, or null. Thread local
 // because several mesh workers run at once and each is on a different block.
+// meshGathered (goanna_mesher.cpp) sets it for the length of one
+// MapBlockMesh build and clears it on the way out.
 extern thread_local const CarveSnapshot *g_goanna_carve_block;
 
 // --------------------------------------------------------------------------

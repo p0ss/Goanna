@@ -19,6 +19,8 @@
 // both quads show the same cell of the sheet.
 //
 // Pure arithmetic, so goanna_upright_sprite_test can check it with no Godot.
+// EntityRenderer calls it on the main thread. Main types: UprightSprite and
+// its quads, WallPlane and UprightSpriteGrid, for wall plates.
 
 #include <string>
 #include <vector>

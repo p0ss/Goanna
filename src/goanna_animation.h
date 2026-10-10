@@ -11,6 +11,10 @@
 // node and no Godot, so the native tests can check it. ModelAnimator
 // (goanna_models) turns the result into bone poses; the tracks themselves
 // come from the transplanted active object (content_cao).
+//
+// Pure functions with no state of their own; ModelAnimator calls them on the
+// main thread. Main functions: animateTracks and keepOldTransforms, over
+// the JointTransforms and OldJointTransforms types.
 
 #include <optional>
 #include <vector>

@@ -8,6 +8,14 @@
 // through Luanti's own model loaders (goanna_models) with per-buffer textures,
 // skinned and animated on a Skeleton3D, nametags as Label3D. Attachments
 // follow their parent, at a bone when one is named.
+//
+// Threads: main thread only. The objects' state is Luanti's
+// (GoannaActiveObject, transplanted from GenericCAO in content_cao.h) and
+// lives in the session under its map lock; the session thread updates it
+// from packets and GoannaClient::sync_entities steps it. Every method that
+// takes a GoannaSession reads that state, so its caller holds
+// session.mapLock() for the call. Main type: EntityRenderer. See
+// docs/develop/architecture.md, "Entities".
 
 #include <cstdint>
 #include <map>
@@ -39,6 +47,13 @@ namespace goanna {
 class GoannaSession;
 class GoannaActiveObject;
 
+// Turns the session's active objects into Godot nodes under one root (the
+// GoannaClient), one EntityNode per object id, and keeps them in step each
+// frame. Owned by GoannaClient (m_entities) and made lazily by
+// ensureEntityRenderer, so the settings it mirrors are passed in when it is
+// made as well as when they change. Its material, model and shader caches
+// are per renderer and hold Godot resources, so they are main thread only
+// like the rest of it.
 class EntityRenderer {
 public:
     explicit EntityRenderer(godot::Node3D *root) : m_root(root) {}
@@ -50,6 +65,7 @@ public:
     // Positions (Godot space) of visible entities, for tests/UI.
     godot::Array positions() const;
     // Up to eight nearby physical actors, at collision-box foot height.
+    // Caller holds session.mapLock().
     godot::PackedVector4Array grass_interactors(GoannaSession &session) const;
     // One Dictionary per visible entity: id, name, position, visual, mesh,
     // frame (the frame of animation track 1, as the Lua API numbers tracks,
@@ -62,7 +78,8 @@ public:
     godot::Dictionary animation(GoannaSession &session, u16 id) const;
     // Where an object stands and which way it faces, for a particle spawner
     // attached to it: {"transform": Transform3D, "local": bool}, or empty
-    // when the object is not known or not drawn.
+    // when the object is not known or not drawn. Caller holds
+    // session.mapLock().
     godot::Dictionary anchor(GoannaSession &session, u16 id) const;
     // The hands and feet that went into or came out of water since the last
     // call, for wake.gd's stroke splashes: {id, local, pos, limb ("hand" or

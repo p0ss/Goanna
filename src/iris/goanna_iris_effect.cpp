@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// The Iris screen space runner: building the GPU objects on the render
+// thread at first use, the per frame uniforms Iris packs expect, the
+// colortex and depth bindings, and the colour bridge between Godot's linear
+// HDR and the gamma space LDR a pack is written for. Thread rules are in
+// goanna_iris_effect.h.
+
 #include "iris/goanna_iris_effect.h"
 
 #include <godot_cpp/classes/framebuffer_cache_rd.hpp>

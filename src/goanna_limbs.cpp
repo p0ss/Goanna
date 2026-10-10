@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Finding and cutting block limbs, the bend transforms, and the gait, landing
+// and water stroke angles. See goanna_limbs.h for the design and
+// docs/systems/limbs.md for the whole picture.
+
 #include "goanna_limbs.h"
 
 #include <algorithm>
