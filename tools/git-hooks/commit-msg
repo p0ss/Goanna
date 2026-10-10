@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+#
+# Commit message check, the rules of docs/style.md section 8 and CLAUDE.md:
+#   - a subject under 72 characters with no trailing full stop
+#   - a blank line, then a body saying why
+#   - a Signed-off-by line (git commit -s)
+#   - no em dash, no two hyphens standing in for one, no smart quotes,
+#     ellipsis character or non breaking space
+#
+# Install for a checkout with tools/install-git-hooks.sh. Git runs it with
+# the message file as its only argument; a non zero exit stops the commit
+# and the message is kept in .git/COMMIT_EDITMSG for another try.
+
+set -uo pipefail
+
+file="${1:?usage: commit-msg MESSAGE_FILE}"
+comment_char=$(git config --get core.commentChar 2>/dev/null || true)
+[ -n "$comment_char" ] && [ "$comment_char" != auto ] || comment_char='#'
+
+# The message as git will store it: everything below the scissors line of
+# commit -v dropped, comment lines dropped.
+msg=$(awk -v c="$comment_char" '
+    index($0, c " ------------------------ >8 ------------------------") == 1 { exit }
+    index($0, c) == 1 { next }
+    { print }' "$file")
+
+fail=0
+problem() {
+    printf 'commit-msg: %s\n' "$1" >&2
+    fail=1
+}
+
+subject=$(printf '%s\n' "$msg" | sed -n '1p')
+second=$(printf '%s\n' "$msg" | sed -n '2p')
+
+if [ -z "${subject//[[:space:]]/}" ]; then
+    problem "the subject line is empty"
+    exit 1
+fi
+
+# Merges and the autosquash prefixes are written by git, and are rewritten
+# or kept as git made them.
+generated=0
+case "$subject" in
+    "Merge "*|"fixup! "*|"squash! "*|"amend! "*|"Revert \""*) generated=1 ;;
+esac
+
+length=$(printf '%s' "$subject" | wc -m)
+if [ "$length" -ge 72 ]; then
+    problem "the subject is $length characters; keep it under 72"
+fi
+case "$subject" in
+    *.) [ "$generated" -eq 1 ] || problem "the subject ends in a full stop" ;;
+esac
+
+if [ "$generated" -eq 0 ]; then
+    if [ -n "$second" ]; then
+        problem "the second line must be blank, with the body below it"
+    fi
+    # A body is at least one line that is not a trailer.
+    body=$(printf '%s\n' "$msg" | sed '1,2d' \
+        | grep -vE '^[A-Za-z][A-Za-z0-9-]*: ' | grep -v '^[[:space:]]*$')
+    if [ -z "$body" ]; then
+        problem "there is no body; say why the change is made"
+    fi
+    if ! printf '%s\n' "$msg" | grep -qE '^Signed-off-by: .+ <.+>$'; then
+        problem "there is no Signed-off-by line; commit with git commit -s"
+    fi
+fi
+
+# Character rules. Inline code in backticks and indented lines (quoted
+# output, commands) are exempt from the "--" rule, since a command line
+# may carry a literal "--".
+prose=$(printf '%s\n' "$msg" | grep -vP '^( {4}|\t)' | sed -E 's/`[^`]*`//g')
+if printf '%s\n' "$msg" | grep -nP '\x{2014}' >/dev/null; then
+    problem "an em dash; use a comma, a full stop, a colon or brackets"
+fi
+if printf '%s\n' "$prose" | grep -P '\S\s--\s\S' >/dev/null; then
+    problem "'--' used as a dash; same rule as the em dash"
+fi
+if printf '%s\n' "$msg" | grep -P '[\x{2018}\x{2019}\x{201C}\x{201D}\x{2026}]' >/dev/null; then
+    problem "smart quotes or an ellipsis character; use straight quotes and full stops"
+fi
+if printf '%s\n' "$msg" | grep -P '[\x{00A0}\x{200B}\x{FEFF}]' >/dev/null; then
+    problem "a non breaking or zero width space"
+fi
+
+if [ "$fail" -ne 0 ]; then
+    printf 'commit-msg: see docs/style.md, section 8. The message is in %s.\n' "$file" >&2
+fi
+exit "$fail"
