@@ -365,3 +365,19 @@ usability, remapping and screen-reader output remain unverified. Large
 text scrolls instead of shrinking controls. The optional minimap, saved
 projects and workstation planning contexts remain future work. Existing
 layer-generation budget overruns are unchanged.
+
+## Local modpack activation, 7 October 2026
+
+A new DorfCraft world failed because the local launcher treated a selected
+modpack directory as one mod. It enabled the similarly named founding mod
+without `labour` or `calendar`. `local_server.gd` now expands nested packs
+into declared leaf mod names, including legacy `modpack.txt` packs. World
+options restore the menu's pack selection when all its members are enabled.
+
+`tests/local_server_modpacks.gd` passed five checks under Godot 4.5.1's dummy
+renderer: nested members, declared names, restoring selections and removing
+members when deselected. The installed DorfCraft package resolved to 35
+members and loaded on Luanti 5.17.0 with Mineclonia 38561 in a scratch world.
+No GPU or client rendering was used for this launcher test. The existing
+DorfCraft playtest and the new-world activation failure are distinct paths;
+this fix does not claim to diagnose every reported loading or input issue.

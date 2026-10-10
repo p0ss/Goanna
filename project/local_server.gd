@@ -942,7 +942,29 @@ static func install_portable_archive(archive_path: String, expected_sha256: Stri
 # install content, it borrows whatever that install carries, so these are for
 # showing the player what Start Game can offer and nothing else.
 static func list_mods(data_dir: String) -> Array:
-	return _list_dirs([data_dir.path_join("mods")], ["mod.conf", "init.lua", "modpack.conf"])
+	return _list_dirs([data_dir.path_join("mods")], ["mod.conf", "init.lua", "modpack.conf", "modpack.txt"])
+
+# Luanti enables leaf mods, not the directory name of a modpack. Keep one
+# menu choice for a pack, but expand nested packs into their declared names.
+static func mod_members(path: String, depth: int = 0) -> Array:
+	if depth > 16:
+		return []
+	if FileAccess.file_exists(path.path_join("modpack.conf")) or FileAccess.file_exists(path.path_join("modpack.txt")):
+		var members: Array = []
+		for child in _list_dirs([path], ["mod.conf", "init.lua", "modpack.conf", "modpack.txt"]):
+			for member in mod_members(path.path_join(str(child)), depth + 1):
+				if not members.has(member):
+					members.append(member)
+		return members
+	if not FileAccess.file_exists(path.path_join("mod.conf")) and not FileAccess.file_exists(path.path_join("init.lua")):
+		return []
+	if FileAccess.file_exists(path.path_join("mod.conf")):
+		for line in FileAccess.get_file_as_string(path.path_join("mod.conf")).split("\n"):
+			if line.get_slice("=", 0).strip_edges() == "name":
+				var declared := line.get_slice("=", 1).strip_edges()
+				if not declared.is_empty():
+					return [declared]
+	return [path.get_file()]
 
 static func list_texture_packs(data_dir: String) -> Array:
 	return _list_dirs([data_dir.path_join("textures")], [])
@@ -1030,6 +1052,12 @@ static func world_options(data_dir: String, worldname: String) -> Dictionary:
 			result["pbr_materials"] = value != "false"
 		elif key.begins_with("load_mod_") and value != "false":
 			(result["mods"] as Array).append(key.trim_prefix("load_mod_"))
+	# Re-select a pack after reopening the menu when all its members are on.
+	for choice in list_mods(data_dir):
+		var members := mod_members(data_dir.path_join("mods").path_join(str(choice)))
+		if not members.is_empty() and members.all(func(member): return result["mods"].has(member)):
+			if not result["mods"].has(choice):
+				result["mods"].append(choice)
 	return result
 
 static func delete_world_recoverably(data_dir: String, worldname: String) -> String:
@@ -1217,8 +1245,14 @@ func _write_world_options(world: String, options: Dictionary) -> String:
 		for key in ["backend", "player_backend", "auth_backend", "mod_storage_backend"]:
 			values[key] = "sqlite3"
 	var mods: Array = options.get("mods", [])
+	var mods_dir := world.get_base_dir().get_base_dir().path_join("mods")
 	for mod in mods:
-		values["load_mod_" + str(mod)] = "true"
+		var members := mod_members(mods_dir.path_join(str(mod)))
+		# Preserve names supplied by callers even if discovery cannot see them.
+		if members.is_empty():
+			members = [mod]
+		for member in members:
+			values["load_mod_" + str(member)] = "true"
 	values["load_mod_goanna_pbr"] = "true" if bool(options.get("pbr_materials", true)) \
 		and pbr_art_available(str(options.get("gameid", ""))) else "false"
 	var kept: PackedStringArray = []
