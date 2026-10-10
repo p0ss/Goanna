@@ -107,8 +107,9 @@ region keep its old mesh until the new one is published.
 
 Godot's packed arrays (`PackedVector3Array` and the rest) are values, not
 objects, and the near batch job fills them on a worker (`NearBatchJob` in
-[`goanna_client.cpp`](../../src/goanna_client.cpp)); the `ArrayMesh` is
-made from them on the main thread in `GoannaClient::nearPublishBatch`.
+[`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp)); the
+`ArrayMesh` is made from them on the main thread in
+`GoannaClient::nearPublishBatch`.
 
 ### From the session to the main thread
 
@@ -196,8 +197,9 @@ for what each packet does and how GDScript reads it.
 [`goanna_client.h`](../../src/goanna_client.h) and
 [`goanna_client.cpp`](../../src/goanna_client.cpp): `GoannaClient`, a
 `Node3D` that owns one `GoannaSession` and everything drawn from it. Every
-method GDScript can call is registered in `GoannaClient::_bind_methods`.
-The main groups are:
+method GDScript can call is registered in `GoannaClient::_bind_methods`, in
+`goanna_client.cpp` with the connection, the plain settings and
+`render_stats`. The main groups are:
 
 - connection and status: `connect_to`, `disconnect_from_server`, `status`;
 - the per frame steps: `poll_blocks`, `update_lod`, `step_player`,
@@ -206,11 +208,26 @@ The main groups are:
   `item_icon`, `texture`, `sky_state`;
 - settings: the `set_*` methods, mostly mirrored from `project/game/`.
 
-The far field's main thread side is split into
-[`goanna_client_surface.cpp`](../../src/goanna_client_surface.cpp) and
-[`goanna_client_fine.cpp`](../../src/goanna_client_fine.cpp); the rest is
-in `goanna_client.cpp`. `GoannaClient::render_stats` reports where the
-client's time goes, which the control channel and benchmarks read.
+The rest of the class is in one file per area, named in the sections
+below; the list is also at the top of `goanna_client.cpp`. The files share
+their includes and a few helpers through
+[`goanna_client_internal.h`](../../src/goanna_client_internal.h).
+
+- [`goanna_client_player.cpp`](../../src/goanna_client_player.cpp): the
+  local player (`step_player`, `set_player_pose`), pointing and digging
+  (`step_interact`), the wielded item, the entity renderer hookup, and the
+  map queries GDScript asks (`node_name_at`, `ground_height` and the
+  rest).
+- [`goanna_client_interface.cpp`](../../src/goanna_client_interface.cpp):
+  chat, the HUD, inventories and item icons, forms, sounds, particles,
+  media, and the overseer view.
+- [`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp): the three
+  mesh job types, what captures and submits them, and `lodCollectMeshes`,
+  which takes every finished job back. It is the only part of
+  `GoannaClient`'s code that runs on a worker.
+
+`GoannaClient::render_stats` reports where the client's time goes, which
+the control channel and benchmarks read.
 
 ### The map, the store and near meshing
 
@@ -226,10 +243,12 @@ client's time goes, which the control channel and benchmarks read.
 - [`goanna_store.h`](../../src/goanna_store.h): `BlockStore`, every block
   the server sent, on disk, one directory per server, written as blocks
   arrive in `GoannaSession::onBlockData`.
-- In `goanna_client.cpp`: `poll_blocks` drains new blocks nearest and most
-  visible first, `nearSubmit` hands them to the workers, and
-  `nearAssign`, `nearRebuild` and `nearPublishBatch` merge finished blocks
-  into regional batches by material.
+- In [`goanna_client_near.cpp`](../../src/goanna_client_near.cpp):
+  `poll_blocks` drains new blocks nearest and most visible first, and
+  `nearAssign` and `nearPublishBatch` merge finished blocks into regional
+  batches by material. `nearSubmit`, which hands a block to the workers,
+  and `nearRebuild`, which submits a dirty batch, are in
+  [`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp).
 
 See [mesh attributes](../systems/mesh-attributes.md) for the vertex layout
 every terrain mesh carries, and
@@ -251,11 +270,22 @@ every terrain mesh carries, and
 - [`goanna_surface.h`](../../src/goanna_surface.h) and
   [`goanna_fine.h`](../../src/goanna_fine.h): baked surface tiles and fine
   node data, both sent by the server mod.
-- In `goanna_client.cpp`: `update_lod` retiers blocks as the player moves,
-  takes server summaries (`lodTakeSummaries`), requests more
-  (`lodRequestSummaries`) and publishes finished regions
-  (`lodCollectMeshes`, `lodPublishRegion`); `lodRebuild`, at the end of
-  `poll_blocks`, captures dirty regions for the workers.
+- In [`goanna_client_lod.cpp`](../../src/goanna_client_lod.cpp):
+  `update_lod` retiers blocks as the player moves, takes server summaries
+  and requests more, and publishes finished regions (`lodPublishRegion`);
+  `lodRebuild`, at the end of `poll_blocks`, picks the dirty regions to
+  capture for the workers.
+- In [`goanna_client_far.cpp`](../../src/goanna_client_far.cpp): the far
+  field beyond the live map. `lodUpdateFar` draws stored blocks within the
+  granted distance, `lodRequestSummaries` and `lodTakeSummaries` ask the
+  server mod for summaries and read them, and `horizon_bake_request` and
+  `horizon_bake_poll` make the horizon panorama.
+- In [`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp):
+  `lodBuildRegion` captures a region for its job, and `lodCollectMeshes`
+  takes finished regions back.
+- In [`goanna_client_surface.cpp`](../../src/goanna_client_surface.cpp)
+  and [`goanna_client_fine.cpp`](../../src/goanna_client_fine.cpp): the
+  main thread side of baked surface tiles and fine node data.
 
 See [far rendering](../systems/far-rendering.md),
 [prepared terrain storage](../systems/terrain-storage.md),
@@ -276,10 +306,11 @@ See [far rendering](../systems/far-rendering.md),
   companions for composed textures, and the texture resolution cap.
 - [`goanna_lava.h`](../../src/goanna_lava.h) and
   [`goanna_flame.h`](../../src/goanna_flame.h): the special surfaces.
-- In `goanna_client.cpp`: `keyForIrr` turns a Luanti material into a
-  `MaterialKey`, and `materialFor` builds and caches the Godot material
-  for it, from the shaders in `project/shaders/` (`nodes_array.gdshader`
-  for most terrain).
+- In [`goanna_client_materials.cpp`](../../src/goanna_client_materials.cpp):
+  `keyForIrr` turns a Luanti material into a `MaterialKey`, and
+  `materialFor` builds and caches the Godot material for it, from the
+  shaders in `project/shaders/` (`nodes_array.gdshader` for most terrain).
+  Animated node tiles (`step_node_animation`) are there too.
 
 See [materials](../systems/materials.md), and the
 [lava](../systems/lava-material.md), [fire](../systems/fire-material.md),
@@ -303,8 +334,9 @@ and stepped by `GoannaSession::stepObjects`. Drawing them is Goanna's:
   [`goanna_limbs.h`](../../src/goanna_limbs.h) and
   [`goanna_upright_sprite.h`](../../src/goanna_upright_sprite.h).
 
-`GoannaClient::sync_entities` takes the map lock, steps the objects and
-calls `EntityRenderer::sync`. See the
+`GoannaClient::sync_entities`, in
+[`goanna_client_player.cpp`](../../src/goanna_client_player.cpp), takes the
+map lock, steps the objects and calls `EntityRenderer::sync`. See the
 [first person body](../systems/first-person-body.md) and
 [knees, elbows and strokes](../systems/limbs.md).
 
@@ -318,7 +350,9 @@ calls `EntityRenderer::sync`. See the
   otherwise light it twice.
 - Node lights: `GoannaClient::harvestLights` notes bright nodes as blocks
   are meshed, and `update_lights` keeps a budget of `OmniLight3D`s on the
-  nearest.
+  nearest, both in
+  [`goanna_client_light.cpp`](../../src/goanna_client_light.cpp) with the
+  ambient motes and `sky_state`.
 - Sky, sun and fog: [`goanna_sky.h`](../../src/goanna_sky.h) decodes what
   the server sent; `sky_state` hands it to `main.gd`'s `_apply_sky` and
   [`sky_director.gd`](../../project/game/effects/sky_director.gd).

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 // Goanna: clear glass that its game cuts out rather than blends (see
-// buildFakeLiquidTextures in goanna_client.cpp). Its clear texels are
+// buildFakeLiquidTextures in goanna_client_materials.cpp). Its clear texels are
 // blended at a fifth of their alpha or more, so with depth_draw_always they
 // wrote depth too, and the nearer pane of a window two blocks thick hid the
 // farther one's frame whenever it happened to draw first: the back edges
@@ -13,7 +13,7 @@
 // lines is on top.
 //
 // Loaded as m_sh_glass_clear in GoannaClient::materialFor
-// (src/goanna_client.cpp) for a backface culled clear glass tile. The
+// (src/goanna_client_materials.cpp) for a backface culled clear glass tile. The
 // material is glass_common.gdshaderinc.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_schlick_ggx;

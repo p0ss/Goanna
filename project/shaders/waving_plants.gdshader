@@ -1,10 +1,11 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_PLANTS. Sway grows with height above the node base.
 //
-// GoannaClient::materialFor (src/goanna_client.cpp) picks it for waving
-// plants, for nodes that only wave like a liquid (lily pads, held still), and
-// for double sided non waving tiles such as sugar cane, saplings, crops and
-// ladders, which need the sky fill the standard material lacks. One material
-// per tile; the sway follows the Foliage wind switch, on at every tier.
+// GoannaClient::materialFor (src/goanna_client_materials.cpp) picks it for
+// waving plants, for nodes that only wave like a liquid (lily pads, held
+// still), and for double sided non waving tiles such as sugar cane, saplings,
+// crops and ladders, which need the sky fill the standard material lacks. One
+// material per tile; the sway follows the Foliage wind switch, on at every
+// tier.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
@@ -28,14 +29,14 @@ global uniform vec3 goanna_ground_fill;
 // A default in play; the offline material studies set 0 to see the rest.
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
-// The pack's LabPBR companions, looked up by stem in goanna_client.cpp the
-// way glass and the entity path already do. Plants had none of this: it
-// hardcoded a roughness and a specular and never read the pack at all, so
-// every mat_ slider in the settings panel did nothing to it while the solid
-// nodes beside it took the pack's gloss in full. In a forested world that
-// is a large part of the frame taking one material response and the rest
-// taking another. The textures and has_* flags are materialFor's, and so
-// are the *_strength channels, the settings panel's mat_ sliders, which
+// The pack's LabPBR companions, looked up by stem in
+// goanna_client_materials.cpp the way glass and the entity path already do.
+// Plants had none of this: it hardcoded a roughness and a specular and never
+// read the pack at all, so every mat_ slider in the settings panel did nothing
+// to it while the solid nodes beside it took the pack's gloss in full. In a
+// forested world that is a large part of the frame taking one material response
+// and the rest taking another. The textures and has_* flags are materialFor's,
+// and so are the *_strength channels, the settings panel's mat_ sliders, which
 // move with set_material_strength. relief_strength is a default only.
 uniform sampler2D normal_tex : hint_normal, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D spec_tex : filter_nearest_mipmap, repeat_enable;

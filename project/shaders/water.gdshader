@@ -36,12 +36,12 @@
 // pixel came from. That is the whole hand-off strategy: two materials that
 // agree at every distance cannot draw a seam, wherever the near mesh ends.
 //
-// Loaded as m_sh_water in GoannaClient::materialFor (src/goanna_client.cpp)
-// for every liquid tile that is not lava or ice, and for the far tiers'
-// water planes (m_lod_water there); project/studies/water_seam.gd runs it too, to
-// study the hand-off. materialFor sets albedo_tex, waving and lod_flatten;
-// every other uniform here is a default. The optics are in
-// docs/systems/water-optics.md.
+// Loaded as m_sh_water in GoannaClient::materialFor
+// (src/goanna_client_materials.cpp) for every liquid tile that is not lava or
+// ice, and for the far tiers' water planes (m_lod_water there);
+// project/studies/water_seam.gd runs it too, to study the hand-off. materialFor
+// sets albedo_tex, waving and lod_flatten; every other uniform here is a
+// default. The optics are in docs/systems/water-optics.md.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 render_mode blend_mix, cull_disabled, diffuse_burley, specular_schlick_ggx;

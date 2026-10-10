@@ -2,12 +2,12 @@
 // One world-space material across sources, sloping tops and vertical falls.
 // Near lava's UV contains a continuous projected velocity, not per-face tiles.
 //
-// Loaded as m_sh_lava in GoannaClient::materialFor (src/goanna_client.cpp)
-// for every liquid tile on a lava texture, and for the far tiers' lava plane
-// beside m_lod_water. The near mesh comes from prepareLavaSurface
-// (src/goanna_lava.cpp): UV is the flow vector, COLOR.a the shoreline
-// coverage and CUSTOM1 the shared displacement direction. The far plane
-// has none of that and runs with surface_geometry off. The design is in
+// Loaded as m_sh_lava in GoannaClient::materialFor
+// (src/goanna_client_materials.cpp) for every liquid tile on a lava texture,
+// and for the far tiers' lava plane beside m_lod_water. The near mesh comes
+// from prepareLavaSurface (src/goanna_lava.cpp): UV is the flow vector, COLOR.a
+// the shoreline coverage and CUSTOM1 the shared displacement direction. The far
+// plane has none of that and runs with surface_geometry off. The design is in
 // docs/systems/lava-material.md, "Surface and flow".
 shader_type spatial;
 #include "feature_flags.gdshaderinc"

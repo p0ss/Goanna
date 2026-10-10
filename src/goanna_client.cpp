@@ -1,23 +1,31 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
-// Most of GoannaClient (goanna_client.h): the near meshing pipeline
-// (poll_blocks, nearSubmit, nearRebuild, nearPublishBatch), the far field
-// and its LOD tiers (update_lod and the lod* methods), materials
-// (keyForIrr, materialFor), node animation, node lights and motes, the
-// entity hookup, the interface getters GDScript reads (take_*, hud_state,
-// inventory_state, sky_state) and _bind_methods. The surface and fine data
-// halves of the far field are in goanna_client_surface.cpp and
-// goanna_client_fine.cpp.
+// GoannaClient (goanna_client.h): making and destroying it, the connection
+// (connect_to, disconnect_from_server, status), the plain settings GDScript
+// sets, the render scope, render_stats and perf_worst_take, and
+// _bind_methods, which registers every method GDScript can call. The rest of
+// the class is in one file per area:
 //
-// Every GoannaClient method runs on Godot's main thread. The three mesh job
-// types defined here (NearBatchJob, NearBlockJob, LodRegionJob) are the
-// exception: their run() executes on a MeshPool worker and must keep to the
-// rule in goanna_mesh_pool.h, working only on what was captured when the job
-// was made. docs/develop/architecture.md, "Threads and the handoff", and
-// "The life of a session" walk through the order things happen in.
+//   goanna_client_near.cpp       near meshing: poll_blocks, regional batches
+//   goanna_client_jobs.cpp       the mesh jobs, submitting and collecting them
+//   goanna_client_lod.cpp        far tiers and regions: update_lod, publishing
+//   goanna_client_far.cpp        stored blocks, server summaries, the horizon
+//   goanna_client_surface.cpp    baked surface tiles
+//   goanna_client_fine.cpp       fine node data
+//   goanna_client_materials.cpp  materials, textures and node animation
+//   goanna_client_light.cpp      node lights, motes and the sky
+//   goanna_client_player.cpp     the player, entities and map queries
+//   goanna_client_interface.cpp  chat, HUD, inventory, forms, sounds, overseer
 //
-// This file is due to be split; until then, search for the method name.
+// goanna_client_internal.h holds the includes and helpers they share.
+//
+// Threads: every GoannaClient method runs on Godot's main thread. The
+// exceptions are the mesh jobs' run() in goanna_client_jobs.cpp, which
+// executes on a MeshPool worker, and the horizon bake thread started in
+// goanna_client_far.cpp. docs/develop/architecture.md, "Threads and the
+// handoff", and "The life of a session" walk through the order things
+// happen in.
 
 #include "goanna_client_internal.h"
 

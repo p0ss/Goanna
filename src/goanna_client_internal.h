@@ -3,13 +3,13 @@
 
 #pragma once
 
-// Shared by the files that implement GoannaClient (goanna_client.cpp and the
-// goanna_client_*.cpp beside it) and included by nothing else: the headers
-// they use, the timing helpers behind render_stats' numbers (ms_since, ema),
-// the node surface format flags and the render layers, and the declarations
-// of node_tangents (defined in goanna_client_near.cpp) and toColor (defined in
-// goanna_client_light.cpp). Do not include it from another header; it is not part of
-// GoannaClient's surface.
+// Shared by goanna_client.cpp and the per area files split from it (the list
+// is at the top of goanna_client.cpp), and included by nothing else: the
+// headers they use, the timing helpers behind render_stats' numbers
+// (ms_since, ema), the node surface format flags and the render layers, and
+// the declarations of node_tangents (defined in goanna_client_near.cpp) and
+// toColor (defined in goanna_client_light.cpp). Do not include it from
+// another header; it is not part of GoannaClient's surface.
 //
 // Threads: the helpers hold no state, so any thread may call them.
 

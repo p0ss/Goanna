@@ -4,8 +4,8 @@
 // tiles Luanti leaves unculled. Godot flips NORMAL on back faces when
 // culling is off, so the shared material needs nothing else. Depth as in
 // glass_clear.gdshader, and for the same reason. Loaded as
-// m_sh_glass_double in GoannaClient::materialFor (src/goanna_client.cpp);
-// the material is glass_common.gdshaderinc.
+// m_sh_glass_double in GoannaClient::materialFor
+// (src/goanna_client_materials.cpp); the material is glass_common.gdshaderinc.
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled, diffuse_burley, specular_schlick_ggx;
 

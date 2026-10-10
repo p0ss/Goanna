@@ -91,8 +91,8 @@ const float EDGE_FADE = 1.5;
 // environment's ambient alone.
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
-// 1 while the eye is under water (GoannaClient, goanna_client.cpp), when no
-// drop is drawn at all.
+// 1 while the eye is under water (GoannaClient, goanna_client_player.cpp), when
+// no drop is drawn at all.
 global uniform float goanna_eye_underwater;
 
 varying vec3 v_world;

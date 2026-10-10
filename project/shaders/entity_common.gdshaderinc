@@ -35,7 +35,7 @@ uniform bool has_spec = false;
 // Per channel strengths, matching nodes_array_common.gdshaderinc; see its
 // comment for why a pack's channels routinely need scaling down. Each is
 // the settings slider of the same name (kMatStrengthDefaults in
-// src/goanna_client.cpp), passed on by EntityRenderer::setChannel.
+// src/goanna_client_materials.cpp), passed on by EntityRenderer::setChannel.
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float ao_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float roughness_strength : hint_range(0.0, 1.0) = 1.0;

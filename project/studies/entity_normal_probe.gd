@@ -18,7 +18,7 @@ extends Node3D
 # UVs as drawn and once mirrored along U (Minecraft style skins mirror the
 # limbs). The first quad is the reference: the same material on a mesh
 # whose tangents SurfaceTool wrote, which is the frame the node mesher
-# matches (goanna_client.cpp, node_tangents). The last two quads have no _n
+# matches (goanna_client_near.cpp, node_tangents). The last two quads have no _n
 # of their own: their albedo has a bright disc and their normal map is the
 # auto bump inference, ported from inferNormalImage in goanna_textures.cpp,
 # so a bright (raised) disc must light as a dome too, on the node frame and

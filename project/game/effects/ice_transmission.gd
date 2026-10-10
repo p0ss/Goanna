@@ -10,7 +10,7 @@ extends Node
 # An opaque ice surface can sample this view without entering the sorted
 # transparent pass. Water then sees ice in its own colour/depth buffers.
 # The render layer bit the client puts ice on (ICE_LAYER in
-# src/goanna_client.cpp).
+# src/goanna_client_internal.h).
 const ICE_LAYER := 4
 var source_camera: Camera3D
 var source_environment: Environment

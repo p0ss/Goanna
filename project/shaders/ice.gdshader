@@ -4,8 +4,8 @@
 // transmission, including water, without depending on transparent sorting.
 //
 // Translucent ice nodes: loaded as m_sh_ice in GoannaClient::materialFor
-// (src/goanna_client.cpp) for a tile in m_ice_tex. The body colour is a
-// procedural interior marched along a refracted ray, not the tile. See
+// (src/goanna_client_materials.cpp) for a tile in m_ice_tex. The body colour is
+// a procedural interior marched along a refracted ray, not the tile. See
 // docs/systems/ice-rendering.md.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"

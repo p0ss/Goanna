@@ -10,7 +10,7 @@
 //
 // Threads: gatherMeshData and meshBlock run on Godot's main thread, from
 // GoannaClient::poll_blocks, with session.mapLock() held. meshGathered runs
-// on a MeshPool worker (NearBlockJob in goanna_client.cpp). The session
+// on a MeshPool worker (NearBlockJob in goanna_client_jobs.cpp). The session
 // thread never meshes: it only queues block positions.
 
 #include <memory>

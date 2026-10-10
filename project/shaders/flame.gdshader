@@ -13,8 +13,8 @@
 // The halo and the heat shimmer are flame_glow.gdshader, this material's
 // next pass, which adds rather than blends.
 //
-// Loaded by GoannaClient (src/goanna_client.cpp) for flame node tiles and by
-// EntityRenderer::flameSpriteMaterial (src/goanna_entities.cpp) for a
+// Loaded by GoannaClient (src/goanna_client_materials.cpp) for flame node tiles
+// and by EntityRenderer::flameSpriteMaterial (src/goanna_entities.cpp) for a
 // burning entity; the uniforms it shares with the other passes are in
 // flame_common.gdshaderinc.
 shader_type spatial;

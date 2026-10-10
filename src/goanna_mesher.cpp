@@ -44,12 +44,12 @@ bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
     // instead. So the flag cannot change a single vertex colour.
     //
     // Measured rather than reasoned, because turning it on looked plausible:
-    // GOANNA_DEBUG_VCOL=1 (goanna_client.cpp) prints the spread of per vertex
-    // green inside each mesh buffer, and against Mineclonia on Luanti 5.16.1
-    // the output is byte identical with the flag true and false, buffer for
-    // buffer, most buffers reading one distinct value. A three view A/B in
-    // the same jungle at the same fixed camera positions agreed: 0.4 to 2.9
-    // per cent of pixels differed by more than 4 of 255, and the diff was
+    // GOANNA_DEBUG_VCOL=1 (goanna_client_near.cpp) prints the spread of per
+    // vertex green inside each mesh buffer, and against Mineclonia on Luanti
+    // 5.16.1 the output is byte identical with the flag true and false, buffer
+    // for buffer, most buffers reading one distinct value. A three view A/B in
+    // the same jungle at the same fixed camera positions agreed: 0.4 to 2.9 per
+    // cent of pixels differed by more than 4 of 255, and the diff was
     // concentrated in the far chunks that streamed differently between runs,
     // not in the shaded faces the change was supposed to help.
     //

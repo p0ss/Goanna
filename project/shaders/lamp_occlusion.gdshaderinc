@@ -6,8 +6,8 @@
 // docs/systems/graphics-tiers.md), light() in direct_light.gdshaderinc walks
 // each node lamp's ray through a 64 node cube of full opaque nodes around
 // the camera and takes the lamp off a fragment a wall stands in front of.
-// GoannaClient::updateLampOcclusion (src/goanna_client.cpp) builds the grid
-// and sets all three globals, at most ten times a second;
+// GoannaClient::updateLampOcclusion (src/goanna_client_light.cpp) builds the
+// grid and sets all three globals, at most ten times a second;
 // project/studies/portal_study.gd sets its own for the offline study.
 
 // One float per node, in the cube's own cell space: -1 a full opaque node,

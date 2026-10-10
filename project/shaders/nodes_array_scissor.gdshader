@@ -3,7 +3,7 @@
 // Same as nodes_array.gdshader, less its parallax march and self shadow,
 // for tiles whose own layer has alpha (cut-out foliage, grass side
 // overlays and the like). The near mesh picks per tile (arrayTileKey in
-// goanna_client.cpp), so an opaque tile in an array that also holds a
+// goanna_client_materials.cpp), so an opaque tile in an array that also holds a
 // cut-out is drawn by nodes_array.gdshader. The far tiers merge a whole
 // array into one surface and so still pick by the array; the march ends
 // at parallax_range (40 nodes), and the far tiers normally start beyond
@@ -18,10 +18,11 @@
 // from nodes_array.gdshader rather than shared; see
 // nodes_array_common.gdshaderinc for why.
 //
-// Loaded and set up by GoannaClient::materialFor (src/goanna_client.cpp)
-// exactly as nodes_array.gdshader is, with the same uniforms from the same
-// includes; project/tests/node_array_shaders.gd checks the two still
-// declare everything the client sets. Every graphics tier uses it.
+// Loaded and set up by GoannaClient::materialFor
+// (src/goanna_client_materials.cpp) exactly as nodes_array.gdshader is, with
+// the same uniforms from the same includes; project/tests/node_array_shaders.gd
+// checks the two still declare everything the client sets. Every graphics tier
+// uses it.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 

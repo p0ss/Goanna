@@ -4,8 +4,9 @@
 // stained glass), glass_clear.gdshader (culled clear glass, no depth write)
 // and glass_double_sided.gdshader (glass doors and other tiles a game draws
 // from both sides). Culling and depth are render modes, so they are separate
-// shaders. GoannaClient::materialFor (src/goanna_client.cpp) picks between
-// them and sets the textures and has_ flags; ice has its own ice.gdshader.
+// shaders. GoannaClient::materialFor (src/goanna_client_materials.cpp) picks
+// between them and sets the textures and has_ flags; ice has its own
+// ice.gdshader.
 
 // Textures. albedo_tex is the tile, set by materialFor; the screen and
 // depth are Godot's, read for refraction and the reflection march.

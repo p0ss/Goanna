@@ -27,8 +27,8 @@
 // (the MeshInstance3D turns that off too).
 //
 // Loaded by GoannaClient::materialFor; GoannaClient::crackOverlayMaterial
-// (src/goanna_client.cpp) builds one material per stage and scale and sets
-// the crack uniforms below. The node light strengths from the include keep
+// (src/goanna_client_materials.cpp) builds one material per stage and scale and
+// sets the crack uniforms below. The node light strengths from the include keep
 // the shader defaults until a settings slider moves them, when
 // set_material_strength reaches this material like any other.
 shader_type spatial;

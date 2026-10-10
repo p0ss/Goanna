@@ -3,7 +3,7 @@
 // The flame material, shared by flame.gdshader (the flame itself),
 // flame_glow.gdshader (its halo, a second pass) and flame_shimmer.gdshader
 // (the heat shimmer, a third). GoannaClient::flameMaterial
-// (src/goanna_client.cpp) builds the three for a node tile and
+// (src/goanna_client_materials.cpp) builds the three for a node tile and
 // EntityRenderer::flameSpriteMaterial (src/goanna_entities.cpp) for a
 // burning entity's sprite. docs/systems/fire-material.md.
 //
@@ -39,7 +39,7 @@ uniform bool cell_rect = false;
 uniform bool single_sided = false;
 
 // The node animation clock, seconds in [0, 60), set by
-// GoannaClient::step_node_animation (src/goanna_client.cpp). The
+// GoannaClient::step_node_animation (src/goanna_client_materials.cpp). The
 // flicker frequencies are whole cycles a minute, so it does not jump when
 // the clock wraps, and pinning the clock for a capture pins the flicker.
 global uniform float goanna_node_anim_time;

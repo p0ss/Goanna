@@ -1,7 +1,7 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_LEAVES. Alpha-clipped, double sided, swaying.
 //
-// GoannaClient::materialFor (src/goanna_client.cpp) picks it for every
-// waving leaves tile, one material per tile. The sway follows the Foliage
+// GoannaClient::materialFor (src/goanna_client_materials.cpp) picks it for
+// every waving leaves tile, one material per tile. The sway follows the Foliage
 // wind switch (goanna_render_foliage_wind), on at every graphics tier.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
@@ -23,14 +23,14 @@ global uniform vec3 goanna_ground_fill;
 // A default in play; the offline material studies set 0 to see the rest.
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
-// The pack's LabPBR companions, looked up by stem in goanna_client.cpp the
-// way glass and the entity path already do. Leaves had none of this: it
-// hardcoded a roughness and a specular and never read the pack at all, so
-// every mat_ slider in the settings panel did nothing to it while the solid
-// nodes beside it took the pack's gloss in full. In a forested world that
-// is a large part of the frame taking one material response and the rest
-// taking another. The textures and has_* flags are materialFor's, and so
-// are the *_strength channels, the settings panel's mat_ sliders, which
+// The pack's LabPBR companions, looked up by stem in
+// goanna_client_materials.cpp the way glass and the entity path already do.
+// Leaves had none of this: it hardcoded a roughness and a specular and never
+// read the pack at all, so every mat_ slider in the settings panel did nothing
+// to it while the solid nodes beside it took the pack's gloss in full. In a
+// forested world that is a large part of the frame taking one material response
+// and the rest taking another. The textures and has_* flags are materialFor's,
+// and so are the *_strength channels, the settings panel's mat_ sliders, which
 // move with set_material_strength. normal_strength is declared for those
 // sliders but unused here: see the relief note in fragment().
 uniform sampler2D normal_tex : hint_normal, filter_nearest_mipmap, repeat_enable;
@@ -89,7 +89,7 @@ void fragment() {
 	// from 0.8% to 1.7%.
 	//
 	// It was buying nothing anyway. The node mesher writes no ARRAY_TANGENT
-	// (src/goanna_client.cpp), so a tangent space normal map here has no
+	// (src/goanna_client_near.cpp), so a tangent space normal map here has no
 	// basis to be expressed in and degenerates to the geometric normal.
 	// Occlusion is a scalar and needs no tangents, so that part stays.
 	float pack_ao = 1.0;

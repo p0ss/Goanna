@@ -8,13 +8,13 @@
 //
 // Included by nodes_array.gdshader, nodes_array_scissor.gdshader and
 // crack_overlay.gdshader. The per tile and per layer uniforms are set by
-// GoannaClient::materialFor (src/goanna_client.cpp) when it builds an array
-// material, near or far (MaterialKey::lod); the *_strength ones by
+// GoannaClient::materialFor (src/goanna_client_materials.cpp) when it builds an
+// array material, near or far (MaterialKey::lod); the *_strength ones by
 // GoannaClient::set_material_strength from the settings and the graphics
 // profiles (project/game/graphics_profiles.gd); the global ones per view by
 // main.gd or GoannaClient. The study scenes (lighting_chart.gd,
-// material_ramp.gd and the like) set their own. Besides the uniforms it
-// holds the per node tiling helpers both shaders call.
+// material_ramp.gd and the like) set their own. Besides the uniforms it holds
+// the per node tiling helpers both shaders call.
 
 // The tile colours. Declared here rather than in each shader because the
 // stochastic sampling below has to reach all three arrays, and Godot will not

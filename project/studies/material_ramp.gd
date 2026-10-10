@@ -357,7 +357,7 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 	]
 	var uvs := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
 	# GOANNA_RAMP_TANGENTS=mesher writes tangents the way the world's mesher
-	# does (goanna_client.cpp: t along the UV gradient, handedness from the
+	# does (goanna_client_near.cpp: t along the UV gradient, handedness from the
 	# sign of cross(n, t) against the bitangent); anything else lets
 	# SurfaceTool's mikktspace do it. The two can disagree on the sign, and
 	# that sign is which way a normal map's green points.
@@ -376,8 +376,8 @@ func _cube_mesh(which: String = "all") -> ArrayMesh:
 			var dpdu: Vector3 = c[1] - c[0]
 			var dpdv: Vector3 = c[3] - c[0]
 			var t := dpdu.normalized()
-			# The sign as the mesher now writes it (goanna_client.cpp), after
-			# the fix: minus where cross(n, t) runs with the bitangent.
+			# The sign as the mesher now writes it (goanna_client_near.cpp),
+			# after the fix: minus where cross(n, t) runs with the bitangent.
 			var w := -1.0 if nrm.cross(t).dot(dpdv) >= 0.0 else 1.0
 			tangent = Plane(t, w)
 		for tri in [[0, 1, 2], [0, 2, 3]]:

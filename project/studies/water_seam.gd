@@ -5,15 +5,16 @@
 #
 # One sheet of water, split at HANDOFF into a "near mesh" strip and a "far
 # tier" strip, each on its own water.gdshader material configured the way
-# goanna_client.cpp configures the real ones. The camera looks along the
-# sheet toward a low sun, which is the view that shows the hand-off line
-# hardest: at grazing angles the surface is nearly all reflection, so any
-# difference between the two materials is a hard edge across the frame.
+# goanna_client_materials.cpp and goanna_client_lod.cpp configure the real
+# ones. The camera looks along the sheet toward a low sun, which is the view
+# that shows the hand-off line hardest: at grazing angles the surface is
+# nearly all reflection, so any difference between the two materials is a
+# hard edge across the frame.
 #
 # The far strip's floor sits just under its surface, because that is what a
-# tier plane does in the world (docs/history/far-rendering-log.md, "the far tier water
-# plane"), so the absorption discontinuity is reproduced too, not only the
-# reflection one.
+# tier plane does in the world (docs/history/far-rendering-log.md, "The
+# near/far water hand-off, 2026-08-28"), so the absorption discontinuity is
+# reproduced too, not only the reflection one.
 #
 # GOANNA_SHOT names the output directory (default user://). GOANNA_SEAM_OLD=1
 # configures the materials the way the client did before the hand-off work

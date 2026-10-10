@@ -2,8 +2,8 @@
 // World-anchored portal coordinates. Adjacent node faces share the field,
 // including across mapblocks and regional batches; UV is only for artwork.
 // Included by portal_nether.gdshader and portal_end.gdshader, which
-// GoannaClient (src/goanna_client.cpp) puts on Mineclonia's portal faces;
-// docs/systems/portal-materials.md.
+// GoannaClient (src/goanna_client_materials.cpp) puts on Mineclonia's portal
+// faces; docs/systems/portal-materials.md.
 #include "res://shaders/underwater.gdshaderinc"
 
 // The node animation clock, seconds in [0, 60), set by

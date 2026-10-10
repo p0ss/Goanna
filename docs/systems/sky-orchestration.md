@@ -3,7 +3,7 @@
 How the sky, the fog, the clouds and the sun are kept telling one story
 through dawn and dusk. The code lives in `project/game/effects/sky_director.gd`
 (the authorities), `_apply_sky` in `project/game/main.gd` (the plumbing), the
-ridge probe in `src/goanna_client.cpp` (`lodUpdateFar`), and the shaders
+ridge probe in `src/goanna_client_far.cpp` (`lodUpdateFar`), and the shaders
 (`sky.gdshader`, `atmosphere_volume.gdshader`, `light_shafts.gdshader`).
 
 ## The problem this replaces

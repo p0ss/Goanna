@@ -278,7 +278,7 @@ func _ready() -> void:
 		# The tile's own average in linear light, which is the colour a
 		# correctly minified sample converges to and therefore what a far
 		# tier has to reach if it is to meet the near mesh (docs/develop/
-		# launch-target.md, "one light, one air").
+		# launch-target.md, "Rendering acceptance").
 		var acc := Vector3.ZERO
 		var count := 0
 		for y in img.get_height():

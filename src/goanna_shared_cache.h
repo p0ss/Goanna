@@ -7,9 +7,9 @@
 // input the result depends on: two callers share a value only when their
 // keys match exactly. Its users are the far LOD chains (sharedLodChain in
 // goanna_lod_storage.cpp, built on the LodStorage worker) and, in
-// goanna_client.cpp, the near geometry and uploaded meshes that every
-// GoannaClient in the process shares, which is what lets several local
-// players on one server build a block once.
+// goanna_client_near.cpp and goanna_client_jobs.cpp, the near geometry and
+// uploaded meshes that every GoannaClient in the process shares, which is
+// what lets several local players on one server build a block once.
 //
 // Threads: any. m_mutex guards the entries, the LRU order and the flights
 // (builds in progress). get() builds outside the lock, and a second caller

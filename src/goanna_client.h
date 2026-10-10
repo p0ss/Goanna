@@ -12,11 +12,10 @@
 // session's take methods. See docs/develop/architecture.md, "Threads and
 // the handoff", and "The GDExtension surface" for the groups of methods.
 //
-// The implementation is spread over goanna_client.cpp (near meshing, LOD,
-// materials, lights, entities and the GDScript bindings),
-// goanna_client_surface.cpp (baked surface tiles) and
-// goanna_client_fine.cpp (fine node data). Also here: MaterialKey, what a
-// world material is cached on, and arrayTileKey.
+// The implementation is spread over one file per area, goanna_client.cpp
+// and the goanna_client_*.cpp files beside it; the list of which holds what
+// is at the top of goanna_client.cpp. Also here: MaterialKey, what a world
+// material is cached on, and arrayTileKey.
 
 #include <algorithm>
 #include <chrono>
@@ -575,7 +574,8 @@ protected:
     void _notification(int p_what);
 
 private:
-    // m_entities, made with every setting it mirrors (goanna_client.cpp).
+    // m_entities, made with every setting it mirrors
+    // (goanna_client_player.cpp).
     void ensureEntityRenderer();
     bool m_lamp_occlusion = false;
     godot::Ref<godot::ImageTexture3D> m_lamp_occlusion_grid;

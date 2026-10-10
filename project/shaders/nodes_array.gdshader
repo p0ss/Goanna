@@ -11,21 +11,20 @@
 // by the value the toggle holds at draw time, and that pipeline mishandles
 // mipmaps on the array texture: godotengine/godot#60388. Tiles that actually
 // need alpha testing use nodes_array_scissor.gdshader instead, chosen per
-// tile by its own layer (arrayTileKey in goanna_client.cpp) rather than by a
-// uniform or by the array: upstream's arrays mix opaque and cut-out tiles,
-// and both shaders sample the same arrays. The LabPBR decode below
-// is duplicated there rather than shared; see nodes_array_common.gdshaderinc
-// for why.
+// tile by its own layer (arrayTileKey in goanna_client_materials.cpp) rather
+// than by a uniform or by the array: upstream's arrays mix opaque and cut-out
+// tiles, and both shaders sample the same arrays. The LabPBR decode below is
+// duplicated there rather than shared; see nodes_array_common.gdshaderinc for
+// why.
 //
-// Loaded by GoannaClient::materialFor (src/goanna_client.cpp), which builds
-// its materials for the near mesh and for the far tiers (lod_flatten on)
-// and sets their uniforms; they are all declared in the includes and
-// commented there. The material study scenes
-// (material_ramp.gd, lighting_chart.gd and others) load it directly.
-// docs/systems/materials.md, "Which shader draws a tile", has the routing.
-// Every graphics tier draws terrain with it; the tiers differ only in the
-// material strengths they set (parallax off on Lowest, the short march on
-// Low).
+// Loaded by GoannaClient::materialFor (src/goanna_client_materials.cpp), which
+// builds its materials for the near mesh and for the far tiers (lod_flatten on)
+// and sets their uniforms; they are all declared in the includes and commented
+// there. The material study scenes (material_ramp.gd, lighting_chart.gd and
+// others) load it directly. docs/systems/materials.md, "Which shader draws a
+// tile", has the routing. Every graphics tier draws terrain with it; the tiers
+// differ only in the material strengths they set (parallax off on Lowest, the
+// short march on Low).
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 

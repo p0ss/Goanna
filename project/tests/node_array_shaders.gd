@@ -6,15 +6,15 @@
 ## godot --headless --path project --script res://tests/node_array_shaders.gd
 #
 # The two node array shaders, which GoannaClient::materialFor picks between
-# per tile (arrayTileKey in goanna_client.cpp): nodes_array.gdshader for a
-# tile whose own layer is opaque, nodes_array_scissor.gdshader for one with
-# alpha. Both are handed the same uniforms by the same code, so a uniform
+# per tile (arrayTileKey in goanna_client_materials.cpp): nodes_array.gdshader
+# for a tile whose own layer is opaque, nodes_array_scissor.gdshader for one
+# with alpha. Both are handed the same uniforms by the same code, so a uniform
 # missing from either is set into nothing and silently does nothing. The
-# headless renderer runs Godot's shader front end in full (a type error
-# fails the compile and leaves no uniforms), so this checks that both
-# compile and declare everything the client sets, and that the opaque one
-# has the parallax march the Lowest profile's mat_parallax channel switches.
-# It renders nothing: how either looks is not tested here.
+# headless renderer runs Godot's shader front end in full (a type error fails
+# the compile and leaves no uniforms), so this checks that both compile and
+# declare everything the client sets, and that the opaque one has the parallax
+# march the Lowest profile's mat_parallax channel switches. It renders nothing:
+# how either looks is not tested here.
 extends SceneTree
 
 const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
@@ -27,9 +27,9 @@ const SET_BY_CLIENT := ["albedo_array", "normal_array", "spec_array", "has_norma
 		"layer_roughness_floor", "pack_normal_gain", "block_light_emission",
 		"lod_flatten", "lod_avg_colour", "lod_coverage", "lod_avg_rough",
 		"lod_avg_metal", "lod_avg_spec", "lod_normal_variance"]
-# kMatStrengthDefaults in goanna_client.cpp: each is set as <channel>_strength
-# on every material, and the settings sliders move them through
-# set_material_strength.
+# kMatStrengthDefaults in goanna_client_materials.cpp: each is set as
+# <channel>_strength on every material, and the settings sliders move them
+# through set_material_strength.
 const CHANNELS := ["normal", "ao", "roughness", "specular", "emission", "sss",
 		"sky_light", "vertex_ao", "vertex_ao_light", "sky_fill", "stale",
 		"debug_nodelight", "detail", "parallax", "parallax_short", "micro_shadow"]

@@ -1,6 +1,6 @@
 // Goanna: alpha-blended non-liquid nodes (glass, ice, stained glass): TILE_MATERIAL_ALPHA,
 // and clear glass that its game cuts out rather than blends (see
-// buildFakeLiquidTextures in goanna_client.cpp). A cut-out texel is
+// buildFakeLiquidTextures in goanna_client_materials.cpp). A cut-out texel is
 // transparent, so there it shows only the refracted scene and the reflection.
 //
 // Reflection is the same two-rung sky answer as water.gdshader, plus the
@@ -17,9 +17,10 @@
 // do, under a hard overall cap: ice is a scattering solid, not standing
 // water, and the texture must stay the majority of what you see.
 //
-// Loaded as m_sh_glass in GoannaClient::materialFor (src/goanna_client.cpp),
-// which also uses it for a liquid drawtype solid that is not ice. The whole
-// material, uniforms included, is in glass_common.gdshaderinc.
+// Loaded as m_sh_glass in GoannaClient::materialFor
+// (src/goanna_client_materials.cpp), which also uses it for a liquid drawtype
+// solid that is not ice. The whole material, uniforms included, is in
+// glass_common.gdshaderinc.
 shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_back, diffuse_burley, specular_schlick_ggx;
 

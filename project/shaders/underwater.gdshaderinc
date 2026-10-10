@@ -28,7 +28,7 @@
 #define GOANNA_UNDERWATER
 
 // 1 while the eye is in water, else 0: set by GoannaClient::is_underwater
-// (src/goanna_client.cpp), which main.gd calls every frame.
+// (src/goanna_client_player.cpp), which main.gd calls every frame.
 global uniform float goanna_eye_underwater;
 // The water's absorption per node, red, green, blue, as an exponent:
 // exp(-absorption * nodes) is what is left (water_optics.gd sets it).
