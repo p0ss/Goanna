@@ -339,8 +339,8 @@ day and the block count at capture.
 
 So the rule is: a reading taken with deviations listed is a lead, not a result.
 Write the value into the source, relaunch with nothing set, take it again, and
-report that one. `README.md` and `docs/design/plan.md` only ever get the second
-number.
+report that one. `README.md` and `docs/history/development-log.md` only ever get
+the second number.
 
 One setting is expected to show up here on a completely untouched profile:
 `far_distance` defaults to whatever the server's far rendering grant turns out

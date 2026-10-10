@@ -173,7 +173,7 @@ for the array. The checks are `goanna_array_route_test` (native) and
 declare every uniform the client sets). Neither renders; whether the
 relief now shows on sand, stone and planks in play has not been seen.
 
-### Glass, ice and faces that leave the array, 2026-09-29
+### Glass, ice and faces that leave the array
 
 Clear glass is cut out rather than blended in every game checked
 (minetest_game, Mineclonia, VoxeLibre, Kythen and Asuna), so it stayed on
@@ -300,7 +300,7 @@ Inventory icons remain the existing CPU-rendered art.
 See [the diamond study](../perf/diamond-2026-09-29/report.md) for captures and
 validation, including live Mineclonia armour and ore.
 
-### Other gems, 2026-09-29
+### Other gems
 
 The same treatment now covers emerald, amethyst, mese and nether quartz.
 `gemTextureCode` in `src/goanna_materials.cpp` returns mode | kind << 2,
@@ -351,17 +351,17 @@ the companions identically. The code is
 record of the 2026-10-01 pass is in
 `docs/perf/entity-pbr-2026-10-01/`.
 
-**Encoding.** The same as a node tile: red above 128 tilts the normal
-toward plus U (right in the image), green above 128 toward the top of the
-image, with no green flip. B is ambient occlusion, A height (255 the
-crest), which the parallax march below reads. `_s` is as in the table above. `project/entity_normal_probe.tscn`
-renders a probe dome in that encoding on all six face directions of a mob
-box, plain and mirrored, beside a quad on SurfaceTool's tangents (the frame
-the node mesher matches), and fails unless every quad lights on the side
-the light comes from. Until 2026-10-01 only gem items had a frame rebuilt
-from their UVs; every other entity normal map was decoded against the
-fallback frame Godot derives from the vertex normal alone, which turned or
-mirrored the relief per face and flattened it on faces along Z.
+**Encoding.** The same as a node tile: red above 128 tilts the normal toward
+plus U (right in the image), green above 128 toward the top of the image, with
+no green flip. B is ambient occlusion, A height (255 the crest), which the
+parallax march below reads. `_s` is as in the table above.
+`project/entity_normal_probe.tscn` renders a probe dome in that encoding on all
+six face directions of a mob box, plain and mirrored, beside a quad on
+SurfaceTool's tangents (the frame the node mesher matches), and fails unless
+every quad lights on the side the light comes from. Until 2026-10-01 only gem
+items had a frame rebuilt from their UVs; every other entity normal map was
+decoded against the fallback frame Godot derives from the vertex normal alone,
+which turned or mirrored the relief per face and flattened it on faces along Z.
 
 **Extruded item edges.** A flat item held or dropped is Luanti's extrusion
 mesh: the image on a front and a back face, and one edge quad per pixel
@@ -428,57 +428,53 @@ and a cloth texel passes through values that decode as a dielectric at the
 largest specular, a shiny rim round every metal plate. (This paragraph said
 `_n` was linear until 2026-10-06; the shader had already been changed.)
 
-**Parallax occlusion.** A mesh entity with an authored `_n` gets the node
-tile's parallax march and self shadow (`entity_common.gdshaderinc`, the
-same steps, chord refinement, shadow and fade as `nodes_array.gdshader`).
-Its depth is measured from the map by the node path's own `reliefDepth`
-(`src/goanna_textures.cpp`), with a node counted as sixteen art texels and
-the same 0.10 node cap, and only inside each face: on an atlas the texel
-beside a face's edge in the image belongs to another face, and counting
-those jumps put the creeper and the cow at a tenth of an art texel. A
-skin's pack set is its `_n` and `_s` only and the albedo is the game's own
-art, so the art's size is the albedo's (or the composite's) wherever the
-map is larger; only an albedo shipped at map size has its texel grid
-measured, from whole blocks of one colour. Shipping skin albedos upscaled
-broke mcl_skins: its `(mask^[colorize:...)` groups are blitted at their
-own 64 x 32 size into the corner of the 1024 wide part, and the player
-drew bare skin colour all over. The frame is solved per fragment from the UV and position
-derivatives, so a mirrored limb marches the mirrored way by itself.
-Heights are marched relative to each face's highest drawn texel, which
-is lifted to sit on the face (`height_lift`, and per face `lift_tex` at
-the art's resolution): skins authored before parallax keep their main
-surfaces at 0.4 to 0.7 and drew sunk into the box with their edge texel
-smeared, and one lift for the whole skin was not enough, because one
-part stands well above the rest (the player's hair at 0.95 over clothes
-at 0.60). For a stack the whole-skin value comes from each layer's own
-map, since the composite fills a layer without one at 255. Node layers
-are unchanged.
-Containment, which blocks never needed: `buildGodotModel` writes each
-face's UV rectangle into `CUSTOM0` (the bounds of the triangles joined by
-shared vertices, a box face on a mob) and every sample of the march and
-the shadow is clamped inside it, so the march stops at the face's edge
-texel instead of reading the neighbouring island. A hit on a transparent
-texel inside the rectangle is pulled back toward the drawn point. In the
-scissor variant the cut stays the art's own alpha at the un-marched UV,
-so the silhouette is the vanilla client's. A mesh without `CUSTOM0` (an
-item, a model preview) gets no parallax. It follows the `parallax`
-material strength, which the Lowest profile's `mat_parallax 0` sets to 0;
-`GOANNA_ENTITY_PARALLAX=0` turns it off for entities alone. Entities
-march at most 32 steps (the nodes 48), then halve the last step five
-times and take the hit at its end under the surface, plus 8 steps for the
-shadow. The node march's chord alone suits a smooth field; on a skin's
-plateaus it landed either side of a wall from pixel to pixel, and the
-creeper's eye pits (a drop of 0.76 of the range inside one face) drew as
-vertical slices of rim and floor
+**Parallax occlusion.** A mesh entity with an authored `_n` gets the node tile's
+parallax march and self shadow (`entity_common.gdshaderinc`, the same steps,
+chord refinement, shadow and fade as `nodes_array.gdshader`). Its depth is
+measured from the map by the node path's own `reliefDepth`
+(`src/goanna_textures.cpp`), with a node counted as sixteen art texels and the
+same 0.10 node cap, and only inside each face: on an atlas the texel beside a
+face's edge in the image belongs to another face, and counting those jumps put
+the creeper and the cow at a tenth of an art texel. A skin's pack set is its
+`_n` and `_s` only and the albedo is the game's own art, so the art's size is
+the albedo's (or the composite's) wherever the map is larger; only an albedo
+shipped at map size has its texel grid measured, from whole blocks of one
+colour. Shipping skin albedos upscaled broke mcl_skins: its
+`(mask^[colorize:...)` groups are blitted at their own 64 x 32 size into the
+corner of the 1024 wide part, and the player drew bare skin colour all over. The
+frame is solved per fragment from the UV and position derivatives, so a mirrored
+limb marches the mirrored way by itself. Heights are marched relative to each
+face's highest drawn texel, which is lifted to sit on the face (`height_lift`,
+and per face `lift_tex` at the art's resolution): skins authored before parallax
+keep their main surfaces at 0.4 to 0.7 and drew sunk into the box with their
+edge texel smeared, and one lift for the whole skin was not enough, because one
+part stands well above the rest (the player's hair at 0.95 over clothes at
+0.60). For a stack the whole-skin value comes from each layer's own map, since
+the composite fills a layer without one at 255. Node layers are unchanged.
+Containment, which blocks never needed: `buildGodotModel` writes each face's UV
+rectangle into `CUSTOM0` (the bounds of the triangles joined by shared vertices,
+a box face on a mob) and every sample of the march and the shadow is clamped
+inside it, so the march stops at the face's edge texel instead of reading the
+neighbouring island. A hit on a transparent texel inside the rectangle is pulled
+back toward the drawn point. In the scissor variant the cut stays the art's own
+alpha at the un-marched UV, so the silhouette is the vanilla client's. A mesh
+without `CUSTOM0` (an item, a model preview) gets no parallax. It follows the
+`parallax` material strength, which the Lowest profile's `mat_parallax 0` sets
+to 0; `GOANNA_ENTITY_PARALLAX=0` turns it off for entities alone. Entities march
+at most 32 steps (the nodes 48), then halve the last step five times and take
+the hit at its end under the surface, plus 8 steps for the shadow. The node
+march's chord alone suits a smooth field; on a skin's plateaus it landed either
+side of a wall from pixel to pixel, and the creeper's eye pits (a drop of 0.76
+of the range inside one face) drew as vertical slices of rim and floor
 (`docs/perf/entity-parallax-2026-10-02/creeper-walls-*`).
-`GOANNA_ENTITY_PARALLAX_REFINE=0` restores the chord. The node path keeps
-its chord: its baked and authored fields are smooth enough that the chord
-is better there, and stepped node maps were not tested. Gems keep no
-parallax. `project/entity_parallax_probe.tscn` checks containment, the
-mirrored march, the shadow, the silhouette and the walls. Not handled: a face whose
-connected UVs are not a rectangle clamps to their bounding box, and a
-skin whose albedo is painted rather than pixel art takes its own pixels
-as art texels. See `docs/perf/entity-parallax-2026-10-02/`.
+`GOANNA_ENTITY_PARALLAX_REFINE=0` restores the chord. The node path keeps its
+chord: its baked and authored fields are smooth enough that the chord is better
+there, and stepped node maps were not tested. Gems keep no parallax.
+`project/entity_parallax_probe.tscn` checks containment, the mirrored march, the
+shadow, the silhouette and the walls. Not handled: a face whose connected UVs
+are not a rectangle clamps to their bounding box, and a skin whose albedo is
+painted rather than pixel art takes its own pixels as art texels. See
+`docs/perf/entity-parallax-2026-10-02/`.
 
 **Hair's highlight.** Hair reads as hair mostly by its highlight, a
 narrow band lying across the strands, and an authored map cannot draw one
@@ -549,13 +545,13 @@ can draw the strands itself (`hair_strands.gdshaderinc`, called from
   plain texel with the anisotropic sheen. Tips and lock shadows fade by
   the pixel's size along the strand, a little later.
 - Ragged tips: where the texel next along the strand (down on a side face,
-  toward the back on a top) is not hair, or is hair standing more than `hair_tip_step` (0.1) lower in
-  the stored height, each strand stops at its own length, up to
-  `hair_tip_depth` (0.45) of a texel short of the edge, thinning as it
-  goes, and past its end is darker hair beneath (`hair_tip_shadow` 0.3).
-  With every step a tip, the player's hair ended each texel in a dark
-  ragged band and read as bark. A side face's bottom
-  edge counts as a tip; a top's edge does not.
+  toward the back on a top) is not hair, or is hair standing more than
+  `hair_tip_step` (0.1) lower in the stored height, each strand stops at its own
+  length, up to `hair_tip_depth` (0.45) of a texel short of the edge, thinning
+  as it goes, and past its end is darker hair beneath (`hair_tip_shadow` 0.3).
+  With every step a tip, the player's hair ended each texel in a dark ragged
+  band and read as bark. A side face's bottom edge counts as a tip; a top's edge
+  does not.
 - The shadow under a lock: where the texel toward the root is hair
   standing higher, a ragged shadow (`hair_lock_shadow` 0.3) falls from
   that edge, a quarter to a half of a texel.
@@ -1044,106 +1040,6 @@ cache, and the fallbacks). Neither renders. None of this has been seen in
 a frame yet: the one client run made for it failed at join on a fault in
 its own test world, and the GPU was taken when it could have been repeated.
 
-## How LabPBR maps onto glTF 2.0
-
-Upstream discussion favours taking glTF 2.0 material semantics as the
-starting point. The two standards overlap on the core of a PBR material and
-diverge at the edges in both directions, so neither is a superset.
-
-| LabPBR | glTF 2.0 | Notes |
-| --- | --- | --- |
-| Smoothness, `_s` R | `roughnessFactor` or roughness texture | The GGX roughness is `(1 - smoothness)` squared. glTF's `roughnessFactor` is perceptual, like Godot's `ROUGHNESS`, so it carries `1 - smoothness` |
-| F0 and metal, `_s` G | `metallicFactor` or metallic texture | glTF has no metal table. Its model matches the LabPBR 255 case, albedo as F0 |
-| Material AO, `_n` B | `occlusionTexture` | Direct equivalent |
-| Normal, `_n` RG | `normalTexture` | **glTF specifies Y up, LabPBR stores Y down.** Whether a flip is needed depends on the mesh's V direction |
-| Emission, `_s` A | `emissiveTexture` and `emissiveStrength` | LabPBR is a scalar mask read against albedo, glTF carries an emissive colour |
-| Height, `_n` A | Nothing in core glTF | `KHR_materials_displacement` was never ratified |
-| Porosity and SSS, `_s` B | Partly `KHR_materials_volume`, `KHR_materials_diffuse_transmission` | No single equivalent channel |
-| Nothing | `transmission`, `ior` | LabPBR carries neither |
-| Nothing | Anisotropy, clearcoat, sheen | glTF extensions with no LabPBR equivalent |
-
-Read across, adopting LabPBR costs transmission and refraction and gains
-height and scattering. The normal convention has to be reconciled either way.
-
-## What a naming convention does not settle
-
-A file name says which file. It says nothing about what the bytes mean, so
-two clients can both support LabPBR and still disagree. These are the points
-an agreement has to pin down, all of which we have hit in practice.
-
-**Normal orientation.** As above, and note that the answer is not a property
-of the texture alone. It cost us a day: first relief that did nothing we
-could see, then, once we 'fixed' the orientation, black block sides.
-
-**Colour space.** Which companions are sRGB and which are linear. Getting
-this wrong is subtle, pervasive and hard to see in a screenshot.
-
-**How texture modifiers propagate.** This is the Luanti specific question,
-and the one no existing standard can answer, because Minecraft has no
-equivalent. Luanti textures are expressions, not file names:
-`default_stone.png^[colorize:#ff0000`, `^[crack:1:4:2`,
-`[combine:16x16:0,0=a.png`, and the inventory cube form. An agreement has to
-say what the companion of an
-expression is. Reasonable answers exist: a colour only modifier leaves the
-companions untouched, which is what makes one normal map serve every recolour
-of a texture, and `[combine:` has to composite the companions in the same
-layout as the diffuse. Until that is written down, every client will guess
-differently.
-
-That question also answers the standing objection to the naming convention
-route, which is that it forces one normal map per texture and makes recoloured
-variants duplicate their companions. Under Luanti's modifier syntax the base
-image keeps its name, so the variants already share one companion for free.
-
-**Palette interaction.** Luanti tints nodes per instance through `palette`
-and `paramtype2 = color`. Whether that tint modulates only albedo, or also
-F0 and emission, is undefined.
-
-**Precedence.** What wins when the server serves `_n` for a texture and the
-player's own client side texture pack also has one.
-
-**Discovery.** Whether a client probes for companions, which is what Goanna
-does and which needs nothing from the engine, or whether something declares
-them up front. Probing works against every server that exists today.
-Declaring is friendlier to a client that wants to plan its uploads or fall
-back cleanly.
-
-## A proposed shape
-
-If the naming convention were formalised as the material agreement, the
-smallest useful version is:
-
-1. Companions are `<base>_n.png` and `<base>_s.png` beside `<base>.png`,
-   with LabPBR channel assignments.
-2. Normals are stored Y down as LabPBR has them, which matches the V
-   direction of Luanti's tile UVs, so no client has to flip anything. State
-   it explicitly rather than leaving it to be inferred from glTF.
-3. All companions are linear. Only the diffuse is sRGB.
-4. Companions attach to the base image of a texture expression. Modifiers
-   that only change colour leave them alone. Modifiers that change layout
-   apply the same layout to the companions.
-5. Server media takes precedence over a client side pack, and a client may
-   offer the player an override.
-
-   Worth flagging before this is proposed anywhere: Luanti already does the
-   opposite. `Client::loadMedia` inserts every media file with
-   `prefer_local = true` (`client/texturesource.cpp:534`), so a player's
-   `texture_path` overrides the server's art. That is what makes a texture
-   pack a texture pack. Goanna matches upstream rather than this point, and
-   the point should probably be rewritten to match reality: the local pack
-   wins, and the interesting question is only whether a companion may be
-   taken from a different source to the diffuse it dresses.
-6. A client discovers companions by probing. No declaration is required.
-
-Point 3 is the only place this departs from LabPBR, and it is one line in a
-converter.
-
-What this does not cover, and what a Lua side API would still be needed for,
-is anything keyed to a node rather than to a texture: chamfer profiles, mote
-emission, waving amplitude, whether a surface should be displaced at all.
-Those are node properties, not surface properties, and no texture naming
-scheme reaches them.
-
 ## Per channel strength
 
 A pack's channels are authored for another renderer and another art style, and
@@ -1162,37 +1058,22 @@ against its own absence rather than a fade to black.
 These are presentation, not decode. The decode stays literal, so a pack that
 looks wrong at 1.0 is reporting something true about itself.
 
-### Occlusion has to reach the fill, 2026-08-30
+Occlusion reaches the sky fill as well as ambient light. Most of a surface's
+light is the fill, written as `EMISSION` so the sun's shadow cannot darken it,
+and emission is outside Godot's occlusion paths, so the fill in the two
+`nodes_array` shaders multiplies the same `pack_ao * occ` terms the `AO` output
+carries. SSAO still darkens ambient light only. Why, and what it measured, is in
+the [materials
+log](../history/materials-log.md#occlusion-has-to-reach-the-fill-2026-08-30).
 
-Reported as AO and corner darkening never visibly working, at any slider.
-The knobs worked; the light they modulate was the minority of the pixel.
-The pack's `ao` and the traced `vertex_ao` fed Godot's `AO` output, which
-multiplies ambient light only, and SSAO likewise darkens ambient. But most
-of a Goanna surface's light is the sky fill, written as `EMISSION` so the
-sun's shadow cannot darken it, and emission is outside every occlusion
-path. Measured on a noon forest floor with the camera held still: turning
-the sky fill off removed 57 per cent of the frame's mean luminance and 87
-per cent of the darkest quartile's, while sweeping `vertex_ao` end to end
-moved the frame by 0.1 of 255 and the whole SSAO slider by 3.
+### Micro shadows and the short march
 
-The fill in the two `nodes_array` shaders now multiplies
-`clamp(pack_ao * occ, 0.0, 1.0)`, the same terms the `AO` output carries,
-so a corner is dark in the light that actually reaches it. Same scene
-after: sweeping `vertex_ao` moves the darkest quartile by 6.7 of 255
-rather than 0.2. The far vista, checked from 110 nodes up over the same
-world, does not collapse: the far tracer's heavier occlusion (a known
-calibration debt) darkens the fill there too, and it wants the chart
-before it is trusted, but the frame still reads as terrain under haze.
-SSAO still cannot reach the fill; the traced term is the stable one and
-is now the one doing the visible work.
-
-### Micro shadows and the short march, 2026-10-05
-
-Lowest and Low turned parallax off, and with it the self shadow that
-makes mortar, lock gaps and sunk features read when the sun rakes across
-them. Two cheaper ways back are now in the shaders. Micro shadows are on
-at every tier and Low runs the short march; Lowest keeps parallax off and
-Medium and above keep the full march. The measurements are below.
+Lowest and Low turned parallax off, and with it the self shadow that makes
+mortar, lock gaps and sunk features read when the sun rakes across them. Two
+cheaper ways back are now in the shaders. Micro shadows are on at every tier and
+Low runs the short march; Lowest keeps parallax off and Medium and above keep
+the full march. The measurements are in the [materials
+log](../history/materials-log.md#micro-shadows-and-the-short-march-measured-2026-10-05).
 
 **Micro shadows** (`mat_micro_shadow`, the `micro_shadow` material
 strength, 0 or 1). Naughty Dog's BRDF micro shadowing (Brinck and
@@ -1223,81 +1104,7 @@ shadow steps instead of eight; and only within `parallax_short_range`
 (8 nodes) of the eye, fading to the plain normal map over its outer half.
 Mobs take the same: four steps and at most two halvings.
 
-**Measured** 2026-10-05, RTX 3090, Godot 4.5.1, the Mineclonia pack from
-`pbr_packs/mineclonia`, `test_world` copied to `goanna_occl_1005` with the
-fixture in `docs/perf/low-tier-occlusion-2026-10-05/fixture/` (a floating
-platform with cobble, stone, stone brick and brick walls and oak logs). A
-fresh profile was written for each tier, and the held values were recorded
-beside every sample. Low ran at 1280x800 and Medium at 1920x1080. The
-driver is `run.py` and the tables come from `analyse.py`, both in that
-directory.
-
-Timing frames as the client presents them was worthless here. Headless
-gamescope composites on the CPU at about 33 frames a second, so the GPU
-idled in a low power state (P5, 900 to 1050 MHz) and the GPU time of a
-single setting swung between 2.8 and 15 ms from second to second. One
-setting's round medians ranged from 1.7 to 10.7 ms. So each sample is
-instead 600 draws back to back, without presenting
-(`RenderingServer.force_draw`), with the world frozen for that moment.
-Variants were taken in rotation, sixteen rounds each, and every round's
-median is compared with the baseline's median from the same round. The
-"wall" pose is two nodes from the cobble wall, which fills about four
-fifths of the frame, at a sun 20 degrees up. The "vista" is the benchmark
-scene at noon. GPU milliseconds:
-
-| Tier, pose | Variant | Median | p95 | Per round vs today | Spread |
-| --- | --- | ---: | ---: | ---: | --- |
-| Low, vista | today (no march) | 1.685 | 3.018 | | |
-| Low, vista | micro | 1.693 | 2.931 | +0.000 | -0.020 to +0.083 |
-| Low, vista | short march | 1.691 | 2.925 | +0.001 | -0.038 to +0.032 |
-| Low, vista | short + micro | 1.691 | 3.056 | +0.004 | -0.031 to +0.051 |
-| Low, wall | today (no march) | 1.295 | 2.657 | | |
-| Low, wall | micro | 1.291 | 2.569 | -0.001 | -0.022 to +0.021 |
-| Low, wall | short march | 1.364 | 2.720 | +0.075 | +0.059 to +0.102 |
-| Low, wall | short + micro | 1.364 | 2.629 | +0.076 | +0.047 to +0.103 |
-| Medium, vista | today (full march) | 4.880 | 6.314 | | |
-| Medium, vista | micro | 4.900 | 6.429 | +0.009 | -0.244 to +0.348 |
-| Medium, vista | short + micro | 4.896 | 6.359 | +0.016 | -0.256 to +0.191 |
-| Medium, wall | today (full march) | 2.832 | 4.027 | | |
-| Medium, wall | micro | 2.834 | 4.024 | +0.002 | -0.026 to +0.367 |
-| Medium, wall | short + micro | 2.777 | 3.975 | -0.052 | -0.062 to +0.131 |
-
-The Low wall rows are from a second run, after a storm arrived part way
-through the first. The first run gave +0.004 (micro) and +0.077 (short)
-there, the same within the spread.
-
-So the micro shadow costs nothing that this method resolves, at either
-tier. The short march costs Low 0.075 ms (spread 0.047 to 0.106) when a
-near wall fills the frame, about 6 per cent of that frame's GPU time on
-this card, and nothing measurable at the vista. On Medium it saves 0.05 ms
-against the full march. These are desktop numbers. Nothing here says what
-either costs on a Steam Deck, and they are not scaled to one.
-
-**What it looks like.** Frames at a sun 20 degrees up, every variant at
-every pose, are in
-`~/.local/share/goanna-pbr-audit/low-tier-occlusion-2026-10-05/`.
-
-- The micro shadow is subtle. Over the centre of each wall and log frame
-  the darkest quarter of the pixels drops 0.5 to 3 levels of 255 at Low
-  (most on brick) and at most 1.2 at Medium. It reads as slightly deeper
-  mortar and bark furrows, not as new shadows: it does not restore the
-  parallax self shadow's cast shapes. The zombie and the player animate
-  between frames, so their pairs do not isolate it.
-- The short march at Low gives the joints depth within a few nodes: a
-  lip on the stone and a shaded wall inside the joint, where the plain
-  normal map draws a flat line. Only still frames were taken, so how it
-  holds up in motion has not been seen. At three nodes Medium's frames with
-  the short march could not be told apart from the full march (mean
-  difference 0.2 to 1.4 levels on the walls).
-- Both marches draw a thin dark line along the horizontal boundary
-  between two stacked stone brick nodes (the `stonebrick_west` frames).
-  This is not new: Medium's full march draws it too. Not investigated.
-
-Two faults showed during the run, neither in these shaders. A wall built
-by `/occl_build` in the map block beyond the platform's own never reached
-the client. After a run of teleports between poses, the near mesh of the
-platform's western map block was gone and did not come back, although
-`node_name_at` still returned its nodes.
+## Licence of baked art
 
 Worth stating plainly, because the obvious assumption is wrong and this
 repository has got licences wrong before.

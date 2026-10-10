@@ -148,11 +148,11 @@ No code from these is in the repository or the binary, so they carry no
 licence obligation, but Goanna's design learnt from them.
 
 **Freeminer's far view**, <https://github.com/freeminer/freeminer>. The far
-field's chain of coarser levels and its server side summaries follow
-Freeminer's far meshing. Freeminer gave permission, in a Discord chat, for
-Goanna to base its far meshing on their code outside the GPL; Goanna wrote
-its own implementation. `docs/systems/far-rendering.md`, "Freeminer's far view",
-has the detail.
+field's chain of coarser levels and its server side summaries follow Freeminer's
+far meshing. Freeminer gave permission, in a Discord chat, for Goanna to base
+its far meshing on their code outside the GPL; Goanna wrote its own
+implementation. `docs/design/far-rendering-plan.md`, "Freeminer's far view", has
+the detail.
 
 ## Media in this repository
 

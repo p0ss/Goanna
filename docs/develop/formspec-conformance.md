@@ -70,22 +70,23 @@ survival and creative inventories, furnace, chest, crafting table, anvil,
 enchanting table, villager trading, written book and skin editor in Mineclonia;
 the release announcements in VoxeLibre; and the creative inventory, furnace,
 chest and sign in Minetest Game. After the changes listed in
-`docs/design/plan.md` for that date they match in layout, colour, button
-artwork, slot and item drawing, and text placement, with these differences left:
+`docs/history/development-log.md` for that date they match in layout, colour,
+button artwork, slot and item drawing, and text placement, with these
+differences left:
 
 - The font. Goanna draws with Godot's default face at about the same size,
   which is wider than Luanti's Arimo, so a line that just fits upstream can
   wrap or be cut short in Goanna (VoxeLibre's "Wielded lights" card).
 - Item icons, in a few narrow cases. Node items without an inventory image are
   now drawn from their item mesh as the vanilla client draws them
-  (`docs/design/plan.md`, 2026-09-19), at the slot size a form uses when it fits
-  the window; a larger `item_image[]` is that icon scaled up, where the vanilla
-  client draws the mesh at the larger size. Animated node tiles (Minetest Game's
-  lava) show their first frame. A flat inventory image ignores the colour a
-  stack's metadata sets (seen with a tinted torch in Minetest Game), and by the
-  code its overlay too. Glass looks framed because Goanna defaults
-  `connected_glass` on; the vanilla client with the same setting draws the same
-  icon.
+  (`docs/history/development-log.md`, 2026-09-19), at the slot size a form uses
+  when it fits the window; a larger `item_image[]` is that icon scaled up, where
+  the vanilla client draws the mesh at the larger size. Animated node tiles
+  (Minetest Game's lava) show their first frame. A flat inventory image ignores
+  the colour a stack's metadata sets (seen with a tinted torch in Minetest
+  Game), and by the code its overlay too. Glass looks framed because Goanna
+  defaults `connected_glass` on; the vanilla client with the same setting draws
+  the same icon.
 - Scrollbars take Luanti's colours, square thumb and arrow buttons, sized
   and placed as `CGUIScrollBar` places them (since 19 September 2026, from
   a side by side of Mineclonia's player settings form). Tab headers,

@@ -159,7 +159,7 @@ public:
     void invalidateBlock(v3s16 pos); // advance revision and queue; caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
-    // --- the local block store, docs/systems/far-rendering.md rung 5 ---
+    // --- the local block store, docs/design/far-rendering-plan.md rung 5 ---
     // Root directory; the server gets its own subdirectory. Set before
     // start(); empty leaves the store off.
     void setStoreRoot(const std::string &root) { m_store_root = root; }

@@ -245,7 +245,7 @@ profiles are the natural owner of the default once it is.
   occlusion (see above).
 - The probe fan is fixed at about 20 degrees; a sunrise through a narrow
   notch inside the fan reads as crested a little early.
-- The night mist glow is calibrated on the fixture only; its hue on a
-  live server night is unjudged. The rest of the sequence was verified on
-  the test_world Mineclonia server on 2026-08-30; `docs/design/plan.md` has the
-  numbers.
+- The night mist glow is calibrated on the fixture only; its hue on a live
+  server night is unjudged. The rest of the sequence was verified on the
+  test_world Mineclonia server on 2026-08-30; `docs/history/development-log.md`
+  has the numbers.

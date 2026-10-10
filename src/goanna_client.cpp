@@ -5445,7 +5445,7 @@ void GoannaClient::set_lod_cell(int nodes) {
     lodReset();
 }
 
-// --- far rendering: tiers and regions (docs/systems/far-rendering.md rungs 2, 3) ---
+// --- far rendering: tiers and regions (docs/design/far-rendering-plan.md rungs 2, 3) ---
 
 // Tier 0 is the live Luanti mesh. The five cached mesh tiers retain cell
 // sizes 1, 2, 4, 8 and 16. Cached one-node geometry preserves tree silhouettes
@@ -5962,7 +5962,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 " in range, grant ", grant, " nodes, radius ", radius, " blocks");
     // How far the far field actually reaches, which is not how far we are
     // allowed to draw. The haze has to close at the edge of what we have or
-    // the world is seen ending in clear air (docs/systems/far-rendering.md,
+    // the world is seen ending in clear air (docs/history/far-rendering-log.md,
     // "Background, overlay, foreground"), and what we have is whatever the
     // store held and the server has summarised so far, which on a new world
     // is very little and grows for minutes. Ring histogram by horizontal
@@ -6236,7 +6236,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
     const int aradius = radius / kEdge;
-    // Vertical window. A fixed one area either side (docs/systems/far-rendering.md's
+    // Vertical window. A fixed one area either side (docs/history/far-rendering-log.md's
     // "seam" defect) was too narrow for a hill or a valley near the player,
     // and widening it to four was worse: nine layers of 512 blocks each per
     // column, of which at most two hold anything a player can see. The rest
@@ -6370,7 +6370,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         // VoxelManip reads out of a budget that fills the horizon at about
         // half an area a second. The retry brings this area back once the
         // server has made something here, and then its answer means
-        // something (docs/systems/far-rendering.md, "Where the summary budget
+        // something (docs/history/far-rendering-log.md, "Where the summary budget
         // actually went").
         if (n->empty)
             return false;
@@ -6981,7 +6981,7 @@ void GoannaClient::lodDirtyAround(const v3s16 &bp, const LodRegionKey *except) {
     // far surface's corners are the mean of the four columns around them, so
     // a column arriving or changing moves a corner shared with the region
     // diagonally beside it, and that region has to be re-meshed or its edge
-    // no longer meets this one (docs/systems/far-rendering.md, "The far field as a
+    // no longer meets this one (docs/history/far-rendering-log.md, "The far field as a
     // surface").
     static const v3s16 around[10] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1},
             {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1}};
@@ -7866,7 +7866,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                 Dictionary(), kNodeSurfaceFlags);
         Ref<Material> mat;
         if (sf.liquid) {
-            // Water at distance, docs/systems/far-rendering.md rung 6: the same water
+            // Water at distance, docs/design/far-rendering-plan.md rung 6: the same water
             // shader as the near mesh, on the liquid's own tile, with the
             // same parameters, so the sea reads as sea at the horizon with
             // its specular, fresnel and the sky's reflection. Everything that
@@ -7877,7 +7877,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             // the hand-off. Waving used to be off here, and the reflection
             // march was gated on it, which left the far sea a dark band
             // against the reflecting near water (the R2 recorded in
-            // docs/systems/far-rendering.md, "the far tier water plane").
+            // docs/history/far-rendering-log.md, "the far tier water plane").
             auto wit = m_lod_water.find(sf.texture_id);
             if (wit == m_lod_water.end()) {
                 Ref<ShaderMaterial> wm;

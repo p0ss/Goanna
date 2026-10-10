@@ -136,7 +136,7 @@ global uniform float goanna_wetness;
 uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 
 // Staleness: CUSTOM0.a is 255 on a live block and lower on one the far
-// tiers drew from the local store (docs/systems/far-rendering.md, "Staleness"),
+// tiers drew from the local store (docs/history/far-rendering-log.md, "Staleness"),
 // and the shader can pull such surfaces toward grey by this much. Off by
 // default: a grey far field is a per tier signal painted into the frame,
 // and the far field is judged by there being none (docs/develop/launch-target.md,

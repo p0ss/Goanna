@@ -95,7 +95,7 @@ def band_detail(path, top, bottom):
     """The same Laplacian standard deviation as local_detail, over a
     horizontal band of the frame (top and bottom as fractions of height, full
     width) instead of the centre quarter. Used to read the far band of a
-    horizon shot, docs/systems/far-rendering.md task 2c: a tile that still repeats
+    horizon shot, docs/history/far-rendering-log.md task 2c: a tile that still repeats
     once per node at the range a merged region quad is actually seen from
     aliases into a per-pixel shimmer, which this measures as high local
     variance even though the frame is otherwise an ordinary lit scene, not a
@@ -292,7 +292,7 @@ def main():
             help="with --launch-target, R4: maximum fraction of far-band pixels allowed to "
                  "change in any single frame of the standing-still burst (default 0.01)")
     ap.add_argument("--far-band", action="store_true",
-            help="check a horizon shot's far band (docs/systems/far-rendering.md task 2c): fails "
+            help="check a horizon shot's far band (docs/history/far-rendering-log.md task 2c): fails "
                  "if a merged region quad, water included, still aliases into a shimmer "
                  "at the range it is actually seen from")
     ap.add_argument("--far-band-top", type=float, default=0.40,

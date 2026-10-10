@@ -273,10 +273,12 @@ identity, publication rules and current limits.
 
 `director/` is a submod that lets a language model act as game master on this
 server: it watches what players do, stages encounters sized to their gear, and
-speaks as characters and as a narrator. `docs/agents/director.md` in the Goanna
-repository is the design and records what has been built and tested. It is off
-unless `goanna_director` is true, and it is a submod rather than a setting
-because the server has to act.
+speaks as characters and as a narrator. In the Goanna repository,
+`docs/agents/director.md` describes what has been built,
+`docs/design/director-design.md` is the design and
+`docs/history/director-log.md` records what was tested. It is off unless
+`goanna_director` is true, and it is a submod rather than a setting because
+the server has to act.
 
 The model proposes and the game decides. Every action arrives as an intent
 that `director/intents.lua` checks against the budgets, the player's opt out,

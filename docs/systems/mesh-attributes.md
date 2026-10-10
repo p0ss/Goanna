@@ -120,10 +120,10 @@ they mean.
   bake its own occlusion into a channel we do not read.
 - **`CUSTOM0.a`, freshness.** 255 on every vertex of a live block. The far tiers
   write 96 on faces of a block drawn from the local store rather than received
-  this session (`docs/systems/far-rendering.md`, rung 5), and the shaders pull
-  such surfaces toward grey by `stale_strength`, so remembered terrain reads as
-  remembered. Values between are unused so far; a second use (wetness for
-  weather) would take another byte rather than share this one.
+  this session (`docs/design/far-rendering-plan.md`, rung 5), and the shaders
+  pull such surfaces toward grey by `stale_strength`, so remembered terrain
+  reads as remembered. Values between are unused so far; a second use (wetness
+  for weather) would take another byte rather than share this one.
 
 ## The block semantic ID
 
@@ -176,14 +176,14 @@ the far tiers add it as emission, being past the reach of the node light
 pool, and 255 there would make every unknown face a lamp. A missing
 attribute should look unremarkable.
 
-Sky light's neutral of 255 stays 255 even though the near mesh answers 0 for
-a face with every neighbour solid, and the difference is not an
-inconsistency. The far mesher never draws a buried face: a top face needs an
-unfilled cell in front of it and a side face a shorter one, so a far face
-that reaches the fallback has no light record rather than no light. Answering
-0 there was tried on 2026-08-22 and put 53 per cent of far vertices at zero
-sky light with black patches across the far field
-(`docs/systems/far-rendering.md`, "One light, from your feet to the horizon").
+Sky light's neutral of 255 stays 255 even though the near mesh answers 0 for a
+face with every neighbour solid, and the difference is not an inconsistency. The
+far mesher never draws a buried face: a top face needs an unfilled cell in front
+of it and a side face a shorter one, so a far face that reaches the fallback has
+no light record rather than no light. Answering 0 there was tried on 2026-08-22
+and put 53 per cent of far vertices at zero sky light with black patches across
+the far field (`docs/history/far-rendering-log.md`, "One light, from your feet
+to the horizon").
 
 ## Status, 2026-08-21
 
@@ -192,18 +192,17 @@ Landed: the layout above on Luanti meshed blocks, the sampler
 (`src/goanna_occlusion.cpp`, `src/goanna_light_test.cpp`), and both node array
 shaders reading the channels.
 
-Also landed, later the same day: the LOD tiers (`src/goanna_lod.cpp`) emit
-this layout and run the same array shader, so the "what the LOD mesher does
-with it" section above is what it does. Light is sampled per cell face from
-the air in front of it, occlusion is traced per face against the tier's own
-occupancy, and both are quantised to sixteen levels so that faces can merge.
-The block semantic ID is filled from the classifier's block column
-(`MaterialTable::blockOf`, `src/goanna_materials.h`) on both meshers since
-later the same day: for the near mesh from the node a triangle belongs to,
-for the far tiers from the cell's representative node. It is an index into
-`MaterialTable::block_names`, built from the texture map, 0 where the map
-has nothing to say; against Mineclonia with `project/texture_maps/mineclonia.csv`
-that is 200 names.
+Also landed, later the same day: the LOD tiers (`src/goanna_lod.cpp`) emit this
+layout and run the same array shader, so the "what the LOD mesher does with it"
+section above is what it does. Light is sampled per cell face from the air in
+front of it, occlusion is traced per face against the tier's own occupancy, and
+both are quantised to sixteen levels so that faces can merge. The block semantic
+ID is filled from the classifier's block column (`MaterialTable::blockOf`,
+`src/goanna_materials.h`) on both meshers since later the same day: for the near
+mesh from the node a triangle belongs to, for the far tiers from the cell's
+representative node. It is an index into `MaterialTable::block_names`, built
+from the texture map, 0 where the map has nothing to say; against Mineclonia
+with `project/texture_maps/mineclonia.csv` that is 200 names.
 
 Two things were found by building the instrument first, and both had been
 invisible.

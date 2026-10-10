@@ -1,0 +1,450 @@
+# Plan for long distance rendering
+
+The target is two things at once, and they are usually traded against each
+other: a vista that runs to the horizon, and surfaces near the camera that
+carry real material detail. Distant Horizons and Voxy do the first for
+Minecraft, LabPBR packs and a shader loader do the second, and the reason
+they are discussed together is that neither survives the other's absence. A
+vista of flat untextured cells is a contour map. Beautiful materials inside a
+200 node bubble are a diorama.
+
+This file is the order of work for doing both in Goanna, against unmodified
+Luanti servers. It also holds the plan for baked ambient occlusion, because
+that turns out to share its data structure with the far terrain and is
+cheaper built with it than beside it.
+
+Loading Iris shader packs is a separate plan, in `docs/design/iris-compat.md`.
+It shares this file's licence reasoning, depends on the same block mapping, and
+has one hard dependency on this file, set out under "Under a shader pack" below.
+
+This is the plan as it was set in August 2026, with the order of work it
+chose. How the far field works today is in
+[Far rendering](../systems/far-rendering.md), and the dated record of what
+landed and what it took is the
+[far rendering log](../history/far-rendering-log.md).
+
+## What we take from Distant Horizons, Voxy and Iris, and what we do not
+
+None can be ported, and the reason is not licence.
+
+Goanna's built binary is already LGPL-3.0-or-later. Goanna's and Luanti's
+own terms are both "or later", and mini-gmp is LGPL-3.0-or-later, so the
+combination lands there whatever we do. `THIRD-PARTY.md` works this through.
+Iris at LGPL-3.0 would combine with that without changing anything.
+
+Distant Horizons is different, and worth stating precisely because it is a
+real decision rather than a technicality. It is GPL-3.0, not LGPL. Goanna is
+a GDExtension, which is to say a library that someone else's Godot project
+links. LGPL is what lets them do that without their own project becoming
+copyleft. Linking GPL-3.0 code in would extend GPL-3.0 to the whole combined
+work, including games built on Goanna. That is permitted and it is
+distributable, and it is a choice about what downstream users may do, so it
+is not one to make as a side effect of wanting a feature.
+
+None of which matters much, because there is no code to lift. All three are
+Java. Iris drives Minecraft's OpenGL renderer through an OptiFine derived
+GLSL pipeline; Distant Horizons and Voxy are coupled to Minecraft's chunk
+format, their own storage and their own renderers. Goanna is C++ in a Godot
+GDExtension against Godot's Vulkan renderer, with `.gdshader` files. Nothing
+survives the trip except the design, and designs are not licensed.
+
+So: independent implementation, and no reading of any of the three codebases
+in order to reproduce it. Everything said about them below comes from their
+public descriptions and from using them, not from their source.
+
+### Which of the two LOD mods is the model
+
+Voxy, not Distant Horizons, and the difference is worth naming because this
+file used to be framed around Distant Horizons.
+
+Distant Horizons stores a column based summary of the world and, to fill
+gaps, runs world generation on the client to invent terrain it has never
+been sent. Voxy keeps a local database of every section it has received at
+full resolution, derives a chain of coarser levels from that, and draws only
+what it has seen. It does not generate.
+
+Goanna's boundary rule rejects generation outright (below), so the plan was
+already Voxy shaped in principle. Two more Voxy choices are worth adopting
+deliberately:
+
+- **The store holds what was received, at full resolution.** Coarser levels
+  are derived from it. The store format then does not bake in a tier set, the
+  same data serves the near field of ambient occlusion, and staleness can be
+  marked against what was actually seen rather than against a summary.
+- **A coarse level is drawn only where the finer one is not resident.** That
+  single rule is how tier boundaries and the live edge are handled, and it is
+  structural where skirts are a patch.
+
+What is not adopted is Voxy's GPU driven renderer: meshing in compute,
+indirect multidraw, a separate pass composited by depth. Godot's scene
+renderer offers a GDExtension no indirect multidraw, and drawing far terrain
+through `RenderingDevice` outside the scene puts it outside the one depth
+buffer, the one shader family and the one lighting environment that the rest
+of this file depends on. CPU meshing with merged quads into per region
+meshes is the right trade here, and it is what rung 3 already is.
+
+### Freeminer's far view
+
+Goanna's far field also owes a debt to Freeminer
+(<https://github.com/freeminer/freeminer>), the long lived fork of Luanti,
+whose far view does this job inside the Luanti family: the server keeps
+coarser copies of generated terrain, each step halving the resolution with
+a representative node per group of cells, and serves them to a client that
+draws them beyond the live range. Goanna's derived chain and its server
+side summaries from `goanna_server_mod` follow the same line of thought.
+
+The implementation is Goanna's own and none of Freeminer's code was copied.
+Freeminer's own files are GPL-3.0-or-later; Freeminer gave Goanna
+permission, in a Discord chat, to base its far meshing on their code
+outside the GPL, so that Goanna's binary stays under the terms set out in
+`THIRD-PARTY.md`. Goanna has used that as leave to learn from the design,
+not to take code. Two things still differ by design: Goanna never runs a
+mapgen on the client to fill gaps, which Freeminer does, and it draws far
+terrain only where the server grants it (below), where Freeminer serves far
+blocks to any client that asks. `docs/design/freeminer-plan.md` describes
+Freeminer's far view in detail.
+
+Goanna is not affiliated with or endorsed by the Freeminer project.
+
+## The three problems, which are separable
+
+Treating this as one feature is what makes it look impossible. It is three,
+and two of them are useful on their own.
+
+### 1. Data beyond the server's view range
+
+This is the hard one and it is the one the LOD mods actually solve.
+
+Luanti sends mapblocks within a range the client asks for.
+`goanna_session.cpp` clamps `wanted_range` to 1 to 255 mapblocks, and the
+server caps it again with `max_block_send_distance`, commonly 12 mapblocks,
+which is 192 nodes. Asking for more does not get more. A 4000 node vista is
+250 mapblocks per axis. No amount of protocol politeness reaches it, and
+reaching for it impolitely is out of bounds.
+
+So distant terrain can only come from mapblocks we already received. Today
+none are kept: there is no persistence anywhere in `src/`, and blocks unload
+with Luanti's own map.
+
+**The store.** A local store holding every mapblock ever received, keyed by
+server address and world, at full resolution. Luanti already serialises a
+mapblock compactly, the payload arrives from the server compressed, and the
+store can keep that payload as it came, so "write on receipt" is close to
+free and involves no new format. On ingest, and lazily on read, a chain of
+coarser levels is derived: occupancy and representative content per cell at
+cell 2, 4, 8 and 16. That chain is what the far tiers draw from and what
+the ambient occlusion below traces against, and it is small, roughly a
+seventh again on top of the full block.
+
+Size is Voxy sized, not summary sized. A serialised mapblock is typically a
+few hundred bytes to a few kilobytes, so a large explored world runs to
+hundreds of megabytes, which users of the Minecraft mods accept and which is
+the honest cost of keeping what was seen. Cap it per world, oldest out.
+
+An earlier draft proposed keeping only a cell 4 summary. It was smaller and
+it fixed the tier set on day one: nothing finer than cell 4 could ever be
+drawn from it, and the near field of ambient occlusion could not use it at
+all. Full resolution with derived levels costs more disk and buys both.
+
+**The boundary question is settled: the server decides.** `README.md` and
+`CONTRIBUTING.md` both state that Goanna must never give a player
+information or reach a vanilla player lacks. Reasoning about whether a store
+technically passes that test was the wrong approach, because it has Goanna
+granting itself the permission. Far rendering is off unless the server
+allows it. Then the reach is given, not taken, and a server operator who
+does not want it keeps the client at whatever `max_block_send_distance` they
+set.
+
+Goanna's own local server turns it on, because there is no fairness question
+in a single player world on your own machine, running a server this client
+launched. That also makes the whole rung buildable and testable now, against
+local worlds, without touching the multiplayer case at all.
+
+The mechanism exists. The protocol has no field for this, so it rides the
+`goanna:v1` mod channel: `joinGoannaChannel` and `onModChannelMsg` in
+`src/goanna_session.cpp` join, say hello, and parse the `key=value` reply
+from `goanna_server_mod` into the session's server options. What does not
+exist yet is a consumer: nothing in `src/` reads a `far_rendering` key, so
+the grant is received and ignored. That reader is part of rung 5. A server
+without the mod says nothing and gets the default, which is off.
+
+Staleness remains, and it is not a fairness problem but an honesty one: the
+far view shows what you were sent, whenever you were sent it. A mountain you
+mined out still stands until you go back and look. Mark it rather than
+pretend otherwise. Because the store holds the full block, a stale region
+can be compared against the live block when it arrives and replaced or
+faded, rather than guessed at.
+
+Distant Horizons also generates terrain it has never seen, to fill gaps.
+Goanna should not. That invents world which does not exist on the server,
+and it is exactly the divergence the boundary rule is about.
+
+### 2. Geometry cheap enough to draw
+
+Built, 2026-08-21, inside the range the server sends; see "What landed at
+rungs 2 and 3" below for what was observed. The shape of it:
+
+- **The chain.** `src/goanna_lod.h` derives, per mapblock, levels at cell
+  2, 4, 8 and 16: which cells are filled, which block light, what is seen
+  from each of the six sides, and how lit the air in them is. It is built
+  lazily from the block, dropped when the block changes, and is the only
+  thing the tier mesher reads. Inside the live range and beyond it the tier
+  data has one shape, which is what the store at rung 5 will persist.
+- **Tiers.** `lodTierFor` (`goanna_client.cpp`) chooses a tier per block
+  from horizontal distance, doubling the threshold per tier, with
+  hysteresis so a player standing on a boundary does not rebuild the same
+  blocks every step. Tier 1 is `lod_cell` nodes (4 by default), each tier
+  doubles it, up to a whole block.
+- **Merging.** Blocks at a tier belong to a region of that tier, four to
+  sixteen blocks on a side so a region is about 32 cells an axis whatever
+  the cell size, and the region is one mesh: coplanar faces with the same
+  tile, tint, light and occlusion are merged greedily into quads, one
+  surface per array texture. A region is rebuilt when a member block or a
+  block next to one changes, coalesced so streaming into it costs one
+  rebuild a quarter second rather than one per block, inside a per frame
+  time budget.
+- **Residency, which replaces seams.** A block is drawn by exactly one tier,
+  and a region's mesh culls its faces against every neighbour's occupancy
+  at that region's cell size, whatever tier the neighbour is drawn at. A
+  live mapblock arriving, or changing tier, leaves its region and the
+  region is rebuilt without it. No skirts have been needed so far at the
+  join between the live mesh and the first coarse tier; the cells there are
+  small and the live mesh hides the join, as it always did.
+- **Vertex format.** The region mesh carries exactly what the near mesh
+  carries, per `docs/systems/mesh-attributes.md`: tile UV and array layer, tint,
+  Luanti's block and sky light, the occlusion term and the block semantic
+  ID, and it runs the same node array shader against the same arrays.
+- **Depth precision.** Not yet measured: nothing has been drawn further
+  than the server sends, which is a few hundred nodes. Godot 4.3 and later
+  use reversed Z, which takes most of the far plane problem away. Measure
+  at 4000 nodes at rung 5 before reaching for anything clever.
+
+### 3. Shading that is continuous from your feet to the horizon
+
+This is where the current LOD path is furthest from the target, and it is
+the cheapest thing on this page to fix.
+
+Far cells today get a `StandardMaterial3D` with albedo from vertex colour,
+roughness 1, metallic 0 (`goanna_client.cpp`). That is a flat matte colour
+per cell. It cannot produce a distant vista that reads as landscape: no
+specular on water, no glint on snow, no difference between stone and grass
+beyond hue. `lodColour` is hand-rolling an average texture colour to feed
+it, which is what a mip level already is.
+
+The fix is not a far specific look. It is the same shader. A distant
+hillside should run the same `nodes_array.gdshader` family against the same
+`Texture2DArray`, so sun, sky, fog and tonemap apply identically and there
+is no distance at which the world visibly changes rendering. What varies by
+tier is only how much is sampled:
+
+- **Albedo**, always, from the array with a mip bias. A distant tile then
+  averages itself, correctly, instead of through `lodColour`.
+- **`_s`**, always. Smoothness, F0 and emission are what make water, ice,
+  snow and lit windows read at distance, and it is one sample.
+- **`_n`**, only in the near tiers. At sub-pixel texel size a normal map is
+  noise, and it is the expensive one.
+
+This depends on `docs/design/pbr-plan.md` step 2, the per node material class.
+While 80 per cent of nodes carry a flat fallback `_s`, giving the far tiers
+the array shader changes almost nothing visible. The order in
+`docs/design/roadmap.md` has materials land first for this reason.
+
+Atmosphere is the other half of it, and is what actually sells a vista. The
+horizon in a Distant Horizons screenshot is haze reaching sky colour, not a
+draw distance edge. `main.gd` already wires `fog_aerial_perspective` (0.12),
+`fog_sky_affect` and a `fog_density` derived from view range. Those numbers
+were chosen for a 200 node world and will be wrong by an order of magnitude
+at 4000. They want re-deriving against a scattering curve, measured on
+`lighting_chart.tscn` with a distance case added, not adjusted by eye.
+
+## Baked ambient occlusion, and why it lives here
+
+Godot's SSAO is on and it is never going to look like baked occlusion. It
+sees only what is on screen, so an overhang just out of frame stops darkening
+the ground under it as you turn; its radius is a couple of nodes; it swims
+as the camera moves. Luanti's own corner term, the one `content_mapblock.cpp`
+computes under smooth lighting from the three neighbours of each vertex, is
+stable and cheap, and it is also not the same thing: it knows about the
+adjacent node and nothing further, so a pit is as dark at the top as at the
+bottom and a cave mouth is as bright as open ground.
+
+Real occlusion is an integral over the hemisphere above a point of how much
+of it is blocked, out to some radius. In a textured mesh world that needs
+a lightmap bake and changes to the world invalidate it, which is why it is
+thought of as hard for destructible terrain. In a voxel world it is not
+hard, because the occluders are the voxels and the voxels are already in a
+grid: the integral is a handful of cone traces through an occupancy
+pyramid, and the pyramid is exactly the chain of coarser levels the store
+derives in section 1. That is the tie. One data structure, built once,
+serves the far tiers and the occlusion.
+
+### The term, in two ranges
+
+Split by radius, because the two halves have different costs, different
+invalidation and different sources.
+
+**Near field, radius up to 8 nodes.** Traced against full resolution
+occupancy, which the mesher already has: `MeshMakeData`'s vmanip holds the
+block and its 26 neighbours. Computed per vertex at mesh time, where the
+corner term is computed today, as a hemisphere of a dozen or so cones with a
+few steps each. It replaces the corner term rather than adding to it.
+Invalidated exactly when the corner term is, by re-meshing the blocks a
+changed node touches, which Luanti's lighting update already triggers for
+the same neighbourhood. Cost is bounded: tens of lookups per vertex, on the
+mesh thread, and it is the part of the bake that is visible up close.
+
+**Far field, radius 8 to about 64 nodes.** Traced against the coarse levels,
+cell 4 and up, which is where the store's derived chain comes in. This is
+the term that makes a valley floor darker than a ridge, a cave mouth darker
+than open ground, and the foot of a cliff read as a foot. It is low
+frequency by construction, so it tolerates staleness: one node changing
+moves it by almost nothing, and it can be recomputed lazily, a region at a
+time, rather than on every edit. It is also the term the far tiers
+themselves carry, baked into the per region meshes at build time from the
+same chain, so the vista has depth without a screen space pass reaching it.
+
+Both are view independent and both are stable, which is what baked means
+here. Neither needs a lightmap, a UV unwrap or an offline step.
+
+### Where it rides
+
+As a per vertex attribute alongside Luanti's block and sky light, in the channel
+that `encode_light` in `src/transplant/client/mapblock_mesh.cpp` writes today
+and `g_goanna_no_light` currently forces to white. Reviving that path is already
+on the critical path in `docs/design/roadmap.md` for the `lmcoord` reason in
+`docs/design/iris-compat.md`; occlusion is the third value in the same
+attribute. The node array shader multiplies it into the ambient term only, never
+into direct sun, which is what distinguishes occlusion from shadow.
+
+SSAO stays on for contact detail at sub node scale, with its radius pulled
+in, and SSIL is judged separately; `lighting_chart.tscn` already records
+what each contributes and it is the instrument for setting the balance.
+
+### Boundaries and costs
+
+It gives nothing away. Every occluder it reads is a node the server already
+sent this client, so it is presentation, not a capability, and needs no
+grant. The far field beyond the server's range reads the store, which is
+already gated by the far rendering grant and is the same data either way.
+
+It has to stay off collision, like every visual on the list in
+`docs/design/capabilities.md`. It is shading.
+
+Under a shader pack, most packs compute their own occlusion in `composite`
+and a few read the vanilla corner term through vertex colour. The term is
+exposed to a translated `gbuffers_terrain` as Goanna's extension, not as
+something Iris defines, and defaults to multiplying into albedo only when no
+pack is loaded. A pack that wants it reads it; a pack that does not is not
+double darkened.
+
+### Where it goes in the order
+
+The near field needs only the vertex light path revived, so it belongs with
+the lighting and materials work, before the far rendering rungs. The far
+field needs the occupancy chain, which is built for rung 3 and persisted at
+rung 5, so it lands with rung 3 inside the live range and reaches beyond it
+at rung 5. `docs/design/roadmap.md` has both placed.
+
+## Under a shader pack
+
+`docs/design/iris-compat.md` translates `gbuffers_terrain` into the node array
+shader. If the LOD tiers run that same shader against the same vertex
+layout, the translation covers the vista for free. If they do not, a pack
+shades the near bubble and leaves the horizon as Godot drew it, which is the
+familiar broken look of an LOD mod under a pack that has no programs for it.
+Iris had to add separate Distant Horizons programs and a second depth
+texture to solve exactly this, because DH draws in its own pass with its own
+vertex format.
+
+Goanna avoids both by design, provided rungs 2 and 3 land before the translator:
+one shader family, one vertex layout carrying light, occlusion and block ID, one
+scene, one depth buffer. That is the dependency `docs/design/roadmap.md` records
+as "far rungs 2 and 3 before Iris rung 5", and it is the strongest reason not to
+reorder those two.
+
+## Order of work
+
+Each rung is separately useful, and each is visible on its own, which is how
+this avoids becoming a six month branch that never lands.
+
+1. **Client side LabPBR pack loading.** Done, 2026-08-19. It turned out to be
+   two bugs rather than a missing feature: `set_texture_path` had exposed
+   Luanti's own `texture_path` override all along, but
+   `GoannaTextureSource::isKnownSourceImage` had diverged from upstream to ask
+   ImageSource to generate the image, which never fails (a missing file yields
+   a 1x1 random dummy), and `insertMediaImage` passed `prefer_local = false`,
+   which stopped a pack overriding server art. Against a stock Mineclonia
+   server with no worldmod, `GOANNA_PACK` now takes companion coverage from
+   0/256 to 179/256.
+2. **Far shading parity.** Done, 2026-08-21. The coarse tiers run the node array
+   shader against the same `Texture2DArray` and its `_n` and `_s` companions, on
+   the vertex layout in `docs/systems/mesh-attributes.md`, so there is no
+   distance at which the renderer changes. What it buys is bounded by
+   `pbr-plan.md` step 2 exactly as predicted: with most nodes on a flat fallback
+   `_s`, a far hillside is textured rather than flat coloured, and no more than
+   that yet.
+3. **Multi-tier LOD geometry**, still inside the server's view range. Done,
+   2026-08-21: the derived chain, tiers by distance, greedy merging into per
+   region meshes, the residency rule, and the far field occlusion term baked
+   into the region meshes from the same tracer as the near field, over a
+   field at the tier's cell size. Proven against a local Mineclonia server
+   on Godot 4.5.1 without touching persistence; details below.
+4. **Atmosphere at long range.** Done, 2026-08-21. Fog density and aerial
+   perspective are tied to how far the tiers actually draw, not to the live
+   view range: when the server grants far rendering the draw distance is the
+   grant (up to `far_distance`), otherwise the view range, and the density
+   puts about a sixth extinction at that edge so the horizon fades to sky
+   and the mid distance stays clear. Aerial perspective and sky affect rise
+   with the distance, so a 512 node horizon reads as haze rather than a hard
+   edge. `_apply_sky` in `project/main.gd`.
+5. **The store**, gated on the server allowing it, on by default only for
+   the local server Goanna launches itself. Full blocks as received, the
+   derived chain alongside, a reader for the `far_rendering` grant, and the
+   far field occlusion reaching beyond the live range. Only at this rung does
+   the view exceed what the server sends, and only at this rung does
+   staleness exist. Done, 2026-08-21; see "What landed at rung 5" below.
+6. **Water at distance, without a pack.** Done, 2026-08-21. A liquid cell in the
+   coarse chain records the height of its surface, and the region mesher draws
+   the liquid faces at that height (so a sea lies at sea level, not at the top
+   of its cell) on the same water shader as the near mesh, keyed by the liquid's
+   own tile. The sea reads as sea at the horizon with its waves, specular and
+   fresnel. Reflections proper are a shader pack's job
+   (`docs/design/iris-compat.md`, `gbuffers_water` and the pack's own SSR) and
+   are not duplicated here. Revisited 2026-08-28: the far tier now runs the same
+   water material as the near mesh with the same parameters, and everything that
+   differs (waves, the reflection march, absorption, the flatten) is a function
+   of view distance inside the shader; see "The near/far water hand-off,
+   2026-08-28" below.
+
+7. **Places you have never been.** The store answers "everywhere I have
+   walked"; this answers "everywhere the server already has". The server mod
+   summarises terrain it has generated, coarsely, on request and at the
+   operator's pace, and those summaries become chains like any other. Done,
+   2026-08-21; see "What landed at rung 7" below.
+
+Rungs 1 to 7 all landed by 2026-08-21. Rungs 1 to 4 and 6 need no decision
+from anyone; rungs 5 and 7 do, and it is the local server that gives it here.
+
+## Where this is most likely to fail
+
+- **Rung 5 is the only route to a real vista.** Everything below it is
+  cosmetic improvement inside a range the server chose. Measured on a local
+  Mineclonia world: the server default `max_block_send_distance` of 12
+  mapblocks is 192 nodes, and raising it to 32 gives 512. The LOD mods draw
+  thousands. Raising the send distance costs the server linearly and runs
+  out long before it reaches that, which is exactly why the store exists and
+  why nothing short of it produces the target image.
+- **Staleness has no good answer**, only honest ones. Fading distant terrain,
+  or tinting it, or dropping it when contradicted. Holding the full block
+  makes "contradicted" checkable; it does not make it pretty.
+- **The store is the engineering, not the rendering.** 250 mapblocks per axis
+  of blocks and their derived chains, written on a session thread, read on
+  approach, evicted on a cap.
+- **Draw call budget.** The existing LOD path wins by merging to one
+  material. Several tiers must not quietly undo that. Measure against
+  `docs/play/requirements.md`'s table every rung.
+- **The far field occlusion can over darken.** Cone tracing against coarse
+  occupancy reads a half filled cell as half solid, which is right on
+  average and wrong on any given face. Calibrate it on `lighting_chart.tscn`
+  against a brute force ray count before trusting the look, and clamp it
+  where the near field already has the answer.

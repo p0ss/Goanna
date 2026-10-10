@@ -426,7 +426,7 @@ void fragment() {
 	// near mesh is fully absorbed anyway. The far tiers need the same answer
 	// forced, because a tier's water plane sits directly on the tier terrain
 	// and its measured thickness is near zero, which let the ground show
-	// through a sea (docs/systems/far-rendering.md, "the far tier water plane").
+	// through a sea (docs/history/far-rendering-log.md, "the far tier water plane").
 	float deep_far = smoothstep(160.0, 420.0, here);
 	thick = max(thick, 64.0 * deep_far);
 	// How far the floor is straight down, which is what "shallow" means to

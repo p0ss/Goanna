@@ -31,10 +31,10 @@ update.
 chat, to base its far meshing on their code outside the GPL. Goanna used it as
 leave to learn from the design and wrote its own implementation, so the licence
 position under "Licensing" below is unchanged for any code that would actually
-be compiled. The credit is in `docs/systems/far-rendering.md`, "Freeminer's far
-view", and in `THIRD-PARTY.md`. The chat is not archived in this repository, and
-its exact scope (which code, and whether it speaks for contributors other than
-the maintainer) is not recorded; check it before relying on it for anything
+be compiled. The credit is in `docs/design/far-rendering-plan.md`, "Freeminer's
+far view", and in `THIRD-PARTY.md`. The chat is not archived in this repository,
+and its exact scope (which code, and whether it speaks for contributors other
+than the maintainer) is not recorded; check it before relying on it for anything
 beyond design.
 
 **The multithreaded server does not run game Lua in parallel.** Freeminer

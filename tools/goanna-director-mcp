@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""The director's MCP service (docs/agents/director.md, "MCP half").
+"""The director's MCP service (docs/design/director-design.md, "MCP half").
 
 A language model connects to this over MCP, as a game master. The Luanti
 server's goanna_server_mod connects to it over HTTP: this process runs the

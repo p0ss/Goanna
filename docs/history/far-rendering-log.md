@@ -1,0 +1,2343 @@
+# Far rendering log
+
+The dated record of the far field's construction: what landed at each rung
+of the [plan](../design/far-rendering-plan.md), what was measured and what
+went wrong, oldest first. It is a log, so an entry describes the code as it
+was on its date. How the far field works today is in
+[Far rendering](../systems/far-rendering.md).
+
+New entries go at the end, under a `##` heading that ends with the date.
+
+## What landed at rungs 2 and 3, 2026-08-21
+
+`src/goanna_lod.{h,cpp}` holds the chain and the region mesher, free of
+Godot and of the session so the store can feed it later and so it can be
+tested offline. `GoannaClient` (`lodAssign`, `lodBuildRegion`, `lodRebuild`
+in `src/goanna_client.cpp`) keeps the membership, the dirty set and the
+region meshes, and converts the output to surfaces. The single tier,
+single block mesher it replaces (`meshBlockLod`) is gone.
+
+Measured against a local Mineclonia server, Luanti 5.16.1, Godot 4.5.1,
+from one fixed viewpoint 55 nodes above a jungle, view range 12: full detail
+drew 234 blocks in 3,454 draw calls at 287 fps; with tiers starting two
+blocks out, 15 blocks stayed at full detail and 220 were drawn at tiers 1 to
+3 in 10 region meshes, 31 surfaces, 306 draw calls, 377 fps. A region build
+costs about 1 to 2 ms at any tier. The two frames are from two runs of the
+same player at the same view, so the streamed set differs slightly; the
+draw call ratio is the result, the frame rate is indicative.
+
+Three things were wrong on the first run, and each is worth keeping:
+
+- **Every cell was drawn inside out.** The old mesher's quads were wound
+  counter clockwise, which Godot culls as back faces, so what rendered was
+  the underside of every cell seen through its missing top. Flat colour and
+  fog had hidden it for as long as that mesher existed; the array shader
+  showed it at once as a world of slate grey undersides lit only by sky.
+  Painting the light channels as emission (`debug_nodelight`) is what told
+  the two apart: the channels were right, the geometry was not.
+- **A cell with anything in it drew as a full cube.** At cell 16 a single
+  leaf made a cliff, and a jungle canopy became a wall of cubes. A cell now
+  draws when half a layer's worth of nodes fills it, which keeps a floor, a
+  canopy and a two by two trunk and drops a post and a stray branch, and it
+  blocks light when a full layer does. Both thresholds are named constants
+  in `buildLodChain` waiting to be calibrated on the chart, as this file
+  already asked.
+- **Leaves did not count.** Luanti classes leaves and glass as
+  `solidness` 0 with `visual_solidness` 1, and the first chain used
+  `solidness` alone, as the old mesher and the near field occlusion do. A
+  forest at range is its canopy, and without it the jungle meshed as the
+  log tops the trunks had been standing on. What draws is now solid, or
+  cube shaped, or liquid; what blocks light is still solid alone.
+
+And one limit, which is the reason rung 5 exists and was worth seeing
+plainly: the server sends only the blocks it has generated, within the view
+cone the client reports, so from a height the far tiers show holes where no
+block was ever sent, and a view turned away from the reported look direction
+shows nothing at all. The tiers draw what was received. Making the vista
+continuous is the store's job, not the mesher's.
+
+Not done here: the fill and occlusion thresholds have not been calibrated
+against a brute force count; the far field occlusion is visibly weak on the
+jungle floor and the reason is not yet separated between the thresholds, the
+radius and the terrain; animated tiles (water, lava) have no array texture
+and fall back to a flat average colour per face, which is what rung 6 is for.
+
+## What landed at rung 5, 2026-08-21
+
+`src/goanna_store.{h,cpp}` is the store. One directory per server under the
+root `main.gd` passes in (`user://goanna_store/<host>_<port>`), one file per
+16 by 16 by 16 blocks (`r.<x>.<y>.<z>.gbs`): a 64 KB index of offset,
+length, time stamp and serialisation version per slot, then the payloads
+appended. A block is written as the server serialised it, on the session
+thread, as it arrives; a rewrite leaves dead bytes that are folded when they
+outweigh the live ones; a cap (512 MB, `GOANNA_STORE_CAP_MB`) evicts whole
+region files oldest first. There is no new format for a block, only for the
+file around it, and the format is plain enough to read with a hex editor.
+
+The session (`saveBlockToStore`, `loadStoredBlock`, `storedRegionMask`)
+writes on receipt, marks blocks edited by `ADDNODE` and `REMOVENODE`, and
+writes those back when they are pruned or the session stops, so the store
+holds the world as last seen rather than as first sent. `farRenderingGrant`
+reads the `far_rendering` and `far_rendering_distance` options the server
+mod announced; without them the store still writes (it is the player's own
+record of what they were sent, like a screenshot folder, and costs a capped
+directory) and nothing reads it.
+
+The client (`lodUpdateFar`, `lodChain`) is the consumer. Every two seconds
+or when the player crosses a block, it asks the store which blocks exist
+within the lesser of the grant and `far_distance` (512 nodes by default,
+`GOANNA_FAR_DISTANCE`), skips the ones the server is sending, assigns the
+rest to tiers exactly as received blocks are assigned, and lets go of those
+that pass out of range. The region mesher does not know the difference:
+`lodChain` builds a block's chain from the live block if there is one and
+from the store if not, and frees the stored block as soon as the chain
+exists. A live block arriving for a stored one takes over on the next poll.
+The far field occlusion reaches beyond the live range the same way, because
+the tracer reads chains.
+
+Staleness is marked, not hidden. A chain built from the store sets `CUSTOM0.a`
+on its faces to 96 rather than 255 (docs/systems/mesh-attributes.md), and the
+node shaders pull such surfaces toward grey by `stale_strength` (0.6 by default,
+a material strength channel like the rest), so remembered terrain reads as
+remembered.
+
+Measured against the test Mineclonia server, which grants 512 nodes: a 25
+second visit to the spawn wrote 331 blocks (688 KB); a second run that went
+400 nodes away and looked back found 306 of them in the store, drew them as
+tier 3 from the store while the server sent the new surroundings live, with
+no errors, and the frame shows the spawn jungle as grey green cells beyond
+the live edge. That is the first frame of this client that drew terrain the
+server was not sending.
+
+Goanna's own local server grants it: `project/local_server.gd` writes
+`goanna_far_rendering = true` and a distance of 1024 into the conf it
+launches with, and copies `goanna_server_mod` into the world's `worldmods`
+so the grant reaches the client over the channel.
+
+Not done: a settings entry for the far distance and the stale strength (both
+are environment variables and bound methods today); the store's contents
+are not pruned against a world reset, only aged out by the cap; and the scan
+over stored regions is linear in the region count, which is fine at 512
+nodes (125 regions) and would want an index at 4000.
+
+## What landed at rung 7, 2026-08-21
+
+The store can only ever show you where you have been, and that is a real
+limit on the idea: the first thing anyone tries is looking at a horizon they
+have not walked to, and seeing nothing there. Distant Horizons answers that
+by generating the terrain locally, which this project rejects outright, and
+Voxy does not answer it at all, being client side. The answer that fits the
+boundary rule is the server: it already holds the terrain, so let it give
+what it chooses to give.
+
+`goanna_server_mod` answers `farsum?` requests. It reads already generated
+map through a VoxelManip, never generating any, and replies with 21 bytes
+per mapblock, protocol version 2 since 2026-08-22: occludes, lit, liquid, a
+4 by 4 grid of surface heights over the block's footprint (one byte each, 0
+to 16), the commonest top and side node (as an index into a name list in the
+same message), and the light levels. Version 1 sent one height for the whole
+block, so a slope summarised as a stepped box; see
+`goanna_server_mod/README.md` and the protocol comment above
+`GoannaClient::lodTakeSummaries` for what changed and why an old mod and a
+new client refuse each other's messages rather than misreading them. An 8 by
+8 by 8 block area is about 14 KB on the wire against roughly a megabyte at
+full resolution. Requests beyond `goanna_far_rendering_distance` of the
+asking player are refused, and the work is paced by
+`goanna_far_summary_blocks_per_step` (32 mapblocks a step), so an area costs
+a second or two of wall clock and a small slice of each step; the larger
+record does not change that bound, since it is still one VoxelManip read per
+block.
+
+The client (`lodRequestSummaries`, `lodTakeSummaries` in
+`src/goanna_client.cpp`) asks for the nearest area that is not entirely live
+and not entirely known already, four in flight, never twice, skipping
+anything already fully covered by the live range or the store. A reply
+becomes a chain per mapblock at whichever tier's cell is the finest this
+client can use at 4 nodes or coarser (cell 4 at the default `lod_cell`),
+marked `stored` so it renders with the same staleness treatment, and the
+region mesher draws it through the same path as everything else: tiers,
+merging, water, occlusion, the fade, and now a real slope instead of a flat
+top. No new rendering code at all, which is what the chain was built for.
+
+Measured against a Mineclonia server holding terrain a previous player had
+explored: a fresh client with an empty store, a 96 node live range and the
+512 node grant drew 1087 blocks of terrain it had never visited, at 139 fps,
+with the worst poll at 7.6 ms. Areas the server has not generated come back
+as holes and stay holes.
+
+Two limits are worth knowing. A mod channel has no unicast, so replies are
+broadcast and filtered by the requester name they carry; the mod README says
+what that means for an operator. And a summary carries no data finer than 4
+node cells, so distant terrain from this path is coarser than the same
+ground would be from the store, which keeps the full block; walking there
+replaces it with the real thing.
+
+### Pregeneration, 2026-08-22
+
+A third limit turned up the first time a world was launched from the client:
+a summary can only describe terrain that exists, and a server generates only
+within the range its client asks for (`max_block_generate_distance` is capped
+by the client's wanted range in `clientiface.cpp`, and Goanna asks for 12
+blocks). So a fresh world has a 192 node horizon whatever the grant says,
+and the player who just created it, the one most likely to look, sees
+nothing at all past the live edge.
+
+`goanna_far_pregenerate` is the server's answer, off by default because it
+spends mapgen time and map memory on terrain no one has visited. When on,
+the mod generates outward from each connected player, one 128 node area at a
+time, nearest first, with `goanna_far_pregenerate_interval` seconds between
+areas, out to the far rendering distance. An area is emerged a slice at a
+time rather than all at once, for the reason the next section gives. Each
+finished area is summarised for every client within range without being
+asked, because a client that asked while it was still ungenerated was told
+there was nothing and does not ask twice. The client needs no change for
+this: an unsolicited summary is taken exactly like an answered one. The
+local server Goanna launches turns it on (`project/local_server.gd`); a
+public operator decides for themselves.
+
+It stays inside the boundary: the server generates its own world on its own
+schedule, as it would for a player walking there, and the client never
+generates or asks for anything a vanilla client could not.
+
+### Pregeneration yields to the player, 2026-08-22
+
+Pregeneration shipped in the morning and the near field, the blocks around
+the player, got worse the same day. The near field is what the client is
+for, so this is the more serious half of what pregeneration was added to
+fix, and it was traded away without anyone measuring it.
+
+**Why it happened.** An area is 8 by 8 by 8 mapblocks and the mod called
+`core.emerge_area` on the whole of it. Lua's emerge sets
+`BLOCK_EMERGE_FORCE_QUEUE` (`luanti/src/script/lua_api/l_env.cpp`), which
+`EmergeManager::pushBlockEmergeData` reads as "skip every queue limit", so
+none of `emergequeue_limit_total`, `_diskonly` or `_generate` applied. Each
+emerge thread's queue is a plain `std::queue`, and a player's own block
+request goes through `RemoteClient::GetNextBlocks` into the same queue. So
+512 mapblocks of terrain nobody had asked for sat in front of the blocks the
+player was waiting for, every `goanna_far_pregenerate_interval` seconds.
+Logged from inside the mod, one such batch was 0.0 to 3.1 seconds of mapgen
+on mineclonia, and the server's `get_server_max_lag` rose from 0.11 to 0.34
+while a batch and its summary ran.
+
+Two smaller wastes turned up in the same read. The area search ranked
+candidates by horizontal distance only, and the three vertical layers it
+searches are all at the same horizontal distance, so the tie always went to
+whichever the loop reached first: the layer below the player. Every column
+was generated deep stone first and surface last. And a client's own
+`farsum?` was appended to the same queue as the summaries pregeneration
+offers unasked, up to eight of them, each 512 blocks of `VoxelManip`; worse,
+the queue limit that refuses a request counted those offers, so
+pregeneration could make the server silently refuse a player's own ask, and
+`lodRequestSummaries` does not ask twice.
+
+**What changed**, all in `goanna_server_mod/init.lua`:
+
+- An area is emerged `goanna_far_pregenerate_slice` mapblocks on a side at a
+  time, 4 by default, and the next slice starts from the previous one's
+  completion callback rather than on a clock. The queue holds 64 blocks
+  where it held 512.
+- Independent area streams are pipelined by
+  `goanna_far_pregenerate_concurrency` (two by default and three on the
+  bundled local server). Each stream still has only one slice queued, so
+  mapgen workers can remain occupied without returning to a 512-block
+  forced batch. This was added after testing at flying speed exposed the
+  single stream as the sustained frontier limit.
+- `goanna_far_pregenerate_interval` now paces areas rather than protecting
+  the queue, so its default drops from 3 seconds to 1. The slices within an
+  area run back to back.
+- The area search ranks the player's own vertical layer ahead of the two
+  beside it.
+- `goanna_far_pregenerate_lag` stops pregeneration when
+  `core.get_server_max_lag()` is above it. The default is 0.5 s, five times
+  the server step, and the retry is 0.5 s rather than the full interval:
+  that number is a running maximum which halves every minute
+  (`Server::AsyncRunStep`), not an average, so a threshold near the step
+  length reads as "behind" long after one slow step. At 0.2 the mod's own
+  summary pass tripped it and pregeneration ran at a third of its rate on a
+  server that was fine.
+- A completed pregeneration offer is queued ahead of speculative `farsum?`
+  scans, half the summary budget is reserved for freshly generated blocks,
+  and only asked requests count towards the limit that refuses one. This
+  prevents empty-area scans from starving mapgen's completed output.
+  Duplicate jobs for the same client and area collapse into one.
+
+**The numbers.** Godot 4.5.1, mineclonia 0.90 on Luanti 5.16.1, the local
+server `project/local_server.gd` starts, on a shared and loaded machine (one
+minute load average 1.8 to 5.6 across the runs, three other agents working).
+Each run is a brand new world on a fixed map seed, joined through the menu,
+28 seconds to settle, then a teleport to (3000, 90, 3000), which no run has
+visited, with the camera placed and aimed identically. The far tiers were
+drawn throughout, at the client's default `lod_distance`, which matters
+because turning them off would also have stopped the summary requests:
+`lodRequestSummaries` is called at the end of `lodUpdateFar`, and that
+returns early when `m_lod_distance <= 0`. Three or four runs per condition,
+interleaved so the load is comparable.
+
+| Condition | +400 blocks after the jump | far blocks at 45 s |
+| --- | --- | --- |
+| `goanna_far_pregenerate` off | 3.2, 5.3, 3.6 s | 0, 0, 0 |
+| on, before | 4.9, 5.7, 5.3 s | 3548, 3551, 3551 |
+| on, after | 4.4, 4.4, 3.7, 3.6 s | 3937, 4126, 4127, 4128 |
+
+Far region meshes at the same moment, which is what the far blocks turn
+into: 0 with pregeneration off, 69 in all three before runs, 96 then 100,
+100, 100 after.
+
+Pregeneration off is the closest thing to the vanilla comparison the user
+made: the same server with the mod's pregeneration loop taken out. It cost
+1.3 seconds on a 4 second near field fill before, and costs nothing now,
+while the horizon fills faster than it did rather than slower. The 45 second
+far block count is the client's `render_stats().far_remote`, blocks known
+only from summaries.
+
+The variance is real and the machine was busy: the off condition's own three
+runs span 3.2 to 5.3 seconds. Read the run means, 4.0 off, 5.3 before, 4.0
+after, rather than any single pair. The far block counts are much steadier
+because they are paced by the mod rather than by the machine.
+
+**What this does not fix.** `docs/develop/launch-target.md` task 8 still stands:
+the client asks for four area layers either side of it and most of what comes
+back is sky or interior stone. Ranking the vertical only changes the order, not
+the volume. The mod also still offers a summary for an area only when its own
+pregeneration made it, so on a real server, where players walking about generate
+most of the map, terrain that comes into existence any other way is never
+offered to anyone. `core.register_on_generated` is the obvious answer and is not
+implemented here; it would want the same discipline as above, one area at a
+time, only outside the live send range, and behind the same lag guard.
+
+### The launch target's four defects, closed 2026-08-22
+
+`docs/develop/launch-target.md` task 2 named four things wrong with the picture
+rather than the mechanism, found from screenshots rather than from the
+numbers above, and closed them in the order the task set: each one's result
+is what the next was judged against.
+
+**2a, the seam.** `lodRequestSummaries` skipped an area whenever its centre,
+not its farthest corner, was inside the live range, and skipped it again
+whenever any one sampled cell was already known, so a ring straddling the
+live edge, or one the player had crossed a corner of, was never asked about.
+Both are now farthest-corner and fully-known tests, and the vertical window
+widened from one area either side of the player to four, capped rather than
+matched to the horizontal radius so a large grant does not turn into a scan
+of mostly sky and stone. No mod change was needed for "the ring around spawn
+generated by ordinary play": the loosened ask already reaches it, because
+`goanna_server_mod` answers `farsum?` for anything generated regardless of
+how it got that way.
+
+**2b, the surface.** The record grew from 6 bytes (one height for the whole
+block) to 21 (a 4 by 4 grid of them), protocol version 2, and
+`lodTakeSummaries` builds the chain at whichever tier's cell is the finest
+this client can use at 4 nodes or coarser, rather than always at cell 16, so
+the region mesher's existing per-cell height logic (`meshLodRegion`, "Cells
+are not cubes" below) draws a slope from a summary exactly as it already did
+from a stored block. `goanna_server_mod/README.md` and the protocol comment
+above `block_summary` and `lodTakeSummaries` carry the wire format and the
+cost per area (14 KB now, was 3 KB).
+
+**2c, the shading.** A merged region quad's UV still repeats once per node,
+which is right at the near end of a tier but aliases into a shimmer once the
+quad is only a few hundred pixels on screen and no anisotropic filtering is
+in the sampler. Past a distance in nodes (64 to 256 by default,
+`lod_flatten_near`/`lod_flatten_far` in `nodes_array_common.gdshaderinc` and
+`water.gdshader`) the sampled colour blends toward the tile's own average,
+the same `getTextureAverageColor` value the no-array fallback material
+already used, carried per array layer in a `lod_avg_colour` uniform set only
+on LOD materials (`GoannaClient::materialFor`) so the near mesh's shader,
+which is the same compiled resource, never engages it. Water at a tier stops
+waving (there is nothing at 16 node cells for a per node ripple to be) and
+gets the same colour blend. `tools/dev/shotcheck.py --far-band` measures the
+result: Laplacian energy in a horizon shot's far band, low for a flat
+blended surface, high for an aliased one.
+
+**2d, the horizon.** `m_far_distance` now defaults to whatever the server's
+far rendering grant turns out to be (`GoannaClient::lodUpdateFar`), rather
+than to a fixed 512 regardless of a larger grant, and an explicit choice
+(the settings panel's new "Far draw distance", or `GOANNA_FAR_DISTANCE`)
+turns the auto-tracking off. `cam.far` and the fog density, already tied to
+the draw distance since rung 4 above, follow the same number and so now
+reach as far as the grant does rather than stalling at the old default's
+edge. A second new settings entry, "Remembered terrain tint", exposes
+`stale_strength` through the existing generic `mat_*` mechanism, no new
+plumbing needed. A HUD line reads "Generating distant terrain (N cells so
+far)" while `render_stats().far_remote` is still changing, fading a few
+seconds after it stops, so a fresh world's first minute or two does not read
+as broken. And the purple cells: found by reading `lodTakeSummaries`
+alongside `NodeDefManager::get(name)`, which defaults to `CONTENT_UNKNOWN`
+when a name will not resolve; the summary path defaulted to `CONTENT_AIR`
+instead, so a name this client could not resolve became an invisible hole
+rather than Luanti's own magenta and black `unknown_node.png`. Now it
+defaults to `CONTENT_UNKNOWN` like the rest of the codebase does, so an
+unresolved name is honestly ugly instead of silently absent.
+
+Cost, measured on this machine (Luanti 5.16.1 flatpak, Godot 4.5.1) against
+a fresh local Mineclonia world at the default 1024 node grant, through
+`tools/test/test-launch-target.sh`: two minutes after joining, `far_remote` was
+6656 blocks across 159 regions and 359 surfaces, 847 draw calls total, the
+worst `poll_blocks` call 0.43 ms, and 137 blocks still at full detail near
+the player. `docs/play/requirements.md`'s draw call budget is not threatened by
+this; 1024 nodes is the number recorded as affordable on this machine at the
+default settings, and it is also, not coincidentally, the number
+`project/local_server.gd` has granted since before this task.
+
+### Why distant patches never filled in, 2026-08-22
+
+Reported as terrain that is "only ever partially created": sitting still for
+minutes, the shattered plates and the gaps in the distant land never close.
+They were not slow. They were permanent, and the cause was on this side.
+
+A summary describes terrain the server has already generated and reports
+the rest as ungenerated, which the client drops rather than inventing. That
+is right. What was wrong is that the client asked for each area exactly
+once. `lodRequestSummaries` recorded every area it had asked about and never
+asked again, so an area that was half generated at the moment it was asked
+kept that half for the whole session. The only thing that ever corrected one
+was the mod pushing an unsolicited summary for an area its own pregeneration
+had just finished, which covers the areas it generates and nothing else.
+
+Worse, the blocks that did arrive hid the rest. The request loop skips an
+area once its sampled cells are all known, which is the right shortcut for
+an area the store already covers. A partly generated area has chains for the
+part that exists, so it could pass that test on the strength of the very
+blocks that proved it incomplete, and be skipped for ever.
+
+So an ask is now remembered with what came back rather than merely that it
+happened: `GoannaClient::FarAsk` holds when the area was last asked and
+whether every record in the reply was generated. A complete area is finished
+with and never asked again. An incomplete one is asked again once
+`kFarRetryMs` (20 seconds) has passed, and the known looking sample no
+longer skips it, because an incomplete answer beats a sample that looks
+known.
+
+Twenty seconds is chosen so that a server generating steadily is not asked
+the same question every second, and a player standing still watches gaps
+close rather than waiting out the session. It costs one request per stale
+area per twenty seconds, against a queue that already holds at most four in
+flight.
+
+Not measured live. The machine was running four agents, five servers and
+their clients at the time, and a client launched to watch the retry was
+killed out from under the measurement, so what is written here is the
+mechanism and the reasoning rather than an observed before and after. The
+observation to take is simple and worth taking before this is trusted: stand
+still with `GOANNA_DEBUG_LOD=1` and watch whether an area that first reported
+few blocks is asked again and reports more.
+
+### Background, overlay, foreground, 2026-08-22
+
+The four defects above were closed and a fresh world still read as broken.
+What was left was not a defect in any panel but the absences between and
+beyond them: the world was seen ending. A panel that has not arrived is a
+hole showing sky through the ground, and the outermost panels stop at a
+line, in clear air, with nothing past them.
+
+Correct panels do not add up to a cohesive field, because the eye reads the
+gaps as well as the geometry. So the far view is three layers rather than
+one, and only the middle layer is terrain:
+
+**Background, always complete.** The sky's lower hemisphere holds a broad
+band of the horizon's own colour under the horizon line
+(`sky.gdshader`'s `ground_curve`, 3.0, set from `main.gd`), and only darkens
+toward the ground colour when the camera looks steeply down, where terrain
+is always loaded. Nothing is invented by this: it claims no terrain, it is
+air. It costs nothing and it is there from the first frame, which is what
+the far field cannot be.
+
+**Overlay, as much as we have.** The tiers, drawn over that background and
+revealed through the haze as they arrive.
+
+**Foreground.** The live range.
+
+The layer that joins them is the haze, and the thing that was wrong is what
+its distances were tied to. Every one of them followed the distance the
+server permits us to draw. The far field reaches only as far as the store
+and the summaries have filled, which on a new world is very little and grows
+for minutes, so the haze was closing hundreds of nodes past the last panel
+and the edge stood in clear air. Measured on a fresh profile against the
+test server: `far_blocks` 0, terrain stopping at the live edge of 192 nodes,
+fog set to close at the 512 node grant.
+
+So `GoannaClient` reports `far_extent`, recomputed on each far rescan, and
+the haze closes there, floored at the live range and capped by the grant.
+Where there is nothing to show there is haze rather than an edge, and the
+view opens as terrain arrives, which reads as weather clearing rather than
+as a world being built.
+
+The first version of that measurement was one ring histogram around the
+player, taken at the ninetieth percentile so a straggler across a gap could
+not report a horizon that was not there. It was not enough, and the way it
+failed is worth keeping. The frontier is ragged: the store and the
+summaries fill outward at whatever rate the server generates, so for most
+of the time a world is filling, the field reaches several times further one
+way than another. One radius describes the directions holding the most
+blocks, which are exactly the directions that least need hiding, and leaves
+the sparse ones ending in clear air. The haze looked right when the field
+happened to be even and wrong the rest of the time, which is how it was
+reported: it looks great when it works, and it does not work all that
+often.
+
+It is now measured per direction: eight sectors, each with its own ring
+histogram and its own ninetieth percentile, and the extent is the lower
+quartile across the sectors that hold anything, so it says how far you can
+see in a poor direction rather than a good one. Sectors holding nothing are
+skipped, since the live range floor already covers them. Measured at the
+same spot on the same world, the old figure was 512 nodes and the new one
+240, which is the size of the raggedness rather than a change of policy.
+
+The curve was opened up with it, since the same complaint was that there
+was too little haze: `fog_clear_fraction` 0.5 to 0.3 and `fog_curve` 3.0 to
+1.6, so the haze begins nearer and builds steadily instead of holding off
+and then closing hard over the last fifth.
+
+The fog is a depth curve rather than exponential. An exponential cannot be
+both clear in the foreground and closed at the edge: the density that hides
+the far edge puts most of its extinction on the mid ground and lays a veil
+over everything, which is what the first attempt did. Depth fog takes a
+begin, an end and a curve, so it is clear to half the extent, closes over
+the last part and is complete at the edge (`fog_clear_fraction` 0.5 and
+`fog_curve` 3.0 in `main.gd`, swept with `GOANNA_FOG_CLEAR` and
+`GOANNA_FOG_CURVE`). Under water the fog stays exponential, because that
+murk is a property of the water and starts at the eye.
+
+Measured on the pregenerated world at a 1024 node grant: 4898 far blocks,
+`far_extent` 512, haze from 256 to 512, and the far edge dissolving with no
+boundary visible in the frame.
+
+What this does not fix, and does not pretend to: the panels are still blocky,
+they still take minutes to fill, and their side faces still read darker than
+their tops at a low sun. The background makes those less visible rather than
+untrue. `docs/develop/launch-target.md` R1 and R3 hold the rest.
+
+### Unknown is not air, 2026-08-22
+
+Screenshots of a world mid pregeneration showed free standing vertical
+slabs of terrain out in the far field, and one pitch black mass standing
+above the horizon with holes in it. Both are the same fault, and it is a
+one line reading of a flag the mesher already had.
+
+`LodLevel::kKnown` marks a cell that contains at least one node which is
+not `CONTENT_IGNORE`, so it separates "air" from "never seen". It was set
+faithfully everywhere, by `buildLodChain` and by the summary reader, and
+then never read. `meshLodRegion` asked only whether the neighbouring cell
+was filled, and a cell we know nothing about answers no, exactly as air
+does. So every filled cell along the frontier of what the store and the
+summaries had filled grew a side face, and the frontier is a plane: a wall.
+Where the cells behind that wall were underground, their light is zero and
+their faces are the interior of the ground, so the wall was black.
+
+A side face is now drawn only against a neighbour we know to be empty.
+Nothing is drawn at the frontier instead, which is the honest answer and
+the same rule as never inventing terrain: we do not know that surface is
+there. The haze closes at that frontier anyway, so what is left is air
+rather than a hole.
+
+Top and bottom faces keep the old rule deliberately. The block above a
+surface is often one we have never been sent, and applying this there
+would take the ground's own top face away, which would make the far field
+invisible from above rather than merely walled.
+
+That held for the rest of the day and then stopped holding. Once a summary
+marked its own air as air, a cell could carry its own top face without asking
+the cell above, and the exception's only remaining effect was a lid over every
+solid column at a mapgen chunk boundary. See "Lids, layers and the vertical
+walk" below for the narrower rule that replaced it.
+
+The trade this makes, stated plainly: a block missing from the middle of
+otherwise known terrain now shows a gap where it used to show a wall. A
+gap in the haze is the better of the two, and the walls were never true,
+but neither is right and the answer to both is the vertical extent work in
+`docs/develop/launch-target.md` task 8, which stops asking for the areas that
+produce them.
+
+Measured against the pregenerated world at a 1024 node grant, 3034 far
+blocks and `far_extent` 800: no free standing slabs and no black masses in
+frame, and the far field still draws from above.
+
+### One light, from your feet to the horizon, 2026-08-22
+
+This is the open half of R1 in `docs/develop/launch-target.md`, and the reading
+it opened with was wrong, so the record starts with what the instrument said
+rather than with the fix.
+
+**There is no baked hour, and there never was.** The task was framed on
+`goanna_lod.cpp` taking a face's light from a cell's stored `day` and
+`night`, so a far tier would carry whatever the light was when that data was
+made. It does not. `LIGHTBANK_DAY` is Luanti's sunlight propagation, a
+visibility term that says how much of the sky reaches a node, and it does not
+move with the clock; the vanilla client blends it against the night bank by
+the day/night ratio at draw time, and Goanna does the same job in the shader
+with `goanna_sky_fill` and the sky radiance, which `main.gd`'s `_apply_sky`
+sets from the time of day. Both meshers store exactly that same value, the
+near one per vertex in `goanna_light.cpp`, the far one per cell in
+`goanna_lod.cpp`, and the shader is the same shader. Measured, on one running
+client through the control channel: the `CUSTOM0` bytes read straight off the
+live meshes were identical at time 0.5, 0.25 and 0.0, to the sampled vertex,
+while the frame changed from noon to midnight. So there was nothing to fix in
+the mesher's idea of time, and any fix that had moved the stored value would
+have been moving the wrong number.
+
+**What the same instrument did find is two populations where the world has
+one surface.** Reading `CUSTOM0.g` off every mesh under the client and
+splitting it by whether the material has `lod_flatten` set, which is what
+separates a far tier from the near mesh, on a fresh Mineclonia world at a
+1024 node grant with about 9000 far blocks resident:
+
+| | near mesh | far tiers |
+| --- | --- | --- |
+| share of sampled vertices at 255 | 96.4 per cent | 42.6 per cent |
+| share at 238 | 0.2 per cent | 40.9 per cent |
+| mean | 247.8 | 229.5 |
+
+238 is `quant16(decode_light(14))`. `GoannaClient::lodTakeSummaries` clamped
+the wire's raw light level to `LIGHT_MAX`, 14, before decoding it, and an
+open sky column on the wire carries `LIGHT_SUN`, 15. So two fifths of the far
+field was reading 234 of 255 sky visibility where the same open ground reads
+255 the moment it comes inside the live range, and that 7 per cent went
+straight into the sky fill and the sky ambient. `LIGHT_MAX` is the cap for a
+light source, not for sunlight, and `decode_light` clamps to `LIGHT_SUN`
+itself, so the clamp is gone.
+
+**The louder fault was the same defect seen from the geometry side.** A
+summary block wrote a cell only where its heightfield said something was
+there, and left every cell above the surface at the default flags, which is
+`kKnown` clear: never seen. "Unknown is not air" above then culled every side
+face against them, so a summarised hillside drew one cell of skirt at a step
+of any height and nothing under it. The far field came out as floating tops
+with daylight through them, which no amount of shading was going to rescue.
+A generated block's air is air, and `lodTakeSummaries` now says so, marking
+those cells known, and lit with the block's light where the record reports
+any. It also puts a summary top face's light back on the same footing as the
+live mesher's, taking it from the air in front of the face rather than
+falling through to the block's own average.
+
+That costs what the missing faces were saving. On the same world and pose,
+`lod_quads` per far block went from 2.9 to 4.6, a 59 per cent increase, and
+the far mesher's own moving average, `lod_ms`, from 0.68 to 0.85 ms per poll.
+That is the price of the cliffs and it is not optional: they are the terrain.
+
+Judged in the frame from 180 nodes up looking down at a ridge 260 nodes out,
+at midnight so the sky fill is doing the work: before, the ridge is a spray
+of separate tops with night sky visible between and under them, and it reads
+as confetti rather than as a hill. After, it is one landscape with cliff
+faces, and the near ground at the bottom of the frame runs into it with no
+step at the join.
+
+**One change was made, measured and taken out again.** The mesher's fallback
+for a face it has no light for is `day = 255`, full sky exposure, and the
+obvious reading is that it should be 0 for a face buried in solid ground, the
+way `BlockLightField::sample` answers for the near mesh when every neighbour
+is solid. Answering 0 whenever the cell in front is known and unlit put 53
+per cent of far vertices at sky light 0, against 4 per cent before it, and
+painted black patches across the far field in the very next frame captured.
+The reason is that the
+far mesher never draws a buried face: a top face needs an unfilled cell in
+front of it, a side face needs a shorter one, so the case that branch was
+written for does not arise, and what it caught instead was air cells with no
+light record. `docs/systems/mesh-attributes.md`'s neutral of 255, "a missing
+attribute should look unremarkable", is right and stays.
+
+**Measured after, same world, same viewpoint, same three times**: far
+vertices at 255 went from 42.6 per cent to 74.2 per cent and the 238
+population fell from 40.9 per cent to 3.2 per cent, which is the level 14
+light that is really there under a tree edge rather than a clamp. Far mean
+sky visibility 229.5 to 232.9 against a near mesh whose own mode is 255 in
+both runs. `shotcheck.py --launch-target` continuity across the live/far
+boundary, at time 0.5, 0.25 and 0.0, before and after:
+
+| time | luminance diff before | after | chroma before | after |
+| --- | --- | --- | --- | --- |
+| 0.5 | 0.68 | 0.58 | 0.10 | 0.03 |
+| 0.25 | 0.22 | 1.30 | 0.28 | 0.29 |
+| 0.0 | 3.69 | 0.61 | 1.15 | 0.28 |
+
+Midnight is where it shows, and that is the expected shape: the sky fill is
+most of the light at night, it is scaled by exactly this channel, and the sun
+swamps a 7 per cent difference at noon. The 0.25 row moving the wrong way by
+one luminance unit is noise; R4 measured the same-tier floor at 0.35 to 4.93
+luminance, so every number in that table except the 3.69 is inside it. Every
+one of the six runs passed the harness thresholds, before and after: the
+check was never failing, which is why the vertex bytes rather than the frames
+are what found this.
+
+`tools/test/test-launch-target.sh` itself, unmodified, on a fresh profile and a
+fresh world: passes. Two earlier attempts failed, both on the close shot's
+`normal map response` (detail 3.72 and 3.24 against a floor of 5.0), and
+neither is this change: the harness poses that shot 1.2 nodes above the
+ground looking 31 degrees down at a point two nodes ahead, so when the
+settled camera stays exactly where it was put, a single node face fills the
+whole frame and there is no detail in it to measure. The passing runs are the
+ones where the spawn put something further away in front of the camera, or
+where the camera drifted during the settle. That is a fragility in the pose
+rather than in what it is looking at, and it is worth a fixed distance from
+the surface rather than a fixed distance from the player.
+
+**Measured and deliberately left alone.** Each of the far tiers' own shading
+terms was swept on a running client by setting its uniform on every material
+with `lod_flatten`, camera not moved between shots, and read as the change in
+mean luminance of the far band. Two shots of the same settings a minute apart
+drift by 0.90 at midnight and 0.15 at noon while the world streams, so that
+is the floor these sit against:
+
+| term set to 0 on the far tiers | far band at midnight | at noon |
+| --- | --- | --- |
+| `block_light_emission` | +0.04 | -0.03 |
+| `sky_light_strength` | +0.25 | +0.10 |
+| `vertex_ao_strength` | +1.07 | +1.40 |
+| `sky_fill_strength` | -5.94 | -3.55 |
+
+`block_light_emission` is 1.0 on LOD materials and 0 on the near mesh, which
+makes it a per tier term by construction: a far tier adds Luanti's block
+light as unshaded emission, being past the reach of the node light pool the
+near mesh uses instead. On this world it does not reach the frame at all, at
+either time, and it is recorded here rather than changed. `sky_fill` is the
+loudest term in the far band and it is not per tier: it is the same
+`goanna_sky_fill` the near mesh takes, which is exactly why the sky light
+channel it is scaled by had to be right.
+
+The one that is still open and is worth a number: the far tiers' own traced
+occlusion is much heavier than the near field's, `CUSTOM0.b` mean 113 against
+205 on the same world and frame. The far tracer runs at `6 * cell` nodes of
+radius, up to 64, against a field where a cell is filled if half a layer of it
+is, so a hillside occludes a great deal more of the hemisphere than the same
+hillside does node by node. Occlusion multiplies ambient only, so the frame cost
+is the one to one and a half luminance units in the table above, which is the
+largest remaining per tier term in this channel and still a small one. It wants
+calibrating on `lighting_chart.tscn` against the near tracer rather than
+adjusting by eye, which is what `docs/design/pbr-plan.md` step 3 says about all
+of these.
+
+Two notes for whoever measures here next. The harness's horizon pose puts the
+camera 150 nodes above the player looking out at a shallow angle, which at a
+sea level spawn lands most of the far field in the thickest part of the haze:
+the frames are nearly all fog and the continuity bands read fog against fog.
+A steeper look down is what shows the far tiers. And the first person body
+(`GoannaClient::m_show_body`, on by default) draws the player's own model,
+which in fly mode sits at the camera and can fill a third of the frame at the
+harness pose; `EntityRenderer` sets its visibility every frame, so hiding the
+node does not hold and `client.set_show_body(false)` is what works.
+### Stipple and close tiling, closed 2026-08-22
+
+Two more defects, both found in screenshots of a world mid pregeneration
+rather than in the numbers: the arrival dither reading as a permanent
+stipple, and a far tier panel tiling into a regular pattern close to the
+camera.
+
+**Stipple.** `GoannaClient::startFade` opens every fresh region's mesh
+through the interleaved gradient noise dither in the node shaders over a
+third of a second (`advanceFades`), which reads well for one region
+appearing at a time. While a world pregenerates, hundreds of regions arrive
+at once, so a large fraction of the far field was mid fade at any instant
+and the whole distance read as a dotted, flickering texture rather than as
+terrain, which is what the user described as two different textures
+alternating.
+
+A region well inside the haze is already mostly hidden by fog, so
+dithering it in over a third of a second buys nothing visible.
+`lodBuildRegion` now skips the fade for a fresh region whose horizontal
+distance from the camera is past three tenths of `far_extent`, the same
+fraction `main.gd`'s `fog_clear_fraction` uses to begin closing the haze
+(mirrored here rather than plumbed through, since only the shape of the
+cutoff matters, and `far_extent` is already the per direction lower
+quartile rather than one radius, so this follows the same ragged frontier
+the haze itself follows). A region past that line pops under the haze
+instead of fading; close to the camera, where a pop would read as a wall
+of terrain, the fade still runs exactly as before. This was chosen over a
+shorter fade or a randomised dither because it removes the wasted case
+outright rather than shrinking it: a region nobody can really see fading
+in is not worth spending a third of a second dithering, whatever the
+dither looks like or how long it runs.
+
+Measured on a fresh, actively pregenerating local Mineclonia world (a scratch
+`XDG_DATA_HOME` profile, Luanti 5.16.1 flatpak, Godot 4.5.1), with a temporary
+counter added for the measurement and removed afterward: over a fifteen second
+window from a fresh connection, the unmodified code started a fade on every one
+of 68 newly created regions; with the fix, 46 of 85 started a fade, the
+remaining 39 popping under haze instead. The existing pop metric
+(`tools/dev/shotcheck.py --launch-target`, run through
+`tools/test/test-launch-target.sh`) still reads 0.0 across eleven frame pairs on
+this machine, unchanged from before this landed. That is expected rather than
+evidence either way: the metric watches one fixed camera cone
+(`docs/develop/launch-target.md` R4's own finding), this fix specifically
+removes fades outside whatever cone happens to be in frame at the time, and it
+must not regress the metric, which it does not. The fade count comparison above
+is what actually exercises the change.
+
+**Close tiling.** A far tier quad is one greedy merged face from
+`meshLodRegion`, and its UV repeats the tile once per node
+(`src/goanna_lod.cpp`'s `uv` switch). `lod_flatten` blends the sampled
+colour toward the tile's average between `lod_flatten_near` and
+`lod_flatten_far` nodes of camera distance, which handles a quad seen from
+far away. It did nothing for a panel drawn close to the camera, which
+happens wherever the server has not streamed a block but the store or a
+summary has: the panel is still a single wide merged quad, so the tile
+visibly repeats at point blank range, and screenshots showed a wall of
+regular rectangles a few nodes from the eye.
+
+The merge loop in `meshLodRegion` already knows how wide each quad it
+builds is, in the same node units the UV switch repeats the tile in (`w`
+and `h`, cell units, times `cell`). `LodRegionMesh` now carries the widest
+span seen while building a region, `max_span`, and
+`GoannaClient::lodBuildRegion` hands it to that region's `MeshInstance3D`
+as a new instance uniform, `lod_repeat`. The node shaders' flatten now
+fires on either how far away a fragment is or how wide the quad it sits on
+actually is: `smoothstep(lod_flatten_near, lod_flatten_far,
+length(VERTEX))` for distance, `smoothstep(lod_repeat_near,
+lod_repeat_far, lod_repeat)` for size, combined with `max`. The size test
+gets its own thresholds, 16 to 64 nodes rather than the distance test's 64
+to 256, because a merge only a few tens of nodes across already reads as
+a repeat once it fills much of a close view, well inside where the
+distance test would ever fire on its own; a small quad still only
+flattens at range, as before.
+
+Flattening the colour was not enough on its own. Auto bump
+(`docs/design/pbr-plan.md`) infers a normal map from the diffuse texture at 0.35
+strength by default, on every material, with no resource pack needed, and
+a strongly patterned diffuse tile infers a matching relief: a fully
+flattened albedo still shaded like the tile pattern under the sun, bumps
+and all, because the normal map sample was untouched by any of this. The
+same `flatten` value now also blends the sampled relief and the pack's
+baked occlusion toward neutral (`normal_strength * (1.0 - flatten)`,
+`ao_strength * (1.0 - flatten)`), so a flattened panel reads as flat under
+lighting as well as in colour, in both node array shaders.
+
+Measured on a merged far tier quad, camera posed away from the player so
+the panel stayed LOD rather than streaming live, close and at an oblique
+angle (a stress case chosen to show the defect, not the ordinary horizon
+shot 2c above was judged against): with no size based flattening at all,
+`tools/dev/shotcheck.py --far-band` on the shot read 29.65 to 30.92 across
+three separate readings, comfortably above the 9.0 the harness wants; with
+the size test engaged, sharing the distance thresholds and touching
+colour only, it read 22.53 in the same session against the same
+underlying mesh, a genuine drop that proves the mechanism. The
+independent, tighter thresholds and the normal map fade above are a
+further refinement of the same mechanism, reasoned through rather than
+measured against that exact figure: this machine's clients crashed or
+hung repeatedly partway through the follow up runs needed to confirm it
+(silent, no crash log, the same shape of fault `docs/develop/launch-target.md`'s
+R4 section already records on this machine under concurrent load), and
+the one merged quad this session could reach repeatably turned out to sit
+on a terraced, banded rock formation whose own stepped geometry, not its
+texture, dominates `--far-band`'s reading there; a flat panel was needed
+to isolate tiling from geometry and this session did not hold one still
+long enough for a second controlled reading before the client went again.
+What did land cleanly: the mechanism proof above, and
+`test-launch-target.sh`'s own horizon shot, at the ordinary range 2c was
+judged against, still reads 0.67 on `--far-band`, unchanged and well under
+9.0, so the far range case this extends is not regressed by any of it.
+
+### Lids, layers and the vertical walk, 2026-08-22
+
+Three complaints from one afternoon's screenshots: panels floating in the sky
+over savanna, a large magenta mass over desert, and distant panels still not
+joined to each other. Two of them share a cause, and the third was never the
+far field at all.
+
+**The magenta was not this.** The summary reader defaults an unresolved name
+to `CONTENT_UNKNOWN` on purpose, so a name this client cannot resolve draws as
+`unknown_node.png` rather than as an invisible hole, and that made it the
+obvious suspect. It is not the culprit. `lodTakeSummaries` now counts the
+names in each reply it cannot resolve and reports them under
+`GOANNA_DEBUG_LOD`; over roughly two hundred replies on a Mineclonia world,
+including an unexplored area at (3000, 90, 3000) reached by teleport, the
+count was zero in every reply. No magenta appeared in any far field frame
+taken here. The mass in those screenshots sits at the camera and is the first
+person body model, not a summary. The counter stays, because it is the
+instrument that settles the question in one line next time.
+
+**Panels in the sky are lids, and a mapgen chunk is where they form.** The
+region mesher drew a top or bottom face wherever the cell beyond was not
+filled, and treated a cell it knows nothing about as not filled. That was
+deliberate ("Unknown is not air", above): the block above a surface is often
+one nobody has sent, and culling there would take the ground's own top face
+away and leave the far field invisible from above.
+
+The cost of that exception is a lid. A column of solid rock that reaches the
+top of its block, with the block above unknown, grows a top face across the
+whole column, and the greedy mesher merges those into one region sized quad.
+Luanti generates in chunks five blocks tall while a summary area is eight, so
+a generated chunk under an ungenerated one is the ordinary case, not a corner
+case: the result is a flat plate at the chunk boundary, hanging in clear air
+with no terrain under it, exactly the shape reported.
+
+The exception is now narrowed rather than removed, and what makes that safe is
+a change made earlier the same day: a generated summary block marks the air
+above its surface as air, so an ordinary hillside carries its own top face
+inside its own cells. A cell whose content stops part way up is known from
+that cell alone and keeps its top face whatever is above it. Only a cell
+filled right to its ceiling leans on the cell above, and a bottom face always
+leans on the cell below, because the chain fills a cell from its floor. Those
+two are now culled against an unknown neighbour like the sides. The far field
+still draws from above, which is what the exception existed to protect.
+
+**Nine vertical layers, of which at most two hold anything.**
+`lodRequestSummaries` asked for a fixed window of area layers, four either
+side of the player, each 128 nodes tall and 512 blocks in it. Of the nine, one
+or two hold the surface. The rest are sky the server has not generated, which
+never comes back complete and so is asked again at every retry for the whole
+session, and solid rock, which does come back complete and answers with 512
+buried blocks nobody can ever see.
+
+Measured on the client's own request log, standing on a pregenerating
+Mineclonia server at a 1024 node grant: of 91 areas asked in the first 150
+seconds, **three** were in the layer the player was standing in. The other 88
+were sky between 256 and 768 nodes up, or rock between 256 and 512 nodes down,
+and the same handful were asked over and over as their retries came due. A
+longer run of the same build put 3 of 237 in the player's layer, so the ratio
+gets worse the longer you stand there, not better. That is why the horizontal
+frontier stood still while a player watched, and it is most of "still not
+contiguous": the summaries were not slow, the requests were going somewhere
+else.
+
+The window is now a bound on a walk rather than a window. The layer the player
+is in is always eligible. A layer above becomes eligible only once the layer
+below it has answered that terrain reaches its top face, and a layer below
+only once the layer above it has answered that its floor is not solid
+everywhere. Both flags fall out of the heights already in the reply, and a
+layer that is all rock along its floor is neither, so the walk stops at the
+ground rather than tunnelling to bedrock. The vertical offset also joins the
+distance the request loop sorts on, as a tie break, because the loop order was
+choosing for us and it chose the deepest layer of each column first.
+
+A block the server has not generated is not known to be solid, so it does not
+close the walk downward. Without that guard a player flying above a column the
+server had never made would get an ungenerated answer for their own layer and
+never ask about the ground under it. Upward asks for evidence instead, terrain
+reaching the top face, because nothing is the usual answer up there and taking
+it as a reason to climb is the scan this replaces.
+
+After, same server, same grant, same 150 seconds, same 91 areas asked: 71 were
+the player's own layer, 7 the one below, 13 above. From 3 per cent useful to 78
+per cent.
+
+**One tier at every distance.** `lodTakeSummaries` built one chain level, the
+4 node one, and assigned every summarised block to the tier that uses it, at
+any distance. A region reads its own tier's cell size out of a block's chain,
+and a chain holding one level answers "nothing known" at every other, so a
+coarse region beside summarised terrain culled its whole boundary against it
+and the two never joined. Every level from 4 nodes up is now built from the
+same 4 by 4 heights, and a summarised block takes the tier its distance calls
+for, the same as a stored one.
+
+Both builds run against the same world from the same fresh connection, 150
+seconds in, same camera at (3000, 130, 3000), same time of day override, same
+`show_body 0`, Mineclonia on Luanti 5.16.1, Godot 4.5.1, a 1024 node grant
+with pregeneration on:
+
+| | Before | After |
+| --- | --- | --- |
+| Far blocks | 23176 | 34845 |
+| Far blocks at tier 1, 2, 3 | 23185, 0, 0 | 2007, 9395, 23452 |
+| Far regions | 451 | 187 |
+| Draw calls | 731 | 381 |
+| Cell faces before merging | 191049 | 84454 |
+| Primitives | 203509 | 154895 |
+| `far_extent` | 832 | 944 |
+
+Half again as much far terrain, reaching further, in a quarter of the cell
+faces and half the draw calls. The blocks that went were buried and the ones
+that came are surface, and drawing them at the tier their distance calls for
+is where the rest of the saving is.
+
+Looking north at a shallow angle, the before frame is one island of terrain
+around the player with a single panel hanging in clear air off to the left and
+nothing else out of the fog; the after frame is a continuous landscape to the
+horizon. Looking down from 260 nodes, the before frame has a void across the
+whole centre with two fragments floating in it, and two disconnected patches at
+the bottom corners; the after frame has terrain across the lower half with no
+void.
+
+What this does not fix. Small fragments still hang over the far field, a few
+cells each, where a treetop or a snow drift sits in a block whose neighbours
+have not arrived; they close as the field fills rather than staying. The
+vertical walk needs one round trip per layer, so a player who flies a long way
+straight up waits a layer at a time for the ground to reappear. And a
+partially generated area is still asked again every twenty seconds for as long
+as it is in range, which is right when a server is generating and pure cost
+when it has stopped.
+
+### Where the summary budget actually went, 2026-08-23
+
+Three complaints, in the project owner's words after a day of fixes that each
+closed one symptom and left the whole still wrong: the fog is applied nearer
+than the far land; there is a gap between near and far; and the far land is
+permanently filled with holes. Under all three, the sentence that is the real
+brief: "the whole intent of Voxy is to have a single continuous terrain off
+into the distance, not to be pulling in one panel at a time for 100k separate
+panels."
+
+That last one is not a matter of taste. It is arithmetic, and this section is
+the arithmetic, because every fix below follows from it.
+
+**The far view fills at one rate and it is a small one.** The mod's summary
+queue is one job at a time. A job is an 8 by 8 by 8 block area, 512 mapblocks,
+paced at `goanna_far_summary_blocks_per_step`, which was 32. That is 16 server
+steps, about 1.6 seconds an area, or 320 mapblocks a second for every client
+on the server put together. A 1024 node grant is 128 by 128 mapblocks around a
+player, so one horizontal layer of it is 16384 blocks and takes eight and a
+half minutes. The player watching that is watching panels arrive one at a
+time, because that is exactly what is happening, and no amount of meshing or
+shading work changes it.
+
+So the question worth asking is not how to draw the panels better. It is where
+that budget goes.
+
+**Two thirds of it went to layers the player cannot see.** Measured off the
+client's own `GOANNA_DEBUG_LOD` request log, one session against the test
+Mineclonia world at a 1024 node grant:
+
+| Area layer, relative to the player's | Asks | Generated records | Blocks drawn |
+| --- | --- | --- | --- |
+| +2 | 8 | 1536 | 2 |
+| +1 | 2 | 39936 | 153 |
+| 0 | 105 | 92165 | 18151 |
+| -1 | 25 | 44638 | 41369 |
+| -2 | 21 | 1477 | 45 |
+| -3 | 9 | 0 | 0 |
+| -4 | 8 | 0 | 0 |
+
+105 of 178 requests were the layer the player was standing in. Seventeen went
+to the two lowest layers and every one of those came back with 0 of 512
+records generated: 8704 mapblocks of `VoxelManip` read for nothing, on a queue
+that fills the horizon at half an area a second. The rows below the player are
+solid rock between 16 and 128 nodes down, drawing 41369 blocks that are buried
+and mesh to no faces at all.
+
+Two separate causes, and both are one line each.
+
+**The walk had no floor.** "Lids, layers and the vertical walk" above set the
+rule that a block the server has not generated is not known to be solid, so it
+does not stop the walk downward. That was written for a player flying above
+ground the server had never made. Its unintended reading is that an area that
+is entirely ungenerated, which is what everything below the bottom of the
+world is, opens the area under it, which is also entirely ungenerated, and so
+on until the vertical bound runs out. `FarAsk` now records whether a reply had
+any generated record at all, and an area with none is not evidence about
+anything beyond it. The retry brings it back once the server has made
+something there, and then its answer means something.
+
+**The vertical tie break was not a tie break.** The request loop sorted on
+`dx * dx + dz * dz + dy * dy / 64` with `dy` in blocks. A layer four down is
+32 blocks, which is 16 after the division, against 64 for the very next area
+sideways. So a whole column, five layers of 512 blocks each, was always asked
+before the next ring out. The vertical offset is now priced in areas:
+`kLayerCost` of 4 means one layer off the player's own ranks like four areas
+of horizontal distance, so the ground in front of the player fills out to four
+areas before anything above or below it is asked about, and a hill or a valley
+near the player is still reached long before a distant one.
+
+Measured after, same world, same server, same four minutes from a cold
+profile: 182 of 195 asks in the player's own layer, 11 in the one below, 2
+above, and none at all below that. From 59 per cent of the budget on the
+frontier to 93 per cent.
+
+**The rate itself was too low, and the reason it was low was reversible.**
+`goanna_far_summary_blocks_per_step` was set at 32 as a bounded slice of a
+server step with no guard behind it, so it had to be cautious enough for the
+worst case. It now has the same lag guard pregeneration has,
+`goanna_far_summary_lag`, which pauses a part finished area rather than
+abandoning it, and the default rises to 96. The rate a server can afford is
+now what it does rather than what somebody guessed.
+
+### The gap between near and far, 2026-08-23
+
+`lodRequestSummaries` skipped any area whose farthest corner fell inside the
+client's wanted range plus two blocks, on the assumption that the server is
+sending every block in there. It is not, and the assumption is not close.
+
+A Luanti server sends only what is inside the player's view cone
+(`RemoteClient::GetNextBlocks` skips anything `isBlockInSight` refuses beyond
+one block) and only what is generated, and it sends it a few blocks a step.
+Measured on the test world at a 192 node wanted range, four and a half minutes
+after joining and not moving: **402 resident blocks**, of which 174 were near
+enough for the full detail mesh. A filled 12 block disc is thousands. So the
+band just inside the live edge was neither live nor summarised, and it is a
+ring of nothing exactly where the eye goes, which is what the player reported
+between the near field and the far one.
+
+The assumption is gone. What replaces it is a test of what is actually there:
+a block that is live, or that already has a chain from the store or an earlier
+summary, is covered, and anything else is worth asking about however near it
+is. The sample runs the diagonal of the area's footprint at both the layer's
+floor and its ceiling, so a column that is live near the ground does not vouch
+for the sky above it. In the same four minutes, seven requests now go to areas
+that the old rule would have skipped outright.
+
+This costs requests near the player, which is where they are worth spending,
+and it is bounded: an area that comes back fully generated is finished with
+and never asked again.
+
+### Haze over the ragged frontier, 2026-08-23
+
+Two things were wrong with the fog and they pull in opposite directions.
+
+**It began inside the near field.** `fog_depth_begin` was `fog_clear_fraction`
+(0.3) times the drawn extent, and nothing else. On a fresh connection with a 192
+node live range and the far field not yet filled, that is 149 nodes: the haze
+started 43 nodes inside the live edge, over the one layer of the picture that is
+always complete and always worth seeing. The near field is the foreground layer
+in `docs/develop/launch-target.md`'s three layer model and it is meant to be
+clear. The fraction is now a floor rather than the answer, and the live range is
+the other candidate; whichever is further out wins.
+
+**It closed well inside terrain that was there.** The haze ended at
+`far_extent`, which is the lower quartile of the eight sector histogram: how
+far the field reaches in a poor direction. That number exists for a good
+reason, and "Background, overlay, foreground" above has it: a single radius
+describes the directions holding the most blocks, which are the ones that
+least need hiding, and leaves the sparse ones ending in clear air. But a
+single radius cannot describe a ragged frontier in either direction. Measured
+on the test world at a 1024 node grant, `far_extent` was 496 nodes while the
+field itself reached past 900, so nearly half of what the client had asked
+for, chained, meshed, uploaded and drawn was behind solid fog. That is the
+fog being nearer than the far land, and it is also several hundred draw calls
+spent on nothing.
+
+A depth fog has a begin and an end, so it can have both numbers.
+`GoannaClient` now reports `far_reach` alongside `far_extent`, the upper
+quartile of the same histogram. The haze opens where the sparse directions run
+out and closes where the rich ones do. A sparse bearing is fully hazed at its
+own edge, as before; a rich one keeps its terrain.
+
+Two bounds keep that honest. The begin is floored at the live range, above.
+And it is capped at three fifths of the end, because once a field fills evenly
+the extent catches the reach up and the haze collapses: measured at 958 to
+1008 on a field that had reached the whole grant, which is a hard edge rather
+than a horizon. Two fifths of the drawn depth is always haze.
+
+**Buried blocks no longer set the horizon.** The sector histogram counted
+every block in `m_far_blocks`, and the table above shows that 41369 of 58257
+of them were solid rock under the ground. A block whose ceiling is filled and
+whose neighbour above is also filled draws no faces at all: every one of them
+is culled. Counting them measured how far the ground goes down rather than how
+far the view goes out. They are skipped now, which is worth about a 5 per cent
+longer reported extent on a third of the blocks.
+
+**The frames.** Same pose (208, 84, 144) looking north at 6 degrees down, same
+`time 0.0` and `time 0.5` overrides, `show_body 0`, fresh `XDG_DATA_HOME`
+profile each side, four and a half minutes from joining, Mineclonia on Luanti
+5.16.1, Godot 4.5.1, a 1024 node grant on a pregenerated world, both arms
+against the same server with the same mod. Before: fog from 216 to 720 nodes,
+and the far land stops in a bright band a third of the way up the frame with
+flat fog past it. After: fog from 605 to 1008, the terrain runs to a lower and
+further horizon, and the near field runs into the mid ground with no step. At
+noon the difference is starker: the whole mid ground had been milky and is now
+in colour.
+
+Cost, same two runs: 294 far regions against 348, 2599 draw calls against
+3136, and the far mesher's moving average 3.9 ms against 4.8. The far field
+reaches further for less, because the budget stopped going underground.
+
+### Strips, and what the merge can and cannot do, 2026-08-23
+
+Reported as "it really often seems like the far terrain has either vertical or
+horizontal strips, but not both", which is a good observation because nothing
+about terrain is anisotropic.
+
+`LodRegionMesh` now counts `partial`: side faces that do not span their whole
+cell vertically. Those are the ones that carry `FaceKey::row`, which is what
+keeps the greedy merge from joining two faces that sit at different heights
+inside different cells, and the effect of a row id is that such a face can
+only ever merge along one axis. Measured on the same frame as above: **67514
+of 133648 faces**, just over half, and the merge ratio is 1.27 faces per quad.
+The merge is achieving almost nothing.
+
+That is not a bug in the merge. It is what a heightfield costs when it is
+drawn as boxes. A summary carries a 4 by 4 grid of surface heights per block,
+so at cell 4 every cell has its own height; adjacent cells on a slope differ,
+so their top faces have different heights and cannot be one rectangle, and the
+step between them is a side face one or two nodes tall that belongs to its own
+cell row. One quad per cell edge is the floor for this representation, and the
+mesher is at it.
+
+So the strips are terracing, and the merge cannot fix terracing. Two things
+could, and neither is a tonight change:
+
+- **Coarse levels take the maximum height of their group.**
+  `lodTakeSummaries` builds cell 8 and cell 16 from the same 4 by 4 wire grid
+  by taking the tallest column in each group. That makes a coarse tier as tall
+  as the tallest thing in every 16 node square, which exaggerates roughness
+  exactly where the cells are biggest, creates steps the terrain does not
+  have, and blocks merges that would otherwise happen on flat ground. A mean
+  or a median would flatten the coarse tiers toward the real surface and merge
+  far better. It would also lose thin spikes, which at a 16 node cell is
+  correct. This wants measuring against the frame before it is trusted, since
+  a coarse cell reading shorter than the finer tier beside it puts a step at
+  the tier boundary.
+- **Draw the far field as a surface rather than as boxes.** The chain already
+  holds a per cell height. A connected triangle mesh over those heights has no
+  risers at all, so the whole partial face population disappears, and a slope
+  is one strip of triangles instead of a staircase of quads and steps. This is
+  a real change to `meshLodRegion` and it interacts with the residency rule,
+  the water surface and the occlusion trace, so it is a piece of work rather
+  than an edit.
+
+The counter stays either way, because it is the instrument: `lod_partial`
+against `lod_faces` says whether a tier is meshing a surface or a staircase,
+in one number, without a screenshot.
+
+### Is the per area request model the obstacle, 2026-08-23
+
+Asked directly by the project owner, and the answer measured above is: partly,
+and not in the way the shape of the request suggests.
+
+The store is already Voxy shaped. `lodChain` reads a block's chain from the
+live block, the store or a summary without the region mesher knowing which,
+and the regions draw continuously from whatever is resident. Nothing about
+that assembles a mosaic. What arrives as a mosaic is the summaries, and the
+reason is the rate, not the granularity: 320 mapblocks a second against a
+grant that wants 16384 for one layer. An area is a sensible unit; asking for
+smaller ones more often would not change the total.
+
+Three things would, in the order they are worth doing:
+
+1. **Stop paying for what cannot be seen.** Two thirds of the budget was going
+   to buried rock and empty sky, and that is now fixed. This was the largest
+   single factor by a wide margin and it needed no protocol change.
+2. **Raise the rate the server will actually stand.** Done, with a guard, and
+   the guard is what makes the number arguable rather than fixed. The next
+   step here is the mod's own cost per block: `block_summary` allocates one
+   `VoxelManip` per mapblock and copies 4096 content ids and 4096 light bytes
+   into Lua tables for each. Reading a whole 8 block column in one
+   `VoxelManip` is the same volume of data through an eighth of the calls, and
+   it is a contained change to one function that does not touch the wire
+   format.
+3. **Send the surface rather than the volume.** An area is 512 mapblocks of
+   which the client draws, on the frontier layer, roughly 30. The record is
+   already a heightfield; the *request* is still a volume. A request for a
+   column, "the surface over these 8 by 8 block columns, wherever it is",
+   would let the server find the surface once per column instead of reading
+   every block in a 128 node cube. That is a protocol version 3 and it wants
+   its own day.
+
+None of those is a rearchitecture of the store, which is the part that was
+already right.
+
+### The far field's albedo, 2026-08-23
+
+The far field's own colour, not its light. This is R1 in
+`docs/develop/launch-target.md` again, opened on a report that at night the far
+field glows while the near ground is black, so the frame reads as two
+worlds under two skies. The light turned out to be right and the tile
+colour turned out to be wrong, on the far tiers only, by whichever tile
+happens to sit one array layer back.
+
+**The one line.** A node face carries its array layer in `UV2.x`, the same
+integer at every vertex of the face, and the node shaders read it two ways:
+the texture samplers take it as a coordinate, and `lod_avg_colour` and
+`layer_class` index a uniform array with `int(UV2.x)`. Interpolation
+delivers that integer to the fragment a hair either side of itself, and
+`int()` truncates, so layer 16 arrives as 15 on about half the fragments.
+The samplers never showed it because GLSL rounds an array layer coordinate
+itself. Only the hand written indexes were affected, and one of them is the
+colour the far tiers flatten toward, so a far surface took a neighbouring
+tile's average on half its pixels and its own on the rest. It is now
+`int(round(UV2.x))`, computed once, in both node shaders.
+
+The colour half of it is the far tiers' alone: `lod_flatten` is false on the
+near mesh, so the flatten branch never runs there, which is what made this a
+per tier signal rather than a global one. The class half is not. It was
+harmless while `detail_strength` defaulted to 0, and `25e8247` turned the
+surface treatment on for everyone, so from that commit the same truncation
+also decides whether a fragment is treated as granular, on the near mesh as
+well: a sand face whose neighbour layer is planks would have taken the
+treatment on half its pixels and not the other half. One rounded index fixes
+both, and it went in on the same day the treatment did.
+
+**Measured offline first.** `project/material_field.tscn` renders strips of
+real pack textures through `nodes_array.gdshader` with no server, and it
+already had every uniform this needed. Two modes were added to
+`material_field.gd`, `GOANNA_FIELD_LOD` and `GOANNA_FIELD_LAYER`, described
+under "Instruments" below. With the tile at array layer 0, which is where
+the fixture put it, the fault is invisible, because element 0 is the one
+element a truncation cannot miss. With the tile at layer 16 and a different
+colour in every other `lod_avg_colour` entry, each strip drew in horizontal
+bands of its own colour and its neighbour's. The same run with the fix is
+byte identical to the layer 0 run on every strip, and within a few units of
+the near case:
+
+| strip | near mesh | far tiers, before | far tiers, after |
+| --- | --- | --- | --- |
+| sand | 222.8, 198.6, 166.7 | 194.8, 146.2, 192.7 | 218.0, 192.0, 161.1 |
+| stone | 138.4, 132.8, 138.6 | 154.4, 119.0, 179.4 | 141.0, 136.0, 142.0 |
+| gravel | 114.6, 108.0, 109.6 | 140.7, 111.9, 157.2 | 125.2, 119.0, 121.0 |
+| dirt | 107.7, 82.7, 69.7 | 132.9, 90.4, 129.5 | 111.0, 85.0, 71.0 |
+| snow | 219.0, 222.9, 231.6 | 191.4, 156.2, 226.7 | 218.0, 223.0, 231.0 |
+| planks | 221.1, 167.2, 161.8 | 193.0, 128.6, 193.0 | 221.0, 162.0, 158.0 |
+
+**Then on one surface with a server, and this is the number that matters.**
+A world with `mg_name = flat` and `mcl_superflat_classic`, so the ground is
+one tile at one height under open sky in every direction, is the only place
+a near and a far reading are the same thing measured twice. Camera at 40
+looking down 9 degrees, midnight, one client, the shader reloaded in place
+between the two readings so nothing else moved. Near and far pixels were
+separated by difference masking rather than by guessing at rows: only the
+far materials were switched to the debug channel for one frame, so a pixel
+that moved is a far pixel, and the near ones follow from switching both. In
+the band of rows where both are at the same distance:
+
+| | far tiers | near mesh | difference |
+| --- | --- | --- | --- |
+| before, luminance | 42.38 | 55.86 | -13.48 |
+| after, luminance | 54.18 | 55.77 | -1.59 |
+| before, rgb | 28.3, 46.2, 46.0 | 36.1, 61.6, 57.2 | |
+| after, rgb | 35.1, 59.5, 57.6 | 36.0, 61.5, 57.2 | |
+
+The residual 1.59 is the haze: the far pixels in that band really are
+further away. Every channel is now within two of the near mesh where it was
+out by eight to fifteen.
+
+**What was eliminated, with numbers, before the albedo was suspected.**
+Each far shading term was set to 0 on a running client with the camera not
+moved, read as the change in mean luminance of the far pixels. On the flat
+world at midnight, `block_light_emission` 0.29 and `vertex_ao_strength`
+0.18; on a natural world at midnight, `block_light_emission` 0.53,
+`vertex_ao_strength` 2.2 and `sky_light_strength` 0.04. None of them is the
+two worlds. `sky_fill_strength` is much larger, 8.96 on the far
+tiers against 15.65 on the near mesh, but that is the fill doing its job on
+two different albedos, which is the same fault seen through the light
+rather than a fault in the light.
+
+The light itself was read directly and is the same on both. Painting
+`CUSTOM0` straight to the screen with `debug_nodelight_strength`, the far
+tiers give 48.3, 205.4, 203.8 and the near mesh 45.2, 207.0, 206.3, which
+is block light, sky light and traced occlusion agreeing to about one part
+in a hundred on ground that is the same on both sides. The two populations
+of sky light that "One light, from your feet to the horizon" closed on
+2026-08-22 are closed and stayed closed.
+
+Driving the sky fill to white, so the frame is very nearly albedo times sky
+light and nothing else, isolates it completely: far 64.4, 78.3, 61.0
+against near 78.8, 100.6, 76.7, and the same far pixels with the flatten
+blend taken out of the path entirely read 78.7, 99.2, 76.6. The far tiers
+had the right light and the wrong paint.
+
+**Why the reported symptom was a glow in one frame and a shadow in another.**
+The colour a far surface took was a neighbouring array layer's average, and
+array layers are in whatever order the mesher grouped them, so the error is a
+different colour and a different sign for every tile and every world. On the
+superflat's grass it was about a fifth too dark. On a frozen sea it put a warm
+grey where the near mesh had deep blue: the same ground measured near and far,
+from one camera, came out 46.79 against 47.77 in luminance, which is nothing,
+and 11.4, 51.6, 103.6 against 32.0, 49.6, 75.8 in colour, which is a different
+material. (That pair was taken on the tip before `cb2b735`, by pulling
+`view_range` in so the far tiers redrew ground the near mesh had just drawn; the
+offline fixture reproduces the same thing deterministically and is the evidence
+to trust.) That is why it reads as two worlds rather than as one world at two
+brightnesses, and why no per tier constant could have fixed it.
+
+**`tools/dev/shotcheck.py --launch-target` at time 0.5, 0.25 and 0.0**, same
+world, same viewpoint, one client, the shader reloaded between the two
+sets, on the Mineclonia world `r1tod1` at a 1024 node grant with 87000 to
+94000 far cells, Luanti 5.16.1 flatpak, Godot 4.5.1:
+
+| time | luminance diff before | after | chroma before | after |
+| --- | --- | --- | --- | --- |
+| 0.5 | 6.61 | 4.47 | 1.31 | 0.89 |
+| 0.25 | 2.39 | 0.81 | 0.79 | 0.67 |
+| 0.0 | 1.95 | 1.10 | 1.24 | 0.54 |
+
+All six runs passed every threshold, before and after, including the pop
+check once the world had stopped growing. **The check was never going to
+find this**, and it is worth saying exactly why, because it passed while
+the frame was plainly wrong. It compares the mean luminance and mean chroma
+of two thin bands either side of one computed row. The defect is a per
+fragment coin flip between two tiles, so it is a speckle rather than a
+step, and averaging a band is precisely the operation that removes it: the
+mean of half right and half wrong pixels sits between the two and moves the
+band mean by a couple of units, well inside a threshold of 8. It is also
+worst where the two bands are least alike in content and best where they
+are most alike, which is the opposite of what a boundary check is sensitive
+to. A metric that would have caught it is variance, or a nearest neighbour
+colour distance, within the far band, not a difference of means across the
+boundary.
+
+The whole frame moved by a mean absolute 9.3 to 12.7 of 255 per pixel at
+the three times, which is the speckle going away; the mean luminance moved
+by +6.39 at midnight and -4.18 at dawn on the same pose, in opposite
+directions, which is again the error's sign following the tile.
+
+**Not changed, and why.** `block_light_emission` at 1.0 on LOD materials
+and 0 on the near mesh is still a per tier term by construction and is
+still worth 0.3 to 0.5 luminance on these worlds, which is inside the drift
+between two shots of the same settings. The far tracer's occlusion is still
+much heavier than the near field's and still wants calibrating on the
+chart. `water.gdshader` was not touched and is not the cause, but it is
+worth recording what it does at range, because it was one of the two
+explanations this task opened with and it is a real difference: the far
+tier water plane has `waving` false, and the screen space reflection is
+gated on `waving`, so far water has no reflection at all where near water
+does; and its `thick`, the distance through the water to the depth buffer,
+is near zero on a flat tier plane sitting on the tier terrain, so
+`exp(-absorption * thick)` is near 1 and far water does not absorb where
+near water does. Both are real and both are R2's, not this task's. Both
+closed 2026-08-28; see "The near/far water hand-off" below.
+
+**Also found, measured, and deliberately not fixed here: a Mineclonia
+weather sky puts the night out entirely.** `_apply_sky` derives
+`goanna_sky_fill` as `sky["night_horizon"]` times a number, and
+`radiance_floor` likewise. Mineclonia's `mcl_weather` `skycolor.lua` sets
+`night_sky` and `night_horizon` to the darkest layer of its weather ramp,
+which is pure black, whenever it is raining or thundering where the player
+is, and holds the world up with `override_day_night_ratio` at a floor of
+0.2 instead, which the vanilla client reads as node light and Goanna does
+not read at all. Reproduced deliberately with `/weather thunder` and
+`/time 0:00`: the server sends `night_horizon` (0, 0, 0) and `day_horizon`
+a 0.5294 grey, the fill is exactly (0, 0, 0), and the frame is left to the
+moon. Mean luminance 1.34 of 255 with 81 per cent of the frame at pure
+black from 140 nodes up, and 1.85 with 67 per cent from 40 nodes up. A
+guard that takes the night's level from the day horizon where the server
+gives no night colour was written, measured and taken out again: it moved
+the frame from 1.34 to 2.02, which is not a fix, and the number that would
+make it one has to be calibrated on `lighting_chart.tscn` against the
+vanilla client rather than guessed at two in the morning. The honest fix is
+probably that the night share's level should follow the server's
+`day_night_ratio`, which Goanna already receives and already uses for
+`ambient_light_energy`, rather than the brightness of a colour the server
+is free to set to black. That is a change to a calibrated line and it wants
+the chart.
+
+**Four traps, all of which cost time here.**
+
+`time <t>` on the control channel moves the client's clock and nothing
+else, and Mineclonia computes its sky colours from the server's clock, so a
+client overridden to midnight against a server at noon is lit by a daytime
+sky's night colours. Three of this task's first night measurements were
+taken that way and had to be thrown out. Use `time <t> server=true` for
+anything a time of day is supposed to mean.
+
+`reload_shader` re-reads the named `.gdshader` from disk and keeps the
+cached `.gdshaderinc`, so a uniform added to the include is unknown to the
+recompiled shader, the compile fails, and the material is silently left as
+it was.
+
+Killing the flatpak wrapper's pid leaves `luanti.bin` running and holding
+the port. `ps aux | grep '[l]uanti.bin --server'` finds the real one.
+
+Lowering `view_range` prunes blocks and raising it again does not bring
+them back, because the server's per client sent set still says it sent
+them. A teleport away and back does not clear it either. To compare a patch
+of ground drawn near against the same patch drawn far, take the near
+reading first.
+
+### The far field emptied to the wanted range, 2026-08-23
+
+Reported as far terrain arriving half complete (a distant hill with its top
+present and its flanks missing) and the sides of the view never filling in
+while flying. Both were one change.
+
+"Stop coarsening blocks the server is actually sending" (commit 5fb6e83) set
+the first tier threshold to the wanted range for every block, not only for
+live ones. `lodTierFor` answering 0 is read by `lodUpdateFar` and
+`update_lod` as "the server will send it", so a block from the store or a
+summary inside that radius was never drawn, and one that had been assigned
+was forgotten on the next update. At the user's 40 block view range, on a
+server whose `max_block_send_distance` is 32, that was a 656 node disc
+drawn from the server's cone alone: measured on a probe client, the nearest
+far region centre sat at 575 nodes, the band from 512 to 656 was empty in
+every direction, and inside it the only terrain was what the server chose to
+send, which is the view cone (narrowed by up to half while flying
+forward, `RemoteClient::GetNextBlocks`), minus whatever its occlusion test
+culled from the player's position, minus whatever had not streamed yet. The
+hilltops that stand above the intervening ground pass the occlusion test and
+their flanks do not, which is the half complete hill.
+
+Fixed by giving `lodTierFor` a `live` argument. A live block inside the
+wanted range is never coarsened, which keeps that commit's intent. A block
+that is not live is tiered by the detail distance as before, and inside the
+detail distance it now draws at the finest tier rather than not at all,
+because the alternative was what the request loop's "gap between near and
+far" rule was asking for and then throwing away: a summary for an area
+inside the detail distance was taken, assigned at tier 1, forgotten by the
+next `update_lod`, and, being complete, never asked for again. Measured on
+the same probe after the change, from ground level: nearest far region
+centre 315 nodes, 36 regions in the 256 ring and 61 in the 384 ring where
+there had been none, and the far field meets the live field at the sides of
+the frame instead of stopping at the cone.
+
+Two smaller things found on the way. `_report_fov` ran at startup and when
+the field of view slider moved, so a window dragged wider afterwards was
+still reported at its old width and the server culled the new edges; it now
+runs on every viewport resize. And the request walk priced every layer of
+vertical offset as four areas of horizontal distance, which under a player
+at 260 nodes put the ground behind some eighty areas of sky: measured as 115
+asks in two minutes with the column under the player still unasked. An area
+the server has answered as nothing but air (`FarAsk::air`) now costs nothing
+to walk through, so columns are asked top to bottom nearest first, and the
+ground under a flying player is asked right after its own sky.
+
+Both measurements were against the user's own local server (Mineclonia,
+Luanti 5.16.1, Godot 4.5.1, 1024 node grant, pregeneration on) with a second
+player, which also means they competed with the user's client for the one
+summary queue; see below.
+
+### Why it is still not contiguous, 2026-08-23
+
+Asked directly, after the above: Distant Horizons shows the whole world in
+every direction within half a minute, Goanna can sit for an hour and not.
+Even vanilla Luanti fills the near field reliably and this client does not
+always. That is the right complaint and the fixes above do not answer it.
+What does, in order of how much each is worth:
+
+**The summary queue is the bottleneck, and it is the shape of the mod.** The mod
+holds no summaries. Every request reads every block of its area through a
+`VoxelManip` at the moment it is asked, at `goanna_far_summary_blocks_per_step`
+(96) per server step, one job at a time for every client on the server. That is
+about 0.5 s per area at best, and a 1024 node grant is 256 areas per layer with
+the walk visiting two or three layers per column: five to ten minutes for one
+client when the server is otherwise idle, repeated from nothing for every client
+that joins and every time one rejoins, and competing with mapgen when the world
+is being pregenerated. Distant Horizons on a server does not compute on request:
+its server side keeps an LOD store that is filled as chunks are generated and
+changed, and a client is sent data that already exists. The mod can do the same,
+in Lua, without touching the protocol: summarise a block once in
+`register_on_generated` (the `VoxelManip` is already in hand there), keep the
+per block record in mod storage or a file, refresh it on node changes, and
+answer a request from the store. A request then costs a lookup, and a whole
+grant can go out as fast as the wire takes it, to every client. This is the
+change that makes the field arrive in seconds rather than minutes. It is a
+rewrite of the mod's data path and a day's work, with the wire format kept so
+the client does not change.
+
+**The live field is the server's cone, and the far field has to fill it.**
+A Luanti server sends blocks inside the reported field of view, only where
+its occlusion test from the player's eye passes, only where generated, a
+few a step. Vanilla hides the rest behind fog at the view range. Goanna's
+far layers exist to stand in for whatever the server does not send, at any
+distance, and the change above restores that inside the live range; the near
+field then reads as complete as the summaries it is standing on, which is
+the previous point again.
+
+**The far field is boxes, and boxes do not join.** Each tier draws cells as
+columns with a height, and a slope is a staircase; two tiers meet at a step;
+a live block meets its coarse neighbour at a change of shading and of shape.
+The "Strips" section above measured it: half of all far faces are partial
+risers, and the merge achieves 1.27 faces a quad. The contiguous look the
+owner is describing is what a connected surface gives: one triangle mesh
+over the per cell heights, skirts only at tier boundaries and the live edge,
+and the colour and light sampled from the same place the live mesh gets
+them. `meshLodRegion` already has the heights; this is the rewrite it was
+built to make possible, and it is the second day's work.
+
+**Nothing here needs the boundary rule bent.** The server keeps deciding
+what it sends, and a summary store describes terrain that exists.
+
+### The cone was upside down in fly mode, 2026-08-23
+
+Reported as detail arriving in a patch around the centre of vision out in
+the distance rather than around the player, with the foreground left at the
+far tiers, and as the sides of the frame never sharpening. Luanti's pitch is
+positive looking down and Godot's `rotation.x` is positive looking up;
+`step_player` negates it for the walking path and `set_player_pose`, the fly
+path, did not. So the server culled its sends for a camera tilted the other
+way: a flyer looking 20 degrees down was served as one looking 20 degrees
+up, the ground under them fell outside the cone, and whatever sat at the
+horizon inside it was what arrived at full detail. Measured on the terrain
+diffusion world from 2420 nodes looking 20 degrees down, 90 s after joining:
+1845 blocks resident before, 3210 after, and the slope in front of and below
+the camera at full detail instead of the hillside across the valley.
+
+What is left after that is the server's own behaviour, which vanilla has
+too and hides behind nearer fog: it narrows the cone by up to half while the
+player moves in the direction they look (`camera_fov / (1 + dot / 300)` in
+`RemoteClient::GetNextBlocks`), so a fast flyer is sent the middle of the
+frame only until they stop; it sends nothing behind or beside the cone until
+the player turns; and on a world whose terrain does not exist yet, the order
+detail arrives in is the order the mapgen makes it, nearest ring first and
+sky rings included from altitude. `max_block_generate_distance` decides how
+much of that cone the mapgen is asked for; with the far surface covering the
+rest, a small value puts the mapgen's effort where the player is.
+
+### Terraces or slopes, islands, canopies, night haze, 2026-08-23
+
+Five things from looking at the surface in play, in the order they came up.
+
+**The haze at night.** Reported as hills glowing at night. The haze colour
+was right (the horizon band, dimmed with the sky), but a hazed mountain
+stands above that band against the black of the night sky and at the band's
+own brightness it reads as a pale silhouette. Blending the haze toward the
+sky behind it (`fog_aerial_perspective` at 1) made it worse, because Godot
+blends toward the sky's radiance, which `_apply_sky` lifts at night so the
+ground is lit at all. The haze colour is now halved by full night on top of
+the dimming, so a hazed hill is a dark shape below the band. A haze that
+truly takes the colour of the sky behind each pixel is a far tier shader
+doing its own fog, and that is the next piece of work, together with a far
+water that is continuous with the near water (the server's sent rectangle
+of a lake is outlined against the far water today, and no blue does both).
+
+**Overhangs and islands.** A floating island's top was taken as the
+column's surface and the heightfield draped from its rim to the real ground
+as a cone. A block whose ground does not rest on the block below it (the
+one below not filled to its ceiling, the block itself not filled to its own)
+is now a floating run: its cells are drawn as boxes and the surface goes on
+down to the ground. The block below being unknown keeps the old answer, so
+the frontier does not get holes.
+
+**Skirts only as deep as the step.** Three cells of skirt at the coarsest
+tier were 48 node plates on every mountainside ("dominoes"). A skirt now
+drops to the lowest corner of the neighbour it disagrees with, plus one
+node; one cell where the neighbour is unknown.
+
+**Forests at coarse tiers.** Trees at cell 8 and 16 were piles of cubes. At
+those tiers the highest vegetation cell in a column, when it stands above
+the ground, is now the column's surface with the canopy's colour, so a
+forest is a green roof rolling with the land, and the vegetation boxes
+under it are not drawn. At the finest far tier trees stay boxes, since
+there they are still individual trees.
+
+**Terraces or slopes.** "Nothing in Minecraft is rounded." The smoothed
+surface is a look choice and not the only honest one: the blocks under it
+step. `lod_terrace` in the settings panel (Video, "Terraced far terrain")
+draws each cell flat at its own height with risers between neighbours that
+differ, the same pass with the corner averaging off and the skirt logic
+doing the risers. Both were captured on `r1tod1` from (27, 140, -22) looking
+north and either reads as a world, the terraced one as a block world; the
+smoothed one is what reads as melted at a cliff or a coastline (see "Stop
+the far surface averaging across cliffs" below), so terracing is on by
+default from 2026-08-24.
+
+### The summary store, 2026-08-23
+
+Part 1 of the answer to "why is it still not contiguous" above, and it was
+the arithmetic. The mod now keeps a store of records, in areas of 8 by 8 by 8
+mapblocks (the unit a client asks for), persisted in mod storage under keys
+that carry the protocol version, and a request for an area the store knows is
+answered in the same server step by lookup. The store fills without being
+asked: every freshly generated block is summarised within a few steps of
+`register_on_generated`, while it is still in memory; a changed block is
+summarised again a few seconds after `register_on_mapblocks_changed`; and
+when the queues are idle the nearest unsettled area to any player is read in
+the background, which is how a world older than the store gets read once. An
+area is settled once every block in it is known or has been found
+ungenerated, and is not read again. `goanna_server_mod/README.md` has the
+details and the settings.
+
+The client had to change with it: `lodRequestSummaries` ran once per
+`lodUpdateFar`, which is every two seconds when the player stands still, and
+issued one request, so a server that answered at once would have been held to
+a request every two seconds, twenty minutes for a grant. It now keeps four
+in flight, scanning a few times a second while there is room.
+
+Measured on the `r1tod1` Mineclonia world (Luanti 5.16.1, Godot 4.5.1, 1024
+node grant, view range 40, detail distance 23), fresh profile each time:
+
+| | replies at 10 s | 20 s | 30 s | far_extent at 30 s | reach |
+| --- | --- | --- | --- | --- | --- |
+| Cold store, first client ever | | | 224 at 60 s | | |
+| Warm store, same server run | 219 | 384 | 455 | 992 | 1024 |
+| After a server restart, from storage | 187 | 314 | 377 | 992 | 992 |
+
+Against five to ten minutes before, and it no longer depends on how many
+clients are on the server or how many times they rejoin.
+
+### The far field as a surface, 2026-08-23
+
+Part 3. Protocol version 3 first, because the version 2 record could not
+carry it: per block it now holds, per 4 node cell, the terrain height (the
+highest filled node that is not vegetation), the vegetation base and top, and
+the terrain top content, then the vegetation content, the side content and
+the light. Vegetation is by node group, the same list in the mod
+(`VEG_GROUPS`) and in `lodIsVegetation` in `src/goanna_lod.cpp`: tree,
+leaves, cactus, bamboo and the plant groups. Two things were wrong with
+version 2 that this fixes: a canopy crossing a block boundary was drawn as a
+slab resting on that block's floor (the pink plates floating over the cherry
+grove in the report), since only a top height was sent, and a tree was part
+of the ground, so a surface drawn over the heights would have made a tent of
+every one.
+
+`LodLevel` carries `terrain` per column and the ground cells are flagged
+`kTerrain`. `meshLodRegion` draws the ground as one quad per cell over the
+heights at the cell's four corners, where a corner is the mean of the
+surfaces of the same tier, non water columns around it and a water cell
+keeps its own level, so the sea is flat to the shore. Both regions either
+side of a boundary compute a shared corner from the same columns, which is
+what makes one tier seamless without the regions knowing about each other.
+Where a cell's edge meets something that does not share its heights, a hole,
+the shore, a block drawn at another tier or at full detail, or the edge of
+what is known, a skirt drops three cells from the edge. Ground cells emit no
+box faces; the box pass draws only what is not ground, which is the
+vegetation from its real base to its top. Normals follow the ground and the
+occlusion trace runs per corner, so the shading is continuous too.
+
+Coarse tiers take the mean of the wire cells they group rather than the
+maximum, which the "Strips" section asked for.
+
+Measured effects: `lod_partial`, the count of partial risers that could only
+merge one way, now counts only vegetation boxes. Ground level and from 120
+nodes up on `r1tod1` the horizon reads as continuous slopes; on the terrain
+diffusion world a 2200 node mountain with a lake at its top draws as smooth
+snowfields with the lake flat to its shore. Remaining visible seams: the
+shore skirts at coarse tiers stand as a palisade where the land falls
+steeply into water, and a cell's colour is still its own, so a snow and
+stone mountainside is patches at cell 16.
+
+### A far surface from the mapgen, 2026-08-23
+
+"Must it be explored" was the owner's next question, and on an ordinary
+world the answer is still pregeneration, which the mod does and which is
+paced by mapgen. But the far field only needs one thing per column, where
+the ground is and what it is made of, and a mapgen that can say that for any
+(x, z) without generating anything can say it directly. Distant Horizons'
+server side does the same thing, asking the world generator at reduced
+detail. So the mod has a hook, `goanna_register_far_surface(fn, opts)`,
+with `fn(x, z)` returning the surface height, the top node name, the water
+surface height if any and the node under the surface. When the store finds
+a block ungenerated and a provider is registered, it asks for the 16 columns
+of each of the area's blocks, one sample per 4 node cell, and serves the
+record made from that as known. A record made that way is remembered; when
+the block is really generated, `register_on_generated` replaces it with the
+real one and the area is offered again to the clients near it, which take a
+newer summary over a chain built from an older one (`BlockLodChain::summary`
+is what lets a summary chain be replaced where a live or stored one would
+not be).
+
+The terrain diffusion mapgen registers one in `tdl_far.lua`: elevation from
+the tiles, the biome classifier's material, rivers and lakes from the water
+field, the sea at sea level. What it leaves out, against the generated
+terrain, is the detail noise (metres on a slope, nothing on a plain), the
+dither, the ragged soil line, caves and the trees, none of which is visible
+at four nodes a cell and hundreds of nodes away; the trees arrive when the
+blocks do.
+
+Measured on a copy of the `tdl_test` world (122.9 km across, 1 m per node),
+joining at the explored mountain at (-26130, 2350, -9990) with a fresh
+profile: 848 node extent at 30 s, 944 at 60 s, the full 1024 grant at two
+minutes, on a server that had 31 live blocks resident at the time. Nothing
+was generated for any of it.
+
+Found on the way and fixed: a synthesised column whose surface node sat in a
+block's top layer was treated as buried and painted with the filler, which
+drew contour lines of dirt across every snowfield.
+
+The boundary rule holds: the server decides to offer this, from its own
+mapgen, and the client asks for exactly the summaries it asked for before.
+
+### Pregeneration walks vertically, 2026-08-23
+
+Pregeneration only generated the player's 128 node layer and the one either
+side, which on ordinary terrain is everything that can be seen and on the
+terrain diffusion world is not: from a 500 node mountain the valleys were
+three layers down and were never made. Beyond the one layer either side, an
+area is now a candidate only when the area nearer the player's layer is
+generated and the mod's own store says the terrain carries on that way,
+ground at its ceiling for upward and air along its floor for downward, the
+same rule the client's request walk uses. Sky above a plain and rock under
+it are still never asked for.
+
+## How terrain arrives, and what it cost to make that smooth
+
+The first build of the tiers arrived in walls: a region mesh appeared whole,
+and the frame stalled while it was made. Two things caused that, both
+measured with the worst `poll_blocks` call per second that `render_stats`
+now reports as `poll_max_ms` (the `GOANNA_PERF` line prints it).
+
+A region build used to build every block chain it touched, in the same
+poll. A tier 3 region reads its 16 by 16 by 16 member blocks and a margin
+of four more each side for the occlusion radius, nearly fourteen thousand
+blocks at 0.3 ms each live or 0.5 ms from the store: seconds in one frame
+when a far area first came into range. Chains are now built from a queue,
+a few per poll inside a time budget; a region builds with the chains that
+exist, asks for the ones it lacks, and is dirtied again only when one of
+those is actually built. Blocks with no source at all, neither live nor
+stored, are remembered as missing so a region touching one does not rebuild
+every quarter second for nothing, which the first draft of the queue did:
+`dirty` never reached zero.
+
+The near mesh had the same shape of problem without any store: `poll_blocks`
+took up to 24 blocks a call, at about 5 ms each meshed and uploaded, so the
+arrival of a new area was a 120 ms frame. It now stops at 6 ms
+(`GOANNA_POLL_MS` to change it) and requeues the rest for the next frame,
+and the region work takes what is left of that budget.
+
+Regions were also halved for the near tiers: a region is now its cell size
+in blocks (4 blocks at cell 4, 16 at cell 16), so tier 1 arrives in 64 node
+pieces and a coarse tier still covers a lot of ground per draw call.
+
+The original arrival fade used a shader instance uniform on every terrain
+MeshInstance. That is not a scalable place for transition state: an hour-long
+run exhausted Godot's instance buffer after roughly 3,800 retained block
+meshes, then emitted about 145,000 allocation errors and collapsed frame
+performance. Terrain now swaps atomically: its grouped replacement is built
+before the old exact mesh is released, and it uses no per-instance fade slot.
+
+Measured against the test server with the store holding the spawn area and
+the camera 400 nodes away: the worst poll per second is 7 to 10 ms while an
+area streams, 0 to 1.4 ms at rest, and 126 ms once when the first materials
+and texture arrays are built; the one large figure left is content
+preparation itself (node visuals, the classifier, the first array textures)
+at 1.2 to 1.9 s, which happens before anything is drawn. Region meshing
+itself is still on the main thread at 0.3 to 1.3 ms a region, inside the
+budget; moving it to a worker is the next step if a finer budget is wanted.
+
+## Three-dimensional voxel summaries, 2026-08-25
+
+Protocol version 6 replaces the per-column terrain and vegetation heights
+with 64 coarse voxels per mapblock, a 4 by 4 by 4 field at cell size 4. Each
+entry is known air, unknown, or a content index into the area's name list.
+The record is 83 bytes including packed two-bit liquid tops and block-level
+day and night light. The liquid tops stop a one-node sea from rising to the
+top of its 4, 8 or 16-node voxel. Per-voxel light is deliberately deferred
+because it would take one 8 cubed area's base64 reply past the mod channel's
+16-bit string limit.
+
+The flags separately say that a record has emerged data and that every node
+in it has emerged. A partial reply is published as it stands and stays due
+for retry until its 8 cubed area is complete (2026-08-28; the records that
+are missing stay unknown rather than invented, and a later reply's summary
+chains replace the earlier ones). It was published only once the whole area
+was complete, a rule added because publishing the complete mapblocks from
+one pregeneration slice while the other slices were absent produced floating
+horizontal panels on a new server. But an area holds 512 blocks and Luanti
+generates in 5 block tall chunks, so one ungenerated block at a chunk
+boundary is the normal state, and the atomic rule held the other 511 back
+for the whole session: the horizon was full of 128 node holes that never
+closed. The panels the rule was written against were the store and provider
+paths' absence of retry, which the retry now covers. Version 5 used one
+flag for both meanings, so one known cell could make a partly emerged
+mapblock permanent and preserve its unknown cells as strips through a
+mountain. Version 6 uses a new `fs6:` store prefix so those stale partial
+records cannot survive the upgrade.
+
+Live nodes, stored nodes and summaries now feed the same recursive 2 by 2 by
+2 reducer for cell 8 and cell 16. Any occupied child keeps its parent
+occupied, an opaque child wins over a non-opaque one, and a stable corner
+order breaks ties. This is the Voxy-shaped invariant the old heightfield did
+not have: every tier is still an XYZ occupancy field. The region box mesher
+therefore emits an underside wherever an occupied voxel has air below, with
+no floating-island heuristic. It also closes a face at an unknown section
+boundary and remeshes it when the neighbour arrives, matching Voxy's
+section-side strategy instead of exposing the volume's interior while
+streaming. Caves and gaps disappear only when they become smaller than the
+selected voxel, not because Y was discarded.
+
+The recursive levels remain useful occupancy summaries, but presentation no
+longer spends resolution by coarsening exposed faces. A full block received
+live or recovered from the store retains an exact cell-1 boundary. Its 4096
+node occupancy values are compacted to bit masks after the cell 2/4/8/16 mips
+are built; only exposed filled nodes and adjacent lighting samples retain full
+cell records. A one-node trunk, leaf crown, cave wall or floating-island
+underside therefore stays on the node grid without retaining a dense cell-1
+material volume.
+
+Server summaries still begin at cell 4 because that is all protocol version 6
+transmits. Exact data uses a world-aligned cell 1, 2, 4 progression across the
+three distance tiers, while summary-only blocks remain cell 4. A region can
+therefore have two ownership passes. Their surfaces are folded into the same
+texture batches before upload, and the mixed-resolution boundary test culls a
+face only when the geometry actually drawn by the other pass covers it. Region
+batching also grows with distance; deep regions remain capped at eight
+mapblocks per edge.
+
+Tier seams cull against the voxel size actually drawn by the neighbouring
+block. In particular, a coarse face touching four finer voxels is removed only
+when all four cover it; an occupied but undrawn coarse mip of that neighbour
+cannot suppress the face. This conservatively permits some hidden overlap at
+a mixed-detail edge, but it cannot open a strip through the terrain.
+
+All six boundary directions must also agree on winding after Luanti Z is
+mirrored into Godot Z. The Z-facing tables once used the X/Y index order and
+were consequently wound inward: the CPU reported a complete six-sided voxel,
+but backface culling removed two sides and hills appeared as disconnected
+horizontal panels. `goanna_lod_test` now compares every triangle's winding to
+its outward normal, rather than merely counting faces.
+
+The smooth terrain surface remains in the mesher for old/internal callers but
+is no longer authoritative for chains built by the client or protocol v6.
+Those chains leave `terrain` empty and draw their confirmed occupancy on all
+six sides. Source precedence is deterministic as well: stored full nodes
+upgrade a summary even if the summary arrived first, and live nodes upgrade
+both.
+
+Live blocks are ingested into this chain even while the full-detail renderer
+owns them. Pruning a near block transfers that retained chain directly to a
+far region instead of calling `lodForget`; approaching a hole therefore
+cannot teach the client correct terrain only for it to discard that knowledge
+again on retreat. The request scanner no longer lets 16 diagonal samples claim
+that all 512 blocks of an area are covered.
+
+Every processed live mapblock is registered as tier zero even when its near
+mesh has no triangles. A fully enclosed solid block quite correctly emits no
+near faces, but it still carries occupancy the far volume needs after pruning.
+Tracking only blocks with a `MeshInstance3D` omitted those interiors during
+the near-to-far transfer and reopened holes in terrain the client had already
+visited.
+
+Visible full-detail mapblock meshes remain only while their MapBlocks are
+resident. On pruning, their persistent 4-node occupancy chains transfer into
+grouped volumetric regions; each replacement region is uploaded before the
+old exact meshes are freed, so looking back cannot expose a one-frame hole.
+Retaining the exact meshes throughout the far grant was tried and rejected:
+the measured hour-long run held 6,161 individual block meshes, exhausted
+Godot's shader-instance buffer after 104 seconds, and reduced the client to a
+crawl. The retained chain database is audited directly during pruning rather
+than trusting presentation bookkeeping to enumerate every known block.
+
+For terrain not previously seen at full detail, ownership is still decided
+per mapblock: a resident block is near and any non-resident block with a chain
+is far. A configured view radius cannot serve as a floor because generation,
+view-cone and server occlusion filtering do not guarantee that every block
+inside its circle was actually delivered; using it as one cut the visible
+circular trench between the two renderers. On approach, the full-detail block
+is made opaque before an old volumetric region drops its member.
+
+Far materials use the same array shader, normal/specular companions and PBR
+path as near blocks. Their former colour discontinuity came from two inputs,
+not a separate non-PBR material: `length(VERTEX)` measured distance from the
+world origin because Goanna vertices are already absolute, and the widest
+merged quad in a region forced every face in that region to its tile-average
+colour. Flattening now uses camera-to-world-fragment distance only and starts
+beyond 384 nodes, leaving the near/far boundary unflattened. Water makes the
+same gradual transition instead of switching straight to its last mip.
+The distance ramp flattens the whole texture-scale material response together:
+normal relief, roughness, metalness, specular and leaf backlighting approach a
+fully rough dielectric along with the averaged albedo. Flattening colour and
+normals alone left a smooth averaged canopy carrying the close tile's sharp
+highlight, so distant trees became more reflective at precisely the point
+their visible detail disappeared.
+Summary lighting also no longer paints a block-wide maximum over solid
+interiors: skylight is reconstructed through known open columns, and the
+unlocated block-light maximum is not allowed to turn an entire distant hill
+emissive.
+
+Night distance fog uses the blended night horizon, not a server's commonly
+day-authored fixed fog override. Godot aerial perspective samples sky
+radiance; Goanna deliberately lifts that radiance at night for ambient light,
+so using it as the fog destination faded distant terrain toward pale grey.
+Aerial perspective now belongs to daylight and twilight, while night retains
+the separately coloured and dimmed depth fog.
+
+## Regional full-detail batches, 2026-08-25
+
+Tier-zero geometry keeps one CPU surface cache per resident mapblock, but
+depth-writing surfaces are uploaded in 4 by 4 by 4 block regions grouped by
+their exact material key. Water, glass and other alpha-blended surfaces stay
+block-local because Godot sorts transparent instances as whole objects. The
+regional node uses its complete ownership cube as a conservative visibility
+bound, including a margin for bevels and vegetation sway, so an incomplete
+region rebuild cannot cull a member at the edge of the camera frustum.
+
+This preserves block-level remeshing and the existing near-to-far ownership
+handoff while removing the one-GPU-instance-per-mapblock cost. In measured
+fresh worlds, about 1,700 source surfaces became 288 regional/special surfaces
+across 26 batches, with roughly 105 visible draws. `render_stats()` and the
+performance overlay report source surfaces, presented surfaces, batch count
+and regional rebuild time separately.
+
+The server's live-block view cone now follows the actual frame from the first
+player-position packet. Godot creates the camera before it creates a network
+session, so the computed enclosing FOV is retained by `GoannaClient` and
+applied on connection rather than being discarded. At 1600 by 900 and a 70
+degree vertical FOV this reports a 110 degree circular cone, enough to include
+the frame corners; the former 70 degree session default cut vertical wedges
+from both screen edges until a window resize happened to resend the setting.
+
+## Terrain occlusion, 2026-08-25
+
+Frustum culling cannot tell that a far region is behind a cave wall. Regional
+near meshes therefore also publish `ArrayOccluder3D` geometry for their fully
+opaque, backface-culled triangles. Alpha-blended tiles, cut-out foliage and
+liquids never occlude. Array textures are classified by the triangle's actual
+layer, not by the whole array: a stone layer remains an occluder when a leaf
+layer elsewhere in the same array contains transparent texels. Godot culls a
+region only when the occlusion buffer covers its complete AABB, so incomplete
+or partly visible far terrain remains visible.
+
+The Video settings include a live Terrain occlusion toggle for an exact A/B.
+The performance overlay reports active occluder regions and triangles, render
+setup CPU time, viewport render CPU time and measured GPU time. On Mineclonia
+with Godot 4.5.1, a fixed outdoor view with 4,094 far blocks changed from 841
+draws and 912 objects with occlusion off to 707 draws and 778 objects with it
+on. This open view is deliberately a weak case: measured render CPU rose from
+about 0.52 to 0.71 ms while GPU time changed from 3.02 to 2.94 ms. Enclosed
+spaces are the intended case, because their nearby walls can cover the far
+regions that frustum culling alone still submits.
+
+Retained summaries are knowledge, not visible work. A settled client may hold
+tens of thousands of mapblocks while only a few hundred regions contribute to
+the frame. Tier reassessment therefore runs after the camera crosses a
+mapblock boundary or a tier setting changes, not over the full retained map on
+every stationary frame. The HUD samples `render_stats()` four times a second,
+and its optional tier histogram is built only for `GOANNA_PERF`; otherwise the
+performance counter itself scaled with the summary database. The overlay
+separates complete LOD-frame time, tier scan, summary ingestion, request scan,
+periodic far audit and statistics collection so future growth is attributable.
+
+## The near/far water hand-off, 2026-08-28
+
+The far tier water plane used to run `water.gdshader` with `waving` off and
+the reflection march gated on `waving`, so far water had no reflection at
+all where near water was nearly all reflection, and its `thick` was near
+zero on a plane sitting on the tier terrain, so it did not absorb either
+(recorded under "The far field's albedo" above as an R2). At sea the result
+was a dark band across the horizon with a hard edge wherever the near mesh
+ended, and no sunrise or sunset on the far water.
+
+Both materials now carry the same parameters (`waving` true, `lod_flatten`
+true, near mesh included), and every difference between near and far is a
+continuous function of view distance inside the shader, never of which mesh
+a pixel came from. Two materials that agree at every distance cannot draw a
+seam, wherever the hand-off falls, and the client's view range no longer
+enters into it. The distance rules:
+
+- Waves already dropped octaves over 24 to 200 nodes; the remaining detail
+  now also fades to the flat face over 500 to 1200 nodes, where even the
+  longest train is below a pixel and only shimmers.
+- The screen space march fades out over `reflect_range` (default 512
+  nodes) and the sky fallback stands alone beyond it; the fallback itself
+  runs at every distance, far tiers included.
+- The fallback draws the sun's disc and halo from two new globals,
+  `goanna_sun_dir` and `goanna_sun_glow` (set in `_apply_sky` beside the
+  sky gradient, zero at night and under weather skies that hide the disc),
+  with the same weights the sky shader uses. This is what lays the sunrise
+  and sunset out across the sea to the horizon.
+- Before settling for the gradient, the fallback samples the frame's own
+  sky: the opaque pass has already rendered the sky shader, raymarched
+  clouds and all, into the screen texture the water samples anyway, and a
+  reflected direction projects to the screen point showing that direction
+  with one matrix multiply, because the camera is the view space origin.
+  Where the depth buffer says sky at that point, the real pixel is used
+  (edge faded back to the gradient), so the water reflects the actual
+  cloud deck; water near the horizon reflects sky just above the horizon,
+  which is on screen in exactly the views where it matters. Two texture
+  fetches per water pixel, against the 24-step march already running.
+- Absorption is forced to full depth over 160 to 420 nodes: at eye height
+  the view ray out there is near grazing and the near mesh is fully
+  absorbed anyway, and the forcing gives the far tier the same answer its
+  zero measured thickness cannot.
+
+Verified offline in `project/water_seam.tscn`, a fixture that draws one
+sheet of water split at 240 nodes into a near strip and a far tier strip
+under a sunset (`GOANNA_SEAM_OLD=1` reproduces the old material set for a
+before shot): before, the far strip is a flat dark band with a hard edge;
+after, the sea is continuous to the horizon with a glitter path under the
+sun and the split is not findable in the frame. Godot 4.5.1, no server.
+Not yet observed against a live server.
+
+## The far field was half a node adrift, 2026-08-28
+
+The region mesher builds a cell for node k across [k, k+1] on every axis;
+the near mesh centres node k on k, spanning [k-0.5, k+0.5], and Luanti Z
+mirrors into Godot with the sign flipped. So the whole far field rendered
+half a node high and half a node sideways. Terrain hid it: skirts are half
+a cell deep and hillsides are not flat. Flat water told on it, twice: the
+far sea rode above the near sea as a bright lip wherever the hand-off
+crossed open water, and far water lay level with far ice tops it should
+sit half a node under, so a frozen sheet's edge in the far field flickered
+between the water's colour and the ice's (both reported with screenshots,
+2026-08-28).
+
+The correction is one transform: the published far region node sits at
+(-0.5, -0.5, +0.5) in Godot space, and every vertex the mesher emits keeps
+its internal corner convention. UVs are derived from the same positions,
+so the tiling moves with the geometry and stays aligned with the near
+mesh's per node repeat. Verified against the live server by day (a storm
+took the dusk): the lip at the water junction is gone and the junction
+reads as one sheet. The frozen sheet at far range was not re-verified
+before the storm closed in; if its edge still misbehaves, look at the
+hand-off freeze counters before the geometry.
+
+## The far field was off in every session, 2026-08-30
+
+Reported as terrain disappearing when the player leaves it rather than
+degrading to a coarse surface, and, after waiting for the horizon to fill,
+the whole vacated region vanishing: far field 0 blocks, reach 0/0, requests
+0, while the HUD showed a 4096 node grant. On the same frames, thousands of
+far region meshes with stale-drawn in the thousands and oldest past seven
+minutes: nearly everything visible in the distance was a zombie mesh whose
+members had already been forgotten, dissolving as rebuilds landed.
+
+The cause was one clamp. The graphics profiles store `far_distance = -1`
+meaning "whatever the server grants". The profile apply loop knew to skip
+it, but the profile picker saved it raw into `goanna.cfg`, and the stored
+settings loop applied it raw on every later launch: `set_far_distance(-1)`
+clamped to 0 and set the explicit flag, so `lodUpdateFar` ran with a far
+radius of one mapblock for the whole session. Every pruned near block was
+handed to the far field and forgotten within two seconds as out of range;
+no summary was ever requested; the store was never scanned. Everything in
+docs since the profiles landed that reads "the horizon never fills" wants
+re-judging against a build with this fixed.
+
+`set_far_distance` now treats a negative as the auto choice: it clears the
+explicit flag so the grant is tracked again, and the profile apply loop
+passes -1 through instead of skipping it, which also clears a numeric cap
+left by an earlier profile. A cfg holding -1 is valid and keeps meaning
+"the grant".
+
+Measured against the local Mineclonia test world (Luanti 5.16.1, Godot
+4.5.1, 512 node grant), the user's own profile with the poisoned cfg: 20 s
+after joining, 22047 far blocks, requests in flight, extent 288 and
+climbing; 45 s after a teleport 800 nodes away, extent 480 of the 512
+grant, stale-drawn 0, oldest 0.0 s, and the look back shows the vacated
+area as a continuous coarse surface to the horizon.
+
+Left open: the settings panel shows "Custom" instead of "Rich" whenever
+far_distance tracks the grant, because `far_distance()` reports the
+tracked number and the profile compares it against -1. Cosmetic, and it
+predates this fix.
+
+## Ten million triangles, and terrain from the wrong world, 2026-08-30
+
+Four fixes from one report against the terrain diffusion world at a 4096
+node grant: 17 fps sinking to 2, dawn shining through a hill, holes in the
+hills, and giant mismatched panels, all at 10M primitives and 15k draws.
+
+**The tier ladder scaled with the detail distance.** Coarse thresholds
+doubled from `lod_distance * 16` itself, so the rich profile's detail of
+32 blocks pushed cell 4 geometry out to a kilometre, cell 8 to two, and
+the cell 16 tier past the grant entirely, in tier 1 regions two mapblocks
+across. The doubling base is now capped at 256 nodes (the detail distance
+still floors the first band), which changes nothing at the old default of
+12 and returns the coarse tiers to their intended job above it.
+
+**Every far rescan walked every retained block.** The out-of-range prune,
+the summary cache prune, the store scan and the membership repair pass in
+`lodUpdateFar` each visited the full sets, under the map lock, every two
+seconds; at half a million retained blocks that was over 30 ms of main
+thread per rescan. All four are now bounded sweeps with resume cursors
+(16384 entries or 4096 store regions per rescan). Leaving range is memory
+hygiene and can be lazy; a block turning live is still released at once by
+poll_blocks, and prune_blocks still hands pruned ground straight to a far
+region.
+
+Measured at the same viewpoint two minutes after joining, before and
+after: far regions 14596 to 5749, GPU 14.0 to 4.5 ms, far rescan EMA to
+0.004 ms, 39 to 57 fps. At the filled state (716k far blocks, reach
+2880): 5.6k draws, 2.1M primitives, GPU 4.7 ms. The median fps while the
+field actively streams is still ~30 with spikes from mesh production, so
+production pacing is the next candidate, but the render side is settled.
+
+**Dawn shone through hills because the sun disc was in the radiance
+cubemap.** `fog_aerial_perspective` blends a fogged pixel toward the sky's
+radiance in that pixel's direction, and the sky shader drew the sun disc
+at three times unity, plus its halo, in the cubemap pass too, so a hazed
+hill in front of a low sun glowed with the disc behind it. The discs and
+halos (moon too) are now picture-pass only; their solid angle is far too
+small to matter to ambient energy. Extending the sun's 200 node shadow
+distance was measured as an alternative (the far meshes do cast): 1200
+and 2400 nodes moved the glow band by two luminance units of 98 while
+costing 10 to 20 fps, so it stays at 200; the remaining broad dawn haze
+is bloom plus fog in-scatter, which is weather rather than a defect.
+
+**The giant panels and the permanent holes were another world's store.**
+The block store is one directory per host and port, which is right for a
+remote server and wrong for the local flow, where every world a player
+ever launches lives at 127.0.0.1 on the same port. Stored blocks
+deliberately beat summaries, so a slab of savanna stored while playing
+one world drew inside the mesa world at the savanna's own elevation, a
+floating foreign panel, and air stored in one world cut holes in the
+other's hills that no retry could ever fill. Reproduced by copying the
+mixed store under a test key: a patch of jungle spawn, structures and
+all, stood in the diffusion plain; the same viewpoint with a clean store
+shows the world's own ground. A locally launched world is the one case
+where the client knows the world, so `main.gd` now roots the store at
+`goanna_store/world_<name>/` when `GOANNA_SP_MATCH` names one. Existing
+mixed directories are left alone; local worlds simply stop reading them.
+A remote server that swaps worlds still shows stale terrain until looked
+at, as recorded above, because the wire still does not name the world.
+
+## After the radiance fix: the pre-crest brightness and the rays, 2026-08-30
+
+Two observations followed the sun-disc-out-of-radiance fix: the world
+brightens before the disc clears a ridge, and no rays stream when it does.
+Both were investigated on the diffusion world; one led to a measurement
+and a rejection, the other to a new pass.
+
+**The early brightness is not unshadowed sun.** At a pre-crest time the
+frame was identical at a 200 and a 1536 node shadow distance: the light on
+the land is the sky fill and the dawn ambient, which ramp with the clock,
+plus the dusk hold that runs the sun at 0.4 energy while the disc is still
+below the geometric horizon (main.gd, "Hold the sun through the golden
+hour"). Longer shadows cannot dim any of that. The glow that used to sit
+on the terrain toward the sun was the radiance defect itself, and it had
+been reading as "the sun arriving"; what remains is a calibration question
+for the chart, not a shadowing one. Extending the shadow distance was
+measured anyway: 1536 nodes triples draw calls (4k to 13k, the far
+regions drawn into the cascades) and costs about 3 ms of GPU on this
+machine, for two luminance units of change in the dawn frames. It stays
+at 200.
+
+**Godot's froxel fog cannot draw the rays this world wants.** A ray at
+the horizon is shaped by a ridge hundreds of nodes out; the froxel volume
+is metres per cell at that range and the 200 node shadow map never
+contains the ridge. So the rays are now screen space:
+`shaders/light_shafts.gdshader`, a full screen additive quad on the
+camera that marches the depth buffer from each pixel toward the sun's
+screen position, the classic crepuscular pass. Every silhouette at every
+distance occludes it for free, far tiers included. It reads the same
+`goanna_sun_dir` and `goanna_sun_glow` globals as the water's fallback
+reflection (so night and weather already zero it), projects with the same
+matrix idiom water.gdshader has proven against the screen, and its
+strength follows the shafts slider, the sun's elevation, the cloud deck
+gate and the underwater cut in `_apply_sky`.
+
+**Not yet run.** Every client launch after the code landed died at
+`vkCreateDevice`; the kernel log shows `NV_ERR_RESET_REQUIRED` from NVRM
+on each new channel allocation. The cause was an `rpm-ostree install`
+run on the box meanwhile: new NVIDIA userspace under the still running
+kernel module, so no new process could create a device while already
+running ones kept theirs (a bare Godot with no project reproduced it).
+A reboot into the new deployment clears it. `main.gd` passes `--check-only`;
+the shader is built from constructs the water shader already compiles.
+First run after the reset should check: a dawn sun half hidden by the
+mesa east of (130, 37, 313), rays swinging as the camera pans, no
+mirror-image rays (which would mean the projection's Y convention
+differs from the water path after all), and the pass gone at noon, at
+night, in storms and under water.
+
+## The shafts pass drew nothing at all, 2026-08-30
+
+Run for the first time after the reboot, against the checklist above. It
+failed the first item: at the mesa at dawn the frame was the same with the
+pass on and off.
+
+**`unshaded` discards `EMISSION`.** The fragment ended `ALBEDO = vec3(0.0);
+EMISSION = col;`, and under `render_mode unshaded` Godot takes the fragment
+colour from `ALBEDO` alone and never runs the lighting step that would
+apply emission. The quad was therefore adding black, on every frame, since
+the pass landed. `ALBEDO = col` is the whole fix.
+
+Measured at (130, 37, 313) looking east, `time_of_day` 0.22, the slider at
+its shipped 0.8, by hiding `shaft_quad` rather than moving the slider: the
+slider also scales `volumetric_fog_density`, so an A/B on it measures the
+froxel fog and not this pass, which is how the fault survived a first look.
+
+| | signed mean, /255 | pixels differing by more than 2 |
+| --- | --- | --- |
+| two shots, pass hidden both times (the noise floor) | -0.09 | 279,981 |
+| before the fix, pass shown against hidden | +0.01 | 200,551 |
+| before the fix, slider forced to 8.0, ten times shipped | +0.09 | 57,696 |
+| after the fix, pass shown against hidden | **+3.11** | **1,105,440** |
+
+The middle row is the point: at ten times the shipped strength the pass was
+still an order of magnitude under the frame-to-frame noise of the animated
+clouds and foliage. Anything measured against a moving sky needs its own
+noise floor taken the same way, or a null result reads as a small one.
+
+After the fix the checklist passes: lanes of light through the gaps in the
+mesa silhouette, fanning across the canopy; the fan swings to the screen
+edge and falls off as the camera pans away; nothing on the far side (the
+`dir.z < -0.05` guard leaves `col` at zero, and the measured difference
+with the sun behind the camera sits at the noise floor); and
+`shaft_strength` is 0.0 from `time_of_day` 0.278 to 0.72, so noon costs
+nothing.
+
+## Animated tiles in the far tiers, 2026-09-19
+
+The note under rungs 2 and 3 that animated tiles have no array texture and
+fall back to a flat average colour is no longer true of every animated tile.
+Cube-like animated tiles (magma, prismarine, sea lantern and the like) now
+live in Goanna's own animation arrays, and `tileFor` in `goanna_lod.cpp`
+gives a far cell of one of them that array and its first frame's layer. The
+far material is the ordinary tier copy of the near array material, so the
+tile stays textured, picks its frame in the shader with the same clock as
+the near mesh, and flattens toward each frame's own average colour. The
+hand-off therefore has no texture to lose and no colour to jump to. Double
+sided and special shader tiles (fire, torches, plants, portals) keep the flat
+colour fallback, and water and lava stay on rung 6's materials.
+`docs/systems/node-animation.md` has the rest.
+
+Checked on a fresh Mineclonia world (Luanti 5.17.0, Godot 4.5.1) by setting
+the LOD distance to one mapblock so a test wall 38 nodes away drew from a
+far tier, which the missing torches, lanterns and campfires confirm, since
+far cells draw only cubes. Its magma, sea lantern, prismarine and sculk were
+textured; between clock times 0.0 and 0.5 s the magma and sea lantern
+changed (8 and 11 per cent of their pixels) and the slower prismarine and
+sculk and the still netherrack and sand did not. With animation switched off
+and the tiers rebuilt, the same four cubes drew as flat colours. Not
+measured: the draw call cost at a real vista full of animated cubes, such as
+an ocean monument, which a fresh world did not have in reach.
+
+## Summaries off the server thread, 2026-10-10
+
+Folding a mapblock into its far summary was Lua on the server thread, the
+one every mod's globalsteps and every player's movement share. On Luanti
+5.9 and later the mod now reads each block there and hands a copy of its
+VoxelManip to Luanti's async workers, which run `far_summary.lua` in jobs of
+16 blocks, several at once; the server thread packs the results into the
+store when the jobs come back. Nothing about the records changed: 400
+randomised blocks, generated, part generated, ungenerated and with unnamed
+contents, packed byte for byte the same as the old `block_summary` under
+LuaJIT. `goanna_server_mod/README.md` has the settings,
+`goanna_far_summary_async` and `goanna_far_summary_async_jobs`.
+
+Measured with the bundled Luanti 5.17.0 server on a copy of the explored
+Mineclonia world `fdfd3w` with the mod's summary store emptied, so backfill
+summarised the explored world around one Goanna client (Godot 4.5.1, under
+`--headless`, 1024 node grant, pregeneration off). Four minute runs, with
+`goanna_far_log_stats` counting the server thread time of the summary pass
+and of filing results, per 30 seconds, over the windows after the join:
+
+| Run | Blocks read per 30 s | Server thread ms per 30 s | Per block | Mean max lag |
+| --- | --- | --- | --- | --- |
+| Server thread, run 1 | 47,201 | 17,291 (58%) | 366 us | 0.105 s |
+| Server thread, run 2 | 49,270 | 14,322 (48%) | 291 us | 0.091 s |
+| Async, cap checked once a step (up to 13 jobs) | 38,043 | 3,014 (10%) | 79 us | 0.060 s |
+| Async, strict cap of 8 jobs | 30,020 | 2,185 (7%) | 73 us | 0.051 s |
+| Async, strict cap of 16 jobs, 3 windows only | 37,854 | 3,375 (11%) | 89 us | 0.069 s |
+
+So backfill had been taking about half of the server thread, and now takes
+about a tenth, for roughly four fifths of the throughput at 16 jobs. The
+cap of 16 chosen from this was not what bound it; see the second sweep
+below. The remaining server thread cost is the
+map read and filing the record, of which `set_record` rebuilding the
+area's 47 KB blob string for every record is the obvious next target.
+
+The machine was shared with other sessions' servers throughout, and the
+16 job run was cut short when the machine began swapping (load average over
+200) and stalled every process on it for 16 minutes; only its three windows
+before that are counted. One run per row, with the server thread rows
+repeated. Not yet measured: a server with several players, and Kythen or
+VoxeLibre. `fine.lua`'s full detail replies and the far surface provider's
+synthesis still run on the server thread.
+
+The same evening, with the machine idle (load average under 5 at every
+start), a second sweep of the same setup, 190 seconds a run, averaging the
+four full windows after each join:
+
+| Blocks per step | Job cap | Blocks read per 30 s | Server thread ms per 30 s | Per block |
+| --- | --- | --- | --- | --- |
+| 96 | 16 (twice) | 37,408 and 38,086 | 3,152 and 2,875 (10%) | 84 and 75 us |
+| 96 | 32 (twice) | 37,959 and 38,054 | 3,291 and 2,480 (10%) | 87 and 65 us |
+| 96 | 64 | 37,176 | 2,949 (10%) | 79 us |
+| 192 | 32 (twice) | 60,478 and 60,354 | 3,804 and 3,816 (13%) | 63 us |
+| 384 | 64 (twice) | 68,161 and 67,450 | 4,434 and 4,210 (14%) | 65 and 62 us |
+
+Mean max lag was 0.051 to 0.055 s in every run. At 96 blocks a step no run
+ever had more than 12 jobs out, whatever the cap: the per step read budget
+was the limit, not the workers. Doubling it to 192 gave 1.6 times the
+throughput, a quarter more than the server thread alone managed, for a
+little more server thread time. At 384 the jobs out sat at the 32 or 33 the
+14 workers (Luanti's automatic pool on 16 cores) could keep in hand, so
+the workers had become the limit and every core was busy for 12% more.
+With summaries on the workers, the defaults are therefore 192 blocks a
+step and a cap of 32 jobs, and a server that sets
+`goanna_far_summary_blocks_per_step` keeps its own value. Still one client
+and one game.
+
+### Where the server thread time goes, and filing records
+
+`goanna_far_log_stats` now splits the summary pass into the map reads
+(`summary_read_ms`) and handing them to the workers
+(`summary_dispatch_ms`), and the landing into packing and filing the
+records (`summary_file_ms`). Filing had spliced each record into its area's
+47 KB blob string, copying the whole string per record; records now wait
+in a table on the area and the blob is built once, when a reply, a save or
+the face scan wants all of it. 300 randomised areas of up to 1200 filings
+each built the same blob byte for byte as splicing.
+
+Same setup as the sweep above, default settings (192 blocks a step, 32
+jobs), the old and new filing alternated, four full windows each:
+
+| Filing | Blocks per 30 s | Read | Dispatch | File | Read per block | File per block |
+| --- | --- | --- | --- | --- | --- | --- |
+| Splice, run 1 | 56,527 | 2,760 ms | 298 ms | 1,205 ms | 49 us | 21 us |
+| Splice, run 2 | 58,356 | 2,568 ms | 265 ms | 1,128 ms | 44 us | 19 us |
+| Deferred, run 1 | 53,608 | 3,005 ms | 345 ms | 215 ms | 56 us | 4.0 us |
+| Deferred, run 2 | 51,613 | 3,446 ms | 377 ms | 278 ms | 67 us | 5.4 us |
+
+Filing fell by about four fifths, a fifth of the summary's server thread
+time. The reads in the deferred runs are not comparable: another session
+started a model server on four cores during them (load average 6 rising to
+19), and their reads per block climbed window by window, from 47 us to
+116 us in the last, while filing stayed at 4 to 6 us. On a quiet machine
+the map read is about 45 to 50 us a block, three quarters of what
+summaries still cost the server thread, so reading several blocks with one
+VoxelManip is the next thing to measure.

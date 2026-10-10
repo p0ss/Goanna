@@ -3,7 +3,7 @@
 Goanna is pre-alpha. It connects to a real Luanti server, authenticates,
 receives media and mapblocks, meshes them and lets you walk around. It does
 not yet do most of what a client does. See `README.md` for an honest list of
-what works and `docs/design/plan.md` for where it is going.
+what works and `docs/design/roadmap.md` for where it is going.
 
 At this stage the most useful contributions are small and concrete: build
 reports from machines that are not the author's, bugs found against real
@@ -135,10 +135,10 @@ This section is the one statement of the commit format; `AGENTS.md` and
 ### Claims and test reports
 
 `README.md` describes what Goanna draws and does, and says what is untested;
-`docs/play/index.md` lists current limitations; `docs/design/plan.md` keeps a
-dated log of what was done and what was verified. People read all three to
-decide whether to trust the project, so every claim in them must be true of the
-committed code.
+`docs/play/index.md` lists current limitations;
+`docs/history/development-log.md` keeps a dated log of what was done and what
+was verified. People read all three to decide whether to trust the project, so
+every claim in them must be true of the committed code.
 
 - Describe a feature as working only after it has been run against a real
   server and observed to work, not because the code exists. A study, a

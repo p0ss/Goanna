@@ -97,7 +97,7 @@ uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // blend, so a high value keeps a wide band of horizon colour under the
 // horizon line and only darkens when you look steeply down, where terrain is
 // always loaded anyway. That band is the background the far field is drawn
-// over (docs/systems/far-rendering.md, "Background, overlay, foreground"): terrain
+// over (docs/history/far-rendering-log.md, "Background, overlay, foreground"): terrain
 // that has not arrived, or a hole between two panels, reads as haze at the
 // same colour the fog fades the far edge to, rather than as a void.
 uniform float ground_curve : hint_range(0.2, 8.0) = 0.6;

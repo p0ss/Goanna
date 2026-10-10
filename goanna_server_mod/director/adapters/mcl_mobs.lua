@@ -3,7 +3,7 @@
 --
 -- Read against Mineclonia release 38561. It reads public tables of mcl_mobs
 -- and mcl_armor; none of their authors is involved. VoxeLibre forked the
--- same code and has diverged (docs/agents/director.md, "mcl_mobs, VoxeLibre"), so
+-- same code and has diverged (docs/design/director-design.md, "mcl_mobs, VoxeLibre"), so
 -- detection tests for Mineclonia's rule based targeting and not for the
 -- name "mcl_mobs".
 --

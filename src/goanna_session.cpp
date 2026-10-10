@@ -3150,7 +3150,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     block->deSerializeNetworkSpecific(istr);
     // Into the store as it came: the payload is already the compact form
     // Luanti serialises, so this is a write of what was received and nothing
-    // more. docs/systems/far-rendering.md rung 5.
+    // more. docs/design/far-rendering-plan.md rung 5.
     if (m_store) {
         m_store_dirty.erase(p);
         m_store_pending.insert(p);

@@ -207,7 +207,7 @@ var grass_interaction_distance := 16.0
 var grass_interactors := 8.0
 # 0 unchanged, 1 FXAA, 2 2x MSAA + FXAA, 3 4x MSAA + FXAA.
 var grass_antialiasing := 3.0
-# The background layer's shape (docs/systems/far-rendering.md, "Background, overlay,
+# The background layer's shape (docs/history/far-rendering-log.md, "Background, overlay,
 # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
 # over the rest: above 1 the haze holds off and then closes near the edge,
@@ -815,7 +815,7 @@ func _ready() -> void:
 	if tmap != "" and FileAccess.file_exists(tmap):
 		client.set_texture_map(tmap)
 		print("texture map ", tmap)
-	# The local block store (docs/systems/far-rendering.md rung 5): every block the
+	# The local block store (docs/design/far-rendering-plan.md rung 5): every block the
 	# server sends is kept under the user directory, per server, and drawn as
 	# far tiers beyond the live range when the server grants far rendering.
 	# GOANNA_STORE=<dir> relocates it, GOANNA_NO_STORE=1 turns it off.
@@ -3694,7 +3694,7 @@ func _apply_sky() -> void:
 		# region ladder keeps doubling with the tier (lodRegionBlocks).
 		cam.far = maxf(1000.0, draw_nodes + 512.0)
 		atmosphere_length = clampf(draw_nodes + 96.0, 256.0, 768.0)
-		# The background layer, docs/systems/far-rendering.md "Background, overlay,
+		# The background layer, docs/history/far-rendering-log.md "Background, overlay,
 		# foreground". Depth fog rather than exponential: an exponential curve
 		# cannot be both clear in the foreground and closed at the cap, because
 		# the density that hides the far edge puts most of its extinction on

@@ -247,7 +247,7 @@ return function(http)
 		dofile(MODPATH .. "/filelink.lua")(D)
 	end
 
-	-- The hook API for games and adapters (docs/agents/director.md, "Lua hook API",
+	-- The hook API for games and adapters (docs/design/director-design.md, "Lua hook API",
 	-- and "Rulesets as built" for what exists).
 	rawset(_G, "goanna_director", {
 		register_adapter = function(name, def)

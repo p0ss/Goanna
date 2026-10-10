@@ -1554,7 +1554,7 @@ func start_config(options: Dictionary) -> String:
 		# A single player world on this machine, run by a server this client
 		# launched: there is no one to be unfair to, so far rendering is
 		# granted here, over the goanna:v1 channel the server mod installed
-		# below provides. docs/systems/far-rendering.md, "the server decides".
+		# below provides. docs/design/far-rendering-plan.md, "the server decides".
 		# Luanti disables mod channels by default. The grant cannot reach the
 		# client unless the transport carrying it is enabled too.
 		cf.store_string("enable_mod_channels = true\n")
@@ -1607,7 +1607,7 @@ func start_config(options: Dictionary) -> String:
 		# pregeneration is the server's own answer: it generates outward from
 		# each player at its own pace, one 128 node area at a time and a slice
 		# of an area per emerge call so the player's own blocks are never
-		# queued behind it (docs/systems/far-rendering.md, "Pregeneration yields to
+		# queued behind it (docs/history/far-rendering-log.md, "Pregeneration yields to
 		# the player"), and pushes each area's summary as it lands. It is the
 		# operator's choice, and here the operator is the player.
 		# A Terrain Diffusion provider answers unexplored columns directly from

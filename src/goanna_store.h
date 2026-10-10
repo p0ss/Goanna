@@ -3,7 +3,7 @@
 
 #pragma once
 
-// The local block store, docs/systems/far-rendering.md rung 5: every mapblock this
+// The local block store, docs/design/far-rendering-plan.md rung 5: every mapblock this
 // client was sent, kept as the server serialised it, keyed by server, so
 // the far tiers can draw what was seen after the server has stopped sending
 // it. Full resolution, because the coarse chain is derived from it

@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
--- The HTTP transport (docs/agents/director.md, "HTTP").
+-- The HTTP transport (docs/design/director-design.md, "HTTP").
 --
 -- The server mod is the HTTP client. It POSTs batches of envelopes to
 -- <url>/v1/push and keeps one long poll open on <url>/v1/pull for the

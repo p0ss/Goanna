@@ -456,7 +456,7 @@ public:
     int resident_blocks();
     // Distance in mapblocks past which blocks are drawn coarsely: merged
     // cells on the node array shader, in per region meshes, one tier per
-    // doubling of distance (docs/systems/far-rendering.md rungs 2 and 3). 0 disables.
+    // doubling of distance (docs/design/far-rendering-plan.md rungs 2 and 3). 0 disables.
     // update_lod re-meshes blocks whose tier changed as the player moves,
     // bounded per call so it cannot stall a frame. lod_cell is the cell size
     // of the first tier in nodes, a power of two from 2 to 16; each further
@@ -473,7 +473,7 @@ public:
     void set_mesh_threads(int threads);
     int mesh_threads() const { return m_mesh_threads; }
     int update_lod(const godot::Vector3 &around, int max_rebuild);
-    // The local block store (docs/systems/far-rendering.md rung 5). The root
+    // The local block store (docs/design/far-rendering-plan.md rung 5). The root
     // directory; each server gets its own subdirectory beneath it. Empty
     // turns the store off. Set before connect_to. Blocks are written as they
     // arrive; they are drawn beyond the server's range only when the server
@@ -725,11 +725,11 @@ private:
     float m_lod_focal_pixels = 640.0f;
     int m_lod_cell = 4;
     // The smoothed surface reads as melted terrain wherever the far field
-    // meets a cliff or a coastline (docs/systems/far-rendering.md, "Terraces or
+    // meets a cliff or a coastline (docs/history/far-rendering-log.md, "Terraces or
     // slopes" and "Stop the far surface averaging across cliffs"), and it
     // is a Minecraft world underneath either way, so the honest default is
     // the one that looks like the blocks actually there.
-    // --- far rendering (docs/systems/far-rendering.md rungs 2 and 3) ---
+    // --- far rendering (docs/design/far-rendering-plan.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs
     // to a region at its tier, and the region is one mesh built from the
     // blocks' coarse chains (goanna_lod.h). A region is rebuilt when any of
@@ -943,7 +943,7 @@ private:
     // does. A depth fog takes a begin and an end, so it can have both: the
     // haze starts where the sparse directions run out and closes where the
     // rich ones do, instead of flattening real terrain to sky colour because
-    // some other bearing is empty (docs/systems/far-rendering.md, "Haze over the
+    // some other bearing is empty (docs/history/far-rendering-log.md, "Haze over the
     // ragged frontier").
     int m_far_extent = 0;
     int m_far_reach = 0;
@@ -1049,7 +1049,7 @@ private:
         // A reply for this area has been read, so the two flags below mean
         // something. They are what decides whether the layer above or below
         // is worth asking for at all, rather than a fixed window of layers
-        // (docs/systems/far-rendering.md, "Lids, layers and the vertical walk").
+        // (docs/history/far-rendering-log.md, "Lids, layers and the vertical walk").
         bool answered = false;
         // Terrain reaches the top face of this area, so it may carry on into
         // the layer above.
@@ -1064,7 +1064,7 @@ private:
         // treat that as a reason to look further down: a layer the server
         // has never made says nothing about the layer under it, and taking
         // it as an invitation walked the request queue straight out of the
-        // bottom of the world (docs/systems/far-rendering.md, "Where the summary
+        // bottom of the world (docs/history/far-rendering-log.md, "Where the summary
         // budget actually went").
         bool empty = false;
         // Every generated record in the reply was air from top to bottom: the
