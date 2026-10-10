@@ -150,7 +150,7 @@ developer tools to the model.
 
 ## Boundaries and fairness
 
-`CLAUDE.md` and `docs/capabilities.md` set Goanna's boundaries: it connects to
+`AGENTS.md` and `docs/capabilities.md` set Goanna's boundaries: it connects to
 unmodified servers, asks for nothing a vanilla client does not, never gives a
 Goanna player information or reach a vanilla player lacks, never patches Luanti,
 and never claims affiliation with the Luanti project. How the director fits:

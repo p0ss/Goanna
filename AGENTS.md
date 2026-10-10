@@ -1,42 +1,54 @@
-# Notes for coding agents working in this repository
+# Rules for coding agents
 
-This file is for any coding agent (Codex and others). Agents that read
-`CLAUDE.md` get the same rules from there. Read `CLAUDE.md` in full before
-changing anything: its text style, transplant, claims and boundary rules
-apply to you exactly as written. The rules below are the ones whose breach
-reaches outside the repository, repeated here so they cannot be missed.
+This file is the one place the rules for agents working in this repository
+are stated, for every agent (Claude, Codex and others). Each rule is short
+and links to the document that holds its detail. Read those documents
+before you work in their area; if a rule here and its detail ever seem to
+differ, fix the detail, do not pick one.
 
-## The owner's machine is shared
+1. **Text style.** Australian English, never an em dash (nor `--` as one),
+   no smart quotes or ellipsis characters, sentence case headings, Markdown
+   wrapped at 80 columns. `tools/check-style.sh` is a gate: it must exit
+   clean before you commit. Detail: `docs/style.md`.
+2. **Never restyle `src/transplant/`.** It is Luanti's own code; do not
+   reformat, rename or respell anything in it. To use Luanti code, first
+   compile it from the submodule, else give Goanna a stand-in with the name
+   upstream expects, and only then copy it, upstream header first, with an
+   inventory row. Detail: `docs/transplanting.md`.
+3. **Claims need a real run.** Describe something as working only after it
+   has run against a real server and been observed to work, and say which
+   server, game and Godot version. Detail: `CONTRIBUTING.md`, "Claims and
+   test reports".
+4. **Boundaries.** Goanna talks to unmodified servers over the ordinary
+   protocol and gives a player nothing a vanilla client would not. Never
+   fork or patch Luanti (`luanti/` is a pinned submodule). Never claim
+   affiliation with or endorsement by the Luanti project. Detail:
+   `CONTRIBUTING.md`, "Relationship to Luanti".
+5. **The GPU goes through the tools.** Rendered frames and GPU timings go
+   through the render service (`tools/goanna-render`), any other GPU client
+   through `tools/goanna-headless`; they take the GPU lock and check the
+   card themselves. One GPU client at a time. When `goanna-headless
+   gpu-free` says busy, do not render. Never build a gamescope command line
+   by hand. Detail: `docs/agent-interfaces.md`, "Rules for test clients".
+6. **No windows, no input injection.** Test clients run in headless
+   gamescope or under Godot's `--headless`, never as windows on the owner's
+   desktop, and are driven from inside through the control channel. Never
+   send input to the owner's display with xdotool, ydotool or anything
+   else. Detail: `docs/agent-interfaces.md`.
+7. **Stop processes by PID only.** Stop only the PIDs you started, or go
+   through the launcher. Never `pkill`, `killall` or `pgrep -f` by name.
+   Leave nothing of yours running. Detail: `docs/agent-interfaces.md`.
+8. **The checkout and its index are shared.** Stage only your own hunks
+   and read `git diff --cached` before every commit. Never `git add -A`,
+   `git commit -a` or a directory pathspec. A file another session also
+   edited ships with its hunks unless you stage by hunk. Detail:
+   `CONTRIBUTING.md`, "Working in a shared checkout".
+9. **Land finished work on main.** Rebase and fast-forward: linear
+   history, no merge commits, no review branches left behind. Never push;
+   the owner pushes. Detail: `CONTRIBUTING.md`, "Landing work".
+10. **Commit format.** Imperative subject under 72 characters, no full
+    stop, then a body saying why, signed off with `git commit -s`. Detail:
+    `CONTRIBUTING.md`, "Commits and pull requests".
 
-Several agents work in this checkout at once, and the owner uses the same
-desktop while they do.
-
-- **No windows on the desktop.** Test clients run headless, through
-  `tools/goanna-headless` or the MCP server (`tools/goanna-mcp`), inside
-  gamescope's headless backend. Do not start Godot or Luanti as a window
-  unless the owner has asked to watch one.
-- **Never inject input** into the owner's display (`DISPLAY=:0`,
-  `WAYLAND_DISPLAY=wayland-0`) with xdotool, ydotool or anything else.
-- **One game client on the GPU at a time.** A headless gamescope started
-  beside another game client has twice put the NVIDIA driver into a state
-  that needs a reboot, which stops every agent's rendering and the owner's
-  games. Take every rendered frame and every GPU timing through the render
-  service, `tools/goanna-render shoot JOB.json`, rather than a client of
-  your own: it holds the GPU lock, keeps one server and one client up,
-  queues jobs from every agent and gives the card back when the owner
-  wants it (`docs/agent-interfaces.md`, "The render service"). Anything
-  else on the GPU must hold `flock /tmp/claude-1000/goanna-gpu.lock` and
-  run `tools/goanna-headless gpu-free` first; it exits 1 and names the
-  client while one is running. Run fixtures with `tools/goanna-headless
-  fixture SCENE`, never a gamescope command line built by hand: lavapipe
-  environment variables do not keep gamescope itself off the card (it
-  wedged the driver on 2026-10-02).
-- **Stop processes only by the PIDs you started.** Never `pkill`,
-  `killall` or `pgrep -f` by name: those hit other agents' clients and the
-  owner's own game.
-- **Commit only your own files**, staged by explicit path. Never
-  `git add -A`, `git commit -a` or a directory pathspec: other agents'
-  unfinished work is in the same tree.
-
-The full rules for test clients are in `docs/agent-interfaces.md`, under
-"Rules for test clients".
+Code conventions, including the rule that Godot objects are never touched
+from the session thread, are in `CONTRIBUTING.md`, "Code style".

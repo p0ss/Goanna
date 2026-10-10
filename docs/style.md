@@ -5,8 +5,8 @@ documentation, code comments, commit messages, issue and pull request text,
 and any user facing strings.
 
 They exist so the project reads as one voice, and so that a reviewer can tell
-at a glance whether a change follows house style. They are conventions, not
-matters of correctness. Nobody should be blocked over a spelling.
+at a glance whether a change follows house style. What `tools/check-style.sh`
+can check, it checks, and it must pass before a commit (see section 9).
 
 ## 1. Australian English
 
@@ -148,21 +148,21 @@ Comments follow the same rules. Additionally:
 
 ## 8. Commit messages
 
-- Subject line in the imperative mood, under 72 characters, no full stop.
-  `Add media transfer`, not `Added media transfer.` or `adding media`.
-- Blank line, then a body that explains why, wrapped at 72 columns.
-- Reference the spike or stage where relevant, for example `E0b stage 3`.
-- Same style rules. Australian spelling, no em dashes.
+Commit messages follow every rule in this document. Their format (subject
+line, body, sign off) is stated once, in `CONTRIBUTING.md`, "Commits and
+pull requests".
 
 ## 9. Checking
 
 A repository check lives at `tools/check-style.sh`. It greps for em dashes,
 smart quotes and the common American spellings, skipping the submodules and
-anything that has to keep its original spelling. Run it before pushing:
+anything that has to keep its original spelling. Run it before every
+commit:
 
 ```sh
 tools/check-style.sh
 ```
 
-It is a lint, not a gate. It will occasionally flag a legitimate quotation.
-Fix the prose or leave it, and say which in the pull request.
+It is a gate: commit only when it exits clean. It will occasionally flag a
+legitimate quotation. Reword around it, or add the exception to the script
+in a commit of its own that says why.

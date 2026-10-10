@@ -11,6 +11,9 @@ servers, and review of the transplant discipline described below. Large
 features are better raised as an issue first, because the shape of the code
 is still moving weekly.
 
+Coding agents start from `AGENTS.md`, which lists the hard rules and links
+back to the sections below.
+
 ## Relationship to Luanti
 
 Goanna is an independent project. It is not affiliated with, endorsed by or
@@ -57,12 +60,17 @@ from if it came from anywhere.
 This is the core discipline of the project and it has its own document:
 **`docs/transplanting.md`**. In short:
 
-1. Compile it from the `luanti/` submodule if you possibly can.
-2. If you cannot, copy it into `src/transplant/`, keep the upstream header,
-   add a note saying what changed, change as little as the compiler allows,
-   and add it to the inventory table.
-3. Prefer giving Goanna a stand-in with the name upstream expects over
-   editing upstream code.
+1. Compile it from the `luanti/` submodule if you possibly can, by adding
+   it to `cmake/luanti_core.cmake`.
+2. If it will not compile, give Goanna a stand-in with the name upstream
+   expects rather than editing upstream code. `src/goanna_luanti_client.h`
+   and `src/goanna_image_hooks.h` are the pattern.
+3. Only then copy it into `src/transplant/`: keep the upstream header
+   first, add a note below it saying what changed, change as little as the
+   compiler allows, and add it to the inventory table.
+
+Copied code without its upstream copyright header is a licence violation,
+not a style problem.
 
 Do not reformat or restyle transplanted code. Every cosmetic change is a
 merge conflict at the next Luanti release.
@@ -96,36 +104,94 @@ Australian English, no em dashes, plain factual tone. The full rules are in
 **`docs/style.md`** and they apply to documentation, comments, commit
 messages and pull request text alike.
 
-Check before you push:
+Run the check before every commit:
 
 ```sh
 tools/check-style.sh
 ```
 
-It is a lint, not a gate. If it flags a legitimate quotation, say so in the
-pull request.
+It is a gate: commit only when it exits clean. If it flags a legitimate
+quotation, reword around it, or add the exception to the script in a
+commit of its own that says why.
 
 ## Commits and pull requests
 
-- Imperative subject line under 72 characters, no full stop. Blank line,
-  then why.
+This section is the one statement of the commit format; `AGENTS.md` and
+`docs/style.md` point here.
+
+- Subject line in the imperative mood, under 72 characters, no full stop.
+  `Add media transfer`, not `Added media transfer.` or `adding media`.
+- Blank line, then a body that explains why, wrapped at 72 columns. Name
+  the spike or stage where relevant, for example `E0b stage 3`.
+- The text style applies: Australian spelling, no em dashes.
 - Sign off with `git commit -s`.
 - Keep transplants in their own commits, separate from Goanna code that uses
   them, so a reviewer can diff a transplant against upstream cleanly.
-- Say how you tested. "Connected to devtest 5.16.1, walked around for a
-  minute, no console errors" is a real test report at this stage and is
-  worth writing down. Say which server, which game and which Godot version.
 - Screenshots are welcome and should say whether they are from the live
   client or from an offline study. Do not present one as the other.
-- If anyone else is working in the same checkout, diff the exact paths
-  before you commit them. Naming paths on a `git commit` does not commit
-  only your work in those files: a pathspec commits the whole current state of
-  every file it names, including hunks someone else has not finished. This
-  has put three separate people's uncommitted work into commits whose
-  messages say nothing about it, twice in one evening, and each time the
-  author believed naming paths had protected them. `git add -p` is the
-  answer when a file is shared. Better still, work in a `git worktree` of
-  your own and merge, which is what the trap cannot reach.
+
+### Claims and test reports
+
+`README.md` describes what Goanna draws and does, and says what is
+untested; `docs/players.md` lists current limitations; `PLAN.md` keeps a
+dated log of what was done and what was verified. People read all three
+to decide whether to trust the project, so every claim in them must be true
+of the committed code.
+
+- Describe a feature as working only after it has been run against a real
+  server and observed to work, not because the code exists. A study, a
+  fixture or a unit test is evidence of its own kind; say which it was.
+- Say which server, which game and which Godot version, for example
+  "Connected to devtest 5.16.1, walked around for a minute, no console
+  errors, Godot 4.5.1". At this stage that is a real test report.
+- Say what was not tried. Synthetic input is not a controller; lavapipe is
+  not the GPU.
+
+## Working in a shared checkout
+
+Several people and agents may work in one checkout at once, all on main.
+The working tree, the index and the branch tip are all shared, and each has
+already put someone's unfinished work into a commit whose message said
+nothing about it.
+
+- **The index is shared.** Another session can `git add` between two of
+  your commands, and your next plain `git commit` takes its staged work.
+  Immediately before every commit, read `git diff --cached --name-only` and
+  `git diff --cached`, and unstage anything that is not yours with
+  `git restore --staged`.
+- **Stage only your own hunks.** A pathspec commit (`git commit FILE`)
+  and `git add FILE` both take the whole current state of the file,
+  including hunks someone else has not finished. Compare `git diff --stat
+  FILE` with what you changed; if another session also edited the file,
+  stage your hunks alone, with `git add -p` or, where interactive commands
+  are not available, by writing your hunks to a patch and running
+  `git apply --cached`. Never `git add -A`, `git commit -a` or a directory
+  pathspec.
+- **Do not stash in the shared tree.** `git stash`, with or without
+  `--keep-index`, takes every unstaged change, other sessions' included,
+  and the tree changes under them.
+- **The tip moves.** Read `git log --oneline -3` before and after you
+  commit. A file that `git status` shows as clean may mean somebody else
+  committed your change, not that you never made it.
+- **The working tree ships.** A build links whatever is in the tree,
+  including other sessions' uncommitted work. For anything measured, record
+  the commit and whether the tree was dirty. After staging by hunk, build
+  the commit itself (in a worktree) to prove you got every hunk.
+- If you sweep up someone else's work and nothing has been pushed, tell
+  the owner before rewriting any history: they may prefer to keep it with
+  a line in the message saying so.
+
+## Landing work
+
+- Finished work lands on main, in a linear history: rebase it onto main
+  and fast-forward. No merge commits, and no review branches left lying
+  around; the owner reviews what is on main.
+- Do not push. Pushing is the owner's.
+- A `git worktree` of your own is a good way to keep unfinished work out
+  of the shared tree. When the work is done, check it touches none of the
+  files dirty in the shared checkout, rebase it onto main, fast-forward
+  main to it, then remove the worktree and its branch. Worktrees are full
+  checkouts, and once a client is built in one it holds gigabytes.
 
 ## Building
 
