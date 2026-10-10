@@ -1746,7 +1746,10 @@ def cmd_serve(args):
     opt.argv = [a for a in args if a != "--foreground"] + ["--foreground"]
     opt.stage = [int(v) for v in opt.stage.split(",")]
     opt.size = parse_size(opt.size)
-    if service_record():
+    # A service that reexec_if_changed restarted keeps its pid, so the record
+    # it left behind names this very process: that is not a rival.
+    rec = service_record()
+    if rec and rec.get("pid") != os.getpid():
         print(json.dumps({"error": "a render service is already running",
                           "service": service_record()}, indent=2))
         return 1
