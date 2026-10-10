@@ -857,3 +857,8 @@ GAMES["3d_armor"] = {
     "pack": REPO / "pbr_packs" / "3d_armor" / "textures",
     "install": REPO / "pbr_packs" / "3d_armor" / "textures",
 }
+
+
+if __name__ == "__main__":
+    # A library: the authoring scripts beside it import it.
+    print(__doc__)

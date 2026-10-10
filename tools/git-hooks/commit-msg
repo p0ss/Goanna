@@ -14,6 +14,12 @@
 # and the message is kept in .git/COMMIT_EDITMSG for another try.
 
 set -uo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 
 file="${1:?usage: commit-msg MESSAGE_FILE}"
 comment_char=$(git config --get core.commentChar 2>/dev/null || true)

@@ -17,6 +17,9 @@ GAME = "kythen"
 STEM = "kythen_mitteleuropa_ash_bark"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     # The diamond lattice read as chain link on the ramp at any spacing;
     # ash is built like elm, interlacing furrows along the trunk, with its

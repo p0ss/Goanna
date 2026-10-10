@@ -34,6 +34,12 @@
 # Needs project/bin built, the world named below present in the detected
 # Luanti install, and Python's Pillow to write the JPEGs.
 set -euo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 data_dir=${GOANNA_DATA_DIR:-$HOME/.var/app/org.luanti.luanti/.minetest}

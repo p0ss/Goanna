@@ -130,6 +130,9 @@ def build(out_dir):
 
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = build(out_dir)
     if any(l.startswith("FAIL") for l in lines):

@@ -14,6 +14,10 @@ import json
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+if sys.argv[1:2] in (["-h"], ["--help"]):
+    print(__doc__)
+    sys.exit(0)
+
 LOG = sys.argv[2]
 
 

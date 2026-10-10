@@ -11,6 +11,9 @@ STEM = "kythen_mitteleuropa_hazel_leaf"
 ASPECT = 1.1
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="broadleaf", seed=4701, normal_strength=8.5,
             fine_len=(7.0, 10.0), fine_wid=(7.0 / ASPECT, 10.0 / ASPECT), fine_n=600,

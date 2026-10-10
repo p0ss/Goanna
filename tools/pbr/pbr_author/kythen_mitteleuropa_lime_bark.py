@@ -13,6 +13,9 @@ GAME = "kythen"
 STEM = "kythen_mitteleuropa_lime_bark"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="furrow", seed=2301, normal_strength=19.4,
             margin_frac=0.25, furrow_target=0.30, ridge_range=(0.45, 0.60),

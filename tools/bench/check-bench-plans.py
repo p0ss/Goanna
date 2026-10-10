@@ -86,4 +86,8 @@ def main():
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] in (["-h"], ["--help"]):
+        print("usage: tools/bench/check-bench-plans.py\n\nCheck the profile bench plans' "
+              "tier values against project/graphics_profiles.gd; exits non-zero on drift.")
+        sys.exit(0)
     sys.exit(main())

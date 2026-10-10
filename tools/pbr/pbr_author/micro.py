@@ -1632,6 +1632,9 @@ def swatches(path, cell=16, texels=6, light=(-0.5, 0.45, 0.75)):
 
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:2] in (["-h"], ["--help"]):
+        print("usage: micro.py <swatch sheet.png> [map pixels per texel, 16 or 8]")
+        sys.exit(0)
     if len(sys.argv) not in (2, 3):
         raise SystemExit("usage: micro.py <swatch sheet.png> [map pixels per texel, 16 or 8]")
     print(" ".join(swatches(sys.argv[1], cell=int(sys.argv[2]) if len(sys.argv) == 3 else 16)))

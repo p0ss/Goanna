@@ -13,6 +13,9 @@ GAME = "kythen"
 STEM = "kythen_firecountry_river_box_bark"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="furrow_plates", seed=1701, normal_strength=20.0,
             margin_frac=0.30, furrow_target=0.10, ridge_range=(0.45, 0.80),

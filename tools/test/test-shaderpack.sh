@@ -14,6 +14,12 @@
 # The run directory is printed on failure; set GOANNA_SHADERPACK_TEST_DIR to
 # choose it and keep it.
 set -euo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$repo_dir"

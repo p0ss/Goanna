@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-"""Fail if a bundled PBR worldmod cannot be served by Luanti."""
+"""Fail if a bundled PBR worldmod cannot be served by Luanti.
+
+Usage: python3 tools/pbr/check-pbr-packs.py
+"""
 import pathlib
 import sys
+
+if sys.argv[1:2] in (["-h"], ["--help"]):
+    print(__doc__)
+    sys.exit(0)
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PACKS = ("minetest_game", "mineclonia")

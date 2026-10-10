@@ -20,6 +20,9 @@ GAME = "kythen"
 STEM = "kythen_norse_pine_bark"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="scaly", seed=8201, normal_strength=30.0,
             scale_count=130, scale_length=(3.0, 6.0), scale_width=(1.5, 2.6),

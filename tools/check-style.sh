@@ -20,6 +20,12 @@
 # Exit status: 0 clean, 1 findings.
 
 set -uo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 cd "$(dirname "$0")/.." || exit 2
 
 fail=0

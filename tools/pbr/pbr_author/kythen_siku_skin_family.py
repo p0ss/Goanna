@@ -142,3 +142,7 @@ def run(stem, out_dir):
         print(line)
     lib.preview(out_dir, stem, str(out_dir) + "/" + stem + "_preview.png")
     return lines
+
+
+if __name__ == "__main__":
+    print("kythen_siku_skin_family.py is a library; run one of the per stem scripts.")

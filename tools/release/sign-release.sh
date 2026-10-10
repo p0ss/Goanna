@@ -17,6 +17,12 @@
 # repository and backed up: without it no release can update clients, and
 # replacing it means every player downloads one release by hand.
 set -euo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 cd "$(dirname "$0")/../.."
 tag=${1:?usage: tools/release/sign-release.sh <tag> [owner/repository]}
 repo=${2:-p0ss/Goanna}

@@ -11,6 +11,9 @@ GAME = "kythen"
 STEM = "kythen_mitteleuropa_juniper_leaf"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="scale", seed=5301, normal_strength=7.0,
             fine_len=(2.0, 4.0), fine_wid=(1.2, 2.0), fine_n=2600,

@@ -85,3 +85,8 @@ def query(command, args=None, host=None, port=None, token_file=None):
     if not reply.get("ok"):
         raise RuntimeError(reply.get("error", "request failed"))
     return reply["result"]
+
+
+if __name__ == "__main__":
+    # A library: tools/goanna-player and tools/goanna-player-mcp use it.
+    print(__doc__)

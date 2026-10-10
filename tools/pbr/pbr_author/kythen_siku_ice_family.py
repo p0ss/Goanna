@@ -234,3 +234,7 @@ def run(stem, out_dir):
     # inside or near the band.
     lib.preview(out_dir, stem, str(out_dir) + "/" + stem + "_preview.png")
     return lines
+
+
+if __name__ == "__main__":
+    print("kythen_siku_ice_family.py is a library; run one of the per stem scripts.")

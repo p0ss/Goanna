@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
-"""Run and close one isolated Mineclonia capture client."""
+"""Run and close one isolated Mineclonia capture client.
+
+Usage: python3 tools/test/lava-review/run_mineclonia.py <stage> <pack textures dir>
+"""
 import os
 import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+if sys.argv[1:2] in (["-h"], ["--help"]):
+    print(__doc__)
+    sys.exit(0)
 
 root = Path(__file__).resolve().parents[3]
 stage, pack = sys.argv[1:]

@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+#
+# Check formspec support: first that every upstream formspec element has a
+# Goanna status (tools/test/check-formspec-coverage.py), then the conformance
+# test project/tests/formspec_conformance.gd under Godot's --headless dummy
+# renderer, which needs no GPU and opens no window.
+#
+# Usage: GODOT_BIN=/path/to/godot tools/test/test-formspec.sh
 set -euo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$repo_dir"

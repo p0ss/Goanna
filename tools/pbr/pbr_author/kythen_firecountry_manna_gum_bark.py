@@ -13,6 +13,9 @@ GAME = "kythen"
 STEM = "kythen_firecountry_manna_gum_bark"
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print("usage: python3 %s <out dir>\n\n%s" % (sys.argv[0], __doc__))
+        sys.exit(0)
     out_dir = sys.argv[1]
     lines = fam.run(STEM, out_dir, mode="lenticel", seed=1801, normal_strength=26.0,
             dark_thresh=0.59, mask_brighter=True, sign=1.0, warp_amp=3.0,

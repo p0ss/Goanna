@@ -6,6 +6,12 @@
 # a whole night's bake and the sources with it. Override with
 # GOANNA_AUDIT_ROOT if the default filesystem is short of space.
 set -uo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 cd "$(dirname "$0")/../.."
 
 ROOT="${GOANNA_AUDIT_ROOT:-$HOME/.local/share/goanna-pbr-audit}"

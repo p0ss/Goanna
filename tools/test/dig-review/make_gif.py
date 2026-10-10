@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
-"""Assemble the centre/corner in-game capture sequences; no generated imagery."""
+"""Assemble the centre/corner in-game capture sequences; no generated imagery.
+
+Usage: python3 tools/test/dig-review/make_gif.py
+
+Reads build/dig-gif/centre/NN.png and build/dig-gif/corner/NN.png, as
+boundary.py --gif captures them, and writes build/dig-gif/digging-two-impacts.gif.
+"""
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+import sys
+
+if sys.argv[1:2] in (["-h"], ["--help"]):
+    print(__doc__)
+    sys.exit(0)
+
 ROOT=Path(__file__).resolve().parents[3]
 source=ROOT/'build/dig-gif'
 out=source/'digging-two-impacts.gif'

@@ -10,6 +10,12 @@
 # Kythen's media is CC BY-SA 4.0 and its own; nothing here is a community
 # redistribution question. GOANNA_KYTHEN overrides the checkout location.
 set -uo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 cd "$(dirname "$0")/../.."
 
 KYTHEN="${GOANNA_KYTHEN:-$HOME/Documents/Code/Kythen}"

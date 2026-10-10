@@ -17,6 +17,12 @@
 # GODOT_BIN names the Godot binary. PODMAN overrides the container command
 # (see tools/release/build-luanti-server.sh).
 set -euo pipefail
+case "${1:-}" in -h | --help)
+    # Usage is the header comment above.
+    awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); if (/^(SPDX|Copyright)/) next
+        if (!started && $0 == "") next; started = 1; print }' "$0"
+    exit 0 ;;
+esac
 cd "$(dirname "$0")/../.."
 repo=$(pwd)
 podman_cmd=${PODMAN:-podman}

@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
-"""Check native waterfall relief and lamp stability on disposable port 30881."""
+"""Check native waterfall relief and lamp stability on disposable port 30881.
+
+Usage: python3 tools/test/lava-review/fall_capture.py
+
+Needs a client with its control channel on 127.0.0.1:30881, standing at
+the waterfall fixture. Writes /tmp/goanna-lava-fall-review.
+"""
 import json
 import socket
 from pathlib import Path
+import sys
+
+if sys.argv[1:2] in (["-h"], ["--help"]):
+    print(__doc__)
+    sys.exit(0)
 
 out = Path('/tmp/goanna-lava-fall-review')
 out.mkdir(parents=True, exist_ok=True)

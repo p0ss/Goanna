@@ -1114,4 +1114,7 @@ def gh_conf(world):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] in (["-h"], ["--help"]):
+        print(__doc__)
+        sys.exit(0)
     sys.exit(ruleset_main(sys.argv) if "--ruleset" in sys.argv else main(sys.argv))
