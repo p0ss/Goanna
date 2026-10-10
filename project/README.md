@@ -38,7 +38,9 @@ hand and never loaded by the game.
 - `input/`: game controllers, loaded as the `Gamepad` autoload.
 - `ui/`: the in-game interface and its forms: `game_ui.tscn`, the formspec
   renderer, the glass panel style, the narrator and voice typing.
-- `bench/`: the benchmark recorder the control channel installs. See
+- `bench/`: the benchmark recorder `main.gd` builds when `GOANNA_BENCH` is
+  set, which the control channel's `bench` and `route` commands drive, and
+  the local play variant `tools/bench/bench-local-play.py` installs. See
   [benchmarking graphics settings](../docs/develop/benchmark.md).
 - `shaders/`: every world shader. The `.gdshaderinc` files are shared
   pieces the `.gdshader` files include.

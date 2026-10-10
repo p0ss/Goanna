@@ -197,7 +197,7 @@ Goanna talks to a Luanti server, always. It has no built in server and is
 not going to grow one, because the whole point is that it is a client for
 the ordinary ecosystem.
 
-"Start a local game" in the menu is that principle applied rather than an
+"Start Game" in the menu is that principle applied rather than an
 exception to it. Goanna finds Luanti on your machine, launches an ordinary
 unmodified server on localhost, and joins it over the ordinary protocol,
 exactly as if you had started the server yourself in another terminal. It
@@ -222,8 +222,11 @@ Flatpak, is in [hosting a world](../host/index.md#running-a-server-yourself).
 
 ### Point Goanna at it
 
-Run the project and a menu (`project/menu/menu.gd`) asks for the server address,
-port, player name and password. It remembers the address, port and name in
+Run the project and the main menu (`project/menu/menu.gd`) opens. Start
+Game runs a local server as described above. Join Game is for a server
+already running: it lists the public servers, and below the list has fields
+for the server address, port, player name and password, which picking a
+listed server fills in. The menu remembers the address, port and name in
 Godot's user data directory (`user://goanna.cfg`, which on Linux is
 `~/.local/share/godot/app_userdata/Goanna/goanna.cfg`) and never the
 password.
@@ -231,8 +234,9 @@ password.
 The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or
 `GOANNA_NAME` and Goanna connects straight away; set `GOANNA_MENU=1` to get
-the menu anyway, prefilled from whatever else is set. The variables are read
-in `project/game/main.gd`:
+the menu anyway. Join Game then takes its port from `GOANNA_PORT` when that
+is set, and the rest from `goanna.cfg`. The variables are read in
+`project/game/main.gd`:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
