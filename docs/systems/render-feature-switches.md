@@ -5,7 +5,7 @@ Twenty independent switches are implemented: nineteen from the
 [inventory][inventory], and the fire shimmer added on 2026-10-05. They
 default to on, preserve existing strength settings, persist in
 `goanna.cfg`, and appear in Advanced lighting settings. The [five graphics
-tiers](systems/graphics-tiers.md) now set these gates explicitly and add
+tiers](graphics-tiers.md) now set these gates explicitly and add
 cloud styles, lamp shadow budgets and grass budgets.
 
 | Setting key | Work disabled |
@@ -179,7 +179,7 @@ require the terrain queues to settle. The harness writes the final player
 counters and elapsed wait to `streaming-drain.json`, and fails on timeout.
 The wait includes the ten-second quiet window and is outside the FPS sample.
 This checks that a scheduling change has not left terrain work undrained.
-The [first streaming optimisation report](perf/streaming-2026-09-27/report.md)
+The [first streaming optimisation report](../perf/streaming-2026-09-27/report.md)
 records matching four-player before/after runs and the completion checks.
 
 The terrain poll counts worker-input capture attempts as work, including
@@ -211,7 +211,7 @@ also needs actors close enough to bend it, and a carried light needs an
 appropriate held item. A stationary empty-handed circle cannot price all
 possible interactions.
 
-The [expanded validation report](perf/feature-controls-2026-09-27/report.md)
+The [expanded validation report](../perf/feature-controls-2026-09-27/report.md)
 records the scene controls and issues found while exercising them.
 
 ## Terrain sharing: the next architectural experiment
@@ -285,7 +285,7 @@ rejection, persistence, and switching volumetrics while already underwater.
 The existing local-play scene and menu regressions also passed. These
 checks exercise state and ownership; the rendered sweep checks the GPU path.
 
-[inventory]: history/performance-inventory.md
-[shell]: ../project/local_play.gd
-[render-scope]: ../src/goanna_render_scope.cpp
-[screening]: perf/render-features-2026-09-27/report.md
+[inventory]: ../history/performance-inventory.md
+[shell]: ../../project/local_play.gd
+[render-scope]: ../../src/goanna_render_scope.cpp
+[screening]: ../perf/render-features-2026-09-27/report.md

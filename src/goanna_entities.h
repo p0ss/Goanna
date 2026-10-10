@@ -236,7 +236,7 @@ private:
             const std::string &texture, const std::vector<OverlayLayer> &layers,
             const char *suffix);
     // flame.gdshader over a whole sprite sheet, the cell taken from the
-    // mesh's CUSTOM0 rectangle (docs/fire-material.md). Null if the texture
+    // mesh's CUSTOM0 rectangle (docs/systems/fire-material.md). Null if the texture
     // has not arrived.
     godot::Ref<godot::Material> flameSpriteMaterial(GoannaSession &session,
             const std::string &texture);

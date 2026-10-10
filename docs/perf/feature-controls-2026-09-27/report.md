@@ -8,7 +8,7 @@ node lights. Disabling grass interaction raised mean throughput from
 polling and LOD spikes despite little change in median GPU time.
 
 These are 30 short recordings of the expanded
-[feature switches](../../render-feature-switches.md). Each recording lasts
+[feature switches](../../systems/render-feature-switches.md). Each recording lasts
 about three seconds, with one-second warmups after live changes. The checks
 use Godot 4.5.1 Forward+, Luanti 5.17.0, Mineclonia and the same RTX 3090
 desktop as the earlier local-play run, at 1920x1080. Each trial has its own

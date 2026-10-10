@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 // Goanna: a flame's halo, the next pass of flame.gdshader.
-// docs/fire-material.md.
+// docs/systems/fire-material.md.
 //
 // Added, not blended, so two flames and a flame over water or glass keep
 // what is under them. The halo is a soft fringe of the core's colour

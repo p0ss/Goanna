@@ -2,7 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 // The flame material, shared by flame.gdshader (the flame itself) and
 // flame_glow.gdshader (its halo and heat shimmer, a second pass).
-// docs/fire-material.md.
+// docs/systems/fire-material.md.
 //
 // The game's own animated art is the flame. GoannaClient swaps albedo_tex
 // to the frame a vanilla client shows (showAnimationFrame), and an

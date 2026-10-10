@@ -35,8 +35,8 @@ Checked against the node definition dumps of 2026-09-29
 | Asuna | MTG fire; Everness' three permanent flames (firelike); x_farming candles; Everness' candle skull and forsaken fire; Caverealms' constant flame (plantlike) | |
 | Kythen | nothing | Its qulliq lamp's flame is a cube face and stays as it was |
 
-Only Mineclonia was looked at in a running client. The rest is the rule
-applied to the dumps.
+Only Mineclonia has been looked at in a running client. The rest is the
+rule applied to the dumps.
 
 A Mineclonia candle or campfire flame is a culled mesh tile, which Goanna
 would otherwise draw from its animation array. A flame keeps its single
@@ -70,11 +70,18 @@ share `flame_common.gdshaderinc`.
 - **Halo.** The glow pass adds the core colour where a coarser mip of the
   art's alpha reaches past the sharp edge. It is never negative, so halos
   that overlap only add up to a brighter glow.
+  On an entity's sprite sheet the coarse read also reaches the next frame
+  up, so there the halo fades out over the five texels at the top and
+  bottom of the cell; without that a burning mob had a flat glowing box
+  over its head.
 - **Shimmer.** The shimmer pass adds the difference between the opaque
   scene at a displaced point and at the pixel, over the flame and above
   it. A firelike quad's top edge is raised 0.6 nodes in that pass, with its
   texture coordinate, to make room above the flame. The bend is a few
-  pixels at two nodes and fades out by 24. It is off on Lowest and Low
+  pixels at two nodes and fades out by 24. The difference is held to 0.08
+  a channel: the pixel it adds to already holds the flames, and a bend
+  from a bright face into a dark joint behind them cut thin black cracks
+  into the flame. It is off on Lowest and Low
   (`render_fire_shimmer`, [render feature switches](render-feature-switches.md)),
   where its quads collapse to a point and nothing is drawn.
 
@@ -127,21 +134,55 @@ First drawn on 2026-10-06 by the render service on the RTX 3090 (Godot
 against new by day and at night. All three shaders compiled. The first
 frames showed the stacked shimmer described above; the frames after the
 fix, the cause and the timings are in
-[docs/perf/fire-shader-2026-10-05](perf/fire-shader-2026-10-05/README.md).
+[docs/perf/fire-shader-2026-10-05](../perf/fire-shader-2026-10-05/README.md).
 On the nine by nine field the material costs about 0.6 ms of GPU time more
 than the old flame, with or without the fix; the shimmer is about 0.1 ms
-of that. Only Mineclonia has been seen. The owner has not yet judged the
-look. `GOANNA_FLAME_MATERIAL=0` falls back to the old flame.
+of that. `GOANNA_FLAME_MATERIAL=0` falls back to the old flame.
 
-What has been run, with the 2026-10-05 build:
+Looked at again on 2026-10-10, rebased on main, by the render service on
+the same card, server and game, Godot 4.5.1-stable, tiers High and Low,
+each launch on a fresh profile read back (on High `mat_parallax` 1,
+`mat_micro_shadow` 1, `mat_parallax_short` 0, `render_fire_shimmer` 1,
+`view_range` 12; on Low `render_fire_shimmer` 0 and `view_range` 6). What
+was seen, frames and jobs in the same directory:
 
-- `cmake --build build --target goanna_flame_test && build/goanna_flame_test`:
-  the recognition rule on the names in the def dumps, passed.
+- Fire on netherrack, soul fire, the campfire, lit candles, a fire in
+  front of water, fires beside and behind glass and the nine by nine field
+  all draw on their nodes, by day and at night, with softer edges and a
+  brighter core than the old flame, and without its blown out white over
+  the field and the candles. No dark band and no speckle. Soul fire stays
+  cyan. On Low the flames are the same and the shimmer is gone.
+- They animate: three frames of one close pose taken ten seconds apart
+  differ in 16 to 20 percent of their pixels.
+- The burning zombie's flame drew nothing of its own. The upright
+  sprite's cell rectangle is min and max corners and the flame passes read
+  it as origin and size; once that was fixed the halo still drew a flat
+  box above the head, from the frame above in the sheet. Both are fixed.
+  The flame now shows as upstream draws it, one plane through the zombie's
+  middle the zombie's height, so from the front and back it shows beside
+  the legs and as a spark over the head, and edge on from the side not at
+  all. Checked with the body hidden, through the control channel, where
+  the whole flame shows.
+- Close up, the shimmer cut thin black cracks into a fire on netherrack,
+  gone with it off. The limit above removed them.
+- The fixture's burn is unreliable: in the full run after the fixes no
+  variant, old or new, had a flame on the zombie, and in the zombie job
+  after it the old flame variant had none while both new ones did. A
+  missing flame on the fixture's zombie is not by itself a client fault.
+
+Not tried: any game but Mineclonia in a running client, a burning player,
+a live server other than the render service's fixture, and timings after
+the 2026-10-10 fixes. The owner has not yet judged the look.
+
+What has been run, with the 2026-10-10 build:
+
+- `cmake --build build --target check`: every native test, including
+  `goanna_flame_test`, the recognition rule on the names in the def dumps.
 - `project/tests/graphics_profiles.gd` and `project/tests/render_features.gd`,
   headless with a scratch profile, passed with the new gate.
 
-The 2026-10-05 fixture in that directory was never run; the 2026-10-06
-review used the render service's stage with the same set of fires.
+The 2026-10-05 fixture in that directory was never run; both reviews used
+the render service's stage with the same set of fires.
 
 ## Limits
 

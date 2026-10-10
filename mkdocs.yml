@@ -135,6 +135,7 @@ nav:
       - Materials and surfaces:
           - Materials: systems/materials.md
           - Lava: systems/lava-material.md
+          - Fire: systems/fire-material.md
           - Ice: systems/ice-rendering.md
           - Portals: systems/portal-materials.md
           - Water optics: systems/water-optics.md
@@ -145,9 +146,7 @@ nav:
           - Particle coverage: systems/particle-coverage.md
       - Graphics settings:
           - Graphics tiers: systems/graphics-tiers.md
-          # Stays at its old path until the fire-fix branch lands; it then
-          # moves to systems/render-feature-switches.md.
-          - Render feature switches: render-feature-switches.md
+          - Render feature switches: systems/render-feature-switches.md
       - Players and interface:
           - First person body: systems/first-person-body.md
           - Knees, elbows and strokes: systems/limbs.md

@@ -23,8 +23,9 @@ code disagree, the code is right.
 
 - [Materials](materials.md): the LabPBR maps Goanna reads, which shader
   draws a tile, gems, mob and item companions and texture expressions.
-- [Lava](lava-material.md), [ice](ice-rendering.md) and
-  [portals](portal-materials.md): the special materials.
+- [Lava](lava-material.md), [fire](fire-material.md),
+  [ice](ice-rendering.md) and [portals](portal-materials.md): the special
+  materials.
 - [Water optics](water-optics.md): water seen from above and below.
 - [Procedural grass](procedural-grass.md): the optional grass volume.
 
@@ -41,7 +42,7 @@ code disagree, the code is right.
 
 - [Graphics tiers](graphics-tiers.md): the five presets and what each one
   sets.
-- [Render feature switches](../render-feature-switches.md): the nineteen
+- [Render feature switches](render-feature-switches.md): the twenty
   switches that turn a rendering feature's work off.
 
 ## Players and interface

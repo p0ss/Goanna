@@ -1,7 +1,8 @@
 # Fire material review, 2026-10-05
 
-The review of the [fire material](../../fire-material.md). Not yet run:
-see "What happened" below.
+The review of the [fire material](../../systems/fire-material.md). The
+fixture here was never run; the reviews of 2026-10-06 and 2026-10-10 below
+used the render service's stage.
 
 ## What it does
 
@@ -157,3 +158,53 @@ The fix does not change the cost: the field still costs about 0.6 ms more
 than the old flame, fixed or not, and the ranges overlap. Turning the
 shimmer off saves about 0.1 ms of it; the rest is the blended flame and
 halo passes over 81 fires. On the row pose the three are within noise.
+
+## Second look, 2026-10-10
+
+The branch rebased on main at 37b417f7, drawn by the render service:
+RTX 3090, NVIDIA driver, Godot 4.5.1-stable, Luanti 5.17.0 server,
+Mineclonia release 38561, 1280 by 720, a fresh profile per launch read
+back from the client. Tier High for the old and new flame, by day (time
+0.5) and at night (0.0), and tier Low for the new flame by day, where
+`render_fire_shimmer` is 0. The build was the branch at 9f1d59f4 (the
+sheet fix), not dirty; the seam job had the shimmer limit as its one
+dirty file, which is the next commit unchanged. No job logged a shader
+error.
+
+- [landing-day.jpg](landing-day.jpg): old, new and Low by day.
+- [landing-night.jpg](landing-night.jpg): old and new at night.
+- [landing-flicker.jpg](landing-flicker.jpg): one close pose three times,
+  ten seconds apart, day and night. The frames differ in 16 to 20 percent
+  of their pixels (more than 16 of 255): the flames animate.
+- [landing-zombie.jpg](landing-zombie.jpg): the burning zombie from the
+  front, at 45 degrees and from behind; columns old by day, new by day,
+  new at night.
+- [landing-seams.jpg](landing-seams.jpg): the netherrack fire close up,
+  before and after the shimmer limit.
+
+`landing-job.json`, `landing-zombie-job.json` and `landing-seams-job.json`
+are the jobs. Full frames are under
+`~/.local/share/goanna-pbr-audit/fire-landing-2026-10-10/` on the owner's
+machine (`run-2`, `run-3-zombie`, `run-4-seam`, and `probe-live` for the
+control channel shots with the zombie's body hidden).
+
+What it found and what changed:
+
+- The first run's Low variant was refused: the profile said a view range
+  of 6 and the client held 12. The client dropped a view range set before
+  the session existed, which is when the settings are applied, so every
+  tier asked the server for 12. Fixed in the client; the second run read
+  back 6 on Low.
+- The burning zombie's flame drew nothing of its own with the material on.
+  The flame passes read the sprite cell rectangle as origin and size where
+  it is min and max corners, and the halo's coarse read reached the frame
+  above in the sheet and drew a flat box over the head. With both fixed
+  the flame shows beside the legs and over the head, as the old flame
+  does; with the body hidden the whole flame shows.
+- Close up the shimmer cut thin black cracks into the flame over the
+  netherrack's joints, absent on Low. Holding the shimmer's difference to
+  0.08 a channel removed them; the bend over water still shows.
+- The fixture's burn is unreliable: in the full run after the fixes no
+  variant had a flame on the zombie, old or new.
+
+Not timed after these fixes.

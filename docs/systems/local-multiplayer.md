@@ -239,7 +239,7 @@ the frame CSVs. Whole-GPU samples include the desktop.
 `--phases` selects workloads. `--feature-sweep` measures individual rendering
 switches with restored controls in stationary scenes; effective settings and
 feature state are recorded per player. See
-[render feature switches](../render-feature-switches.md) for the command and
+[render feature switches](render-feature-switches.md) for the command and
 limitations. Streaming comparisons require separate fresh trials.
 
 Unsettled trials are flagged, and rendered trials with no terrain meshes

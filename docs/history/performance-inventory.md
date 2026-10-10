@@ -9,7 +9,7 @@ optimisation target.
 
 Follow-up: nineteen independent work controls, controlled feature scenes
 and per-player terrain timing are now implemented in the working tree. See
-[render feature switches](../render-feature-switches.md) for their exact scope,
+[render feature switches](../systems/render-feature-switches.md) for their exact scope,
 validation and the proposed terrain-sharing experiment. The tables below
 describe the audited baseline before those switches were added.
 

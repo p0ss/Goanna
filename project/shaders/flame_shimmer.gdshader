@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 // Goanna: a flame's heat shimmer, the next pass of flame_glow.gdshader.
-// docs/fire-material.md.
+// docs/systems/fire-material.md.
 //
 // The shimmer bends what is seen through and just above the flame. It adds
 // the difference between the opaque scene at a displaced point and at this

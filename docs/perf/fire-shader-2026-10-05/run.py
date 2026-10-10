@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""Photograph and time the flame material (docs/fire-material.md).
+"""Photograph and time the flame material (docs/systems/fire-material.md).
 
 Adapted from docs/perf/low-tier-occlusion-2026-10-05/run.py, whose rules it
 keeps. Run --hold only under the GPU lock, from the checkout whose build is

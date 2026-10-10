@@ -11,7 +11,7 @@ per frame data instead of one telemetry line a second.
 The [performance inventory](../history/performance-inventory.md) audits current
 feature controls and local-player scaling, separates measured costs from
 estimates, and proposes the next profile sweep and a true Lowest baseline. The
-[render feature switches](../render-feature-switches.md) document the first
+[render feature switches](../systems/render-feature-switches.md) document the first
 independent pass gates and how to compare them with one or several players.
 
 ## What it measures

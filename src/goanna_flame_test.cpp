@@ -2,7 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 // Which tiles and sprites take the flame material (goanna_flame.h), on the
 // names the 2026-10-05 def dumps of Minetest Game, Mineclonia, VoxeLibre,
-// Asuna and Kythen hold. docs/fire-material.md.
+// Asuna and Kythen hold. docs/systems/fire-material.md.
 //
 //   cmake --build build --target goanna_flame_test && build/goanna_flame_test
 #include "goanna_flame.h"

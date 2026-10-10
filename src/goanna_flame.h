@@ -3,7 +3,7 @@
 #pragma once
 
 // Which tiles and sprites are flames, and the measure of a flame's own art
-// that flame.gdshader ramps its colour along. docs/fire-material.md.
+// that flame.gdshader ramps its colour along. docs/systems/fire-material.md.
 #include <string>
 #include <vector>
 

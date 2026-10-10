@@ -3910,7 +3910,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
 // flame.gdshader, then flame_glow.gdshader (the halo) and
 // flame_shimmer.gdshader as next passes. Every pass carries albedo_tex,
 // and showAnimationFrame moves each to the frame the clock names.
-// docs/fire-material.md.
+// docs/systems/fire-material.md.
 Ref<Material> GoannaClient::flameMaterial(const MaterialKey &key, const FlameTex &flame) {
     GoannaTextureSource *tsrc = m_session->tsrc();
     GoannaTexture *gt = tsrc->goannaTexture(key.texture_id);
@@ -8940,7 +8940,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         buildFakeLiquidTextures();
         // Flames, blended, on an instance of their own: it sorts by the
         // flames' own bounds rather than the whole block's water and glass,
-        // and casts no shadow (docs/fire-material.md).
+        // and casts no shadow (docs/systems/fire-material.md).
         Ref<ArrayMesh> fmesh;
         fmesh.instantiate();
         int fsi = 0;

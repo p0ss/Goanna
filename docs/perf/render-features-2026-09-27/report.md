@@ -92,7 +92,7 @@ scene regression; no live underwater visual claim is made here.
 
 The next useful CPU experiment is to attribute complete per-player updates
 and terrain publication, then measure duplicate inputs for nearby players.
-The [sharing proposal](../../render-feature-switches.md) starts with
+The [sharing proposal](../../systems/render-feature-switches.md) starts with
 immutable preparation/geometry and preserves session knowledge. This sweep
 does not implement or measure a shared terrain cache. Memory pressure was
 not diagnosed, and RAM reduction is not a conclusion from these results.

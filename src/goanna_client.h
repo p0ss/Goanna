@@ -187,7 +187,7 @@ public:
     bool light_flicker() const { return m_light_flicker; }
     void set_solid_ice(bool on);
     bool solid_ice() const;
-    // Flames on their own material (flame.gdshader, docs/fire-material.md),
+    // Flames on their own material (flame.gdshader, docs/systems/fire-material.md),
     // or, off, the emissive cut-out they were drawn with before. On unless
     // GOANNA_FLAME_MATERIAL=0; the switch exists for old against new.
     void set_flame_material(bool on);

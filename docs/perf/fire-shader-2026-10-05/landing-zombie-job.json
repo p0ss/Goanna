@@ -1,0 +1,78 @@
+{
+ "label": "fire: burning zombie after the sheet fix",
+ "out": "/home/poss/.local/share/goanna-pbr-audit/fire-landing-2026-10-10/run-3-zombie",
+ "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-aa3cc625b0a2a8e6d",
+ "statues": [
+  {
+   "entity": "mobs_mc:zombie",
+   "pos": [
+    1,
+    -0.5,
+    4
+   ],
+   "yaw": 180,
+   "burn": true
+  }
+ ],
+ "poses": [
+  {
+   "name": "front",
+   "pos": [
+    1,
+    1.6,
+    0.6
+   ],
+   "look_at": [
+    1,
+    1.0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "diag",
+   "pos": [
+    3.6,
+    1.6,
+    1.4
+   ],
+   "look_at": [
+    1,
+    1.0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "back",
+   "pos": [
+    1,
+    1.6,
+    7.4
+   ],
+   "look_at": [
+    1,
+    1.0,
+    4
+   ],
+   "fov": 55
+  }
+ ],
+ "variants": [
+  {
+   "name": "new_day",
+   "time": 0.5
+  },
+  {
+   "name": "new_night",
+   "time": 0.0
+  },
+  {
+   "name": "old_day",
+   "time": 0.5,
+   "env": {
+    "GOANNA_FLAME_MATERIAL": "0"
+   }
+  }
+ ]
+}

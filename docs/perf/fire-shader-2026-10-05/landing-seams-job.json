@@ -1,0 +1,252 @@
+{
+ "label": "fire: shimmer limited, seams",
+ "out": "/home/poss/.local/share/goanna-pbr-audit/fire-landing-2026-10-10/run-4-seam",
+ "build": "/var/home/poss/Documents/Code/Godot/goanna/.claude/worktrees/agent-aa3cc625b0a2a8e6d",
+ "anchor": [
+  -1,
+  2,
+  -1
+ ],
+ "nodes": [
+  {
+   "pos": [
+    -11,
+    0,
+    4
+   ],
+   "node": "mcl_campfires:campfire_lit"
+  },
+  {
+   "pos": [
+    -8,
+    0,
+    4
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -8,
+    1,
+    4
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "pos": [
+    -5,
+    0,
+    4
+   ],
+   "node": "mcl_blackstone:soul_soil"
+  },
+  {
+   "pos": [
+    -5,
+    1,
+    4
+   ],
+   "node": "mcl_blackstone:soul_fire",
+   "swap": true
+  },
+  {
+   "pos": [
+    -2,
+    0,
+    4
+   ],
+   "node": "mcl_candles:candle_lit_4"
+  },
+  {
+   "box": [
+    [
+     -12,
+     0,
+     8
+    ],
+    [
+     -6,
+     0,
+     12
+    ]
+   ],
+   "node": "mcl_core:stone"
+  },
+  {
+   "box": [
+    [
+     -11,
+     0,
+     9
+    ],
+    [
+     -7,
+     0,
+     11
+    ]
+   ],
+   "node": "mcl_core:water_source"
+  },
+  {
+   "pos": [
+    -9,
+    0,
+    7
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -9,
+    1,
+    7
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "box": [
+    [
+     -3,
+     0,
+     8
+    ],
+    [
+     0,
+     2,
+     8
+    ]
+   ],
+   "node": "mcl_core:glass"
+  },
+  {
+   "pos": [
+    -2,
+    0,
+    9
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    -2,
+    1,
+    9
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "pos": [
+    1,
+    0,
+    8
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "pos": [
+    1,
+    1,
+    8
+   ],
+   "node": "mcl_fire:eternal_fire"
+  },
+  {
+   "box": [
+    [
+     7,
+     0,
+     0
+    ],
+    [
+     15,
+     0,
+     8
+    ]
+   ],
+   "node": "mcl_nether:netherrack"
+  },
+  {
+   "box": [
+    [
+     7,
+     1,
+     0
+    ],
+    [
+     15,
+     1,
+     8
+    ]
+   ],
+   "node": "mcl_fire:eternal_fire"
+  }
+ ],
+ "poses": [
+  {
+   "name": "netherrack_fire",
+   "pos": [
+    -8,
+    1.6,
+    2.0
+   ],
+   "look_at": [
+    -8,
+    1.0,
+    4
+   ],
+   "fov": 55
+  },
+  {
+   "name": "fire_before_water",
+   "pos": [
+    -9,
+    1.6,
+    4.6
+   ],
+   "look_at": [
+    -9,
+    0.8,
+    9
+   ],
+   "fov": 60
+  },
+  {
+   "name": "field",
+   "pos": [
+    11,
+    1.7999999999999998,
+    -2.2
+   ],
+   "look_at": [
+    11,
+    1.0,
+    3
+   ],
+   "fov": 70
+  },
+  {
+   "name": "flicker_a",
+   "pos": [
+    -8,
+    1.6,
+    2.0
+   ],
+   "look_at": [
+    -8,
+    1.0,
+    4
+   ],
+   "fov": 40
+  }
+ ],
+ "variants": [
+  {
+   "name": "new_day",
+   "time": 0.5
+  },
+  {
+   "name": "new_night",
+   "time": 0.0
+  }
+ ]
+}

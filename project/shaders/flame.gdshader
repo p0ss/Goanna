@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
-// Goanna: a flame, drawn from the game's own animated art. docs/fire-material.md.
+// Goanna: a flame, drawn from the game's own animated art. docs/systems/fire-material.md.
 //
 // Blended, not cut out: each edge texel fades over its outer half, and the
 // cooler tips let some of what is behind them through. Unshaded, because a
