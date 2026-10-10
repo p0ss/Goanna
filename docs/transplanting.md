@@ -12,7 +12,14 @@ you copy, and what did you change?
 ## The three tiers
 
 Luanti code enters Goanna in one of three ways. Know which one you are in
-before you start.
+before you start, and try them in this order:
+
+1. Compile it from the submodule (tier 1).
+2. If it will not compile, give Goanna a stand-in with the name upstream
+   expects, so the upstream file compiles unmodified (rule 4 of tier 2
+   below). `src/goanna_luanti_client.h` and `src/goanna_image_hooks.h` are
+   the pattern.
+3. Only then copy it into `src/transplant/` (tier 2).
 
 ### Tier 1: compiled from the submodule, untouched
 
@@ -111,6 +118,8 @@ reviewer will read.
 | `src/transplant/client/item_visuals_manager.cpp` | `src/client/item_visuals_manager.cpp` | Reaches `Client` | The `Client` is Goanna's stand-in; `createItemMesh` runs with `g_goanna_plain_solids` set, so the inventory item mesh is not bevelled; otherwise verbatim |
 | `src/goanna_icon_raster.cpp` | `src/client/mesh.cpp`, `src/gui/drawItemStack.cpp`, `client/shaders/inventory_shader` | Inventory icons are drawn on the CPU, not through Irrlicht; only the maths is wanted | `applyShadeFactor`, `colorizeMeshBuffer`'s inventory light, `drawItemStack`'s projection and the inventory shader's texel and alpha rules, re-expressed and each marked at its definition. Credits cx384 for `drawItemStack.cpp` |
 | `src/goanna_sky.cpp` | `src/client/sky.cpp` | Sky rendering is Irrlicht; only the maths is wanted | The wicked time of day and sky body position functions only, each marked at its definition. Also credits numzero |
+| `src/goanna_session.cpp` | `src/network/clientpackethandler.cpp`, `src/client/client.cpp`, `src/client/clientenvironment.cpp` | `Client` and `ClientEnvironment` are built around Irrlicht and the client's own scene; Goanna's session replaces them | Restructured rather than copied whole: the `Client::handleCommand_*` packet handlers re-expressed as session methods, `sendInit` and `startAuth` following `Client::sendInit` and `Client::startAuth`, and `stepPlayer` the local player half of `ClientEnvironment::step`; each marked at its definition |
+| `src/goanna_textures.cpp` | `src/client/texturesource.cpp`, `src/client/shader.cpp` | Luanti's texture and shader sources create textures and shaders through the video driver | Mostly Goanna's own texture and shader stand-ins. `getPalette` copied from `TextureSource::getPalette` without its threading; the non-virtual helpers `ShaderFeatures::setConstants` and `IShaderSource::getShader` copied from `shader.cpp` without the skinning query, which asks the video driver for its joint limit; each marked at its definition |
 
 ## Tracking upstream
 
@@ -132,8 +141,8 @@ stays an afternoon rather than a project.
 - Do not fork Luanti. There is no Goanna patch queue against the engine, and
   there should never be one. If Goanna needs an upstream change, the change
   belongs upstream, proposed on its own merits.
-- Do not copy a file because it is convenient. Try tier 1 first. Try a shim
-  second.
+- Do not copy a file because it is convenient. Try tier 1 first, a
+  stand-in second, and copy last.
 - Do not change protocol behaviour. Goanna is a client for ordinary servers
   and must ask for nothing a vanilla client does not ask for, and must
   receive nothing a vanilla client would not receive. Anything that gives a
