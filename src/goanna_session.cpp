@@ -2561,7 +2561,16 @@ void GoannaSession::onAccessDenied(NetworkPacket &pkt) {
     setState(SessionState::Denied, reason);
 }
 
+// A server sends the node and item definitions once, in reply to INIT2.
+// Once they are in, the main thread, the mesh workers and the LodStorage
+// worker read them without a lock, so a second copy would be rebuilt under
+// them. Luanti's own client refuses it too (a sanity_check that the mesh
+// thread is stopped, in Client::handleCommand_NodeDef and _ItemDef).
 void GoannaSession::onNodeDef(NetworkPacket &pkt) {
+    if (m_nodedef_received) {
+        errorstream << "goanna: ignoring node definitions sent a second time" << std::endl;
+        return;
+    }
     std::istringstream tmp_is(pkt.readLongString(), std::ios::binary);
     std::stringstream tmp_os(std::ios::binary | std::ios::in | std::ios::out);
     u16 proto = stats().proto_ver;
@@ -2602,6 +2611,10 @@ void GoannaSession::onNodeDef(NetworkPacket &pkt) {
 }
 
 void GoannaSession::onItemDef(NetworkPacket &pkt) {
+    if (m_itemdef_received) {
+        errorstream << "goanna: ignoring item definitions sent a second time" << std::endl;
+        return;
+    }
     std::istringstream tmp_is(pkt.readLongString(), std::ios::binary);
     std::stringstream tmp_os(std::ios::binary | std::ios::in | std::ios::out);
     u16 proto = stats().proto_ver;
