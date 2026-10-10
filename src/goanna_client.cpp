@@ -19,86 +19,45 @@
 //
 // This file is due to be split; until then, search for the method name.
 
-#include "goanna_client.h"
-#include "util/hashing.h"
-#include "goanna_grass.h"
-#include "goanna_lava.h"
-#include "goanna_flame.h"
-#include <sstream>
-
-#include <godot_cpp/classes/array_mesh.hpp>
-#include <godot_cpp/classes/array_occluder3d.hpp>
-#include <godot_cpp/classes/image.hpp>
-#include <godot_cpp/classes/mesh.hpp>
-#include <godot_cpp/classes/occluder_instance3d.hpp>
-#include <godot_cpp/classes/viewport.hpp>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/object.hpp>
-#include <godot_cpp/variant/packed_color_array.hpp>
-#include <godot_cpp/variant/packed_int32_array.hpp>
-#include <godot_cpp/variant/packed_vector2_array.hpp>
-#include <godot_cpp/variant/packed_vector3_array.hpp>
-#include <godot_cpp/variant/vector3.hpp>
-
-#include "goanna_mesher.h"
-#include "goanna_session.h"
-#include "goanna_textures.h"
-#include "goanna_sky.h"
-#include "itemdef.h"
-#include "inventory.h"
-#include "util/string.h"
-#include "translation.h"
-#include "transplant/localplayer.h"
-#include "client/mapblock_mesh.h"
-#include "client/tile.h"
-#include "client/node_visuals.h"
-#include "goanna_light.h"
-#include "goanna_store.h"
-#include "util/base64.h"
-#include "light.h"
-#include "client/texturepaths.h"
-#include "nodedef.h"
-#include "settings.h"
-#include <SMesh.h>
-#include <CMeshBuffer.h>
-#include <SMaterial.h>
-#include <godot_cpp/classes/os.hpp>
-#include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/classes/resource_loader.hpp>
-#include <godot_cpp/classes/shader_material.hpp>
-#include <godot_cpp/variant/utility_functions.hpp>
-#include <cstdlib>
-#include <cstring>
-#include <algorithm>
-#include <map>
-#include <functional>
-#include <set>
-#include <godot_cpp/variant/packed_vector2_array.hpp>
-
-#include "mapblock.h"
-#include "version.h"
-#include <chrono>
-#include <godot_cpp/classes/rendering_server.hpp>
-#include "goanna_mesh_flags.h"
-#include "goanna_radial_form.h"
-#include "itemgroup.h"
-#include <godot_cpp/classes/quad_mesh.hpp>
+#include "goanna_client_internal.h"
 
 using namespace godot;
 
 namespace {
-using clock_t_ = std::chrono::steady_clock;
-inline double ms_since(const clock_t_::time_point &t0) {
-    return std::chrono::duration<double, std::milli>(clock_t_::now() - t0).count();
+// Two resolutions can contribute to one regional ArrayMesh. Append matching
+// texture surfaces instead of leaving a cell-1 shell and cell-4 fallback as
+// separate scene objects (and therefore separate draw calls).
+void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
+    dst.ground.insert(dst.ground.end(),src.ground.begin(),src.ground.end());
+    dst.faces += src.faces;
+    dst.quads += src.quads;
+    dst.surface_cells += src.surface_cells;
+    dst.skirts += src.skirts;
+    dst.partial += src.partial;
+    dst.max_span = std::max(dst.max_span, src.max_span);
+    for (goanna::LodSurface &from : src.surfaces) {
+        auto it = std::find_if(dst.surfaces.begin(), dst.surfaces.end(), [&](const goanna::LodSurface &to) {
+            return to.texture_id == from.texture_id && to.liquid == from.liquid;
+        });
+        if (it == dst.surfaces.end()) {
+            dst.surfaces.push_back(std::move(from));
+            continue;
+        }
+        const u32 base = (u32)it->pos.size();
+        it->pos.insert(it->pos.end(), from.pos.begin(), from.pos.end());
+        it->nrm.insert(it->nrm.end(), from.nrm.begin(), from.nrm.end());
+        it->uv.insert(it->uv.end(), from.uv.begin(), from.uv.end());
+        it->uv2.insert(it->uv2.end(), from.uv2.begin(), from.uv2.end());
+        it->col.insert(it->col.end(), from.col.begin(), from.col.end());
+        it->custom0.insert(it->custom0.end(), from.custom0.begin(), from.custom0.end());
+        it->idx.reserve(it->idx.size() + from.idx.size());
+        for (u32 i : from.idx)
+            it->idx.push_back(base + i);
+    }
 }
-// Exponential moving average: one bad frame should show, but the number
-// should still be readable.
-inline void ema(double &acc, double sample) { acc = acc * 0.9 + sample * 0.1; }
-// Every node surface declares CUSTOM0 as four unsigned bytes: block light,
-// sky light, ambient occlusion, spare. RGBA8_UNORM happens to be format 0,
-// so this constant is zero today; it is named rather than assumed.
-const uint64_t kNodeSurfaceFlags =
-        (uint64_t)Mesh::ARRAY_CUSTOM_RGBA8_UNORM << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
+} // namespace
+
+namespace goanna {
 
 // Godot's NORMAL_MAP output is tangent-space. Luanti's node mesh carries
 // positions, normals and UVs but no tangents, so merely binding a valid _n
@@ -161,47 +120,6 @@ PackedFloat32Array node_tangents(const PackedVector3Array &verts,
     }
     return out;
 }
-// Light-emitting faces sit outside node lights' shadow caster mask. The sun
-// still sees this layer.
-const uint32_t GLOW_LAYER = 1u << 1;
-const uint32_t ICE_LAYER = 1u << 2;
-
-// Two resolutions can contribute to one regional ArrayMesh. Append matching
-// texture surfaces instead of leaving a cell-1 shell and cell-4 fallback as
-// separate scene objects (and therefore separate draw calls).
-void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
-    dst.ground.insert(dst.ground.end(),src.ground.begin(),src.ground.end());
-    dst.faces += src.faces;
-    dst.quads += src.quads;
-    dst.surface_cells += src.surface_cells;
-    dst.skirts += src.skirts;
-    dst.partial += src.partial;
-    dst.max_span = std::max(dst.max_span, src.max_span);
-    for (goanna::LodSurface &from : src.surfaces) {
-        auto it = std::find_if(dst.surfaces.begin(), dst.surfaces.end(), [&](const goanna::LodSurface &to) {
-            return to.texture_id == from.texture_id && to.liquid == from.liquid;
-        });
-        if (it == dst.surfaces.end()) {
-            dst.surfaces.push_back(std::move(from));
-            continue;
-        }
-        const u32 base = (u32)it->pos.size();
-        it->pos.insert(it->pos.end(), from.pos.begin(), from.pos.end());
-        it->nrm.insert(it->nrm.end(), from.nrm.begin(), from.nrm.end());
-        it->uv.insert(it->uv.end(), from.uv.begin(), from.uv.end());
-        it->uv2.insert(it->uv2.end(), from.uv2.begin(), from.uv2.end());
-        it->col.insert(it->col.end(), from.col.begin(), from.col.end());
-        it->custom0.insert(it->custom0.end(), from.custom0.begin(), from.custom0.end());
-        it->idx.reserve(it->idx.size() + from.idx.size());
-        for (u32 i : from.idx)
-            it->idx.push_back(base + i);
-    }
-}
-} // namespace
-
-
-
-namespace goanna {
 
 GoannaClient::GoannaClient() {
     if (const char *flame = getenv("GOANNA_FLAME_MATERIAL"))
@@ -1610,7 +1528,7 @@ void GoannaClient::set_player_pose(const Vector3 &pos, float pitch_deg, float ya
     }
 }
 
-static Color toColor(const video::SColor &c) {
+Color toColor(const video::SColor &c) {
     return Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, c.getAlpha() / 255.0f);
 }
 static Vector3 toGodotDir(const v3f &v) { return Vector3(v.X, v.Y, -v.Z); }
