@@ -64,6 +64,7 @@ set(BUILD_SHARED_LIBS ${_goanna_shared_libs})
 add_library(goanna SHARED
     src/register_types.cpp
     src/goanna_client.cpp
+    src/goanna_client_near.cpp
     src/goanna_render_scope.cpp
     src/goanna_lava.cpp
     src/goanna_flame.cpp

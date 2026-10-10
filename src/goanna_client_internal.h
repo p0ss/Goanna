@@ -7,7 +7,7 @@
 // goanna_client_*.cpp beside it) and included by nothing else: the headers
 // they use, the timing helpers behind render_stats' numbers (ms_since, ema),
 // the node surface format flags and the render layers, and the declarations
-// of node_tangents (defined in goanna_client.cpp) and toColor (defined in
+// of node_tangents (defined in goanna_client_near.cpp) and toColor (defined in
 // goanna_client.cpp). Do not include it from another header; it is not part of
 // GoannaClient's surface.
 //
@@ -99,7 +99,7 @@ const uint32_t ICE_LAYER = 1u << 2;
 
 namespace goanna {
 
-// Defined in goanna_client.cpp.
+// Defined in goanna_client_near.cpp.
 godot::PackedFloat32Array node_tangents(const godot::PackedVector3Array &verts,
         const godot::PackedVector3Array &norms, const godot::PackedVector2Array &uvs,
         const godot::PackedInt32Array &indices);
