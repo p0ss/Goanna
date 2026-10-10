@@ -99,6 +99,16 @@ a solid block it eats the diffuse and leaves it near black. Backlight adds
 the light arriving from behind a surface, which is the whole of what a leaf
 or a pane of ice wants, and it costs one term instead of a screen space pass.
 
+Screen space subsurface scattering was tried for player skin on 2026-10-02
+and not kept. Skin shader variants wrote `SSS_STRENGTH` from the same byte,
+off by default, with `subsurface_scattering_depth_scale` at 1 so the blur
+was sized in the world. On the RTX 3090 with Godot 4.5.1 against Mineclonia
+statues it changed nothing visible on the authored skin, whose byte covers
+bare skin only and where the pass stops. With the byte across the face it
+halved the contrast of every art border at half a texel, because Godot
+blurs the lit colour, albedo included. It cost about 0.3 to 0.6 ms of GPU
+with two players on screen. The trial's code was not landed.
+
 Normal maps are tangent space, so the block mesher gives every surface a
 tangent frame derived from its UV layout. Without one the maps are silently
 inert, whatever else is correct.
