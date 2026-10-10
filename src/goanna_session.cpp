@@ -1251,7 +1251,7 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         m_interact.dig_time = 0;
         m_interact.crack_level = -1;
     }
-    if (m_interact.digging && !in.dig) {
+    if (m_interact.digging && (!in.dig || selected_def.usable)) {
         sendInteract(INTERACT_STOP_DIGGING, m_pointed_old);
         m_interact.digging = false;
         m_interact.dig_time = 0;
@@ -1269,7 +1269,13 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
         m_repeat_place_timer = 0;
     bool place_now = in.place_pressed || (in.place && m_repeat_place_timer >= repeat_place_time);
 
-    if (pointed.type == POINTEDTHING_NODE) {
+    // Items with on_use take the primary button before node digging or
+    // object punching, including when pointing at air. Like the vanilla
+    // client, send one use on the press edge, not once per held frame.
+    if (selected_def.usable && in.dig) {
+        if (!m_dig_was_down)
+            sendInteract(INTERACT_USE, pointed);
+    } else if (pointed.type == POINTEDTHING_NODE) {
         v3s16 nodepos = pointed.node_undersurface;
         MapNode n = m_map->getNode(nodepos);
         const ContentFeatures &features = m_nodedef->get(n);

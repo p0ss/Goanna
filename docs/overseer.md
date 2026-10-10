@@ -381,3 +381,26 @@ members and loaded on Luanti 5.17.0 with Mineclonia 38561 in a scratch world.
 No GPU or client rendering was used for this launcher test. The existing
 DorfCraft playtest and the new-world activation failure are distinct paths;
 this fix does not claim to diagnose every reported loading or input issue.
+
+## Primary-button item use, 7 October 2026
+
+The current native interaction path ignored `ItemDefinition.usable` and
+sent digging or punching packets for items with `on_use`. It now sends
+`INTERACT_USE` on the primary-button press, including when pointing at air.
+Holding the button does not repeat the callback. Switching from digging to
+such an item cancels the dig and waits for a fresh press before using it.
+
+`tools/test-item-use.py --dorfcraft /path/to/DorfCraft` runs a disposable
+Mineclonia world through the installed Luanti Flatpak and Godot's dummy
+renderer. Its fixture wraps the real callbacks to count packet delivery;
+`project/tests/item_use.gd` drives `step_interact`, rather than opening the
+mode through a chat command. Godot 4.5.1, Luanti 5.17.0 and Mineclonia 38561
+passed 21 checks: designation corners, the room form, the chisel's material
+validation, opening an Overseer session with an air click, restoring
+interaction on exit, held-button and tool-switch behaviour, and ordinary
+pickaxe mining. This is an input/protocol test, not a new rendered-camera
+or completed-engraving test. No GPU client was started.
+
+The rebuilt native library requires restarting Goanna. This establishes a
+missing primary-button path in the current client; it does not establish
+which input or client build was used in the earlier successful playtest.
