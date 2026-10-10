@@ -1,0 +1,95 @@
+# Protocol coverage and the GDScript surface
+
+What Goanna's session currently handles from a Luanti server (5.17 wire
+format, protocol version 53), and how the Godot side reads it via `GoannaClient`. Handlers are
+transplanted from `Client::handleCommand_*` in
+`luanti/src/network/clientpackethandler.cpp`.
+
+## Handshake and world
+| Packet | Status | Godot API |
+|---|---|---|
+| HELLO / AUTH_ACCEPT / ACCESS_DENIED / SRP | done (register, login, denial) | `connect_to`, `status()` |
+| NODEDEF / ITEMDEF / ANNOUNCE_MEDIA / MEDIA | done, READY held until media complete | `status()` counters |
+| MEDIA_PUSH (+HAVE_MEDIA) | done: the file is asked for with REQUEST_MEDIA, loaded on the main thread, then acknowledged; remote media servers are not used | automatic; the file then resolves like any other media |
+| BLOCKDATA (+GOTBLOCKS acks and DELETEDBLOCKS on eviction) | done, meshed with Luanti's `content_mapblock`; resident mapblocks are bounded around the player | `poll_blocks(n)`, `resident_blocks()` |
+| ADDNODE / REMOVENODE | done, re-meshes affected blocks | automatic |
+| MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer` | `step_player(...)` |
+| TIME_OF_DAY (+speed), SET_SKY/SUN/MOON/STARS, CLOUD_PARAMS, SET_LIGHTING, OVERRIDE_DAY_NIGHT_RATIO | done | `sky_state()`, `set_time_of_day_override(t)` |
+| ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation (every animation track 5.17 plays, ordered by priority, addressed by number or by name, each with its own start frame, speed, loop and blend; a stopped track leaves its joints at rest; the pre-5.17 messages play on the first track), bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()`, `entity_animation(id)` |
+| LOCAL_PLAYER_ANIMATIONS | done; the first-person body plays the game's idle, walk, dig and walk-while-digging ranges from the local controls, as the vanilla client plays them on a visible local player, and a server animation on the first track with one of those ranges does not interrupt them | automatic in `sync_entities(dt)` |
+| PLAY_SOUND / STOP_SOUND / FADE_SOUND | done; the client's own sounds (footsteps, landing, jump, digging, placing, item use, damage, other objects' footsteps) are made as upstream's SoundMaker makes them; object-attached sounds follow their object; fades currently stop immediately | `take_sounds()`, `take_stopped_sounds()`, `node_sound(...)` |
+| SPAWN_PARTICLE / SPAWN_PARTICLE_BATCH / ADD_PARTICLESPAWNER / DELETE_PARTICLESPAWNER | fully read, partly drawn (the batch, a step's single particles zstd compressed together, was unread until 2026-09-27, so every mod's `add_particle` in a busy step was lost): every field of the current format is parsed and carried, and `docs/systems/particle-coverage.md` says field by field what is drawn, what is approximated and what is not drawn yet | `take_particles()`, `take_particle_spawners()`, `take_deleted_spawners()` |
+| CHAT_MESSAGE / TOSERVER_CHAT_MESSAGE | done | `take_chat()`, `send_chat(msg)` |
+| HP / BREATH | done; a drop in HP plays the damage sound unless the server asked for no damage effect | `hp()`, `breath()` (also in `hud_state()`) |
+| fall damage (client-computed, ClientEnvironment::step) / TOSERVER_DAMAGE | done, sent when damage is enabled server-side | automatic in `step_player(...)` |
+| PLAYER_SPEED (knockback: server adds velocity to the local player) | done | automatic |
+| HUDADD / HUDCHANGE / HUDRM / HUD_SET_FLAGS / HUD_SET_PARAM | done, kept as Luanti `HudElement`s | `hud_state()` |
+| INVENTORY / INVENTORY_FORMSPEC / SHOW_FORMSPEC / TOSERVER_INVENTORY_ACTION | done (Luanti `Inventory` deserialised; formspecs passed as strings; actions sent as Luanti's action strings) | `inventory_state()`, `inventory_formspec()`, `take_shown_formspecs()`, `send_inventory_fields(...)`, `inventory_action(str)`, `set_wield_index(i)`, `wield_index()` |
+| FORMSPEC_PREPEND (the game's window theme) | done, built behind every server sent form unless the form says `no_prepend[]`, in the old coordinate system as `GUIFormSpecMenu::regenerateGui` does | `formspec_prepend()` |
+| DETACHED_INVENTORY / NODEMETA_CHANGED (and node metadata in BLOCKDATA) | done | `inventory_state_at("detached:<name>" or "nodemeta:x,y,z")`, `detached_inventory_names()` |
+| death screen (builtin's `__builtin:death` formspec, no dedicated packet since 5.9) | done | `respawn()` |
+| node formspecs (`Game::nodePlacement`: a right-clicked node whose metadata has a `formspec` opens it client-side unless sneaking) / TOSERVER_NODEMETA_FIELDS | done | shown formspecs carry `context: "nodemeta:x,y,z"`; `send_nodemeta_fields(context, formname, fields)`; `step_interact(..., sneak)` |
+| textures for UI (item icons, HUD images) | via the texture-modifier DSL; item icons resolve an item's inventory_image, and a node item without one is its item mesh drawn as drawItemStack draws it (`src/goanna_item_icons.h`) | `texture(name) -> Texture2D`, `item_icon(item_name) -> Texture2D` |
+| INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
+
+NDT_MESH nodes go through the same loaders (`Client::getMesh` on the
+stand-in client), so `node_visuals` handles them as upstream does.
+
+Animated node tiles play with the vanilla client's timing, from the frames
+Luanti's `node_visuals` cuts: cube-like tiles from animation arrays whose
+frame the node shader picks, the rest by changing the frame on their one
+shared material. See [node animation](node-animation.md).
+
+## Not yet
+- Node entity visuals and object collision. Item and wield-item visuals, the
+  local player's wield hand and skeletal entities are implemented.
+- An entity Goanna does not draw (one the server made invisible) does not
+  advance its animation, where the vanilla client animates it anyway, so a
+  bone attachment on an invisible parent does not follow the animation.
+- Animated inventory, wield and dropped item images, which still show their
+  first frame, and the animation strips of water and lava tiles, which their
+  own shaders replace. A node being dug shows its first frame under the
+  crack.
+- Batched particles and comprehensive testing of particle parameters; node
+  metadata display, minimap data, camera packets (FOV, CAMERA), mod channels,
+  client-side mods (SSCSM).
+- Several formspec elements have deliberate fallbacks or remain missing.
+  The exact, executable support matrix is maintained in
+  [formspec conformance](../develop/formspec-conformance.md).
+
+## Rendering settings
+
+World surfaces using compatible node tiles are sampled from Godot
+`Texture2DArray` resources and buffers sharing a material are merged. Distant
+mapblocks can be rebuilt as coarse, flat-coloured cells behind the configurable
+detail distance. On the development machine these changes reduced draw calls
+enough to move a range-20 Mineclonia scene from 118 fps to 262 fps; see
+`docs/play/requirements.md` for the measurement context.
+
+- **Auto-bump** (`set_auto_bump(strength)`, 0 = off): a tangent-space normal
+  map is derived from each texture's diffuse luminance at load time (dark
+  texels read as recessed, light as raised) and applied to opaque node
+  materials, so untextured-looking blocks gain surface relief under Godot's
+  lighting. Inferred, not authored; an authored normal map would override it
+  when a material API lands. Default from `GOANNA_AUTO_BUMP`.
+
+- **Bevelling** (`set_bevel(width)`, 0 = off): exposed edges of solid
+  (NDT_NORMAL) nodes are chamfered so blocks read as bevelled rather than
+  perfectly sharp. Nodes are classified by group: `tree` bevels the vertical
+  edges, `falling_node`/`snowy` (sand, gravel, snow) all edges, `soil`/
+  `crumbly` (grass, dirt) the horizontal edges. Faces are inset on their
+  bevelled sides and joined to the cube edges by chamfer quads, with capped
+  three-way corners. Width is a live setting; default from `GOANNA_BEVEL`.
+
+- **Motes** (`set_motes(density)`, 0 = off; driven by `update_motes(around, n)`
+  each frame): pooled particle emitters follow nearby leaf, flora and
+  sand/gravel nodes (classified by group and subsampled), each mote coloured
+  from the node's own texels, so leaves shed drifting leaf-motes, flowers a
+  slow pollen, sand a settling dust. Nearest-N within ~20 nodes are emitted,
+  reusing the light-pool pattern. Density scales the count and per-emitter
+  amount; default from `GOANNA_MOTES`.
+
+## Coordinate conventions
+Luanti positions are in BS units (10 per node), left-handed; Goanna's Godot
+space is nodes with z mirrored: `godot = (x/BS, y/BS, -z/BS)`. Yaw values map
+directly; pitch is negated. `LocalPlayer` and entity positions follow this.

@@ -4,7 +4,7 @@ The Mineclonia audit of 2026-10-05 (stems/mineclonia.audit-2026-10-05.md,
 "Seen in the world, not authored") found textures that reach the screen
 only through a texture expression, and so could take no maps until the
 client composed companions for `^` overlays on node faces, `[combine`,
-`[transform` and `[mask` (docs/materials.md, "Companions of texture
+`[transform` and `[mask` (docs/systems/materials.md, "Companions of texture
 expressions"), and a few mesh entities. This writes a spec per stem for
 them, in the house style (crisp plateaus on the texel grid, each part its
 own material, metal bright, glows from the art's bright texels):

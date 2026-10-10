@@ -87,7 +87,7 @@ func _initialize() -> void:
 	# set_material_strength), and 0 skips the march outright rather than
 	# running it at no depth. Low runs the short march, the others the
 	# full one; every tier takes the micro shadow
-	# (docs/materials.md, "Micro shadows and the short march").
+	# (docs/systems/materials.md, "Micro shadows and the short march").
 	check(float(GraphicsProfiles.PROFILES["lowest"].get("mat_parallax", -1.0)) == 0.0,
 			"the Lowest profile no longer turns parallax off")
 	check(float(GraphicsProfiles.PROFILES["low"].get("mat_parallax", -1.0)) == 1.0

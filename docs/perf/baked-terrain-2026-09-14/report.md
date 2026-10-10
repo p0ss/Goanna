@@ -9,7 +9,7 @@ replace the bake, including at distant locations.
 This is an implementation and loading review, not a finished transition or
 art-direction pass. It reads the existing bake on the server and persists
 the resulting tiles. An additional offline TDL surface export is not part
-of this change. See the [implementation contract](../../baked-terrain.md).
+of this change. See the [implementation contract](../../systems/baked-terrain.md).
 
 ## Live fixture
 

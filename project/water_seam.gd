@@ -8,7 +8,7 @@
 # difference between the two materials is a hard edge across the frame.
 #
 # The far strip's floor sits just under its surface, because that is what a
-# tier plane does in the world (docs/far-rendering.md, "the far tier water
+# tier plane does in the world (docs/systems/far-rendering.md, "the far tier water
 # plane"), so the absorption discontinuity is reproduced too, not only the
 # reflection one.
 #

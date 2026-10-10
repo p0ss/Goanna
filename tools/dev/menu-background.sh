@@ -16,7 +16,7 @@
 # test_world. The menu's panel sits in the middle of the screen, so each is
 # framed with its subject to one side of the centre. Each has its own time:
 # golden hour now lands just before the sun meets the terrain ridge toward it
-# (docs/sky-orchestration.md), and that ridge differs from place to place.
+# (docs/systems/sky-orchestration.md), and that ridge differs from place to place.
 #
 #   headland  the plains village on its headland from the water, at sunset
 #   lantern   a lantern lit street in the eastern village, at blue hour

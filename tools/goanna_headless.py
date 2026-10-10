@@ -11,7 +11,7 @@ compositor with its own nested X display and no output at all, so the
 client renders on the GPU (or on the CPU with software=True) and no window,
 pointer grab or focus change can reach the desktop. Input comes only from
 inside the client, through the control channel's ui_* and key commands
-(docs/control-channel.md).
+(docs/agents/control-channel.md).
 
 Each instance has a supervisor process of its own, detached from whatever
 started it. It starts gamescope, watches the client, and when the client

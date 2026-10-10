@@ -34,7 +34,7 @@ import sys
 CREDIT = ("# Game texture -> path inside a Minecraft resource pack.\n"
           "# Mapping data from https://github.com/Kooostia16/mc_to_mineclonia\n"
           "# by kooostia16, dedicated to the public domain under CC0 1.0.\n"
-          "# Extended by hand; see docs/materials.md.\n"
+          "# Extended by hand; see docs/systems/materials.md.\n"
           "#\n"
           "# A pack is the player's own. Goanna reads it in place and never\n"
           "# writes a converted copy: most Minecraft packs are under ordinary\n"

@@ -4,7 +4,7 @@
 #
 # Run Goanna against a live server with the proof shader pack loaded, take a
 # screenshot, and check that the pack's screen space chain actually drew. See
-# docs/shaderpack-testing.md.
+# docs/develop/shaderpack-testing.md.
 #
 # The client runs in headless gamescope through tools/goanna-headless, on the
 # GPU, so no window reaches the desktop. The screenshot is read back from

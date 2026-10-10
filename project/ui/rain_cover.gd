@@ -6,7 +6,7 @@
 # raindrop (GoannaClient::rain_cover_rows says which nodes those are). The
 # precipitation shader draws a drop only above it, so there is no rain
 # indoors or under a canopy, and the ground and water shaders splash and
-# ripple only where it is open to the sky. docs/weather.md has the whole
+# ripple only where it is open to the sky. docs/systems/weather.md has the whole
 # picture.
 #
 # One texel per node, SIZE across, centred on the player. The sky light the

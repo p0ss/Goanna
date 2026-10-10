@@ -2,7 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 //
 // The crown a body or a blow throws up going into the water
-// (project/ui/splashes.gd, docs/weather.md "Splashes"): a thin sheet of
+// (project/ui/splashes.gd, docs/systems/weather.md "Splashes"): a thin sheet of
 // water standing up in a ring round where it went in, flaring outward as it
 // rises, its lip drawn up into fingers that break apart, then falling back.
 // Taller on the side the body or the blow was going, which is where real

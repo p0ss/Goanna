@@ -19,7 +19,7 @@
 # both paths is one flash.
 #
 # Presentation only. Nothing here happens without the server's spawner, and
-# nothing is asked of the server. docs/weather.md.
+# nothing is asked of the server. docs/systems/weather.md.
 extends Node3D
 
 const SHADER := preload("res://shaders/lightning.gdshader")

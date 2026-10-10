@@ -2,7 +2,7 @@
 
 A check, before LabPBR companions are authored for Mineclonia's mob skins,
 that the client draws an entity's `_n` and `_s` where the art is. It did
-not, in three ways. The rules as they now stand are in `docs/materials.md`,
+not, in three ways. The rules as they now stand are in `docs/systems/materials.md`,
 "Mob, player and item companions".
 
 Rendered on the CPU (lavapipe, llvmpipe LLVM 22.1.8) under headless

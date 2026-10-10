@@ -92,7 +92,7 @@ def main():
                 sources[f[:-4]] = (os.path.join(root, f), dst_dir)
 
     # Serving or publishing this is distribution of a derivative work, so the
-    # bake's provenance travels with it. See docs/materials.md: the art a bake
+    # bake's provenance travels with it. See docs/systems/materials.md: the art a bake
     # reads is routinely not under the game's or the pack's code licence, and
     # a share alike term needs its attribution to travel too.
     src_attr = os.path.join(args.baked, "ATTRIBUTION.md")

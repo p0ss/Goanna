@@ -6,7 +6,7 @@ set of PNGs, one per channel: albedo, normal (OpenGL, green up), roughness,
 metallic, ambient occlusion, depth or height, and emission, named
 <material>_<channel>.png, or in the Godot 4 format an ORM image carrying
 occlusion, roughness and metallic in its channels. This packs those into
-the pair the client reads (see docs/materials.md), under the stem of the
+the pair the client reads (see docs/systems/materials.md), under the stem of the
 game texture they are to dress, and writes the albedo beside them.
 
   tools/pbr/pbr_from_mm.py <export dir> --map bricks=default_brick,gravel=default_gravel

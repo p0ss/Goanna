@@ -5,7 +5,7 @@
 // tooltip, chat or the hotbar. project/ui/glass_surface.gd draws one
 // rectangle with this material, grown by `margin` on every side so the drop
 // shadow has somewhere to fall; project/ui/glass_style.gd owns the numbers
-// and docs/interface-style.md explains them. Two shaders include this file:
+// and docs/systems/interface-style.md explains them. Two shaders include this file:
 //
 // ui_glass.gdshader defines GLASS_FROST. What is behind the panel is read
 // from the screen texture, which Godot copies once per canvas the first time
@@ -16,7 +16,7 @@
 // `ceiling`. That bound is what lets glass_style.gd promise a contrast ratio
 // for text drawn on it, rather than hoping the world behind is dark. The
 // copy is the whole cost of the style, about 0.4 ms a frame at 1600 by 900
-// (docs/interface-style.md), so it is paid only while a window is open.
+// (docs/systems/interface-style.md), so it is paid only while a window is open.
 //
 // ui_glass_clear.gdshader does not read the screen. It is the hotbar's, which
 // is on screen for the whole game: the same shape, rim and shadow over a

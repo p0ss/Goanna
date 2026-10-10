@@ -18,7 +18,7 @@
 #
 # Presentation only. Positions come from what the client already draws (the
 # local player and the entities it has been sent), and the water from the
-# map it already holds; nothing is asked of the server. docs/weather.md,
+# map it already holds; nothing is asked of the server. docs/systems/weather.md,
 # "Wakes" and "Ripples", has the design and what is untested.
 extends Node
 

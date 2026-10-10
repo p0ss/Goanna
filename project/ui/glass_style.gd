@@ -6,7 +6,7 @@
 # (formspec.gd's parity rendering) and Goanna's own screens keep the look they
 # had before the glass existed. This file owns the choice, the palette, the
 # Godot Theme every glass screen shares, and the contrast arithmetic that
-# keeps text on glass legible. docs/interface-style.md explains the numbers
+# keeps text on glass legible. docs/systems/interface-style.md explains the numbers
 # and the rule for what in a form is chrome and what is content.
 #
 # The style is presentation only. Nothing here changes what a form sends,

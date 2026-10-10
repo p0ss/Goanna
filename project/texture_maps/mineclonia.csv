@@ -1,7 +1,7 @@
 # Game texture -> path inside a Minecraft resource pack.
 # Mapping data from https://github.com/Kooostia16/mc_to_mineclonia
 # by kooostia16, dedicated to the public domain under CC0 1.0.
-# Extended by hand; see docs/materials.md.
+# Extended by hand; see docs/systems/materials.md.
 #
 # A pack is the player's own. Goanna reads it in place and never
 # writes a converted copy: most Minecraft packs are under ordinary

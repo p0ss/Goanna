@@ -4,7 +4,7 @@
 """Measure and photograph micro shadows and the short parallax march.
 
 Run it only under the GPU lock, from the checkout whose build is under
-test. What was run on 2026-10-05 (docs/materials.md, "Micro shadows and
+test. What was run on 2026-10-05 (docs/systems/materials.md, "Micro shadows and
 the short march"), per tier:
 
     flock /tmp/claude-1000/goanna-gpu.lock \\
@@ -74,7 +74,7 @@ TIERS = {
 # Goanna's coordinates, which the benchmark plans and the control channel's
 # tp, pose and look use: Luanti's with z negated (the server reported the
 # player at z -424 after "tp -36 92 424"). The vista is the benchmark scene
-# (docs/benchmark.md); the rest are on the fixture platform, built at
+# (docs/develop/benchmark.md); the rest are on the fixture platform, built at
 # Luanti (-40, 90, 420), so Goanna z -420 to -433. "west" walls face -x,
 # toward a low afternoon sun; "south" walls face Goanna +z, which that sun
 # only rakes.

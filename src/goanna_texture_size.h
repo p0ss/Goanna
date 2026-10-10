@@ -3,7 +3,7 @@
 
 #pragma once
 
-// The texture resolution tier (docs/graphics-tiers.md, "Texture
+// The texture resolution tier (docs/systems/graphics-tiers.md, "Texture
 // resolution"): every albedo and LabPBR companion a pack or the server
 // supplies is held to at most a number of map pixels per art texel, and one
 // larger is reduced to it when it is loaded. The cap is the setting's size

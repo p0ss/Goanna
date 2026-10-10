@@ -23,7 +23,7 @@ All are current.
   client in headless gamescope, wait for one to quit (`wait`), and check the
   GPU (`gpu-free`, `gpu-lock`). `goanna_headless.Instance` gives a started
   client the `poll`, `wait` and `terminate` of a `subprocess.Popen`.
-  `tools/goanna-headless --help`. See `docs/agent-interfaces.md`.
+  `tools/goanna-headless --help`. See `docs/agents/agent-interfaces.md`.
 - `goanna-render`, `goanna_render.py`, `render-fixture.lua`: the render
   service, one long lived server and client that hold the GPU lock and take
   shot jobs. `render-fixture.lua` is its worldmod.
@@ -31,13 +31,13 @@ All are current.
 - `goanna-mcp`: MCP server over the control channel, for developers.
   `claude mcp add goanna <checkout>/tools/goanna-mcp`.
 - `goanna-control`: talk to a running client's control channel from a shell.
-  `tools/goanna-control status`. See `docs/control-channel.md`.
+  `tools/goanna-control status`. See `docs/agents/control-channel.md`.
 - `goanna-player`, `goanna-player-mcp`, `goanna_player.py`: act as the player
   of a client started with `GOANNA_PLAYER_AGENT`, from a shell or over MCP.
   `goanna_player.py` is the shared library.
 - `goanna-director-mcp`, `goanna-director-cli`: the director (game master)
   service over MCP, and a shell front end that keeps one running. See
-  `docs/director.md`.
+  `docs/agents/director.md`.
 - `check-style.sh`: the text style and repository rules gate. Must exit
   clean before every commit. `tools/check-style.sh`.
 - `install-git-hooks.sh`, `git-hooks/`: point `core.hooksPath` at
@@ -60,7 +60,7 @@ Current: the authoring, gates and bundle tools.
 - `check-pbr-packs.py`: check the bundled PBR worldmods are laid out so
   Luanti serves them. Current; `release/package-release.sh` runs it.
 - `pbr_bundle.py`: build, verify, catalogue and install versioned asset
-  bundles. Current. See `docs/asset-bundles.md`.
+  bundles. Current. See `docs/develop/asset-bundles.md`.
 - `pbr_census/`: worldmod and ranking script that measure which textures a
   player sees, to order authoring. Current. Has its own `README.md`.
 - `pbr_audit_voxelibre.py`: per file media audit of VoxeLibre stems, read by
@@ -140,7 +140,7 @@ Current: the authoring, gates and bundle tools.
 - `test-fresh-install.sh`: "Get ready to play" from nothing in clean distro
   containers with podman. Current; needs `dist/luanti-server`.
 - `test-launch-target.sh`: the fresh install harness of
-  `docs/launch-target.md`, on the GPU in headless gamescope. Current.
+  `docs/develop/launch-target.md`, on the GPU in headless gamescope. Current.
 - `test-shaderpack.sh`, `shaderpack_check.py`: run with the proof shader pack
   in headless gamescope and check the screenshot. Current; needs a server.
   `shaderpack_check.py` alone checks a saved shot.
@@ -159,7 +159,7 @@ Current: the authoring, gates and bundle tools.
 ## bench: benchmarks and measurements
 
 - `goanna-bench.py`, `bench_plans/`: run a plan of graphics settings against
-  a world and report what each costs. See `docs/benchmark.md`. Desktop
+  a world and report what each costs. See `docs/develop/benchmark.md`. Desktop
   exception: it opens a real window, because frame pacing depends on the
   real present path, so it is run by the owner, or by an agent only when
   the owner has said the machine is free. It takes the GPU lock for the
@@ -176,9 +176,9 @@ Current: the authoring, gates and bundle tools.
   the GPU lock from the first client to the last (`--lock-wait`).
 - `test-local-bench.py`: unit tests for `bench-local-play.py`. Current.
 - `far-baseline.py`: record a far rendering baseline from a running client.
-  Current. See `docs/baseline.md`. It starts nothing; its manifest records
-  whether the client was on the desktop or headless, and a headless run's
-  frame rates are relative only.
+  Current. See `docs/develop/baseline.md`. It starts nothing; its manifest
+  records whether the client was on the desktop or headless, and a headless
+  run's frame rates are relative only.
 - `chart_summary.py`: reduce a lighting chart run to pass or fail lines.
   Current. See `project/lighting_chart.gd`.
 - `terrain-baked-review.py`, `terrain-storage-flight.py`,
@@ -187,7 +187,7 @@ Current: the authoring, gates and bundle tools.
 
 ## release: packaging and publishing
 
-All current. See `docs/building.md` and `docs/asset-bundles.md`.
+All current. See `docs/develop/building.md` and `docs/develop/asset-bundles.md`.
 
 - `build-goanna-extension.sh`: build the GDExtension in Ubuntu 22.04 with
   podman, so releases load on glibc 2.35.

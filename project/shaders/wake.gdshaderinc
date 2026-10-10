@@ -1,5 +1,5 @@
 // Goanna: wake ripples on water, round the player and the animals moving
-// through it. docs/weather.md, "Wakes", has the whole picture.
+// through it. docs/systems/weather.md, "Wakes", has the whole picture.
 //
 // project/ui/wake.gd drops a point on the water behind each swimmer at
 // intervals set by its speed, and one every second or so under a body

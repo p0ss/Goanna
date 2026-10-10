@@ -99,7 +99,7 @@ The provider audit in `provider-flags.json` found 147,064 marked provider
 records and zero marked real voxel records in its sampled stored areas.
 Unvisited older provider records remain eligible for lazy upgrade.
 
-See [the implementation and remaining limits](../../terrain-surface.md).
+See [the implementation and remaining limits](../../systems/terrain-surface.md).
 Raw flight data is in `flight/`; descent/ascent timing and observations
 are in `descent/`. The averaged blanket prototype is not the implementation
 tested here.

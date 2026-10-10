@@ -59,7 +59,7 @@ UprightSprite buildUprightSprite(float size_x, float size_y, bool is_player,
 // a plate on the face itself (the entity shader moves it a hair toward the
 // eye so it wins the depth test) and lights it per vertex from the nodes in
 // front of the face, as the wall beside it is lit, instead of one level for
-// the whole entity. See docs/materials.md, "Wall plates".
+// the whole entity. See docs/systems/materials.md, "Wall plates".
 //
 // The quad's front normal must be horizontal and along a world axis, and its
 // plane within kWallPlateGap of a node face. Then `axis` is 0 for x or 2 for

@@ -79,7 +79,7 @@ struct MaterialKey {
     u8 crack_scale = 1;
     // A far tier's copy of an array material: the same shader and arrays,
     // with block light added as emission because the node lights do not
-    // reach that far. See docs/far-rendering.md.
+    // reach that far. See docs/systems/far-rendering.md.
     bool lod = false;
     // An array tile whose own layer has no alpha, in an array that has
     // some: drawn by nodes_array.gdshader, not the scissor variant, so it
@@ -190,7 +190,7 @@ public:
     void set_texture_map(const godot::String &csv);
     void set_texture_path(const godot::String &path);
     // The texture resolution tier: 128, 256 or 512 map pixels per 16 art
-    // texels, 0 for no cap (docs/graphics-tiers.md). Every albedo and
+    // texels, 0 for no cap (docs/systems/graphics-tiers.md). Every albedo and
     // companion over it is reduced as it is loaded
     // (GoannaTextureSource::setTextureSize). It applies to the session's
     // content when that is prepared, so a change takes effect at the next
@@ -396,7 +396,7 @@ public:
     // Which shader draws the top face of the node at a Godot-space
     // position, and why: the node, its top tile, whether that tile is in
     // an array and whether the array holds any alpha. Weather diagnostics
-    // (docs/weather.md), since the rain terms differ between the two array
+    // (docs/systems/weather.md), since the rain terms differ between the two array
     // shaders.
     godot::Dictionary top_surface_at(const godot::Vector3 &pos);
     // "${key}" in a node's own form, resolved from that node's metadata
@@ -425,7 +425,7 @@ public:
     // and hands it to a worker; poll returns the finished panorama once,
     // as {albedo: Image, dist: Image, origin, r0, r1, y_min, y_max}, or an
     // empty dictionary. origin in Godot space. See goanna_horizon.h and
-    // docs/sky-orchestration.md.
+    // docs/systems/sky-orchestration.md.
     void horizon_bake_request(const godot::Vector3 &origin, float r0, float r1);
     godot::Dictionary horizon_bake_poll();
     // The worst single publish, near batch and occluder costs since this
@@ -456,7 +456,7 @@ public:
     int resident_blocks();
     // Distance in mapblocks past which blocks are drawn coarsely: merged
     // cells on the node array shader, in per region meshes, one tier per
-    // doubling of distance (docs/far-rendering.md rungs 2 and 3). 0 disables.
+    // doubling of distance (docs/systems/far-rendering.md rungs 2 and 3). 0 disables.
     // update_lod re-meshes blocks whose tier changed as the player moves,
     // bounded per call so it cannot stall a frame. lod_cell is the cell size
     // of the first tier in nodes, a power of two from 2 to 16; each further
@@ -473,7 +473,7 @@ public:
     void set_mesh_threads(int threads);
     int mesh_threads() const { return m_mesh_threads; }
     int update_lod(const godot::Vector3 &around, int max_rebuild);
-    // The local block store (docs/far-rendering.md rung 5). The root
+    // The local block store (docs/systems/far-rendering.md rung 5). The root
     // directory; each server gets its own subdirectory beneath it. Empty
     // turns the store off. Set before connect_to. Blocks are written as they
     // arrive; they are drawn beyond the server's range only when the server
@@ -484,7 +484,7 @@ public:
     void set_far_distance(int nodes);
     // The knowledge/mesh split: region meshes stop at this radius while
     // chains, summaries and the horizon bake continue to the far distance.
-    // 0 or negative disables the split. See docs/sky-orchestration.md.
+    // 0 or negative disables the split. See docs/systems/sky-orchestration.md.
     void set_far_mesh_distance(int nodes);
     int far_mesh_distance() const { return m_far_mesh_distance; }
     // Occluders are published only for near regions within this many nodes
@@ -712,7 +712,7 @@ private:
     // Resident blocks are always full detail; a non-resident block starts at
     // the finest coarse tier even inside this distance, so server delivery
     // holes cannot become a circular trench. Everything far gates on this
-    // being above zero; 0 turns it off. docs/launch-target.md.
+    // being above zero; 0 turns it off. docs/develop/launch-target.md.
     // Blocks nearer than this are drawn at full detail. Twelve was chosen
     // before there was any far rendering at all, when everything past it was
     // fog, so it had to be close enough to hide that. Now the far tiers draw
@@ -725,11 +725,11 @@ private:
     float m_lod_focal_pixels = 640.0f;
     int m_lod_cell = 4;
     // The smoothed surface reads as melted terrain wherever the far field
-    // meets a cliff or a coastline (docs/far-rendering.md, "Terraces or
+    // meets a cliff or a coastline (docs/systems/far-rendering.md, "Terraces or
     // slopes" and "Stop the far surface averaging across cliffs"), and it
     // is a Minecraft world underneath either way, so the honest default is
     // the one that looks like the blocks actually there.
-    // --- far rendering (docs/far-rendering.md rungs 2 and 3) ---
+    // --- far rendering (docs/systems/far-rendering.md rungs 2 and 3) ---
     // Blocks at a tier of 1 or more are not meshed one by one: each belongs
     // to a region at its tier, and the region is one mesh built from the
     // blocks' coarse chains (goanna_lod.h). A region is rebuilt when any of
@@ -930,7 +930,7 @@ private:
     // match farRenderingGrant() the first time one is seen, so a fresh
     // install draws out to whatever the server actually allowed rather than
     // to half of it. set_far_distance (an explicit env var or settings panel
-    // choice) turns that off, docs/launch-target.md task 2d.
+    // choice) turns that off, docs/develop/launch-target.md task 2d.
     int m_far_distance = 512;
     // Nodes: how far the far field actually reaches around the player, the
     // ninetieth percentile ring of what is drawn, recomputed on each far
@@ -943,7 +943,7 @@ private:
     // does. A depth fog takes a begin and an end, so it can have both: the
     // haze starts where the sparse directions run out and closes where the
     // rich ones do, instead of flattening real terrain to sky colour because
-    // some other bearing is empty (docs/far-rendering.md, "Haze over the
+    // some other bearing is empty (docs/systems/far-rendering.md, "Haze over the
     // ragged frontier").
     int m_far_extent = 0;
     int m_far_reach = 0;
@@ -973,7 +973,7 @@ private:
     // asks every frame.
     godot::Dictionary m_render_info;
     std::chrono::steady_clock::time_point m_render_info_at{};
-    // The ridge probe (docs/sky-orchestration.md): the terrain horizon
+    // The ridge probe (docs/systems/sky-orchestration.md): the terrain horizon
     // toward the sun's azimuth as the eye last saw it, published through
     // sky_state() so main.gd can re-base its dawn ramps on the sun's
     // altitude relative to what actually occludes it. sin is
@@ -1049,7 +1049,7 @@ private:
         // A reply for this area has been read, so the two flags below mean
         // something. They are what decides whether the layer above or below
         // is worth asking for at all, rather than a fixed window of layers
-        // (docs/far-rendering.md, "Lids, layers and the vertical walk").
+        // (docs/systems/far-rendering.md, "Lids, layers and the vertical walk").
         bool answered = false;
         // Terrain reaches the top face of this area, so it may carry on into
         // the layer above.
@@ -1064,7 +1064,7 @@ private:
         // treat that as a reason to look further down: a layer the server
         // has never made says nothing about the layer under it, and taking
         // it as an invitation walked the request queue straight out of the
-        // bottom of the world (docs/far-rendering.md, "Where the summary
+        // bottom of the world (docs/systems/far-rendering.md, "Where the summary
         // budget actually went").
         bool empty = false;
         // Every generated record in the reply was air from top to bottom: the
@@ -1080,7 +1080,7 @@ private:
     // fewer rays as the horizon converges, so a player standing in front of
     // a finished view pays almost nothing, and recovers as soon as they turn
     // or walk and the yield rises again. Seeded from a counter rather than a
-    // clock so a benchmark run repeats: docs/benchmark.md.
+    // clock so a benchmark run repeats: docs/develop/benchmark.md.
     float m_far_ray_yield = 1.0f;
     uint32_t m_far_ray_seed = 1;
     // Asks awaiting a reply, each on its own clock. m_far_inflight mirrors

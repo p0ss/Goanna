@@ -3,7 +3,7 @@
 #
 # Headless: --headless --path project --script res://tests/water_optics.gd
 #
-# The water round the eye (docs/water-optics.md), everything that can be
+# The water round the eye (docs/systems/water-optics.md), everything that can be
 # checked without drawing a frame:
 #   - the water shader compiles with the shared optics and the globals it
 #     reads are registered, at the beach's values by default; the underwater

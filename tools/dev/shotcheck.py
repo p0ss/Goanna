@@ -95,7 +95,7 @@ def band_detail(path, top, bottom):
     """The same Laplacian standard deviation as local_detail, over a
     horizontal band of the frame (top and bottom as fractions of height, full
     width) instead of the centre quarter. Used to read the far band of a
-    horizon shot, docs/far-rendering.md task 2c: a tile that still repeats
+    horizon shot, docs/systems/far-rendering.md task 2c: a tile that still repeats
     once per node at the range a merged region quad is actually seen from
     aliases into a per-pixel shimmer, which this measures as high local
     variance even though the frame is otherwise an ordinary lit scene, not a
@@ -124,7 +124,7 @@ def _row_for_elevation(pitch_deg, fov_deg, elevation_deg):
     tangent of the half vertical fov. Checked on this machine against the
     real camera (`cam.project_ray_normal` at the row this returns lands
     within a node of the ground distance it was asked for; see the R4 entry
-    in docs/launch-target.md for the numbers)."""
+    in docs/develop/launch-target.md for the numbers)."""
     if fov_deg is None or fov_deg <= 0 or elevation_deg is None:
         return None
     theta_deg = elevation_deg - pitch_deg
@@ -144,7 +144,7 @@ def horizon_boundary_row(pitch_deg, fov_deg, eye_height, target_distance):
     """Row (as a fraction of image height) where a flat ground plane
     `target_distance` nodes out crosses the frame, given the camera's
     `eye_height` above that plane. This is the live/far boundary row for
-    docs/launch-target.md's R4 continuity check, with `target_distance` the
+    docs/develop/launch-target.md's R4 continuity check, with `target_distance` the
     live range (`view_range` blocks * 16). None if the boundary is not
     visible in this frame, most often because the camera is pitched above
     the horizon."""
@@ -181,7 +181,7 @@ def band_luma_chroma(arr, top_frac, bottom_frac):
 
 
 def _far_geometry(meta):
-    """Everything docs/launch-target.md's R4 continuity and pop checks need
+    """Everything docs/develop/launch-target.md's R4 continuity and pop checks need
     to place the live/far boundary and the horizon on a horizon shot: the
     camera's pitch and vertical fov, its height above the ground the harness
     found under the player, and the live range in nodes (view_range * 16).
@@ -212,7 +212,7 @@ def _far_geometry(meta):
 
 
 def continuity_check(horizon_path, v_boundary, band_frac):
-    """docs/launch-target.md R4: the mean luminance and mean chroma of a
+    """docs/develop/launch-target.md R4: the mean luminance and mean chroma of a
     band just inside the live/far boundary (closer than it, still live)
     against a band just outside it (past it, in the far tiers), on the one
     horizon shot. One light, one air says these should read the same; a per
@@ -230,7 +230,7 @@ def continuity_check(horizon_path, v_boundary, band_frac):
 
 
 def pop_fraction_series(paths, top_frac, bottom_frac, change):
-    """docs/launch-target.md R4's pop metric: the fraction of pixels in a
+    """docs/develop/launch-target.md R4's pop metric: the fraction of pixels in a
     horizontal band (full width, the far band between the horizon and the
     live/far boundary) whose luminance moves by more than `change` between
     each consecutive pair of frames in `paths`, a burst taken with the
@@ -264,7 +264,7 @@ def main():
     ap.add_argument("--max-step", type=float,
             help="with --walk-series, fail if an adjacent luminance step exceeds this")
     ap.add_argument("--launch-target", action="store_true",
-            help="check docs/launch-target.md task 1's pair: a horizon shot and a wall "
+            help="check docs/develop/launch-target.md task 1's pair: a horizon shot and a wall "
                  "shot, plus --settings, the JSON of settings and render_stats the "
                  "harness wrote beside them. Also runs R4's continuity and pop checks "
                  "when the settings JSON carries the pose and burst frames for them")
@@ -275,13 +275,13 @@ def main():
             help="with --launch-target, minimum local_detail() on the wall shot, when "
                  "auto_bump is on (default 5.0)")
     ap.add_argument("--continuity-band-frac", type=float, default=0.03,
-            help="with --launch-target, docs/launch-target.md R4: half width, as a fraction "
+            help="with --launch-target, docs/develop/launch-target.md R4: half width, as a fraction "
                  "of frame height, of the band read just inside and just outside the live/far "
                  "boundary row on the horizon shot (default 0.03)")
     ap.add_argument("--continuity-luminance-max", type=float, default=8.0,
             help="with --launch-target, R4: maximum mean luminance difference (0-255) between "
                  "the band just inside the live/far boundary and the band just outside it "
-                 "(default 8.0, see docs/launch-target.md R4 for how this was chosen)")
+                 "(default 8.0, see docs/develop/launch-target.md R4 for how this was chosen)")
     ap.add_argument("--continuity-chroma-max", type=float, default=3.0,
             help="with --launch-target, R4: maximum mean chroma difference between the same "
                  "two bands (default 3.0)")
@@ -292,7 +292,7 @@ def main():
             help="with --launch-target, R4: maximum fraction of far-band pixels allowed to "
                  "change in any single frame of the standing-still burst (default 0.01)")
     ap.add_argument("--far-band", action="store_true",
-            help="check a horizon shot's far band (docs/far-rendering.md task 2c): fails "
+            help="check a horizon shot's far band (docs/systems/far-rendering.md task 2c): fails "
                  "if a merged region quad, water included, still aliases into a shimmer "
                  "at the range it is actually seen from")
     ap.add_argument("--far-band-top", type=float, default=0.40,
@@ -419,7 +419,7 @@ def main():
                 if not pack_ok:
                     bad += 1
 
-            # R4, docs/launch-target.md: continuity across the live/far boundary, and a
+            # R4, docs/develop/launch-target.md: continuity across the live/far boundary, and a
             # pop metric, both needing the pose and (for the pop metric) the burst frames
             # tools/test/test-launch-target.sh writes into the settings JSON alongside the two
             # shots task 1 already takes.

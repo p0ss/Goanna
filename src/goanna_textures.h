@@ -310,7 +310,7 @@ public:
     void insertLocalImage(const std::string &name, video::IImage *img);
 
     // The texture resolution tier (goanna_texture_size.h,
-    // docs/graphics-tiers.md): 128, 256 or 512, or 0 for no cap. An albedo
+    // docs/systems/graphics-tiers.md): 128, 256 or 512, or 0 for no cap. An albedo
     // or companion with more than size / 16 map pixels per art texel is
     // reduced to that as it is inserted, so node arrays, entities and
     // composed companions all start from the reduced image. The art is the
@@ -374,7 +374,7 @@ public:
     GoannaTexture *composedCompanion(const std::string &texture, const char *suffix,
             bool *supported);
 
-    // Animated node tiles (docs/node-animation.md). Built once node visuals
+    // Animated node tiles (docs/systems/node-animation.md). Built once node visuals
     // are filled, on the thread that filled them, before anything is meshed
     // with them: collects every animated TileLayer and packs the frames of
     // the tiles the array shader can draw (arrayPathTile) into animation
@@ -406,7 +406,7 @@ public:
     void setNodeAnimationEnabled(bool on) { m_node_anim_enabled.store(on); }
     bool nodeAnimationEnabled() const { return m_node_anim_enabled.load(); }
 
-    // The classifier's table (docs/pbr-plan.md step 2), owned by the session,
+    // The classifier's table (docs/design/pbr-plan.md step 2), owned by the session,
     // read when an array's companion layers are synthesised for textures a
     // pack does not cover. Setting it drops every cached companion array.
     void setMaterialTable(const MaterialTable *table);

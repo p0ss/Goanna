@@ -4,7 +4,7 @@
 #pragma once
 
 // Far rendering: the derived occupancy chain per mapblock and the per region
-// tier mesher. docs/far-rendering.md rungs 2 and 3, docs/mesh-attributes.md
+// tier mesher. docs/systems/far-rendering.md rungs 2 and 3, docs/systems/mesh-attributes.md
 // for the vertex layout the output meets.
 //
 // Each mapblock that is drawn coarsely, or that neighbours one, gets a chain
@@ -16,7 +16,7 @@
 //
 // No Godot types: the client converts the output to arrays. The occupancy
 // tracer is the one in goanna_occlusion.h, run against a field at the tier's
-// cell size, which is the far field term in docs/far-rendering.md.
+// cell size, which is the far field term in docs/systems/far-rendering.md.
 
 #include <array>
 #include <cstdint>
@@ -93,7 +93,7 @@ struct LodLevel {
         // a parent occupied if any child is, so at cell 16 a crown that is a
         // sixth leaves and the rest sky is stored, meshed and shaded exactly
         // like solid rock: the "single leaf made a cliff, and a jungle canopy
-        // became a wall of cubes" in docs/far-rendering.md. A fill threshold
+        // became a wall of cubes" in docs/systems/far-rendering.md. A fill threshold
         // once stood in for this and went out with the volumetric reducer.
         // This is the fraction that threshold was reaching for, kept rather
         // than decided, so the mesher and the shader can use it as openness.
@@ -137,7 +137,7 @@ struct BlockLodChain {
     std::array<uint16_t, 64> fine_record_base{};
     std::vector<FineRecord> fine_records;   // sorted by index
     // Derived from the store rather than from a live block: what the far
-    // tiers mark as stale (docs/far-rendering.md, "Staleness").
+    // tiers mark as stale (docs/systems/far-rendering.md, "Staleness").
     bool stored = false;
     // Built from a server summary rather than from nodes. A later summary of
     // the same block replaces it; a chain from nodes is never replaced by one.
@@ -202,7 +202,7 @@ void compactLodFineBoundary(BlockLodChain &out);
 // Output, in Godot space (nodes, z mirrored), world absolute, one surface per
 // array texture. texture_id 0 is the flat colour fallback for tiles that have
 // no array texture, where col carries the average tile colour instead of a
-// tint. Everything else follows docs/mesh-attributes.md.
+// tint. Everything else follows docs/systems/mesh-attributes.md.
 struct LodSurface {
     u32 texture_id = 0;
     // A liquid surface: texture_id is then the 2D image of the liquid's
@@ -223,7 +223,7 @@ struct LodRegionMesh {
     int faces = 0; // cell faces before merging
     int quads = 0; // after
     // Ground cells drawn as part of the connected surface, and the skirts
-    // dropped at its edges (docs/far-rendering.md, "The far field as a
+    // dropped at its edges (docs/systems/far-rendering.md, "The far field as a
     // surface"). Neither goes through the merge.
     int surface_cells = 0;
     int skirts = 0;
@@ -231,7 +231,7 @@ struct LodRegionMesh {
     // cell vertically. Each such face sits at its own height inside its own
     // row of cells, so it can only ever merge along one axis, and a field of
     // them is a field of strips. The ratio is the instrument for whether a
-    // tier is meshing a surface or a staircase (docs/far-rendering.md,
+    // tier is meshing a surface or a staircase (docs/systems/far-rendering.md,
     // "Strips, and what the merge can and cannot do").
     int partial = 0;
     // The widest a single merged quad got, in nodes along its longer edge,
@@ -239,7 +239,7 @@ struct LodRegionMesh {
     // unit per node). Handed to the region's MeshInstance3D as an instance
     // uniform so the shader can flatten a panel that is merged flat and wide
     // even where it sits close to the camera, not only where it is far
-    // (docs/far-rendering.md, "Shade the far field as a far field").
+    // (docs/systems/far-rendering.md, "Shade the far field as a far field").
     int max_span = 0;
     bool empty() const { return surfaces.empty(); }
 };

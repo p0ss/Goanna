@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 """Observe and act as the player of a Goanna client started with
-GOANNA_PLAYER_AGENT (docs/agent-interfaces.md). Every action takes
+GOANNA_PLAYER_AGENT (docs/agents/agent-interfaces.md). Every action takes
 --based-on, the sequence of the observation it was decided on, except
 release. Prints the JSON result; exits 0 unless the request itself failed."""
 import argparse

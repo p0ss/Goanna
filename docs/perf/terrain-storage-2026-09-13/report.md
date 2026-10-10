@@ -96,5 +96,5 @@ worker execution, shutdown, summary reuse and cold index lookups.
 
 Each run directory contains `metadata.json`, `observations.jsonl`,
 `samples.jsonl`, `frames.csv`, `summary.json`, `held.json`, `held.png` and
-`client.log`. See [the storage contract](../../terrain-storage.md) for
+`client.log`. See [the storage contract](../../systems/terrain-storage.md) for
 implementation details and remaining limits.

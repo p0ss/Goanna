@@ -9,12 +9,12 @@ and draws them with a renderer of its own.
 It is alpha quality. The Luanti client remains the reference for
 compatibility and reliability.
 
-![A forested valley rendered in Goanna](docs/forest.png)
+![A forested valley rendered in Goanna](docs/assets/forest.png)
 
 | Landscapes | Lighting and materials |
 | --- | --- |
-| ![Village and surrounding terrain](docs/village.png) | ![Dynamic lighting](docs/light.png) |
-| ![Underwater terrain](docs/underwater.png) | ![Lava falling into a cave](docs/lava.png) |
+| ![Village and surrounding terrain](docs/assets/village.png) | ![Dynamic lighting](docs/assets/light.png) |
+| ![Underwater terrain](docs/assets/underwater.png) | ![Lava falling into a cave](docs/assets/lava.png) |
 
 ## What it draws
 
@@ -65,9 +65,9 @@ cmake --build build
 ```
 
 The menu provides Start Game, Join Game, Content, Settings and About. See
-[docs/players.md](docs/players.md) for controls, requirements, Terrain
+[docs/play/index.md](docs/play/index.md) for controls, requirements, Terrain
 Diffusion downloads and current limitations. See
-[docs/developers.md](docs/developers.md) to build, test or extend Goanna.
+[docs/develop/index.md](docs/develop/index.md) to build, test or extend Goanna.
 
 ## Compatibility and scope
 
@@ -84,30 +84,38 @@ currently play-tested.
 Game controller support is in the code but has not been played with a
 controller, on a Steam Deck or anywhere else; only headless tests with
 synthetic events on Godot 4.5.1 have run. See
-[docs/controller.md](docs/controller.md).
+[docs/play/controllers.md](docs/play/controllers.md).
 
 ## Documentation
 
-Player-facing documentation starts at [docs/players.md](docs/players.md).
-Developer-facing documentation starts at [docs/developers.md](docs/developers.md).
-The specialised references remain available for contributors:
+Player-facing documentation starts at [docs/play/index.md](docs/play/index.md).
+Developer-facing documentation starts at
+[docs/develop/index.md](docs/develop/index.md). The specialised references
+remain available for contributors:
 
-- [Building and validation](docs/building.md), [requirements](docs/requirements.md)
-- [Benchmarking graphics settings](docs/benchmark.md), [rendering baseline](docs/baseline.md)
-- [Distant terrain](docs/far-rendering.md), [materials](docs/materials.md),
-  [PBR plan](docs/pbr-plan.md)
-- [Protocol coverage](docs/protocol-coverage.md), [capabilities](docs/capabilities.md),
-  [control channel](docs/control-channel.md)
-- [Iris compatibility](docs/iris-compat.md), [shader-pack testing](docs/shaderpack-testing.md)
-- [Transplanting Luanti code](docs/transplanting.md), [validation](docs/validation.md)
-- [Launch target](docs/launch-target.md), [roadmap](docs/roadmap.md)
-- [Game controllers](docs/controller.md), untested on hardware
+- [Building and validation](docs/develop/building.md),
+  [requirements](docs/play/requirements.md)
+- [Benchmarking graphics settings](docs/develop/benchmark.md), [rendering
+  baseline](docs/develop/baseline.md)
+- [Distant terrain](docs/systems/far-rendering.md),
+  [materials](docs/systems/materials.md), [PBR plan](docs/design/pbr-plan.md)
+- [Protocol coverage](docs/systems/protocol-coverage.md),
+  [capabilities](docs/design/capabilities.md), [control
+  channel](docs/agents/control-channel.md)
+- [Iris compatibility](docs/design/iris-compat.md), [shader-pack
+  testing](docs/develop/shaderpack-testing.md)
+- [Transplanting Luanti code](docs/develop/transplanting.md),
+  [validation](docs/design/validation.md)
+- [Launch target](docs/develop/launch-target.md),
+  [roadmap](docs/design/roadmap.md)
+- [Game controllers](docs/play/controllers.md), untested on hardware
 
 ## Contributing and licence
 
 Build reports from machines other than the author's, compatibility reports,
 focused tests and reviews of the Luanti transplant boundaries are especially
-useful. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/style.md](docs/style.md).
+useful. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+[docs/develop/style.md](docs/develop/style.md).
 
 Goanna is LGPL-2.1-or-later, except where a texture pack notes otherwise:
 the packs under `pbr_packs/` and the asset bundles built from them are

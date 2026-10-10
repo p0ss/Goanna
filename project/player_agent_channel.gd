@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The player agent interface (docs/agent-interfaces.md, section 2): an
+# The player agent interface (docs/agents/agent-interfaces.md, section 2): an
 # external program observes one connected player and acts as that player,
 # with nothing a person at the keyboard does not have.
 #

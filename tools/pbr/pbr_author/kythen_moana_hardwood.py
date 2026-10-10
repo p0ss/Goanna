@@ -71,7 +71,7 @@ def main():
     # edge, and the seam measure's inner average, mostly flat plateau
     # texels, dilutes the three interior steps against the one wrap step
     # and reads it as a failure even though the material tiles (see
-    # docs/pbr-authoring-playbook.md's note on this). A continuous V has
+    # docs/develop/pbr-authoring-playbook.md's note on this). A continuous V has
     # no flat floor to create that asymmetry and tiles exactly, since the
     # join period divides the map size.
     period = scale * (join_cols[1] - join_cols[0]) if len(join_cols) > 1 else scale * w

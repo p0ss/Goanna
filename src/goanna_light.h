@@ -13,9 +13,9 @@
 // the tint alone, and the light values are read here from the same nodes
 // Luanti would have read, into their own vertex attribute.
 //
-// docs/mesh-attributes.md is the contract this fills. The occupancy field and
+// docs/systems/mesh-attributes.md is the contract this fills. The occupancy field and
 // the cone tracer below are deliberately parameterised on cell size, because
-// the far tiers in docs/far-rendering.md trace the same shapes against a
+// the far tiers in docs/systems/far-rendering.md trace the same shapes against a
 // coarser field and there should be one tracer, not two.
 
 #include <cstdint>

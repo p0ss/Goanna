@@ -104,7 +104,7 @@ static void ensureSettings() {
     // decoded value anyway, so the two faults hid each other, and turning
     // Luanti's smooth lighting on could not have worked even with that flag
     // cleared. Found by reading param1 off the wire (14) and the decode of the
-    // same node (0) side by side. See docs/mesh-attributes.md.
+    // same node (0) side by side. See docs/systems/mesh-attributes.md.
     defaults->setDefault("display_gamma", "1.0");
     defaults->setDefault("lighting_alpha", "0.0");
     defaults->setDefault("lighting_beta", "1.5");
@@ -183,7 +183,7 @@ void GoannaSession::start(const std::string &host, uint16_t port, const std::str
         // One directory per server. The host as given, with anything that
         // is not a filename character folded to '_'; a world is not named
         // on the wire, so a server that swaps worlds shows stale terrain
-        // until it is looked at again, which docs/far-rendering.md accepts.
+        // until it is looked at again, which docs/systems/far-rendering.md accepts.
         std::string dir = host;
         for (char &c : dir)
             if (!isalnum((unsigned char)c) && c != '.' && c != '-')
@@ -2313,7 +2313,7 @@ bool GoannaSession::prepareContentIfReady() {
         for (auto &kv : min_light)
             if (kv.second > 0)
                 m_emissive_by_texture[kv.first] = kv.second;
-        // The per node classifier, docs/pbr-plan.md step 2: material class
+        // The per node classifier, docs/design/pbr-plan.md step 2: material class
         // and Minecraft block per node, voted down to per texture, and handed
         // to the texture source so the array companions it synthesises for
         // textures no pack covers carry the class rather than nothing.
@@ -3150,7 +3150,7 @@ void GoannaSession::onBlockData(NetworkPacket &pkt) {
     block->deSerializeNetworkSpecific(istr);
     // Into the store as it came: the payload is already the compact form
     // Luanti serialises, so this is a write of what was received and nothing
-    // more. docs/far-rendering.md rung 5.
+    // more. docs/systems/far-rendering.md rung 5.
     if (m_store) {
         m_store_dirty.erase(p);
         m_store_pending.insert(p);

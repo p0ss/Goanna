@@ -2,7 +2,7 @@
 -- Validation and application of the model's intents, and the answers to its
 -- queries.
 --
--- Every intent goes through the same pipeline (docs/director.md, "Actions"):
+-- Every intent goes through the same pipeline (docs/agents/director.md, "Actions"):
 -- schema, scope, stop, budget, the framework's rules, the place, pacing,
 -- apply with an undo record, audit. A refusal carries a machine readable
 -- reason. A player who has opted out is never targeted, spoken to, placed

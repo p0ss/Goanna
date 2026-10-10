@@ -3,7 +3,7 @@
 # Copyright (C) 2026 the Goanna contributors
 """The render service: one long lived server and headless client that own
 the GPU lock and take shot jobs. The work is in tools/goanna_render.py; run
-with no arguments for usage, and see docs/agent-interfaces.md, "The render
+with no arguments for usage, and see docs/agents/agent-interfaces.md, "The render
 service", for the job format."""
 
 import pathlib

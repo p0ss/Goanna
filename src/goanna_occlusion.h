@@ -9,7 +9,7 @@
 // it is grid arithmetic, so it can be tested offline against a dense reference
 // integral (goanna_light_test.cpp) and reused unchanged by the far tiers,
 // which trace the same shapes against a coarser field. See
-// docs/far-rendering.md, "Baked ambient occlusion", and docs/mesh-attributes.md.
+// docs/systems/far-rendering.md, "Baked ambient occlusion", and docs/systems/mesh-attributes.md.
 
 #include <cstdint>
 #include <vector>

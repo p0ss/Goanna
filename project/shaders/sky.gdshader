@@ -39,7 +39,7 @@ uniform vec3 cloud_ambient_color : source_color = vec3(0.16);
 // luminances.
 uniform vec3 cloud_beam = vec3(1.0, 0.9, 0.7);
 uniform vec3 air_beam = vec3(0.0);
-// The baked horizon (src/goanna_horizon.cpp, docs/sky-orchestration.md):
+// The baked horizon (src/goanna_horizon.cpp, docs/systems/sky-orchestration.md):
 // a cylindrical panorama of the terrain the client knows about beyond the
 // drawn far field. Albedo and distance only; it is relit here every frame
 // from the same beam and air the live terrain answers to, so it rides
@@ -78,7 +78,7 @@ uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
 // half where the look and the light disagree. Three ways, all judged on
-// project/lighting_chart.tscn (docs/pbr-plan.md step 3):
+// project/lighting_chart.tscn (docs/design/pbr-plan.md step 3):
 //   radiance_ground_lift  the visible ground half of the dome is the horizon
 //                         colour darkened, which reads as a horizon; as
 //                         light it tells a vertical face that the ground
@@ -97,7 +97,7 @@ uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // blend, so a high value keeps a wide band of horizon colour under the
 // horizon line and only darkens when you look steeply down, where terrain is
 // always loaded anyway. That band is the background the far field is drawn
-// over (docs/far-rendering.md, "Background, overlay, foreground"): terrain
+// over (docs/systems/far-rendering.md, "Background, overlay, foreground"): terrain
 // that has not arrived, or a hole between two panels, reads as haze at the
 // same colour the fog fades the far edge to, rather than as a void.
 uniform float ground_curve : hint_range(0.2, 8.0) = 0.6;

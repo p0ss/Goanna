@@ -59,7 +59,7 @@ target_include_directories(jsoncpp INTERFACE "${LUANTI_DIR}/lib/jsoncpp")
 find_package(ZLIB REQUIRED)
 # A static libzstd.a is preferred so the extension carries its own copy;
 # otherwise whatever zstd the linker finds. Point ZSTD_ROOT (or the two
-# variables below) at an unusual install, see docs/building.md.
+# variables below) at an unusual install, see docs/develop/building.md.
 find_library(ZSTD_STATIC_LIB NAMES libzstd.a zstd_static zstd libzstd
     HINTS ${ZSTD_ROOT}/lib)
 find_path(ZSTD_INCLUDE_DIR zstd.h HINTS ${ZSTD_ROOT}/include)

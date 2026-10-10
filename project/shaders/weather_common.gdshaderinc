@@ -1,6 +1,6 @@
 #include "feature_flags.gdshaderinc"
 // Goanna: what the ground, water and falling rain shaders share about the
-// weather. docs/weather.md has the whole picture.
+// weather. docs/systems/weather.md has the whole picture.
 //
 // Set by project/ui/weather.gd, only while a weather spawner is running and
 // shader weather is on; with it off, or in fair weather, goanna_rain is 0 and

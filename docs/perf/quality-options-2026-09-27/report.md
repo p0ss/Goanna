@@ -2,7 +2,7 @@
 # Cloud, lamp and grass controls, 2026-09-27
 
 Implemented the next controls in the
-[graphics tier contract](../../graphics-tiers.md). This record validates
+[graphics tier contract](../../systems/graphics-tiers.md). This record validates
 behaviour and appearance; it does not calibrate hardware targets.
 
 Tests used Godot 4.5.1 Forward+, a local Luanti 5.17.0 server and the

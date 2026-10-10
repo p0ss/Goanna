@@ -3,7 +3,7 @@
 //
 // A small patch of water that moves: the height of the surface round the
 // eye, stepped as a damped wave equation, pushed by the bodies moving
-// through it. docs/weather.md, "Ripples", has the whole picture.
+// through it. docs/systems/weather.md, "Ripples", has the whole picture.
 //
 // The point rings in wake.gd (and wake.gdshaderinc) drew each disturbance
 // as one ring on its own, so a swimmer read as a string of pings and

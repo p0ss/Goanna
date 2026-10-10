@@ -217,7 +217,7 @@ it, and each emerge thread's queue is a plain FIFO. Emerging a whole area
 put 512 mapblocks in front of whatever the player was waiting for.
 `goanna_far_pregenerate_lag` is the coarser guard: above that many seconds
 of server step time, pregeneration waits for the server to catch up.
-`docs/far-rendering.md` has the before and after timings.
+`docs/systems/far-rendering.md` has the before and after timings.
 
 A completed pregeneration area goes ahead of speculative `farsum?` scans,
 and half of the per-step summary budget is reserved for indexing newly
@@ -266,17 +266,17 @@ hand) dug for 2 s, left, then dug again broke 1.58 s into the second go.
 TDL providers with a revision identity can also serve compact 2D surface
 tiles. The client fills the coarse horizon before refining local shape,
 without expanding the bake into mapblock summaries. See
-`docs/baked-terrain.md` in the Goanna repository for the protocol, cache
+`docs/systems/baked-terrain.md` in the Goanna repository for the protocol, cache
 identity, publication rules and current limits.
 
 ## The director
 
-`director/` is a submod that lets a language model act as game master on
-this server: it watches what players do, stages encounters sized to their
-gear, and speaks as characters and as a narrator. `docs/director.md` in the
-Goanna repository is the design and records what has been built and tested.
-It is off unless `goanna_director` is true, and it is a submod rather than a
-setting because the server has to act.
+`director/` is a submod that lets a language model act as game master on this
+server: it watches what players do, stages encounters sized to their gear, and
+speaks as characters and as a narrator. `docs/agents/director.md` in the Goanna
+repository is the design and records what has been built and tested. It is off
+unless `goanna_director` is true, and it is a submod rather than a setting
+because the server has to act.
 
 The model proposes and the game decides. Every action arrives as an intent
 that `director/intents.lua` checks against the budgets, the player's opt out,
@@ -296,7 +296,7 @@ Luanti's HTTP API, as the client, to a director process on this machine:
   start. Neither is a `goanna_*` setting, because those are broadcast.
 - `tools/goanna-director-mcp --world <world>` in the Goanna repository is the
   process at the other end, an MCP server a model connects to.
-  `docs/director-setup.md` there says how to connect a model.
+  `docs/host/director-setup.md` there says how to connect a model.
 
 Players are told. A player joining while a director is connected, or online
 when one connects, gets one chat line saying it is active, what it sees and
@@ -317,4 +317,4 @@ Its intents go through the same checks, budgets, undo and audit log as the
 director's own, and the MCP service offers each one as a tool. The table
 `goanna_director` exists only while the director is on, so such a mod
 declares `optional_depends = goanna_server_mod` and checks for it first.
-`docs/director.md`, "Rulesets as built", is the reference.
+`docs/agents/director.md`, "Rulesets as built", is the reference.

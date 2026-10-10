@@ -12,7 +12,7 @@ particular to Claude Code.
   registers the game development interface as tools. Its
   `goanna_session action=start` goes through the same launcher as
   `tools/goanna-headless` and obeys the same rules. See
-  `docs/control-channel.md`, "Driving it from an agent".
+  `docs/agents/control-channel.md`, "Driving it from an agent".
 - **Subagents.** Put rules 5 to 8 of `AGENTS.md` in every subagent's brief
   that may start a client, render or commit; a subagent does not always
   read this file.

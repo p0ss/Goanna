@@ -3,7 +3,7 @@
 #
 # Headless: --headless --path project --script res://tests/wake.gd
 #
-# Wake ripples on water (docs/weather.md, "Wakes"), everything about them
+# Wake ripples on water (docs/systems/weather.md, "Wakes"), everything about them
 # that can be checked without drawing a frame:
 #   - the water shader compiles with the wake include, and the globals it
 #     reads are registered;

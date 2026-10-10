@@ -151,7 +151,7 @@ licence obligation, but Goanna's design learnt from them.
 field's chain of coarser levels and its server side summaries follow
 Freeminer's far meshing. Freeminer gave permission, in a Discord chat, for
 Goanna to base its far meshing on their code outside the GPL; Goanna wrote
-its own implementation. `docs/far-rendering.md`, "Freeminer's far view",
+its own implementation. `docs/systems/far-rendering.md`, "Freeminer's far view",
 has the detail.
 
 ## Media in this repository
@@ -164,16 +164,16 @@ that media.
   are covered by Luanti's own media licence: CC BY-SA 3.0, Copyright (C)
   2010-2012 celeron55, Perttu Ahola and contributors, with some assets under
   CC BY-SA 4.0. See `luanti/LICENSE.txt`.
-- `docs/e0a_*.png`, and the other Mineclonia screenshots under `docs/`, show
-  a Mineclonia world. Mineclonia separates its code licence from its media
-  licence, and it is the media that applies here. Per its `LEGAL.md`, the
-  code is GPL-3.0 but the textures are CC BY-SA 4.0, being based on Pixel
-  Perfection by XSSheep and Pixel Perfection Legacy by Nova Wostra, of which
-  most are verbatim copies; other media there defaults to CC BY-SA 3.0.
+- `docs/assets/e0a_*.png`, and the other Mineclonia screenshots under
+  `docs/assets/`, show a Mineclonia world. Mineclonia separates its code licence
+  from its media licence, and it is the media that applies here. Per its
+  `LEGAL.md`, the code is GPL-3.0 but the textures are CC BY-SA 4.0, being based
+  on Pixel Perfection by XSSheep and Pixel Perfection Legacy by Nova Wostra, of
+  which most are verbatim copies; other media there defaults to CC BY-SA 3.0.
   Individual mods add their own files naming further authors, 27 of them in
-  release 37652, so `LEGAL.md` is the floor rather than the whole account.
-  None of this is Luanti's own media licence, which covers only the engine's
-  own assets.
+  release 37652, so `LEGAL.md` is the floor rather than the whole account. None
+  of this is Luanti's own media licence, which covers only the engine's own
+  assets.
 - `docs/perf/lava-cave-2026-09-17/` and `docs/perf/lava-fall-2026-09-18/`
   show Minetest Game's default textures. Minetest Game's media are CC BY-SA
   3.0, Copyright (C) 2010-2023 celeron55, Perttu Ahola and the other

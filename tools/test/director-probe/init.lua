@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- Director probe: a throwaway worldmod that checks, on a real server, the
--- engine and framework calls docs/director.md builds on. It needs no client
+-- engine and framework calls docs/agents/director.md builds on. It needs no client
 -- and no player. It emerges a few columns near the origin, forceloads a small
 -- area, spawns and steers a couple of mobs, and writes what the engine
 -- actually answered to <world>/director_probe.json, then shuts the server

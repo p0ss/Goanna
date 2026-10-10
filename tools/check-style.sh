@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Goanna text style and repository rules check. See docs/style.md and
-# docs/transplanting.md.
+# Goanna text style and repository rules check. See docs/develop/style.md and
+# docs/develop/transplanting.md.
 #
 # Checks Goanna's own text (not the submodules, not transplanted code),
 # tracked files and new files that are not ignored, for:
@@ -35,12 +35,12 @@ fail=0
 #   src/transplant/      upstream Luanti code, kept byte identical on purpose
 #   build/, .godot/      generated
 #   LICENSE              the LGPL text, verbatim
-#   docs/style.md        has to quote the characters it bans
+#   docs/develop/style.md  has to quote the characters it bans
 #   this script          same
 EXCLUDES=(':!:luanti/**' ':!:godot-cpp/**' ':!:whisper.cpp/**' ':!:build/**'
           ':!:src/transplant/**'
           ':!:project/.godot/**' ':!:*.import' ':!:LICENSE'
-          ':!:docs/style.md' ':!:tools/check-style.sh')
+          ':!:docs/develop/style.md' ':!:tools/check-style.sh')
 PATTERNS=('*.md' '*.gd' '*.h' '*.cpp' '*.cmake' 'CMakeLists.txt' '*.sh'
           '*.gdextension' '*.godot' '*.py' '*.lua' '*.gdshader' '*.gdshaderinc')
 
@@ -175,7 +175,7 @@ spelling=$(printf '%s\n%s\n' "$md_hits" "$comment_hits" \
     | grep -vE '\b[a-z_]+\[[a-z_;,.<>|]*\]')
 
 if [ -n "$spelling" ]; then
-    printf '\nAmerican spelling in prose. See the table in docs/style.md.\n'
+    printf '\nAmerican spelling in prose. See the table in docs/develop/style.md.\n'
     printf '(Identifiers and API names keep their real spelling and are exempt.)\n'
     printf '%s\n' "$spelling" | sed 's/^/  /'
     fail=1
@@ -216,7 +216,7 @@ fi
 
 # Every transplanted file starts with upstream's own header (the SPDX line
 # and its copyright lines, as Luanti has them) and then a Goanna note saying
-# what changed, and has a row in the inventory in docs/transplanting.md.
+# what changed, and has a row in the inventory in docs/develop/transplanting.md.
 # Copied code without its upstream copyright is a licence violation.
 transplant=$(listed 'src/transplant/**' | sort -u | while IFS= read -r f; do
     [ -f "$f" ] && printf '%s\n' "$f"
@@ -238,12 +238,12 @@ if [ -n "$transplant" ]; then
             }' "$f")
         [ -n "$problem" ] && printf '%s: %s\n' "$f" "$problem"
     done)
-    finding "transplanted file without its upstream header and Goanna note. See docs/transplanting.md." \
+    finding "transplanted file without its upstream header and Goanna note. See docs/develop/transplanting.md." \
             "$header_hits"
 
     # Inventory rows name files as `src/transplant/x.h`, `.cpp`: a bare
     # extension repeats the path before it.
-    inventory=$(grep -E '^\|[[:space:]]*`src/transplant/' docs/transplanting.md 2>/dev/null \
+    inventory=$(grep -E '^\|[[:space:]]*`src/transplant/' docs/develop/transplanting.md 2>/dev/null \
         | awk -F'|' '{ print $2 }' \
         | grep -oE '`[^`]+`' | tr -d '`' \
         | awk '/^src\/transplant\// { base = $0; sub(/\.[^.\/]*$/, "", base); print; next }
@@ -251,13 +251,13 @@ if [ -n "$transplant" ]; then
     missing_rows=$(printf '%s\n' "$transplant" | while IFS= read -r f; do
         printf '%s\n' "$inventory" | grep -qxF -- "$f" || printf '%s\n' "$f"
     done)
-    finding "transplanted file with no row in the inventory table in docs/transplanting.md." \
+    finding "transplanted file with no row in the inventory table in docs/develop/transplanting.md." \
             "$missing_rows"
 fi
 
 if [ "$fail" -eq 0 ]; then
     echo "style: clean"
 else
-    printf '\nstyle: findings above. See docs/style.md.\n'
+    printf '\nstyle: findings above. See docs/develop/style.md.\n'
 fi
 exit "$fail"

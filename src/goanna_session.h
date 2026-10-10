@@ -109,7 +109,7 @@ public:
     void setContentHold(bool on) { m_content_hold = on; }
     bool contentHeld() const { return m_content_hold; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
-    // The classifier's table, docs/pbr-plan.md step 2: built when content is
+    // The classifier's table, docs/design/pbr-plan.md step 2: built when content is
     // prepared, empty before. Read only from then on.
     const MaterialTable &materialTable() const { return m_material_table; }
     // A CSV of game_texture,pack_path, letting an unmodified Minecraft
@@ -159,7 +159,7 @@ public:
     void invalidateBlock(v3s16 pos); // advance revision and queue; caller holds mapLock()
     // Access to a received block; nullptr if unknown. Caller holds mapLock().
     MapBlock *getBlock(v3s16 pos);
-    // --- the local block store, docs/far-rendering.md rung 5 ---
+    // --- the local block store, docs/systems/far-rendering.md rung 5 ---
     // Root directory; the server gets its own subdirectory. Set before
     // start(); empty leaves the store off.
     void setStoreRoot(const std::string &root) { m_store_root = root; }
@@ -268,7 +268,7 @@ public:
         bool vertical = false, collision = false;
         u16 attached_id = 0;
         // Everything below here is read but not all of it is drawn yet; see
-        // docs/particle-coverage.md for which is which. It is parsed
+        // docs/systems/particle-coverage.md for which is which. It is parsed
         // regardless, because the stream is positional: stopping early does
         // not just drop the tail, it means never being able to read anything
         // added after it.

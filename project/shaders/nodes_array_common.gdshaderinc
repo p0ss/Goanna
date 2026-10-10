@@ -70,12 +70,12 @@ global uniform vec3 goanna_sun_dir;
 // Per vertex node light and occlusion, packed into CUSTOM0 by
 // GoannaClient::update_blocks: r is Luanti's block light (torches, lava), g is
 // its sky light, b is Goanna's own ambient occlusion, a is spare. See
-// docs/mesh-attributes.md for the contract and why light does not ride in
+// docs/systems/mesh-attributes.md for the contract and why light does not ride in
 // COLOR.
 //
 // How much each channel is allowed to do is a uniform rather than a constant,
 // because the balance is judged on lighting_chart.tscn and is expected to move
-// (docs/pbr-plan.md step 3).
+// (docs/design/pbr-plan.md step 3).
 //
 // sky_light_strength attenuates ambient by how much sky reaches the vertex,
 // which is what makes an interior read as an interior instead of being lit by
@@ -107,7 +107,7 @@ global uniform vec3 goanna_sky_fill;
 // dimmer than the sky above. The fill blends between the two by the world
 // normal, so a ceiling is not lit by the sky through the roof of the world
 // and a wall gets the horizon's mix, which is the hemisphere ambient of
-// docs/pbr-plan.md's "The macro scale". Set beside goanna_sky_fill.
+// docs/design/pbr-plan.md's "The macro scale". Set beside goanna_sky_fill.
 global uniform vec3 goanna_ground_fill;
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
@@ -115,7 +115,7 @@ uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 // Block light as emission. Off by default: Goanna already places real Godot
 // lights for light emitting nodes, so adding it here would count torches
 // twice. The far tiers, which are past the range those lights reach, turn it
-// on; see docs/far-rendering.md.
+// on; see docs/systems/far-rendering.md.
 uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
 // Where the light pool's real lamps end, in view distance, set per frame by
 // GoannaClient::update_lights. Past it the near mesh fades in the same
@@ -136,15 +136,15 @@ global uniform float goanna_wetness;
 uniform float debug_nodelight_strength : hint_range(0.0, 1.0) = 0.0;
 
 // Staleness: CUSTOM0.a is 255 on a live block and lower on one the far
-// tiers drew from the local store (docs/far-rendering.md, "Staleness"),
+// tiers drew from the local store (docs/systems/far-rendering.md, "Staleness"),
 // and the shader can pull such surfaces toward grey by this much. Off by
 // default: a grey far field is a per tier signal painted into the frame,
-// and the far field is judged by there being none (docs/launch-target.md,
+// and the far field is judged by there being none (docs/develop/launch-target.md,
 // "one light, one air"). The channel stays so the signal can be turned on
 // to see what is remembered rather than seen.
 uniform float stale_strength : hint_range(0.0, 1.0) = 0.0;
 
-// Far tiers only (docs/far-rendering.md, "Shade the far field as a far
+// Far tiers only (docs/systems/far-rendering.md, "Shade the far field as a far
 // field"): a region quad's UV still repeats once per node, which is right up
 // close where a tile is a tile's width away, but a merged quad can span a
 // couple of hundred nodes, and at that scale the repeat aliases into a

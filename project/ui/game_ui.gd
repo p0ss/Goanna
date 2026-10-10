@@ -98,7 +98,7 @@ var voice_input: Node        # ui/voice_input.gd, voice typing
 var flash_alpha := 0.0
 var t := 0.0
 var last_hp := -1
-# docs/launch-target.md task 2d: a fresh world's far field fills in over the
+# docs/develop/launch-target.md task 2d: a fresh world's far field fills in over the
 # first minute or two (pregeneration, far summaries), which with no word of
 # it reads as broken rather than as still arriving. Shown while far_remote
 # is actually changing, faded out a few seconds after it stops, whether it
@@ -843,7 +843,7 @@ const RenderFeatures := preload("res://render_features.gd")
 # ([[stored value, name shown], ...]) for a choice]
 const SETTINGS := [
 	["Graphics", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
-	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
+	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/systems/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Graphics", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
 	["Graphics", "shader_weather", "toggle", "Shader weather", "Draw the game's rain and snow with shaders instead of its particles, kept out from under roofs and trees, with splashes on open ground and rings on water. Off draws the game's own particles. The server sees no difference either way."],
 	["Graphics/Camera", "fov", "slider", "Field of view", "The camera's field of view, in degrees.", 60.0, 110.0, 1.0],
@@ -2261,7 +2261,7 @@ func _after_inventory_update() -> void:
 # --- HUD ---------------------------------------------------------------------
 
 # What a scripted session is doing, drawn only when the control channel is open
-# (docs/control-channel.md). A window that is not moving looks the same whether
+# (docs/agents/control-channel.md). A window that is not moving looks the same whether
 # the client is wedged, the server has stopped answering, or the agent driving
 # it is simply thinking, and telling those apart has cost this project whole
 # measurements. So say which command is running and for how long: a number that

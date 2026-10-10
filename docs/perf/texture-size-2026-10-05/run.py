@@ -16,7 +16,7 @@ taken in rotation over --rounds, so drift lands on every configuration
 alike. Every session runs the Medium profile at 1920x1080 with only
 texture_size changed, so the difference is the textures' own.
 
-In each session: the benchmark vista at noon (docs/benchmark.md), settled,
+In each session: the benchmark vista at noon (docs/develop/benchmark.md), settled,
 then Godot's video memory monitors, then --samples bursts of --burst draws
 back to back without presenting (the occlusion review's method, see
 docs/perf/low-tier-occlusion-2026-10-05/run.py, BURST_SRC); then the same

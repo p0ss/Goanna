@@ -3,7 +3,7 @@
 #
 # Headless: --headless --path project --script res://tests/ripples.gd
 #
-# The ripple patch round the eye (docs/weather.md, "Ripples"), as wake.gd
+# The ripple patch round the eye (docs/systems/weather.md, "Ripples"), as wake.gd
 # drives it, everything that can be checked without drawing a frame:
 #   - the water shader compiles with it and the globals it reads are
 #     registered;

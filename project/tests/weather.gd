@@ -3,7 +3,7 @@
 #
 # Headless: --headless --path project --script res://tests/weather.gd
 #
-# Shader weather (docs/weather.md), everything about it that can be checked
+# Shader weather (docs/systems/weather.md), everything about it that can be checked
 # without drawing a frame:
 #   - the shaders it touches compile and declare what the scripts set;
 #   - the rain cover map, fed by a stand in for GoannaClient::rain_cover_rows,
@@ -733,7 +733,7 @@ func _test_ground_terms() -> void:
 			"vec2 ring = goanna_splash_ring(r, age / GOANNA_SPLASH_LIFE, max(edge - 2.5 * w, 0.0), w);"]:
 		check(common.contains(text), "weather_common.gdshaderinc no longer matches weather.gd's copy: " + text)
 	# Both array shaders draw the terms, from the one shared set. In play the
-	# ground was once drawn by the scissor one (docs/weather.md), which had
+	# ground was once drawn by the scissor one (docs/systems/weather.md), which had
 	# none, and nobody ever saw a splash or a puddle. The near mesh now picks
 	# by the tile's own layer, but the far tiers and every cut-out still take
 	# the scissor one.

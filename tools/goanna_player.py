@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""Talk to Goanna's player agent channel (docs/agent-interfaces.md).
+"""Talk to Goanna's player agent channel (docs/agents/agent-interfaces.md).
 
 Shared by tools/goanna-player (the command line) and tools/goanna-player-mcp
 (the MCP server). The channel listens on loopback only and wants, in every

@@ -16,5 +16,5 @@ blending fixes. The expanded fixture's rendering checks remain pending.
 The fixture reported zero failures. It checks visible animation, the
 change from zero to nonzero End parallax depth, matching Nether images
 with and without the lamp grid, and matching images at clock 0 and 60.
-See [portal materials](../../portal-materials.md) for reproduction and
+See [portal materials](../../systems/portal-materials.md) for reproduction and
 known limits.

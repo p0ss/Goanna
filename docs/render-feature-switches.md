@@ -1,11 +1,11 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # Render feature switches
 
-Nineteen independent switches from the [inventory][inventory] are
-implemented in the working tree. They default to on, preserve existing
-strength settings, persist in `goanna.cfg`, and appear in Advanced lighting
-settings. The [five graphics tiers](graphics-tiers.md) now set these gates
-explicitly and add cloud styles, lamp shadow budgets and grass budgets.
+Nineteen independent switches from the [inventory][inventory] are implemented in
+the working tree. They default to on, preserve existing strength settings,
+persist in `goanna.cfg`, and appear in Advanced lighting settings. The [five
+graphics tiers](systems/graphics-tiers.md) now set these gates explicitly and
+add cloud styles, lamp shadow budgets and grass budgets.
 
 | Setting key | Work disabled |
 | --- | --- |
@@ -283,7 +283,7 @@ rejection, persistence, and switching volumetrics while already underwater.
 The existing local-play scene and menu regressions also passed. These
 checks exercise state and ownership; the rendered sweep checks the GPU path.
 
-[inventory]: performance-inventory.md
+[inventory]: history/performance-inventory.md
 [shell]: ../project/local_play.gd
 [render-scope]: ../src/goanna_render_scope.cpp
 [screening]: perf/render-features-2026-09-27/report.md

@@ -12,7 +12,7 @@ a name list suggests. Two parts:
   No client and no player are involved.
 - `rank.py`, which turns that JSON into a per stem ranking of a pack and
   batches the stems still to be authored by material family, for
-  `docs/pbr-authoring-playbook.md`.
+  `docs/develop/pbr-authoring-playbook.md`.
 
 The Mineclonia result of 25 September 2026 is in `pbr_packs/census/`, with
 a summary in `pbr_packs/census/mineclonia-2026-09.md`.

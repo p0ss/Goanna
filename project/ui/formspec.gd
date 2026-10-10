@@ -115,7 +115,7 @@ var simple_field_count := 0         # field[name;label;default] elements so far
 # show_formspec; "game" draws the game's own window art, which is the
 # renderer's parity mode and its default here. `glass` is whether this form
 # is actually drawn in dark glass, which a form that paints its own window
-# is not (see _paints_own_window). docs/interface-style.md has the rule for
+# is not (see _paints_own_window). docs/systems/interface-style.md has the rule for
 # what is chrome and what is content.
 var style := GlassStyle.GAME
 var glass := false
@@ -293,7 +293,7 @@ func submit(extra: Dictionary, quit: bool, dropdowns := true) -> void:
 
 # --- introspection, read only ------------------------------------------------
 
-# The form as the control channel's ui_tree reports it (docs/control-channel.md):
+# The form as the control channel's ui_tree reports it (docs/agents/control-channel.md):
 # every named element with its formspec type, every inventory slot with its
 # stack, and the tooltip on screen. `visible` is false for anything hidden or
 # scrolled out of its scroll_container. Nothing here changes the form.

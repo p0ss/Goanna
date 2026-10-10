@@ -126,14 +126,14 @@ var gamepad: Node
 # Capture is then kept here instead of being asked of the OS, and only mouse
 # input pushed in through the control channel, which carries CONTROL_DEVICE,
 # counts as captured: a real pointer passing over the window never turns the
-# camera or digs. See docs/control-channel.md.
+# camera or digs. See docs/agents/control-channel.md.
 const CONTROL_DEVICE := 0x60A7
 var test_mode := false
 var _virtual_capture := false
 # Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE/EXPOSURE/
 # SKY_FILL and then settable live from the Lighting settings tab. The values
 # are the recipe settled on project/lighting_chart.tscn on 2026-08-21
-# (docs/pbr-plan.md step 3): sun 1.0 and white 4.0 with exposure 0.46 put a
+# (docs/design/pbr-plan.md step 3): sun 1.0 and white 4.0 with exposure 0.46 put a
 # sunlit stone top at 1.28 times its albedo and snow at 229 with no clipping,
 # where 1.5, 1.5 and 1.0 had put stone at 1.87 times and snow flat white;
 # the sky fill lifts a wall at noon from 0.18 of the top to 0.38.
@@ -151,7 +151,7 @@ var light_ssil := 1.4
 # How much of the frame SSAO and SSIL are allowed to cost, 0 to 3. 3 is full
 # resolution at Godot's high quality, which is what this project shipped; 0 to
 # 2 run the pass at half resolution, at rising quality. Measured at the
-# benchmark vista at 2560x1440 (docs/benchmark.md), the resolution is what
+# benchmark vista at 2560x1440 (docs/develop/benchmark.md), the resolution is what
 # matters and the quality level barely does:
 #   3, full resolution, high   8.18 ms   what shipped
 #   2, full resolution         7.57 ms   -7.5%
@@ -207,7 +207,7 @@ var grass_interaction_distance := 16.0
 var grass_interactors := 8.0
 # 0 unchanged, 1 FXAA, 2 2x MSAA + FXAA, 3 4x MSAA + FXAA.
 var grass_antialiasing := 3.0
-# The background layer's shape (docs/far-rendering.md, "Background, overlay,
+# The background layer's shape (docs/systems/far-rendering.md, "Background, overlay,
 # foreground"), swept with GOANNA_FOG_CLEAR and GOANNA_FOG_CURVE. The fraction
 # of the drawn distance that stays clear of haze, and the exponent on the ramp
 # over the rest: above 1 the haze holds off and then closes near the edge,
@@ -254,7 +254,7 @@ var ridge_override := -1.0
 var light_step_deg := 0.2
 var sun_aimed := Vector3.ZERO
 var moon_aimed := Vector3.ZERO
-# The horizon bake (docs/sky-orchestration.md): when the last bake was
+# The horizon bake (docs/systems/sky-orchestration.md): when the last bake was
 # asked for and from where. Rebaked when the camera has moved far enough
 # for parallax to show or on a slow clock, whichever first.
 # GOANNA_HORIZON=0 disables it; GOANNA_HORIZON_R0 forces the inner radius,
@@ -595,7 +595,7 @@ func _ready() -> void:
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# The exposure was decided on project/lighting_chart.tscn, 2026-08-21,
-	# by the numbers in docs/pbr-plan.md step 3: it used to be too hot
+	# by the numbers in docs/design/pbr-plan.md step 3: it used to be too hot
 	# (sunlit stone of albedo 131 rendered at 207, snow and sea lanterns
 	# clipped to flat white with every texel gone), and the fix is sun 1.0,
 	# ACES white 4.0 and a base exposure of 0.46 (light_sun, light_white,
@@ -723,7 +723,7 @@ func _ready() -> void:
 
 	# GOANNA_SHADERPACK=/path/to/pack: run an Iris or OptiFine shader pack's
 	# screen space chain (deferred, composite, final) as a CompositorEffect.
-	# The gbuffers programs are not run; see docs/iris-compat.md.
+	# The gbuffers programs are not run; see docs/design/iris-compat.md.
 	var shaderpack := OS.get_environment("GOANNA_SHADERPACK")
 	if shaderpack != "":
 		iris = GoannaIrisEffect.new()
@@ -815,7 +815,7 @@ func _ready() -> void:
 	if tmap != "" and FileAccess.file_exists(tmap):
 		client.set_texture_map(tmap)
 		print("texture map ", tmap)
-	# The local block store (docs/far-rendering.md rung 5): every block the
+	# The local block store (docs/systems/far-rendering.md rung 5): every block the
 	# server sends is kept under the user directory, per server, and drawn as
 	# far tiers beyond the live range when the server grants far rendering.
 	# GOANNA_STORE=<dir> relocates it, GOANNA_NO_STORE=1 turns it off.
@@ -898,7 +898,7 @@ func _ready() -> void:
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
 	# GOANNA_CONTROL=<port>: open the loopback command channel, so the client
 	# can be driven and questioned while it runs instead of being relaunched
-	# for each question. Development only; see docs/control-channel.md.
+	# for each question. Development only; see docs/agents/control-channel.md.
 	if OS.get_environment("GOANNA_CONTROL") != "" and (player_slot == null or player_slot.slot_index == 0):
 		if ResourceLoader.exists("res://control_channel.gd"):
 			var cc: Node = (load("res://control_channel.gd") as GDScript).new()
@@ -992,7 +992,7 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 # rather than turning in place. The camera sat at the eye and pitched about
 # it, so looking down put the lens where the chin had been and showed the
 # inside of the neck, the head being shrunk rather than removed
-# (docs/first-person-body.md). Leaning forward as the gaze drops, and a
+# (docs/systems/first-person-body.md). Leaning forward as the gaze drops, and a
 # little down, puts the eye out in front of the chest, where it would be
 # over a real body, so looking down shows the front of the body and the
 # feet. Nothing changes looking level or up, or with the body hidden.
@@ -3169,7 +3169,7 @@ func _apply_sky() -> void:
 			if st.has("clouds") else {}
 	var e := env.environment
 	var elev: float = sun_dir.y  # 1 = overhead, <0 below horizon
-	# Per layer sun altitudes (docs/sky-orchestration.md, and sky_director.gd
+	# Per layer sun altitudes (docs/systems/sky-orchestration.md, and sky_director.gd
 	# for the two authorities). The dome's colour script stays on the
 	# astronomical elevation; the land answers to the ridge toward the sun's
 	# azimuth; the cloud deck sees over that ridge by its own altitude; the
@@ -3649,7 +3649,7 @@ func _apply_sky() -> void:
 		var live_nodes: float = maxf(float(client.view_range()) * 16.0, 64.0)
 		var draw_nodes: float = live_nodes
 		# Where the haze starts. The near field is the foreground layer and it
-		# is meant to be clear (docs/launch-target.md, "The rule: one light,
+		# is meant to be clear (docs/develop/launch-target.md, "The rule: one light,
 		# one air"), so this is floored at the live range below.
 		var haze_from: float = live_nodes
 		var stats: Dictionary = client.render_stats() if client.has_method("render_stats") else {}
@@ -3694,7 +3694,7 @@ func _apply_sky() -> void:
 		# region ladder keeps doubling with the tier (lodRegionBlocks).
 		cam.far = maxf(1000.0, draw_nodes + 512.0)
 		atmosphere_length = clampf(draw_nodes + 96.0, 256.0, 768.0)
-		# The background layer, docs/far-rendering.md "Background, overlay,
+		# The background layer, docs/systems/far-rendering.md "Background, overlay,
 		# foreground". Depth fog rather than exponential: an exponential curve
 		# cannot be both clear in the foreground and closed at the cap, because
 		# the density that hides the far edge puts most of its extinction on

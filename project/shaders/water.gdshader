@@ -76,7 +76,7 @@ uniform float refraction = 0.12;
 const float REFRACT_DEPTH = 1.5;
 // Beer-Lambert absorption per node, and the body's own tint on the tile's
 // colour: the optics of the water round the eye, which the underwater fog is
-// made from too (project/water_optics.gd, docs/water-optics.md). Red dies
+// made from too (project/water_optics.gd, docs/systems/water-optics.md). Red dies
 // first, like real water. A beach's or a reef's is (0.45, 0.11, 0.05),
 // which keeps a bed visible ten or so nodes down through a teal shift; the
 // old (0.55, 0.24, 0.16) went opaque within a few nodes, so every lake read
@@ -426,7 +426,7 @@ void fragment() {
 	// near mesh is fully absorbed anyway. The far tiers need the same answer
 	// forced, because a tier's water plane sits directly on the tier terrain
 	// and its measured thickness is near zero, which let the ground show
-	// through a sea (docs/far-rendering.md, "the far tier water plane").
+	// through a sea (docs/systems/far-rendering.md, "the far tier water plane").
 	float deep_far = smoothstep(160.0, 420.0, here);
 	thick = max(thick, 64.0 * deep_far);
 	// How far the floor is straight down, which is what "shallow" means to

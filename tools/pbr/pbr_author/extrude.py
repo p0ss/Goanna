@@ -147,7 +147,7 @@ def variant_spec(spec, name):
     earlier treatment reachable for comparison: the player's hair keeps
     "old", the authored strand maps from before the client drew hair's
     strands, and "round1", the first maps made for the shader
-    (GOANNA_PBR_VARIANT=old, docs/materials.md)."""
+    (GOANNA_PBR_VARIANT=old, docs/systems/materials.md)."""
     var = (spec.get("variants") or {}).get(name) if name else None
     spec = {k: v for k, v in spec.items() if k != "variants"}
     if not var:
@@ -698,7 +698,7 @@ def build(stem, out_dir, game=lib.DEFAULT_GAME, spec=None, preview=True):
     src = lib.load_source(stem, game)
     # The map is SIZE wide with square texels, so a vertical animation strip
     # (16 x 64, four frames) comes out 256 x 1024 and the client cuts the
-    # same frame from it as from the colour (docs/node-animation.md), and a
+    # same frame from it as from the colour (docs/systems/node-animation.md), and a
     # model atlas (a 64 x 32 sign) comes out 256 x 128. Levels are taken
     # over the whole strip, so every frame of an animation shares them.
     if lib.SIZE % src.shape[1]:

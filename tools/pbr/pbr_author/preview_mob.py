@@ -32,7 +32,7 @@ judge a mob's maps without a GPU:
            0.5 or more. Every input is sampled nearest at the largest size.
   decode   red above 128 tilts the normal toward +U (image right), green
            above 128 toward the top of the image, no flip
-           (docs/materials.md, entities). The tangent frame is per
+           (docs/systems/materials.md, entities). The tangent frame is per
            triangle from its positions and UVs, so a mirrored limb's
            normal is mirrored as on the model.
   shading  in linear light: a sun (direct, the material occlusion at 0.4

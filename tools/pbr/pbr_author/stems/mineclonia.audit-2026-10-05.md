@@ -23,7 +23,7 @@ authored, since their maps would never be read or would sit rotated against the
 art.
 
 Later the same day the client learnt to compose companions for texture
-expressions (docs/materials.md, "Companions of texture expressions"): an
+expressions (docs/systems/materials.md, "Companions of texture expressions"): an
 overlay with its own maps on a node face, `[combine` parts and `[transform`
 on node tiles and items alike. The three groups below that said otherwise
 are marked as resolved; their textures can now be authored. Sprites still
@@ -853,7 +853,8 @@ Held through [transform, which the client does not apply to companions.
 
 Resolved 2026-10-05: the client transforms the companions as the art is
 transformed, and turns the `_n` tangent with it (the table is in
-docs/materials.md). Author these unrotated, as the inventory image draws them.
+docs/systems/materials.md). Author these unrotated, as the inventory image draws
+them.
 
 Authored 2026-10-05 (`seen_gaps.py`, "held"), tiles on the fishing rod's
 materials, with the carrot's and the warped fungus's own. Judged offline
@@ -971,13 +972,13 @@ Tinted shading overlay on grass sides.
 Upright sprite, which the client draws without companions.
 
 Resolved 2026-10-05: the client draws an upright sprite as the vanilla client
-does (docs/materials.md, "Sprites"), two quads fixed to the object and turned
-only by its rotation, each through the entity shader with its texture's `_n`
-and `_s`, the node light and parallax. A pot face is one sherd pattern on the
-front quad and the same on the back, inside the pot. Author these as they
-read from the front, at the art's grid. The fishing bobber is not one of
-these: its entity names no visual, so it is a `sprite`, a billboard, and
-still takes no companions.
+does (docs/systems/materials.md, "Sprites"), two quads fixed to the object and
+turned only by its rotation, each through the entity shader with its texture's
+`_n` and `_s`, the node light and parallax. A pot face is one sherd pattern on
+the front quad and the same on the back, inside the pot. Author these as they
+read from the front, at the art's grid. The fishing bobber is not one of these:
+its entity names no visual, so it is a `sprite`, a billboard, and still takes no
+companions.
 
 - `mcl_pottery_sherds_pattern_angler` (mcl_pottery_sherds): entity (decorated
   pot face, set_properties).

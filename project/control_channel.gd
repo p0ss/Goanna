@@ -271,13 +271,13 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 			st["time_of_day"] = _client().sky_state().get("time_of_day", -1.0)
 			st["time_of_day_override"] = _tod
 			st["precipitation"] = _precipitation()
-			# Shader weather's own view (docs/weather.md): intensities, and
+			# Shader weather's own view (docs/systems/weather.md): intensities, and
 			# whether the rain cover map says the eye is under open sky.
 			var pw := _particles()
 			if pw != null and pw.get("weather") != null and pw.weather.has_method("debug_state"):
 				st["weather"] = pw.weather.debug_state()
 			# The wake rings on water: bodies followed, how many touch the
-			# water, and the points live (docs/weather.md, "Wakes").
+			# water, and the points live (docs/systems/weather.md, "Wakes").
 			if pw != null and pw.get("wake") != null and pw.wake.has_method("debug_state"):
 				st["wake"] = pw.wake.debug_state()
 			return st

@@ -27,7 +27,7 @@ service does the setup once and keeps it:
 - it stops cleanly on SIGTERM and after an idle timeout, because clients
   left running cost the owner.
 
-docs/agent-interfaces.md, "The render service", is the user's guide and
+docs/agents/agent-interfaces.md, "The render service", is the user's guide and
 has a worked job. Everything here runs through tools/goanna_headless.py
 for the client, so the launcher's own checks and its PID bookkeeping apply.
 """
@@ -804,8 +804,8 @@ class Client:
         held = self.settings()
         wrong = {}
         for key, want in spec["tier_table"].items():
-            # far_distance follows the server's far grant (docs/control-
-            # channel.md, "Cold verify"), so it is recorded, not required.
+            # far_distance follows the server's far grant (docs/agents/
+            # control-channel.md, "Cold verify"), so it is recorded, not required.
             if want < 0 or key == "far_distance":
                 continue
             have = held.get(key)
@@ -1853,7 +1853,7 @@ USAGE = """usage:
   goanna-render shoot JOB.json [--no-start] [--timeout S]
   goanna-render status
   goanna-render stop
-The job format is in docs/agent-interfaces.md, under "The render service"."""
+The job format is in docs/agents/agent-interfaces.md, under "The render service"."""
 
 
 def main(argv):

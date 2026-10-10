@@ -3,7 +3,7 @@
 --
 -- Read against Mineclonia release 38561. It reads public tables of mcl_mobs
 -- and mcl_armor; none of their authors is involved. VoxeLibre forked the
--- same code and has diverged (docs/director.md, "mcl_mobs, VoxeLibre"), so
+-- same code and has diverged (docs/agents/director.md, "mcl_mobs, VoxeLibre"), so
 -- detection tests for Mineclonia's rule based targeting and not for the
 -- name "mcl_mobs".
 --
@@ -43,7 +43,7 @@ return function(owned_lookup)
 		return A.is_mob(luaentity) and luaentity.type == "monster" and not luaentity.dead
 	end
 
-	-- Cost by docs/director.md: maximum health over 10 plus damage.
+	-- Cost by docs/agents/director.md: maximum health over 10 plus damage.
 	function A.cost_parts(name)
 		local def = def_of(name)
 		if not def then

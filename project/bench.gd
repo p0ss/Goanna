@@ -20,7 +20,7 @@
 #
 # Driven from the control channel (project/control_channel.gd, the "bench"
 # and "route" commands) and by tools/bench/goanna-bench.py, which turns a plan of
-# setting variants into runs and a report. See docs/benchmark.md.
+# setting variants into runs and a report. See docs/develop/benchmark.md.
 extends Node
 
 # Recorded against each frame so a phase can be summarised on its own. The
@@ -30,7 +30,7 @@ const PHASES := ["idle", "load", "steady", "move_early", "move_full"]
 
 # Frames to make room for. At 60fps this is well over an hour; at 600fps,
 # which an empty scene on a fast card will reach, it is a little under ten
-# minutes. Overridable per run because the ten minute soak in docs/baseline.md
+# minutes. Overridable per run because the ten minute soak in docs/develop/baseline.md
 # needs more than the default.
 const DEFAULT_CAPACITY := 400000
 

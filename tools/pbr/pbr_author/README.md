@@ -103,7 +103,7 @@ lifted to 4x, which makes every shallow divot a cliff.
 
 ### The 128, 256 and 512 px packs
 
-Texture resolution is a graphics tier (`docs/graphics-tiers.md`): 128 on
+Texture resolution is a graphics tier (`docs/systems/graphics-tiers.md`): 128 on
 Lowest and Low, 256 on Medium and High, 512 on Ultra, the same for every
 texture. `GOANNA_PBR_SIZE=128` or `512` builds every map at that size; 256
 is the default, and nothing else is accepted. Pixel measures (the chamfer,
@@ -250,7 +250,7 @@ What differs from a tile:
 - **Strength** is in node units, so a skin and a block with the same
   number have the same rise per art texel. The entity shader marches the
   height as a block's does, to the depth measured from the map
-  (`docs/materials.md`, "Mob, player and item companions").
+  (`docs/systems/materials.md`, "Mob, player and item companions").
 - **Micro surface** goes on the materials `"micro_materials"` names: the
   golem's scratches are on its iron, not its vines. A material can also
   name its own kind, `"micro": "knit"` with `"micro_strength"`,
@@ -356,7 +356,7 @@ What differs from a tile:
   at its base.
 - **Heights under 1.** Parallax draws a height under 1 sunk below the
   box face; the client lifts each face's highest texel to the face
-  (`docs/materials.md`), so a skin need not top out at 1. The zombie,
+  (`docs/systems/materials.md`), so a skin need not top out at 1. The zombie,
   husk, drowned and wandering trader skins are raised by one offset each
   so their highest part stands at 1 anyway, every relative height kept.
 - **Players.** Mineclonia draws a player as layered parts, each part's
@@ -564,7 +564,7 @@ embossing deeper. A cobble is not sixteen square plateaus; it is domed
 stones with mortar between them, and that is a decision about what the
 surface is, which no amount of processing the picture makes.
 
-The measurement that started this is in `docs/material-calibration.md`:
+The measurement that started this is in `docs/history/material-calibration.md`:
 over the Mineclonia pack the mean texel tilt is six degrees and the
 occlusion never falls below 0.81. The look people call plastic is a correct
 BSDF on a surface with no structure on it.
@@ -577,7 +577,7 @@ no declaration is Mineclonia's. `lib.GAMES` says where each game's art and
 bake are. Art sizes differ (Mineclonia 16 px, Kythen 32 px); every helper
 scales by the art's size, and `pack` takes `art_texels=src.shape[0]` for
 the seam measure. The playbook for running a fleet on a new game is
-`docs/pbr-authoring-playbook.md`.
+`docs/develop/pbr-authoring-playbook.md`.
 
 ## What a script does
 

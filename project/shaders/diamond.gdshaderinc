@@ -23,7 +23,7 @@ varying flat vec4 v_gem_optics;
 // as it did. The C++ side that names a texture's kind is gemTextureCode.
 //
 // Masks were measured on the games' own art in linear colour
-// (docs/materials.md): emerald, amethyst and mese project the pixel's
+// (docs/systems/materials.md): emerald, amethyst and mese project the pixel's
 // chroma onto the gem's own direction; quartz is white on red netherrack,
 // so it is bright and colourless instead. Optics are the real stones where
 // there is one: refractive index, dispersion as a share of diamond's, and

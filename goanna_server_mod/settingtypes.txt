@@ -136,7 +136,7 @@ goanna_dig_progress (Remember dig progress) bool false
 [Director]
 
 #    The director: a language model acting as game master, connected by the
-#    operator (docs/director.md in the Goanna repository). Enabling this only
+#    operator (docs/agents/director.md in the Goanna repository). Enabling this only
 #    makes it available. Nothing happens until a director process answers at
 #    the url in <world>/goanna_director.conf, which also holds the token; that
 #    file is created on first start and is never broadcast. Needs this mod in

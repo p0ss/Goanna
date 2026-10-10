@@ -88,8 +88,8 @@ def main():
     # in about four texels, and the seam measure's inner join average,
     # mostly the flat run between rings, diluted the seven interior kinks
     # against the one that lands on the tile edge and read it as a
-    # failure even though every ring is the same shape (see docs/pbr-
-    # authoring-playbook.md's note on this). Widening the dip to a
+    # failure even though every ring is the same shape (see docs/develop/
+    # pbr-authoring-playbook.md's note on this). Widening the dip to a
     # quarter of the ring's own period gave the inner average enough
     # texels of real gradient to match.
     ring_count, ring_sharp, ring_amp = 8, 0.30, 0.60

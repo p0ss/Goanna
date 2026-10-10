@@ -3,7 +3,7 @@
 #
 # Complete quality presets: the same controlled keys in every tier.
 # Appearance, accessibility, controls and worker scheduling stay independent.
-# See docs/graphics-tiers.md for the visual contract and calibration status.
+# See docs/systems/graphics-tiers.md for the visual contract and calibration status.
 # Historical measurements in docs/perf describe their recorded configurations,
 # not these revised candidates. Hardware targets are not measured guarantees.
 extends RefCounted
@@ -11,7 +11,7 @@ extends RefCounted
 # far_distance -1 requests the server grant rather than an explicit cap.
 # texture_size is the texture resolution tier, map pixels per 16 art texels:
 # every albedo and companion over it is reduced when a world's textures are
-# loaded, so a change applies at the next join (docs/graphics-tiers.md).
+# loaded, so a change applies at the next join (docs/systems/graphics-tiers.md).
 # Ultra retains the owner's 48 shadow lamps / 256 pool: reducing that pool
 # previously made village lamps disappear a few buildings away.
 const PROFILES := {

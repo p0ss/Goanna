@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""MCP server for Goanna's player agent channel (docs/agent-interfaces.md).
+"""MCP server for Goanna's player agent channel (docs/agents/agent-interfaces.md).
 
 One small tool per player action, so an agent host sees exactly what a
 player can do and nothing more: there are no developer commands here, and

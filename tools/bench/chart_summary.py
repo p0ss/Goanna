@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""Reduce a lighting chart run to docs/pbr-plan.md step 3's pass or fail lines.
+"""Reduce a lighting chart run to docs/design/pbr-plan.md step 3's pass or fail lines.
 
     godot --path project lighting_chart.tscn   (with CHART_OUT=chart.json)
     tools/bench/chart_summary.py chart.json [other.json]

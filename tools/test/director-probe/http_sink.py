@@ -8,7 +8,7 @@ line of JSON and answers GET /actions with one queued action. Usage:
     python3 http_sink.py <port> <log file>
 
 It binds to 127.0.0.1 only. Stop it by its PID when the probe is done.
-See docs/director.md, "What was verified".
+See docs/agents/director.md, "What was verified".
 """
 import json
 import sys

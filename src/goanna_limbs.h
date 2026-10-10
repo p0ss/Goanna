@@ -2,7 +2,7 @@
 // Copyright (C) 2026 the Goanna contributors
 //
 // Knees and elbows for block-limbed player models, and the strokes a body
-// makes in the water. docs/limbs.md has the whole picture.
+// makes in the water. docs/systems/limbs.md has the whole picture.
 //
 // A Minecraft-style player model (Minetest Game's character.b3d, Mineclonia's
 // mcl_armor_character.b3d) has each arm and leg as one box, or two or three

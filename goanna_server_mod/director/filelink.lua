@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
--- The file transport (docs/director.md, "Transports"): the director service
+-- The file transport (docs/agents/director.md, "Transports"): the director service
 -- and the server exchange small JSON files in <world>/goanna_director/link.
 --
 -- The service always runs on the machine that holds the world, so a folder

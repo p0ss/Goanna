@@ -6,7 +6,7 @@
 # file listed in CMakeLists.txt that was never committed.
 #
 # There is no run job yet. Goanna needs a Luanti server and, at present, a
-# one time editor pass to register the extension. See docs/building.md.
+# one time editor pass to register the extension. See docs/develop/building.md.
 
 name: build
 
@@ -25,8 +25,8 @@ jobs:
         with:
           submodules: recursive
 
-      # Kept in step with the dependency table in docs/building.md. If you
-      # change one, change the other.
+      # Kept in step with the dependency table in docs/develop/building.md.
+      # If you change one, change the other.
       - name: Install dependencies
         run: |
           sudo apt-get update

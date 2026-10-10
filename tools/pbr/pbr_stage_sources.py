@@ -9,7 +9,7 @@ pbr_packs/COMMUNITY_LOCK.json, which pins the release number and the archive
 hash of every admitted package.
 
 A hash that does not match the lock is a provenance failure, not a download
-to retry: the licence audit in docs/pbr-community-review.md is written
+to retry: the licence audit in docs/develop/pbr-community-review.md is written
 against the archive the lock names, so the package is skipped and reported.
 """
 

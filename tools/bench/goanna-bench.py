@@ -33,7 +33,7 @@ project/bin. GODOT_BIN overrides the Godot binary.
 This is the one harness that opens a window on the desktop, because a frame
 rate, a 1% low or a hitch count depends on the real present path, which
 headless gamescope does not have. So it is run by the owner, or by an agent
-only when the owner has said the machine is free (docs/agent-interfaces.md,
+only when the owner has said the machine is free (docs/agents/agent-interfaces.md,
 "Benchmarks on the desktop"). It takes the shared GPU lock for the whole
 run, the same lock and the same checks as tools/goanna-headless, waiting
 for it (--lock-wait) rather than starting beside another GPU client.
@@ -483,7 +483,7 @@ def park(control, plan, scene):
     rebuilds LOD, and the first smoke run measured that instead of the
     setting: the control variant showed a whole second of 30ms frames with
     the GPU at 4.6ms and the renderer CPU at 4.8ms, the rest of it terrain
-    work on the main thread. docs/baseline.md says the same thing in one
+    work on the main thread. docs/develop/baseline.md says the same thing in one
     line, do not compare a settled scene with one still streaming.
     """
     if isinstance(scene, list):          # a bare anchor, for the route tests

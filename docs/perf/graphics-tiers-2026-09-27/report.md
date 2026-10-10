@@ -1,7 +1,7 @@
 # Tier implementation checks, 2026-09-27
 
 This is a validation record, not a calibrated performance comparison. The
-[contract](../../graphics-tiers.md) describes the revised tier candidates.
+[contract](../../systems/graphics-tiers.md) describes the revised tier candidates.
 The [profile snapshot](profiles.gd.txt) records their values for this check.
 
 The dummy-renderer tests passed:

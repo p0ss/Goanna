@@ -4,7 +4,7 @@
 // The horizon bake: a cylindrical panorama of the terrain the client knows
 // about beyond the drawn far field, built from the LOD chains' finest
 // retained surface heights and composited by the sky shader as the horizon
-// (docs/sky-orchestration.md, "The fog wall"). The bake carries albedo and
+// (docs/systems/sky-orchestration.md, "The fog wall"). The bake carries albedo and
 // distance, not light: the sky shader relights it every frame from the
 // same beam and air authorities the live terrain uses, so the panorama
 // rides through dawn, dusk and biome fades without being re-rendered.

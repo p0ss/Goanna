@@ -27,7 +27,7 @@ def per_file_licences(manifest_dir):
 
     An archive-wide notice qualifies a package only when it unambiguously
     covers all media. A mixed notice requires this per-file mapping instead
-    (see the licence gate in docs/pbr-community-review.md). Manifests written
+    (see the licence gate in docs/develop/pbr-community-review.md). Manifests written
     before per-file recording leave the field unset, which counts as
     unqualified rather than as an absent package.
     """

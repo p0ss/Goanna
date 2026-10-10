@@ -1231,7 +1231,7 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         // A billboard quad; textures[0] is a sprite sheet divided by spritediv.
         // It keeps a StandardMaterial3D with no companions: its tangent
         // frame turns with the camera, so a normal map's relief would swing
-        // round as the player walked past (docs/materials.md, "Sprites").
+        // round as the player walked past (docs/systems/materials.md, "Sprites").
         MeshInstance3D *mi = memnew(MeshInstance3D);
         Ref<QuadMesh> qm;
         qm.instantiate();

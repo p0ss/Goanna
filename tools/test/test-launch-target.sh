@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The fresh install harness of docs/launch-target.md: start Goanna
+# The fresh install harness of docs/develop/launch-target.md: start Goanna
 # against an empty settings file, start a new local world through the menu
 # path (not a hand started server), wait on the control channel for the far
 # field to reach a real size, take a horizon shot and a close shot, and
@@ -15,7 +15,7 @@
 # The empty settings file is XDG_DATA_HOME pointed at a scratch directory:
 # Godot puts user:// under it, so there is no goanna.cfg and every value is
 # the code's default. This works on Linux, which is what this script
-# targets; docs/launch-target.md's GOANNA_CFG=<path> portable fallback is
+# targets; docs/develop/launch-target.md's GOANNA_CFG=<path> portable fallback is
 # not implemented. GOANNA_LOCAL_TEST="game:world" is menu.gd's own
 # development guard for driving the "start a local game" screen without a
 # human at the keyboard; see the comment above SKIP_VARS in project/menu.gd.
@@ -47,7 +47,7 @@
 #
 # Every run starts a brand new world, named from the current time unless
 # GOANNA_LAUNCH_TARGET_WORLD is set, because the point of this harness is
-# the fresh world experience docs/launch-target.md opens with: a reused
+# the fresh world experience docs/develop/launch-target.md opens with: a reused
 # world's earlier pregeneration would hide a regression here. Nothing in
 # this script deletes a world; they accumulate under Luanti's own data
 # directory and are left for inspection.
@@ -92,7 +92,7 @@ control_port=${GOANNA_LAUNCH_TARGET_PORT:-}
 far_min=${GOANNA_LAUNCH_TARGET_FAR_MIN:-500}
 far_timeout_ms=${GOANNA_LAUNCH_TARGET_FAR_TIMEOUT_MS:-180000}
 startup_timeout_s=${GOANNA_LAUNCH_TARGET_STARTUP_TIMEOUT_S:-90}
-# R4's pop metric (docs/launch-target.md): a burst of frames at the horizon
+# R4's pop metric (docs/develop/launch-target.md): a burst of frames at the horizon
 # pose, camera standing still, spaced by engine frames rather than a wall
 # clock sleep so the count is not at the mercy of how fast this machine
 # renders. pop_count frames over pop_gap_frames * (pop_count - 1) frames is
@@ -258,7 +258,7 @@ GROUND_SNIPPET = (
 def main():
     sock = connect()
     try:
-        # The cold verify rule (docs/control-channel.md): nothing has been set
+        # The cold verify rule (docs/agents/control-channel.md): nothing has been set
         # yet, so nothing should have deviated from what the code just booted
         # with. If it has, the profile was not actually empty.
         dev = call(sock, "deviations")
@@ -293,7 +293,7 @@ def main():
         call(sock, "look", {"x": px + 300.0, "y": py + 100.0, "z": pz})
         horizon_meta = call(sock, "shot", {"path": horizon_path})
 
-        # R4's pop metric (docs/launch-target.md): a burst of frames at this
+        # R4's pop metric (docs/develop/launch-target.md): a burst of frames at this
         # same horizon pose, camera not moved since, spaced by engine frames
         # rather than a wall clock sleep. settle is off and warm is 0 because
         # nothing has moved since the settled horizon shot above, and adding

@@ -1087,7 +1087,7 @@ void GoannaClient::set_auto_bump(float strength) {
     if (m_entities)
         m_entities->setAutoBump(strength);
     // The array path infers the same relief for layers with no authored _n
-    // (docs/pbr-plan.md step 2), and its companions are cached per texture.
+    // (docs/design/pbr-plan.md step 2), and its companions are cached per texture.
     if (m_session && m_session->tsrc())
         m_session->tsrc()->setInferredReliefStrength(strength);
     // Re-request the loaded blocks so their meshes pick up the new materials.
@@ -1159,14 +1159,14 @@ String GoannaClient::luanti_version() const {
 static const std::map<std::string, float> kMatStrengthDefaults = {
     {"normal", 1.0f}, {"ao", 1.0f}, {"roughness", 1.0f},
     {"specular", 1.0f}, {"emission", 4.0f}, {"sss", 1.0f},
-    // Per vertex node light and occlusion, docs/mesh-attributes.md. Here
+    // Per vertex node light and occlusion, docs/systems/mesh-attributes.md. Here
     // rather than as fixed uniforms so they can be swept at runtime, which is
     // the only way to A/B them without the world streaming differently between
     // two runs and swamping the difference being measured.
     {"sky_light", 1.0f}, {"vertex_ao", 1.0f}, {"vertex_ao_light", 0.0f},
     // stale is 0: pulling remembered terrain toward grey is a per tier
     // signal painted into the frame, and the far field is judged by there
-    // being none (docs/launch-target.md, "one light, one air"). The channel
+    // being none (docs/develop/launch-target.md, "one light, one air"). The channel
     // stays so the signal can be turned on to see what is remembered.
     {"sky_fill", 1.0f}, {"stale", 0.0f}, {"debug_nodelight", 0.0f},
     // Per class surface treatment, the stochastic tiling in
@@ -1186,7 +1186,7 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // Micro shadowing from the pack's occlusion in light()
     // (direct_light.gdshaderinc), on nodes, foliage and mobs. On in every
     // profile: its cost did not show above the noise on the GPU
-    // (docs/materials.md, "Micro shadows and the short march"). 0 for an A/B.
+    // (docs/systems/materials.md, "Micro shadows and the short march"). 0 for an A/B.
     {"micro_shadow", 1.0f},
     // The along the strand highlight on hair texels of a mob or player skin
     // (direct_light.gdshaderinc, EntityRenderer::setHair). 0 draws hair with
@@ -3557,7 +3557,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // The far tiers are past the reach of the node light pool, so
             // their block light is added as emission, which the near mesh
             // must not do or a torch counts twice. They also alias at range
-            // (docs/far-rendering.md, "Shade the far field as a far field"),
+            // (docs/systems/far-rendering.md, "Shade the far field as a far field"),
             // so each layer's own average colour rides along for the shader
             // to blend toward with distance; the near mesh never draws far
             // enough to need it and leaves lod_flatten false.
@@ -3573,7 +3573,7 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
                     // linear (the array is sampled as source_color). Handed
                     // over unconverted it read brighter and paler than the
                     // same tile near, which is the far band changing colour
-                    // with distance (docs/launch-target.md, R1).
+                    // with distance (docs/develop/launch-target.md, R1).
                     const Color c = toColor(m_session->tsrc()->getTextureAverageColor(names[i])).srgb_to_linear();
                     avg[(int)i] = Vector3(c.r, c.g, c.b);
                 }
@@ -3900,7 +3900,7 @@ void GoannaClient::noteAnimatedMaterial(const MaterialKey &key, const Ref<Materi
     // A material keyed by an animated tile's first frame, that is not drawn
     // from an animation array. A crack composite is a still image of one
     // frame, and every liquid is left to its own shader: lava deliberately
-    // animates its source frame itself (docs/lava-material.md), and the
+    // animates its source frame itself (docs/systems/lava-material.md), and the
     // water shader moves its own surface.
     if (key.array_texture || key.composited || !m_session || material.is_null())
         return;
@@ -4268,7 +4268,7 @@ Dictionary GoannaClient::wield_info() {
 
 // The light the wielded item would cast placed as a node, decoded 0 to 255,
 // or 0 for anything unlit. main.gd drives the head light with it, so a torch
-// in the hand lights the way (docs/pbr-plan.md, "The macro scale"). Client
+// in the hand lights the way (docs/design/pbr-plan.md, "The macro scale"). Client
 // side only: nothing is asked of the server and nothing shown that is not
 // the player's own flame.
 int GoannaClient::wield_light() {
@@ -4387,7 +4387,7 @@ Dictionary GoannaClient::render_stats() {
     d["light_churn"] = m_light_churn;
     d["mote_pool"] = (int)m_mote_pool.size();
     // Far tiers: how many blocks each tier draws, how many region meshes,
-    // and what the merge achieved. The per tier readout docs/far-rendering.md
+    // and what the merge achieved. The per tier readout docs/systems/far-rendering.md
     // asks for, so a tier cannot regress the draw call budget unnoticed.
     d["lod_ms"] = m_ms_lod;
     d["lod_update_ms"] = m_ms_lod_update;
@@ -5445,7 +5445,7 @@ void GoannaClient::set_lod_cell(int nodes) {
     lodReset();
 }
 
-// --- far rendering: tiers and regions (docs/far-rendering.md rungs 2, 3) ---
+// --- far rendering: tiers and regions (docs/systems/far-rendering.md rungs 2, 3) ---
 
 // Tier 0 is the live Luanti mesh. The five cached mesh tiers retain cell
 // sizes 1, 2, 4, 8 and 16. Cached one-node geometry preserves tree silhouettes
@@ -5716,7 +5716,7 @@ void GoannaClient::set_occluder_distance(int nodes) {
 }
 
 void GoannaClient::set_far_mesh_distance(int nodes) {
-    // The knowledge/mesh split (docs/sky-orchestration.md, "The baked
+    // The knowledge/mesh split (docs/systems/sky-orchestration.md, "The baked
     // horizon"): chains, summaries and the store walk keep filling to the
     // far distance, but region meshes are only built inside this radius;
     // beyond it the terrain is carried by the horizon bake alone, at zero
@@ -5737,7 +5737,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
     if (!m_session)
         return;
     int grant = m_session->farRenderingGrant();
-    // The default is the grant, not a fixed number (docs/launch-target.md
+    // The default is the grant, not a fixed number (docs/develop/launch-target.md
     // task 2d): a 512 node default left half of a 1024 node grant unused
     // until someone thought to raise it. An explicit choice, env var or
     // settings panel, still wins.
@@ -5962,7 +5962,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 " in range, grant ", grant, " nodes, radius ", radius, " blocks");
     // How far the far field actually reaches, which is not how far we are
     // allowed to draw. The haze has to close at the edge of what we have or
-    // the world is seen ending in clear air (docs/far-rendering.md,
+    // the world is seen ending in clear air (docs/systems/far-rendering.md,
     // "Background, overlay, foreground"), and what we have is whatever the
     // store held and the server has summarised so far, which on a new world
     // is very little and grows for minutes. Ring histogram by horizontal
@@ -6088,7 +6088,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
             m_far_reach = reach[(reach.size() * 3) / 4] * MAP_BLOCKSIZE;
         }
     }
-    // The ridge probe (docs/sky-orchestration.md): how high the drawn
+    // The ridge probe (docs/systems/sky-orchestration.md): how high the drawn
     // terrain stands toward the sun's azimuth, as the eye sees it. main.gd
     // re-bases its dawn ramps on the sun's altitude relative to this, so
     // the true dawn holds until the sun crests what actually occludes it.
@@ -6175,7 +6175,7 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
 // The other half of the far view: places this client has never been. The
 // server mod summarises terrain the server has already generated, at the
 // operator's granted distance and rate, and those summaries become coarse
-// chains exactly as stored blocks do (docs/far-rendering.md). Areas are
+// chains exactly as stored blocks do (docs/systems/far-rendering.md). Areas are
 // asked for nearest first, a few in flight, and never asked twice.
 void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     if (surfaceOffered()) radius = std::min(radius, 512 / MAP_BLOCKSIZE);
@@ -6236,7 +6236,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     auto fdiv = [](int a, int b) { return a >= 0 ? a / b : -((-a + b - 1) / b); };
     const v3s16 ac(fdiv(centre.X, kEdge), fdiv(centre.Y, kEdge), fdiv(centre.Z, kEdge));
     const int aradius = radius / kEdge;
-    // Vertical window. A fixed one area either side (docs/far-rendering.md's
+    // Vertical window. A fixed one area either side (docs/systems/far-rendering.md's
     // "seam" defect) was too narrow for a hill or a valley near the player,
     // and widening it to four was worse: nine layers of 512 blocks each per
     // column, of which at most two hold anything a player can see. The rest
@@ -6250,7 +6250,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
     // the one below it has answered that terrain reaches its top face, and a
     // layer below only once the one above it has answered that its floor is
     // not solid. See "Lids, layers and the vertical walk" in
-    // docs/far-rendering.md.
+    // docs/systems/far-rendering.md.
     const int varadius = std::min(aradius, 4);
     auto answered = [&](const v3s16 &origin) -> const FarAsk * {
         auto it = m_far_requested.find(origin);
@@ -6370,7 +6370,7 @@ void GoannaClient::lodRequestSummaries(const v3s16 &centre, int radius) {
         // VoxelManip reads out of a budget that fills the horizon at about
         // half an area a second. The retry brings this area back once the
         // server has made something here, and then its answer means
-        // something (docs/far-rendering.md, "Where the summary budget
+        // something (docs/systems/far-rendering.md, "Where the summary budget
         // actually went").
         if (n->empty)
             return false;
@@ -6643,7 +6643,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 // itself defaults there when getId fails, and its tile is
                 // unknown_node.png, the classic magenta checker, for exactly
                 // this reason. Defaulting to air instead (found while chasing
-                // docs/launch-target.md's purple cells) turned a name this
+                // docs/develop/launch-target.md's purple cells) turned a name this
                 // client cannot resolve into an invisible hole, which is a
                 // worse failure than an ugly one: a hole reads as there being
                 // nothing there at all.
@@ -6981,7 +6981,7 @@ void GoannaClient::lodDirtyAround(const v3s16 &bp, const LodRegionKey *except) {
     // far surface's corners are the mean of the four columns around them, so
     // a column arriving or changing moves a corner shared with the region
     // diagonally beside it, and that region has to be re-meshed or its edge
-    // no longer meets this one (docs/far-rendering.md, "The far field as a
+    // no longer meets this one (docs/systems/far-rendering.md, "The far field as a
     // surface").
     static const v3s16 around[10] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1},
             {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1}};
@@ -7866,7 +7866,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                 Dictionary(), kNodeSurfaceFlags);
         Ref<Material> mat;
         if (sf.liquid) {
-            // Water at distance, docs/far-rendering.md rung 6: the same water
+            // Water at distance, docs/systems/far-rendering.md rung 6: the same water
             // shader as the near mesh, on the liquid's own tile, with the
             // same parameters, so the sea reads as sea at the horizon with
             // its specular, fresnel and the sky's reflection. Everything that
@@ -7877,7 +7877,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
             // the hand-off. Waving used to be off here, and the reflection
             // march was gated on it, which left the far sea a dark band
             // against the reflecting near water (the R2 recorded in
-            // docs/far-rendering.md, "the far tier water plane").
+            // docs/systems/far-rendering.md, "the far tier water plane").
             auto wit = m_lod_water.find(sf.texture_id);
             if (wit == m_lod_water.end()) {
                 Ref<ShaderMaterial> wm;
@@ -7924,7 +7924,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                 // The vertex colour here is the tile's sRGB average (the
                 // fallback in goanna_lod.cpp), so say so, or Godot reads it
                 // as linear and the tile is brighter than it is anywhere
-                // else (docs/launch-target.md, R1).
+                // else (docs/develop/launch-target.md, R1).
                 m_lod_material->set_flag(BaseMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
                 m_lod_material->set_roughness(1.0f);
                 m_lod_material->set_metallic(0.0f);
@@ -8407,7 +8407,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                 fprintf(stderr, "goanna content: meshing block %d before content prepared\n", early);
         }
         // Far blocks are drawn by their region's mesh at their tier, never one
-        // by one: see lodBuildRegion and docs/far-rendering.md.
+        // by one: see lodBuildRegion and docs/systems/far-rendering.md.
         int tier = lodTierFor(bp, m_lod_centre, true);
         // The network handler has already persisted the compact serialised
         // block. Do not synchronously derive a second exact hierarchy for a
@@ -8446,7 +8446,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         auto t_mesh = clock_t_::now();
         // Luanti's own light never reaches the vertices (g_goanna_no_light,
         // see goanna_mesh_flags.h), so it is read here instead, from the same
-        // nodes, along with the occlusion trace. docs/mesh-attributes.md.
+        // nodes, along with the occlusion trace. docs/systems/mesh-attributes.md.
         std::unique_ptr<MapBlockMesh> bm;
         BlockLightField lightfield;
         std::map<uint32_t, std::vector<VertexLight>> vertex_light;
@@ -8688,7 +8688,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         tacc.cols.push_back(Color(v[sv].Color.getRed() / 255.0f,
                                 v[sv].Color.getGreen() / 255.0f, v[sv].Color.getBlue() / 255.0f,
                                 v[sv].Color.getAlpha() / 255.0f));
-                        // UV2 always, per docs/mesh-attributes.md: x is the
+                        // UV2 always, per docs/systems/mesh-attributes.md: x is the
                         // array layer, y the block semantic ID that an Iris
                         // pack reads as mc_Entity.x, from the classifier's
                         // block column for the owning node. 0 is the correct

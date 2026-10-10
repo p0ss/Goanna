@@ -7,7 +7,7 @@
 # and the glow around the disc were unrelated luminances, and the fog
 # between the camera and a ridge glowed with a beam that never reached it.
 #
-# Two ideas replace that clock (see docs/sky-orchestration.md):
+# Two ideas replace that clock (see docs/systems/sky-orchestration.md):
 #
 # - The beam. One function of solar altitude gives the transmitted sun's
 #   hue and its strength after the grazing path through the air. Every warm

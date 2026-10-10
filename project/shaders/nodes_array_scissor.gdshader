@@ -28,12 +28,12 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 #include "res://shaders/diamond_ore.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles. Cut-outs
 // on open ground take rain too, and the far tiers draw ground with this
-// shader (above; docs/weather.md, "Splashes and puddles in play").
+// shader (above; docs/systems/weather.md, "Splashes and puddles in play").
 #include "res://shaders/weather_common.gdshaderinc"
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
-	// occlusion. See docs/mesh-attributes.md.
+	// occlusion. See docs/systems/mesh-attributes.md.
 	v_nodelight = CUSTOM0.rgb;
 	v_stale = 1.0 - CUSTOM0.a;
 	// Where this fragment is in the world, and which way the face points

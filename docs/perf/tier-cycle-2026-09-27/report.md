@@ -78,7 +78,7 @@ bottleneck. GPU temperatures ranged from 60 to 83 C during the screening.
 
 ## Implementation and correctness
 
-The [architecture](../../local-multiplayer.md) describes cache identities,
+The [architecture](../../systems/local-multiplayer.md) describes cache identities,
 budgets, per-player boundaries and remaining duplicated work. Near geometry,
 LOD hierarchies and eligible near GPU buffers can be reused. Far-region
 mesh assembly and drawing remain per player. A cache hit proves reuse,

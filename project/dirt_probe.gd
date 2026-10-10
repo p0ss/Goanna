@@ -5,7 +5,7 @@ extends Node3D
 # (no SDFGI, no ambient, no sky, no distance/mip confounds)? material_probe.gd
 # already proved the shader's LabPBR decode matches Godot's own material for
 # synthetic 1x1 swatches; this feeds it the actual file DeepBump produced,
-# because docs/pbr-plan.md's own instruments section is explicit that no
+# because docs/design/pbr-plan.md's own instruments section is explicit that no
 # conclusion here has ever survived being read off a world screenshot.
 #
 # Three quads, same light, same albedo:

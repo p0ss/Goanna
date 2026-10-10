@@ -7,7 +7,7 @@
 // to produce what the driver's compiler will take, and glslang does the rest.
 //
 // Written from the shader pack format as documented, not from any loader's
-// source. See docs/iris-compat.md, "On licence".
+// source. See docs/design/iris-compat.md, "On licence".
 #pragma once
 
 #include <cstdint>

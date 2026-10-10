@@ -11,14 +11,14 @@ project/.godot/
 project/bin/
 *.import
 
-# Screenshot scratch. Images used in documentation live in docs/.
+# Screenshot scratch. Images used in documentation live in docs/assets/.
 project/shots/
 
 # tools/pbr/pbr_bake.py output. Generated, large, and regenerable; deploy it to a
 # world with tools/pbr/pbr_deploy.py rather than committing it.
 baked/
 
-# The Material Maker benchmark (docs/material-calibration.md): library
+# The Material Maker benchmark (docs/history/material-calibration.md): library
 # materials and their exports, an experiment kept locally and not shipped.
 # Each material has its own author and licence.
 asset_bundles/materials/

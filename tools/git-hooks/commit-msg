@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# Commit message check, the rules of docs/style.md section 8 and CLAUDE.md:
+# Commit message check, the rules of docs/develop/style.md section 8 and CLAUDE.md:
 #   - a subject under 72 characters with no trailing full stop
 #   - a blank line, then a body saying why
 #   - a Signed-off-by line (git commit -s)
@@ -94,6 +94,6 @@ if printf '%s\n' "$msg" | grep -P '[\x{00A0}\x{200B}\x{FEFF}]' >/dev/null; then
 fi
 
 if [ "$fail" -ne 0 ]; then
-    printf 'commit-msg: see docs/style.md, section 8. The message is in %s.\n' "$file" >&2
+    printf 'commit-msg: see docs/develop/style.md, section 8. The message is in %s.\n' "$file" >&2
 fi
 exit "$fail"

@@ -362,7 +362,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             }
         }
         if (img.is_null()) {
-            // Nothing authored for this layer. docs/pbr-plan.md step 2: the
+            // Nothing authored for this layer. docs/design/pbr-plan.md step 2: the
             // layer is derived rather than left neutral, so authored data is
             // an override on top of something that covers everything.
             if (is_normal) {
@@ -474,7 +474,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         }
     }
     if (getenv("GOANNA_DEBUG_PBR")) {
-        // The coverage number docs/pbr-plan.md step 2 wants: how many layers
+        // The coverage number docs/design/pbr-plan.md step 2 wants: how many layers
         // are authored, how many the classifier or the inference dressed,
         // and how many are left neutral.
         const int n = (int)m_layer_names.size();

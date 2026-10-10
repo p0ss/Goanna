@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""An MCP server over Goanna's control channel (docs/control-channel.md).
+"""An MCP server over Goanna's control channel (docs/agents/control-channel.md).
 
 The channel is the interface and this is a wrapper over it, so everything
 here can be done from a shell with tools/goanna-control. What the wrapper

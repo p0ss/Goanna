@@ -28,7 +28,7 @@ var _data_dir := ""
 # 12; the client still has to ask for it through its own view range setting,
 # and asking for more than this gets nothing.
 var send_distance := 32
-# How far the local server grants far rendering, in nodes (docs/far-rendering.md).
+# How far the local server grants far rendering, in nodes (docs/systems/far-rendering.md).
 var far_distance := 1024
 # Named one by one because an exported build cannot list a res:// directory.
 # A runtime file missing from this list is not deployed and the mod fails to
@@ -1386,7 +1386,7 @@ func _write_director_connect(world: String) -> void:
 	var py := "python" if OS.get_name() == "Windows" else "python3"
 	var q := func(p: String) -> String: return "\"%s\"" % p
 	var text := "\n".join([
-		"Connect an AI game master to this world (docs/director-setup.md in Goanna's source).",
+		"Connect an AI game master to this world (docs/host/director-setup.md in Goanna's source).",
 		"It needs Python 3 and nothing else; it talks to the world through files in this folder.",
 		"",
 		"From an MCP app, such as Claude Code:",
@@ -1523,7 +1523,7 @@ func start_config(options: Dictionary) -> String:
 	# How far the server will send blocks at all. Luanti defaults
 	# max_block_send_distance to 12 mapblocks, 192 nodes, and that is a hard
 	# ceiling on what any client can draw however much it asks for: see
-	# docs/far-rendering.md, where it is the reason distant vistas need more
+	# docs/systems/far-rendering.md, where it is the reason distant vistas need more
 	# than a bigger view range. Raised here because a local single player
 	# server has one client and can afford it. Written next to the world so it
 	# is visible inside the flatpak sandbox, which cannot see the host's home.
@@ -1554,7 +1554,7 @@ func start_config(options: Dictionary) -> String:
 		# A single player world on this machine, run by a server this client
 		# launched: there is no one to be unfair to, so far rendering is
 		# granted here, over the goanna:v1 channel the server mod installed
-		# below provides. docs/far-rendering.md, "the server decides".
+		# below provides. docs/systems/far-rendering.md, "the server decides".
 		# Luanti disables mod channels by default. The grant cannot reach the
 		# client unless the transport carrying it is enabled too.
 		cf.store_string("enable_mod_channels = true\n")
@@ -1578,7 +1578,7 @@ func start_config(options: Dictionary) -> String:
 		# remained).
 		if not GAMES_WITH_OWN_DIG_DAMAGE.has(gameid):
 			cf.store_string("goanna_dig_progress = true\n")
-		# The director (docs/director.md), available for the same reason: the
+		# The director (docs/agents/director.md), available for the same reason: the
 		# player who launched this server is its operator. Enabling it only
 		# makes it available; nothing happens until a director service
 		# connects, and anyone joining is told and can opt out. The service
@@ -1607,7 +1607,7 @@ func start_config(options: Dictionary) -> String:
 		# pregeneration is the server's own answer: it generates outward from
 		# each player at its own pace, one 128 node area at a time and a slice
 		# of an area per emerge call so the player's own blocks are never
-		# queued behind it (docs/far-rendering.md, "Pregeneration yields to
+		# queued behind it (docs/systems/far-rendering.md, "Pregeneration yields to
 		# the player"), and pushes each area's summary as it lands. It is the
 		# operator's choice, and here the operator is the player.
 		# A Terrain Diffusion provider answers unexplored columns directly from

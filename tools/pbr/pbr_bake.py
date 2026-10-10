@@ -550,7 +550,7 @@ def workflow(image_name, ckpt, controlnet, width, height, denoise, strength, ste
 def chord_workflow(image_name, chord_ckpt, filename_prefix="goanna_chord"):
     """Decompose an already-upscaled, already-cropped texture into material
     maps. Chord estimates from the image alone, so it wants the detail the
-    SDXL upscale added, not the raw 16 px source; see pbr-plan.md's own note
+    SDXL upscale added, not the raw 16 px source; see docs/design/pbr-plan.md's own note
     that Chord slots in after the upscale, not instead of it.
     """
     return {

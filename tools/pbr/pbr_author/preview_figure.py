@@ -31,7 +31,7 @@ of shading:
            mirrored as on the model.
   decode   red above 128 tilts the normal toward +U (image right), green
            above 128 toward the top of the image, no flip, as
-           docs/materials.md has it for entities.
+           docs/systems/materials.md has it for entities.
   shading  in linear light: a sun (direct, with the material occlusion at
            0.4 of its effect, as the client's AO light affect), a sky
            ambient brighter on upward normals and fully occluded by the

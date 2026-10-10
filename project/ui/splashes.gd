@@ -2,7 +2,7 @@
 # Copyright (C) 2026 the Goanna contributors
 #
 # Splashes: the droplets a body throws up out of the water, beside the waves
-# the ripple patch draws. docs/weather.md, "Splashes", has the whole picture.
+# the ripple patch draws. docs/systems/weather.md, "Splashes", has the whole picture.
 #
 # wake.gd says when (falling or jumping in, climbing or jumping out, moving
 # fast through the surface, striking at the water, a hand or a foot going

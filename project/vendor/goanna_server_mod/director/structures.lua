@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- Structures: the director puts a building in the world, and can take it
--- away again (docs/director.md, "Structures").
+-- away again (docs/agents/director.md, "Structures").
 --
 -- The core works on the engine alone: it checks a site, snapshots it with a
 -- VoxelManip before anything changes, places a schematic the director

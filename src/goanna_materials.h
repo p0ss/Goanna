@@ -3,7 +3,7 @@
 
 #pragma once
 
-// The per node classifier, docs/pbr-plan.md step 2: one table with two
+// The per node classifier, docs/design/pbr-plan.md step 2: one table with two
 // columns, built once from the node definitions the server sent.
 //
 // Column one is a material class, from what Luanti already says about a
@@ -16,8 +16,8 @@
 //
 // Column two is the Minecraft block a node most resembles, through the
 // texture map (a game_texture,pack_path CSV), for the semantic ID an Iris
-// shader pack reads as mc_Entity.x (docs/iris-compat.md); it rides in UV2.y,
-// per docs/mesh-attributes.md. It is a lookup here because the texture
+// shader pack reads as mc_Entity.x (docs/design/iris-compat.md); it rides in UV2.y,
+// per docs/systems/mesh-attributes.md. It is a lookup here because the texture
 // map alone cannot give it: in Mineclonia more than half the textures are
 // shared between nodes, so it takes the nodedef to say which block a tile
 // belongs to, and that read is this one.

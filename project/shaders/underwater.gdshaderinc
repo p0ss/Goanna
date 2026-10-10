@@ -1,5 +1,5 @@
 // Goanna: what the water between the eye and a surface takes out of its
-// light, per colour, while the eye is under water. docs/water-optics.md.
+// light, per colour, while the eye is under water. docs/systems/water-optics.md.
 //
 // Looked down into from above, the water shader absorbs the bed by the
 // water's absorption (goanna_water_absorption) over the water it is seen

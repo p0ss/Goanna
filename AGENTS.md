@@ -9,12 +9,12 @@ differ, fix the detail, do not pick one.
 1. **Text style.** Australian English, never an em dash (nor `--` as one),
    no smart quotes or ellipsis characters, sentence case headings, Markdown
    wrapped at 80 columns. `tools/check-style.sh` is a gate: it must exit
-   clean before you commit. Detail: `docs/style.md`.
+   clean before you commit. Detail: `docs/develop/style.md`.
 2. **Never restyle `src/transplant/`.** It is Luanti's own code; do not
    reformat, rename or respell anything in it. To use Luanti code, first
    compile it from the submodule, else give Goanna a stand-in with the name
    upstream expects, and only then copy it, upstream header first, with an
-   inventory row. Detail: `docs/transplanting.md`.
+   inventory row. Detail: `docs/develop/transplanting.md`.
 3. **Claims need a real run.** Describe something as working only after it
    has run against a real server and been observed to work, and say which
    server, game and Godot version. Detail: `CONTRIBUTING.md`, "Claims and
@@ -29,17 +29,17 @@ differ, fix the detail, do not pick one.
    through `tools/goanna-headless`; they take the GPU lock and check the
    card themselves. One GPU client at a time. When `goanna-headless
    gpu-free` says busy, do not render. Never build a gamescope command line
-   by hand. Detail: `docs/agent-interfaces.md`, "Rules for test clients".
+   by hand. Detail: `docs/agents/agent-interfaces.md`, "Rules for test clients".
 6. **No windows, no input injection.** Test clients run in headless
    gamescope or under Godot's `--headless`, never as windows on the owner's
    desktop, and are driven from inside through the control channel. Never
    send input to the owner's display with xdotool, ydotool or anything
    else. The one exception is a desktop benchmark, run only when the owner
    says the machine is free; a headless one is relative only. Detail:
-   `docs/agent-interfaces.md`, "Benchmarks on the desktop".
+   `docs/agents/agent-interfaces.md`, "Benchmarks on the desktop".
 7. **Stop processes by PID only.** Stop only the PIDs you started, or go
    through the launcher. Never `pkill`, `killall` or `pgrep -f` by name.
-   Leave nothing of yours running. Detail: `docs/agent-interfaces.md`.
+   Leave nothing of yours running. Detail: `docs/agents/agent-interfaces.md`.
 8. **The checkout and its index are shared.** Stage only your own hunks
    and read `git diff --cached` before every commit. Never `git add -A`,
    `git commit -a` or a directory pathspec. A file another session also

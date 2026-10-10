@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # GPU fixture: --path project --script res://tests/node_animation.gd
 #
-# Animated node tiles in the array shaders (docs/node-animation.md). Builds
+# Animated node tiles in the array shaders (docs/systems/node-animation.md). Builds
 # an animation array the way GoannaTextureSource does, each
 # tile's frames as consecutive layers with layer_anim naming the frame count
 # and length at the first, sets the clock through GoannaClient itself, and

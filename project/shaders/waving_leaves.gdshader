@@ -46,7 +46,7 @@ varying vec3 v_wpos;
 #include "res://shaders/direct_light.gdshaderinc"
 
 void vertex() {
-	// CUSTOM0.g is Luanti's sky light at the vertex (docs/mesh-attributes.md).
+	// CUSTOM0.g is Luanti's sky light at the vertex (docs/systems/mesh-attributes.md).
 	v_skylight = CUSTOM0.g;
 	v_blocklight = CUSTOM0.r;
 	v_wnormal_y = (MODEL_MATRIX * vec4(NORMAL, 0.0)).y;

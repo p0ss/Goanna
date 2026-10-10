@@ -8,7 +8,7 @@
 # Usage: tools/release/package-release.sh <linux|windows> [version]
 #
 # Requires a Godot 4.5 binary on PATH as `godot`, or set GODOT_BIN. Requires
-# the matching GDExtension binary already built (see docs/building.md) and
+# the matching GDExtension binary already built (see docs/develop/building.md) and
 # Godot's export templates for 4.5.1 installed. Linux packages are verified
 # by this script (run headless against GOANNA_HOST/PORT if set); Windows
 # packages are exported but cannot be launched from Linux, so they are
@@ -107,7 +107,7 @@ rm -rf "$PKG"
 mkdir -p "$PKG/Goanna" "$PKG/luanti/textures"
 cp -r "$STAGE"/* "$PKG/Goanna/"
 cp -r luanti/textures/base "$PKG/luanti/textures/"
-# The AI game master's service (docs/director-setup.md): what a model's MCP
+# The AI game master's service (docs/host/director-setup.md): what a model's MCP
 # app starts, and the shell bridge beside it. Python 3 with no dependencies;
 # it reaches a world Goanna started through files in the world folder, so a
 # player needs nothing from the repository.

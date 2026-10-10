@@ -21,7 +21,7 @@
 #
 # The layout follows upstream Luanti 5.17's SDL gamepad defaults
 # (luanti/src/defaultsettings.cpp), which number buttons and axes the way
-# Godot does. docs/controller.md has the table.
+# Godot does. docs/play/controllers.md has the table.
 extends CanvasLayer
 
 const CFG_PATH := "user://goanna.cfg"

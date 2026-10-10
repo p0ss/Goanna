@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- The catalogue: what this world contains, for the model to search rather
--- than be sent (docs/director.md, "Catalogue").
+-- than be sent (docs/agents/director.md, "Catalogue").
 --
 -- Items, nodes, tools, entities and mods come from the engine's own
 -- registries, so the catalogue works in any game. The adapters add what

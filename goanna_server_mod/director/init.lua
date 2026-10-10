@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- The director: a game master for a Luanti world, run by a language model
--- the operator connects (docs/director.md).
+-- the operator connects (docs/agents/director.md).
 --
 -- The model proposes and the game decides. Every action arrives as an
 -- intent, which this code validates against the operator's budgets, the
@@ -247,7 +247,7 @@ return function(http)
 		dofile(MODPATH .. "/filelink.lua")(D)
 	end
 
-	-- The hook API for games and adapters (docs/director.md, "Lua hook API",
+	-- The hook API for games and adapters (docs/agents/director.md, "Lua hook API",
 	-- and "Rulesets as built" for what exists).
 	rawset(_G, "goanna_director", {
 		register_adapter = function(name, def)

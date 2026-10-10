@@ -38,7 +38,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
-	// occlusion. See docs/mesh-attributes.md.
+	// occlusion. See docs/systems/mesh-attributes.md.
 	v_nodelight = CUSTOM0.rgb;
 	v_stale = 1.0 - CUSTOM0.a;
 	// Where this fragment is in the world, and which way the face points
@@ -63,7 +63,7 @@ void fragment() {
 	// samplers never showed it because GLSL rounds an array layer coordinate
 	// itself; only the arrays indexed by hand below were affected, and they
 	// took the colour and the class of whichever tile happens to sit one
-	// layer back. See docs/far-rendering.md, "The far field's albedo".
+	// layer back. See docs/systems/far-rendering.md, "The far field's albedo".
 	// An animated tile's face names its first frame; the clock picks the
 	// frame drawn (nodes_array_common.gdshaderinc, goanna_anim_layer).
 	int layer = goanna_anim_layer(int(round(UV2.x)));

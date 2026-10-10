@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The control channel's UI commands (docs/control-channel.md): read the open
+# The control channel's UI commands (docs/agents/control-channel.md): read the open
 # form or menu, and click, hover, type, scroll and press keys in it, without
 # an OS pointer or keyboard anywhere near it.
 #

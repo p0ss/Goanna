@@ -2,7 +2,7 @@
 # Copyright (C) 2026 the Goanna contributors
 #
 # What the water round the eye is like, one description for both sides of
-# its surface. docs/water-optics.md has the whole picture.
+# its surface. docs/systems/water-optics.md has the whole picture.
 #
 # Looked down into from above, the water shader absorbed the bed by its own
 # constants; from inside, main.gd drew a fixed cyan fog tuned by eye. The two

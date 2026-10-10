@@ -6,7 +6,7 @@
 // GLSL by iris_glsl, compiled through RenderingDevice at first use on the
 // render thread, and drawn as a full screen triangle into the colortex it
 // declares with DRAWBUFFERS; final draws into the scene's colour buffer.
-// The gbuffers programs are not run here; see docs/iris-compat.md.
+// The gbuffers programs are not run here; see docs/design/iris-compat.md.
 #pragma once
 
 #include "iris/iris_pack.h"

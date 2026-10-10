@@ -3,7 +3,7 @@
 # Copyright (C) 2026 the Goanna contributors
 #
 # Point this checkout's git hooks at tools/git-hooks, so the commit message
-# rules in docs/style.md are checked at commit time. Worktrees share the
+# rules in docs/develop/style.md are checked at commit time. Worktrees share the
 # setting. Undo with: git config --unset core.hooksPath
 set -euo pipefail
 case "${1:-}" in -h | --help)

@@ -3,7 +3,7 @@
 Goanna is pre-alpha. It connects to a real Luanti server, authenticates,
 receives media and mapblocks, meshes them and lets you walk around. It does
 not yet do most of what a client does. See `README.md` for an honest list of
-what works and `PLAN.md` for where it is going.
+what works and `docs/design/plan.md` for where it is going.
 
 At this stage the most useful contributions are small and concrete: build
 reports from machines that are not the author's, bugs found against real
@@ -32,7 +32,7 @@ Goanna is a client for the existing ecosystem, and takes that seriously:
   differ in behaviour, the vanilla client is right and Goanna has a bug.
 - Bugs in the engine, the protocol or a game belong upstream, reported to
   the relevant project. Do not report them here, and do not carry local
-  patches against Luanti. See `docs/transplanting.md`.
+  patches against Luanti. See `docs/develop/transplanting.md`.
 
 ## Licensing and provenance
 
@@ -43,7 +43,7 @@ Goanna is a client for the existing ecosystem, and takes that seriously:
 - godot-cpp is MIT and is used as a submodule, unmodified.
 - Code copied from Luanti keeps its upstream copyright and SPDX header,
   gains a note saying what was changed, and is listed in the inventory in
-  `docs/transplanting.md`. Read that document before copying anything.
+  `docs/develop/transplanting.md`. Read that document before copying anything.
 - There is no CLA and no copyright assignment. Contributors keep their
   copyright.
 - Sign off your commits under the Developer Certificate of Origin
@@ -58,7 +58,7 @@ from if it came from anywhere.
 ## Transplanting Luanti code
 
 This is the core discipline of the project and it has its own document:
-**`docs/transplanting.md`**. In short:
+**`docs/develop/transplanting.md`**. In short:
 
 1. Compile it from the `luanti/` submodule if you possibly can, by adding
    it to `cmake/luanti_core.cmake`.
@@ -101,7 +101,7 @@ naming, comment wording. It is upstream's file.
 ## Text style
 
 Australian English, no em dashes, plain factual tone. The full rules are in
-**`docs/style.md`** and they apply to documentation, comments, commit
+**`docs/develop/style.md`** and they apply to documentation, comments, commit
 messages and pull request text alike.
 
 Run the check before every commit:
@@ -117,7 +117,7 @@ commit of its own that says why.
 ## Commits and pull requests
 
 This section is the one statement of the commit format; `AGENTS.md` and
-`docs/style.md` point here.
+`docs/develop/style.md` point here.
 
 - Subject line in the imperative mood, under 72 characters, no full stop.
   `Add media transfer`, not `Added media transfer.` or `adding media`.
@@ -134,11 +134,11 @@ This section is the one statement of the commit format; `AGENTS.md` and
 
 ### Claims and test reports
 
-`README.md` describes what Goanna draws and does, and says what is
-untested; `docs/players.md` lists current limitations; `PLAN.md` keeps a
-dated log of what was done and what was verified. People read all three
-to decide whether to trust the project, so every claim in them must be true
-of the committed code.
+`README.md` describes what Goanna draws and does, and says what is untested;
+`docs/play/index.md` lists current limitations; `docs/design/plan.md` keeps a
+dated log of what was done and what was verified. People read all three to
+decide whether to trust the project, so every claim in them must be true of the
+committed code.
 
 - Describe a feature as working only after it has been run against a real
   server and observed to work, not because the code exists. A study, a
@@ -197,6 +197,6 @@ nothing about it.
 
 ## Building
 
-See `docs/building.md`. If it does not work on your machine, that is a bug
-in the document as much as in the code, and a report is genuinely useful
+See `docs/develop/building.md`. If it does not work on your machine, that is a
+bug in the document as much as in the code, and a report is genuinely useful
 right now.

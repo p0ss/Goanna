@@ -81,7 +81,7 @@ def main():
     # in this same set found that a narrow, near stepped transition here
     # reads as a periodic feature landing on the tile edge, diluted
     # against a mostly flat inner average, and fails the seam measure even
-    # though the wall genuinely tiles (see docs/pbr-authoring-playbook.md's
+    # though the wall genuinely tiles (see docs/develop/pbr-authoring-playbook.md's
     # note on this).
     stake_raw = np.broadcast_to(stake_hi[None, :], (SIZE, SIZE)).astype(np.float32)
     stake = lib.blur(stake_raw, 4)

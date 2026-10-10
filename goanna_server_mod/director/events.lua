@@ -176,7 +176,7 @@ return function(D)
 	end)
 
 	-- Kills and removals, for every mob, from a wrapped on_deactivate. A
-	-- removal is not proof of death (docs/director.md, "Deactivation is not
+	-- removal is not proof of death (docs/agents/director.md, "Deactivation is not
 	-- death"), so the adapter decides from the framework's own state.
 	core.register_on_mods_loaded(function()
 		for name, def in pairs(core.registered_entities) do
@@ -248,7 +248,7 @@ return function(D)
 	end
 
 	-- Chat. builtin's handler returns true for every "/" command before any
-	-- mod's callback runs, so /msg never arrives here (docs/director.md,
+	-- mod's callback runs, so /msg never arrives here (docs/agents/director.md,
 	-- "Public chat only"). By default every public line is read, as the
 	-- operator can read it; goanna_director_chat narrows that.
 	core.register_on_chat_message(function(name, message)

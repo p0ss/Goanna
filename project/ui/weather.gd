@@ -11,7 +11,7 @@
 #
 # Presentation only. The spawners arrive exactly as before, nothing sent to
 # the server changes, and the rain cover map is built from map data the
-# client already holds. docs/weather.md has the design and what is untested.
+# client already holds. docs/systems/weather.md has the design and what is untested.
 extends Node3D
 
 const PlayerContext := preload("res://player_context.gd")

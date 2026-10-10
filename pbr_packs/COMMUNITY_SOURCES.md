@@ -10,7 +10,7 @@ discovery, but is not sufficient evidence on its own.
 Pinned release IDs, repositories, declared media licences and archive hashes
 are machine-readable in `COMMUNITY_LOCK.json`. Candidate images are separated
 into terrain, billboard and creature manifests under `manifests/`; the review
-and rejection rules are documented in `docs/pbr-community-review.md`.
+and rejection rules are documented in `docs/develop/pbr-community-review.md`.
 
 `audited; rebake pending` means the archive's notices have been checked but no
 art is bundled until a tranche-specific bake passes the quality gate.

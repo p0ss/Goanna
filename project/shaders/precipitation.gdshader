@@ -1,4 +1,4 @@
-// Goanna: rain and snow, drawn rather than simulated. docs/weather.md.
+// Goanna: rain and snow, drawn rather than simulated. docs/systems/weather.md.
 //
 // Every drop is one instance of a MultiMesh (built in project/ui/weather.gd),
 // so a kind of weather is one draw call. A drop has a place in a box around

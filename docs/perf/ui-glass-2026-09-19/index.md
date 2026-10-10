@@ -1,6 +1,6 @@
 # Dark glass against the game theme
 
-Captures of the two interface styles (`docs/interface-style.md`) side by
+Captures of the two interface styles (`docs/systems/interface-style.md`) side by
 side, taken on 19 September 2026 from the live client. They are for judging
 the look; this page says what was captured and measured, not whether it
 looks good.
@@ -74,7 +74,7 @@ First round only, not recaptured:
 These three show the first round's code: panes with the larger radius and a
 rim only along the top, not the one pane every surface now shares.
 
-What to look for, as the rule in `docs/interface-style.md` intends:
+What to look for, as the rule in `docs/systems/interface-style.md` intends:
 
 - The game's window art (Mineclonia's light grey panel, slot squares and
   creative tabs, the themed button panes) is replaced by glass; the item
@@ -188,7 +188,7 @@ creative inventory only the window's pane was measured: the tab panes were
 hidden with the tabs in those captures, so their rectangles held the world,
 not glass. The shader's bound is 0.07 (a 0.05 ceiling plus a 0.02 sheen at
 the top of a pane), so none of these can fall below the worst case figures
-in `docs/interface-style.md`. The contrast backgrounds are in `frames/`:
+in `docs/systems/interface-style.md`. The contrast backgrounds are in `frames/`:
 `contrast_world_*.jpg` (the world alone), `contrast_mcl_survival_*_glass.jpg`
 and `contrast_mcl_survival_*_panes.jpg` (the glass alone, as measured). In
 the snow and beach frames the player's arm covers the lower right of the

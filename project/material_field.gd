@@ -274,7 +274,7 @@ func _ready() -> void:
 		mat.set_shader_parameter("block_light_emission", 0.0)
 		# The tile's own average in linear light, which is the colour a
 		# correctly minified sample converges to and therefore what a far
-		# tier has to reach if it is to meet the near mesh (docs/
+		# tier has to reach if it is to meet the near mesh (docs/develop/
 		# launch-target.md, "one light, one air").
 		var acc := Vector3.ZERO
 		var count := 0
@@ -495,7 +495,7 @@ func _set_detail(v: float) -> void:
 
 # The near mesh against the far tiers, on one surface, under one sky.
 #
-# Added for docs/far-rendering.md, "The far field's albedo, 2026-08-23". The
+# Added for docs/systems/far-rendering.md, "The far field's albedo, 2026-08-23". The
 # only thing that separates the two in the shader is lod_flatten and the
 # colour the flatten blends to, so this draws each strip both ways and prints
 # what came out. Nothing about the field itself moves between the two frames,

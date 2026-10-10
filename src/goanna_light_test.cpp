@@ -7,7 +7,7 @@
 // a corner is about half a wall.
 //
 // It is here because "the cone trace looks about right" is not a measurement,
-// and because the far field version in docs/far-rendering.md traces a coarser
+// and because the far field version in docs/systems/far-rendering.md traces a coarser
 // field with the same code, where the error is larger and matters more.
 //
 // Build and run:
@@ -26,7 +26,7 @@ using namespace goanna;
 
 namespace {
 
-// Chosen from the sweep this program prints; see docs/mesh-attributes.md.
+// Chosen from the sweep this program prints; see docs/systems/mesh-attributes.md.
 constexpr int kRaysDefault = 24;
 constexpr int kStepsDefault = 1;
 

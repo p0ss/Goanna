@@ -11,7 +11,7 @@ local L = {}
 -- The event ring. Every event gets the next sequence number for the scope;
 -- the ring keeps the last `cap` of them. A reader asking for events after a
 -- sequence older than the oldest kept gets `gap = true`, and is expected to
--- re-read summaries rather than replay (docs/director.md, "Events").
+-- re-read summaries rather than replay (docs/agents/director.md, "Events").
 function L.ring(cap)
 	return {cap = cap, items = {}, first = 1, last = 0, seq = 0}
 end
@@ -85,7 +85,7 @@ function L.rate_allow(r, key, now)
 	return true
 end
 
--- Pacing, after Left 4 Dead's director (docs/director.md, "Pacing"). One
+-- Pacing, after Left 4 Dead's director (docs/agents/director.md, "Pacing"). One
 -- state per player. Intensity rises with harm, with hostiles near and with
 -- kills, is set to 1 on death, and decays once things have been quiet for a
 -- few seconds. The phase cycles build_up, peak, fade, relax.
@@ -465,7 +465,7 @@ function L.build_order(nodes)
 	return list
 end
 
--- Rulesets (docs/director.md, "Lua hook API"). A ruleset's names become
+-- Rulesets (docs/agents/director.md, "Lua hook API"). A ruleset's names become
 -- message types on the wire and parts of MCP tool names, so they are kept
 -- to lower case letters, digits and underscores.
 function L.ident_ok(s)

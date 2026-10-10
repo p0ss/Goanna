@@ -5,7 +5,7 @@ VoxeLibre's LEGAL.md is a mixed notice: textures are Pixel Perfection
 (CC BY-SA 4.0) unless otherwise noted, a few named works carry their own
 terms, other files fall under CC BY-SA 3.0, and each mod's own README may
 say something else again. The archive-wide string therefore qualifies
-nothing on its own (docs/pbr-community-review.md), and this writes the
+nothing on its own (docs/develop/pbr-community-review.md), and this writes the
 per file mapping that check-pbr-licenses.py reads instead.
 
 Each stem is assigned to the mod that registers it, and the most specific

@@ -12,7 +12,7 @@
 # weather: with shader weather on (the default), a rain or snow spawner that
 # follows the player is handed to weather.gd, which draws it by shader and
 # builds no emitter at all. Lightning is recognised the same way, by its
-# texture, and handed to lightning.gd. docs/weather.md.
+# texture, and handed to lightning.gd. docs/systems/weather.md.
 extends Node3D
 
 const PlayerContext := preload("res://player_context.gd")

@@ -49,7 +49,7 @@ uniform float crack_lift = 0.002;
 
 void vertex() {
 	VERTEX += NORMAL * crack_lift;
-	// As nodes_array.gdshader. See docs/mesh-attributes.md.
+	// As nodes_array.gdshader. See docs/systems/mesh-attributes.md.
 	v_nodelight = CUSTOM0.rgb;
 	v_stale = 1.0 - CUSTOM0.a;
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;

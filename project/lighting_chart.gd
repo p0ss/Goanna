@@ -1,10 +1,10 @@
 extends Node3D
 
-# The material chart, docs/pbr-plan.md step 1: the lighting and material
+# The material chart, docs/design/pbr-plan.md step 1: the lighting and material
 # instrument. No world, no server, a fixed camera and fixed lights. One row
 # per material class, one column per lighting condition, each cell a node
 # sized cube wearing a baked LabPBR set through the shader the world uses
-# (nodes_array.gdshader, with the vertex layout of docs/mesh-attributes.md),
+# (nodes_array.gdshader, with the vertex layout of docs/systems/mesh-attributes.md),
 # and the number each cell rendered at printed beside what it should have
 # been. A change to the shader or the environment shows up here as a number
 # before anyone looks at a screenshot.
@@ -12,7 +12,7 @@ extends Node3D
 # Columns, per time of day:
 #   open   a cube in the open, sky light 255, occlusion 255
 #   bay    the same cube under a roof with a wall behind, real occluding
-#          geometry, which is the "roofed bay" docs/pbr-plan.md step 3 wants
+#          geometry, which is the "roofed bay" docs/design/pbr-plan.md step 3 wants
 #          dark without the headlight. Its sky light byte is 0.7, not 1.0:
 #          Luanti's spread light under a roof a few nodes in is two or three
 #          levels below full sun, and that is what the fill would see there

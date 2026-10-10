@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- Rewards: an item the director makes and puts where a player can choose
--- to take it (docs/director.md, "Rewards").
+-- to take it (docs/agents/director.md, "Rewards").
 --
 -- The core makes the item from the engine's registry, names it through item
 -- metadata, prices it with logic.item_value and drops it on the ground. The

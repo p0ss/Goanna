@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
--- Game rulesets (docs/director.md, "Game rulesets" and "Lua hook API").
+-- Game rulesets (docs/agents/director.md, "Game rulesets" and "Lua hook API").
 --
 -- A game or mod registers a ruleset with goanna_director.register_ruleset
 -- at load time, and its intents and queries then run through the same
