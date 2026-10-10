@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
+## The interface style setting, the dark glass palette and Theme, and the
+## contrast arithmetic that keeps text on glass legible. All static: preloaded
+## as GlassStyle by game_ui.gd, formspec.gd, menu.gd, panel_fit.gd and the
+## formspec tests, never instanced. Screens that must rebuild on a change join
+## GROUP and get interface_style_changed().
+#
 # The interface style: "glass", dark frosted glass over the world, which is
 # the default, or "game", where server forms keep the game's own window art
 # (formspec.gd's parity rendering) and Goanna's own screens keep the look they
@@ -29,6 +35,7 @@ static var _mode := ""
 static var _theme: Theme
 static var _form_theme: Theme
 
+## The saved style, GLASS or GAME, read from goanna.cfg once and then cached.
 static func mode() -> String:
 	if _mode == "":
 		var cfg := ConfigFile.new()
@@ -40,8 +47,8 @@ static func mode() -> String:
 static func is_glass() -> bool:
 	return mode() == GLASS
 
-# Saves the choice and tells every screen that asked to be told, so the change
-# shows without a restart.
+## Saves the choice and tells every screen that asked to be told, so the change
+## shows without a restart.
 static func set_mode(value: String) -> void:
 	value = GAME if value == GAME else GLASS
 	var cfg := ConfigFile.new()
@@ -134,8 +141,8 @@ static func luminance(c: Color) -> float:
 static func contrast(a: float, b: float) -> float:
 	return (maxf(a, b) + 0.05) / (minf(a, b) + 0.05)
 
-# The worst (brightest) luminance of a fill drawn over the glass. Godot blends
-# 2D in sRGB, so the fill is mixed there, over the glass at its brightest.
+## The worst (brightest) luminance of a fill drawn over the glass. Godot blends
+## 2D in sRGB, so the fill is mixed there, over the glass at its brightest.
 static func worst_under(fill: Color) -> float:
 	var g := linear_to_srgb(PANEL_WORST)
 	var bright := luminance(fill)  # the fill's own colour at full strength
@@ -150,10 +157,10 @@ static func panel_worst() -> float:
 static func control_worst() -> float:
 	return worst_under(CONTROL_HOVER)
 
-# A text colour made legible on glass: returned unchanged when it already
-# reaches MIN_CONTRAST against `surface` (a luminance), otherwise lifted
-# towards white in linear light, just far enough. The hue survives, so red
-# text is still red text, only lighter; alpha is kept.
+## A text colour made legible on glass: returned unchanged when it already
+## reaches MIN_CONTRAST against `surface` (a luminance), otherwise lifted
+## towards white in linear light, just far enough. The hue survives, so red
+## text is still red text, only lighter; alpha is kept.
 static func ink(c: Color, surface := PANEL_WORST) -> Color:
 	var need := MIN_CONTRAST * (surface + 0.05) - 0.05 + 0.002
 	if luminance(c) >= need:
@@ -171,10 +178,10 @@ static func ink(c: Color, surface := PANEL_WORST) -> Color:
 	var out := lin.lerp(Vector3.ONE, hi)
 	return Color(linear_to_srgb(out.x), linear_to_srgb(out.y), linear_to_srgb(out.z), c.a)
 
-# Colours a label, the way Goanna's screens used to with `modulate`: in the
-# game theme it is exactly that. On glass a faded white becomes TEXT or
-# TEXT_DIM and a coloured one is made legible with ink(), because text that
-# is merely translucent loses contrast whenever the world behind is bright.
+## Colours a label, the way Goanna's screens used to with `modulate`: in the
+## game theme it is exactly that. On glass a faded white becomes TEXT or
+## TEXT_DIM and a coloured one is made legible with ink(), because text that
+## is merely translucent loses contrast whenever the world behind is bright.
 static func tint_text(c: Control, colour: Color) -> void:
 	if not is_glass():
 		c.modulate = colour
@@ -191,11 +198,11 @@ static func tint_text(c: Control, colour: Color) -> void:
 
 # --- surfaces ------------------------------------------------------------------
 
-# The one pane of glass every surface is made of: server forms, Goanna's
-# menus and settings, tooltips, chat and the hotbar. One radius, one rim and
-# outline, one shadow, one tint. `frost` false gives the same pane without
-# the blur, for the hotbar, which is up all game; that is the only way two
-# panes differ.
+## The one pane of glass every surface is made of: server forms, Goanna's
+## menus and settings, tooltips, chat and the hotbar. One radius, one rim and
+## outline, one shadow, one tint. `frost` false gives the same pane without
+## the blur, for the hotbar, which is up all game; that is the only way two
+## panes differ.
 static func surface(frost := true) -> Control:
 	var s := GlassSurface.new()
 	s.radius = RADIUS
@@ -204,7 +211,7 @@ static func surface(frost := true) -> Control:
 	s.frost = frost
 	return s
 
-# Puts a glass pane behind everything in `parent`, filling it.
+## Puts a glass pane behind everything in `parent`, filling it.
 static func back(parent: Control) -> Control:
 	var s := surface()
 	s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -331,9 +338,9 @@ static func _knob(highlight: bool) -> Texture2D:
 	return _svg("<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><circle cx='9' cy='9' r='7' fill='#ffffff' stroke='%s' stroke-width='%s'/></svg>"
 		% [_hex(ACCENT) if highlight else "#000000", "2" if highlight else "0.6"])
 
-# The Theme for Goanna's own screens and for the controls of a glass form.
-# Built once. It sets no font, so text measures exactly as it does in the
-# game theme and nothing moves when the style changes.
+## The Theme for Goanna's own screens and for the controls of a glass form.
+## Built once. It sets no font, so text measures exactly as it does in the
+## game theme and nothing moves when the style changes.
 static func theme() -> Theme:
 	if _theme != null:
 		return _theme
@@ -521,9 +528,9 @@ static func theme() -> Theme:
 	_theme = t
 	return t
 
-# The Theme a glass form is built with: the shared one, with the one pixel
-# half alpha text shadow Luanti draws under all form text, and the monospace
-# face hypertext and the font style property ask for.
+## The Theme a glass form is built with: the shared one, with the one pixel
+## half alpha text shadow Luanti draws under all form text, and the monospace
+## face hypertext and the font style property ask for.
 static func form_theme(mono: Font) -> Theme:
 	if _form_theme != null:
 		return _form_theme

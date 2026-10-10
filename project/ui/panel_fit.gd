@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The size of a menu or settings panel, and the layout of one settings row,
-# shared by the main menu (menu.gd) and the in-game settings (ui/game_ui.gd).
+## The size of a menu or settings panel, and the layout of one settings row,
+## shared by the main menu (menu/menu.gd) and the in-game settings
+## (ui/game_ui.gd), which both preload it as PanelFit. All static, never
+## instanced; each caller asks size_for() again when the window is resized.
 #
 # Both used to give their panels fixed minimum sizes: the menu's settings
 # tabs were 560 by 360 inside a panel that grew with its content, so on a

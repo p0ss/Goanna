@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
+## One pane of dark glass, drawn by ui_glass.gdshader or ui_glass_clear.gdshader.
+## Made only through GlassStyle.surface() and GlassStyle.back() in
+## ui/glass_style.gd, which preloads this script; nothing else instances it.
+## Main thread only, like every Control.
+#
 # One pane of dark glass: the backing of a form, a menu, a tooltip, the chat
 # history or the hotbar in the dark glass interface style. It draws nothing
 # but its own rectangle, grown by the shader's margin for the drop shadow,
@@ -45,6 +50,8 @@ var frost := true:
 		frost = v
 		material = shared_material(v)
 
+## The one material every frosted pane shares, or every clear one: a pane's
+## own settings ride in its vertex colour, so panes never need their own.
 static func shared_material(frosted := true) -> ShaderMaterial:
 	if frosted:
 		if _frost_material == null:
@@ -57,10 +64,14 @@ static func shared_material(frosted := true) -> ShaderMaterial:
 	return _clear_material
 
 func _init() -> void:
+	# The meta lets formspec.gd tell a pane from the game's own art in the
+	# same background layer.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	material = shared_material(true)
 	set_meta("glass_surface", true)
 
+# Radius, opacity and shadow go to the shader in the vertex colour's red,
+# green and blue; the rectangle is grown by MARGIN so the shadow has room.
 func _draw() -> void:
 	var colour := Color(clampf(radius / 64.0, 0.0, 1.0), clampf(opaque, 0.0, 1.0),
 		clampf(shadow, 0.0, 1.0), 1.0)

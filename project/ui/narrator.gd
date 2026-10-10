@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
+## Read aloud: speaks what is on the screen. game_ui.gd adds one in game, with
+## `client` and `ui` set; menu.gd adds one with `screen_root` and calls
+## announce() for each new screen. Main thread only: it polls game_ui's chat
+## lines, window and selection and the client's hud_state each frame.
+## tests/narrator.gd drives it with a stub voice.
+#
 # Read aloud: speaks what is on the screen, for a player who cannot see it,
 # through a voice provider (the system's text to speech by default, so the
 # player's own voice, rate and screen reader set up apply). Off unless the
@@ -100,6 +106,8 @@ func _ready() -> void:
 	if launched_on():
 		enabled = true
 
+## Whether GOANNA_READ_ALOUD turned it on at launch, which a saved off does
+## not undo.
 static func launched_on() -> bool:
 	return OS.get_environment("GOANNA_READ_ALOUD") in ["1", "true", "yes"]
 
@@ -116,9 +124,9 @@ func load_settings() -> void:
 			set(SETTING_PROPERTIES[key], float(v) if key.begins_with("speech_") else float(v) > 0.5)
 	voice_id = str(cfg.get_value("settings", "speech_voice", ""))
 
-# The system's voices as the Voice setting offers them: the default first,
-# then one of each voice, its variants (espeak-ng's +Adam, +Alex and the
-# rest, over a thousand for English) left out.
+## The system's voices as the Voice setting offers them: the default first,
+## then one of each voice, its variants (espeak-ng's +Adam, +Alex and the
+## rest, over a thousand for English) left out.
 static func voice_choices() -> Array:
 	var out := [["", "System default"]]
 	for v in DisplayServer.tts_get_voices():
@@ -139,6 +147,9 @@ const QUEUE_MAX := 12
 var _waiting: Array = []
 var _sent_at := -10.0
 
+## Speaks `text`, stripped of Luanti's colour and translation escapes. A line
+## that interrupts is spoken now and clears what was waiting; any other waits
+## its turn. voice_input.gd uses this to read back what it heard.
 func say(text: String, interrupt := false) -> void:
 	text = FormspecScript.strip_enriched(text).strip_edges()
 	if text == "" or voice == null:
@@ -175,6 +186,8 @@ func _input(event: InputEvent) -> void:
 			saver._save_setting("read_aloud", 1.0 if enabled else 0.0)
 		get_viewport().set_input_as_handled()
 
+## Turns read aloud on or off and says which. Does not save the setting; the
+## caller does (Ctrl+B through _input, or the settings screen).
 func set_enabled(on: bool) -> void:
 	enabled = on
 	if voice != null and voice.has_method("stop"):
@@ -219,8 +232,8 @@ func _process(delta: float) -> void:
 	if read_health:
 		_health()
 
-# A new screen of the main menu: its title and what it says, interrupting,
-# then whatever takes the focus after it.
+## A new screen of the main menu: its title and what it says, interrupting,
+## then whatever takes the focus after it.
 func announce(text: String) -> void:
 	_focus_name = ""
 	_focus_queues = true
@@ -452,9 +465,9 @@ static func _leaving(c: Node) -> bool:
 		c = c.get_parent()
 	return false
 
-# The words that name a control that has none of its own (a text field, a
-# slider, a dropdown): the nearest label before it, beside it or in the row
-# above, as a screen reader takes a field's label.
+## The words that name a control that has none of its own (a text field, a
+## slider, a dropdown): the nearest label before it, beside it or in the row
+## above, as a screen reader takes a field's label.
 static func label_for(c: Control) -> String:
 	var at: Node = c
 	for level in 3:
@@ -480,7 +493,7 @@ static func _label_text(n: Node) -> String:
 				return text
 	return ""
 
-# A control as a screen reader says it: its words, what it is, its state.
+## A control as a screen reader says it: its words, what it is, its state.
 static func describe(c: Control) -> String:
 	var said := _describe(c)
 	if c is LineEdit or c is TextEdit or c is Range or c is OptionButton or c is ItemList:

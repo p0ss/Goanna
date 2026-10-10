@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
+## Voice typing: hold T and speak a chat line. game_ui.gd adds one in game, sets
+## `client` and `ui`, and calls key_down() and key_up() for T. Transcription is
+## GoannaSpeechInput's, from the extension, which works off the main thread;
+## this polls its state() and take_result() each frame. tests/speech_input.gd
+## checks the resampling and the clean up, and given a model, a transcription.
+#
 # Voice typing: hold T, say the chat line, let go. The words go into the chat
 # box unsent, read back when read aloud is on, and Enter sends them. A quick
 # tap of T still opens the chat box to type, as before.
@@ -77,17 +83,19 @@ func _ready() -> void:
 	_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layer.add_child(_indicator)
 
+## Whether T should start voice typing: on in the settings, and the extension
+## has a speech engine this processor can run.
 func available() -> bool:
 	return enabled and _speech != null
 
 # --- the key ---------------------------------------------------------------------
 
-# game_ui.gd calls these for T when no window or chat is open.
+## game_ui.gd calls these for T when no window or chat is open.
 func key_down() -> void:
 	_key_down = true
 	_held = 0.0
 
-# True if the press was a tap, which game_ui answers by opening chat.
+## True if the press was a tap, which game_ui answers by opening chat.
 func key_up() -> bool:
 	if not _key_down:
 		return false
@@ -236,9 +244,9 @@ func _finish_listening() -> void:
 		state = "idle"
 		_hide()
 
-# Mono samples at `rate` to 16 kHz, Whisper's rate: each output sample is the
-# mean of the input samples it covers, which is enough of a low pass for
-# speech going down from 44.1 or 48 kHz.
+## Mono samples at `rate` to 16 kHz, Whisper's rate: each output sample is the
+## mean of the input samples it covers, which is enough of a low pass for
+## speech going down from 44.1 or 48 kHz.
 static func to_16k(samples: PackedFloat32Array, rate: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	if samples.is_empty() or rate <= 0.0:
@@ -279,6 +287,8 @@ func prompt() -> String:
 # those are not chat.
 static var _not_speech := RegEx.create_from_string("\\[[^\\]]*\\]|\\([^)]*\\)")
 
+## A transcription with Whisper's non speech marks taken out and its spaces
+## closed up; empty when nothing was said.
 static func clean(text: String) -> String:
 	text = _not_speech.sub(text, "", true)
 	while text.contains("  "):

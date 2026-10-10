@@ -1,11 +1,16 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The in-game user interface: HUD (crosshair, hotbar, statbars and the
-# server's HUD elements), chat, the inventory and server formspecs, and the
-# pause menu. It reads everything from GoannaClient and owns mouse capture
-# while a window is open; main.gd only asks blocks_input() to know when to
-# stop reading movement keys.
+## The in-game user interface: HUD (crosshair, hotbar, statbars and the
+## server's HUD elements), chat, the inventory and server formspecs, the pause
+## menu and the settings screen. main.gd instances ui/game_ui.tscn, sets
+## `client` and `main`, then adds it; menu.gd preloads this script for SETTINGS.
+## Main thread only. It polls GoannaClient every frame (take_chat,
+## inventory_state, take_shown_formspecs, hud_state) rather than taking signals.
+#
+# It owns mouse capture while a window is open; main.gd only asks
+# blocks_input() to know when to stop reading movement keys. It also adds the
+# player's particles, sound, narrator and voice typing nodes (see _ready).
 #
 # HUD drawing follows luanti/src/client/hud.cpp (element types, alignment,
 # offset and scale rules); formspecs are rendered by ui/formspec.gd.
@@ -232,6 +237,8 @@ func _exit_tree() -> void:
 		OS.set_environment("GOANNA_SP_MATCH", "")
 		OS.set_environment("GOANNA_SP_PID", "")
 
+## True while a window or chat has the keyboard and mouse, so main.gd stops
+## turning keys and mouse motion into movement.
 func blocks_input() -> bool:
 	return window != null or chat_open
 
@@ -359,9 +366,8 @@ func _ui_shot_hook(delta: float) -> void:
 		client.disconnect_from_server()
 		get_tree().quit()
 
-# Development aid: GOANNA_UI_TEST=move opens the inventory and moves the
-# stack in main slot 0 to slot 10 and back through the same path a mouse
-# would take, printing the main list before and after.
+# Puts the pointer a little off the centre of the window, so a screenshot of
+# a held stack shows it beside the slot it came from.
 func warp_mouse_for_shot() -> void:
 	var vs := get_viewport().get_visible_rect().size
 	# A pushed motion event rather than Input.warp_mouse, which moves the
@@ -371,6 +377,11 @@ func warp_mouse_for_shot() -> void:
 	ev.global_position = ev.position
 	Input.parse_input_event(ev)
 
+# Development aid: GOANNA_UI_TEST=move opens the inventory, moves the stack in
+# main slot 0 to slot 10, then splits half of it to slot 11, through the same
+# path a mouse would take, printing the main list at each step.
+# GOANNA_UI_TEST=drag picks up the first stack and, with GOANNA_UI_SHOT, saves
+# a frame of it held on the cursor.
 func _ui_move_test(delta: float) -> void:
 	if OS.get_environment("GOANNA_UI_TEST") == "drag":
 		if absf(t - 4.0) < delta * 0.6:
@@ -575,11 +586,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif window != null and (event is InputEventMouseButton or event is InputEventKey):
 		get_viewport().set_input_as_handled()
 
-# The first Tab or arrow in a window with nothing focused takes the focus to
-# its first control, so the keyboard has somewhere to start; Godot moves
-# focus only from a control that has it. A form hides its opening focus
-# (formspec.gd _initial_focus, as upstream does), and that is shown again
-# once the keyboard is being used.
+## The first Tab or arrow in a window with nothing focused takes the focus to
+## its first control, so the keyboard has somewhere to start; Godot moves
+## focus only from a control that has it. A form hides its opening focus
+## (formspec.gd _initial_focus, as upstream does), and that is shown again
+## once the keyboard is being used. menu.gd calls it for its own panels.
 static func focus_first(root: Control) -> void:
 	var vp := root.get_viewport()
 	if vp == null or (vp.gui_get_focus_owner() != null and root.is_ancestor_of(vp.gui_get_focus_owner())):
@@ -688,10 +699,10 @@ func _open_window(c: Control) -> void:
 	c.visible = true
 	_set_pointer_captured(false)
 
-# The interface style changed, from the settings screen or the control
-# channel. Everything built in the old style is built again: an open form
-# keeps what the player has typed into it, and the settings screen reopens
-# where it was.
+## Called through the GlassStyle.GROUP group when the interface style
+## changes, from the settings screen or the control channel. Everything built
+## in the old style is built again: an open form keeps what the player has
+## typed into it, and the settings screen reopens where it was.
 func interface_style_changed() -> void:
 	form.style = GlassStyle.mode()
 	chat_input.theme = GlassStyle.theme() if GlassStyle.is_glass() else null
@@ -744,11 +755,11 @@ func _set_pointer_captured(on: bool) -> void:
 	else:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE)
 
-# Open the player's own inventory, or close it if it is already the window
-# showing. Does nothing while a different window (a server formspec, the
-# pause menu) is up, or while chat is open, so a caller does not need to
-# check blocks_input() itself first. main.gd calls this for the "E" key,
-# alongside the "I" binding below.
+## Open the player's own inventory, or close it if it is already the window
+## showing. Does nothing while a different window (a server formspec, the
+## pause menu) is up, or while chat is open, so a caller does not need to
+## check blocks_input() itself first. main.gd calls this for the "E" key,
+## alongside the "I" binding in _unhandled_input.
 func toggle_inventory() -> void:
 	if window == form and form_is_inventory:
 		_close_window()
@@ -788,8 +799,10 @@ func _show_server_formspec(spec: String, formname: String) -> void:
 	fullscreen_tint.color = form.fullscreen_bg
 	_open_window(form)
 
+# Meant to lay the open form out again after a resize, keeping the same spec.
+# Not done yet: an open form keeps the layout it was given when it was shown
+# until the server sends it again or it is closed and reopened.
 func _reopen_form() -> void:
-	# re-layout after a resize, keeping the same spec
 	pass
 
 # Fields go to TOSERVER_NODEMETA_FIELDS for a node's own formspec (one
@@ -831,16 +844,26 @@ func _open_pause_menu() -> void:
 		pause_menu = _build_menu("Goanna", entries)
 	_open_window(pause_menu)
 
-# Live video settings, backed by GoannaClient's setters. Each takes effect
-# immediately (auto-bump and bevel re-mesh; motes start or stop) and is saved
-# to user://goanna.cfg, reapplied on the next connect.
+# --- settings ----------------------------------------------------------------
+#
+# The settings screen, for every tab. Each setting takes effect at once,
+# through GoannaClient's setters, main.gd, the Gamepad autoload, the narrator
+# or voice typing (_apply_setting sorts which), and is saved to
+# user://goanna.cfg, which is reapplied on the next connect. The main menu's
+# settings screen (menu.gd) builds its rows from the same SETTINGS table and
+# writes the same file, and the control channel's `set` goes through
+# _apply_setting and _setting_value.
 const SETTINGS_CFG := "user://goanna.cfg"
 # Setting kinds whose value is text rather than a number. They are
-# saved and read as strings and never go through _apply_setting.
+# saved and read as strings and never go through _apply_setting. No entry in
+# SETTINGS has the pack or path kind as of 2026-10-10: the texture pack is
+# chosen on the menu's start and join screens, which set GOANNA_PACK.
 const TEXT_SETTING_KINDS := ["path", "pack", "choice"]
 const RenderFeatures := preload("res://game/render_features.gd")
 # [tab, key, type, label, description, (min, max, step) for sliders,
-# ([[stored value, name shown], ...]) for a choice]
+# ([[stored value, name shown], ...]) for a choice or steps]. The tab may name
+# a group as "Tab/Group" (PanelFit.tab_of and group_of). Types: slider,
+# toggle, steps, choice, and the text kinds in TEXT_SETTING_KINDS.
 const SETTINGS := [
 	["Graphics", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
 	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/systems/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
@@ -960,16 +983,11 @@ const SETTINGS := [
 ]
 const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 
-# What a player sees before opening Advanced. Everything else in SETTINGS is
-# still there, one disclosure away, but a panel that opens on thirty sliders
-# asks the player to have an opinion about all of them. These are the ones
-# worth an opinion without a frame counter open: what the world looks like
-# and how big it is, not how its materials respond.
-#
-# The Video tab also carries the profile picker, which is what actually moves
-# the settings a profile is about (project/game/graphics_profiles.gd).
 # Tabs that are entirely player preference rather than graphics quality, so
-# they are shown whole and have no Advanced half.
+# they are shown whole, a heading per group. The Graphics tab is built apart
+# (_build_graphics_page): the profile picker, which is what moves the settings
+# a profile is about (project/game/graphics_profiles.gd), the few ungrouped
+# settings, then each group folded away.
 const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
 
 # Settings handled here rather than through the client (window, camera, UI).
@@ -1117,6 +1135,9 @@ func _local_value(key: String) -> float:
 			return 1.0 if bool(saved.get_value("settings", key, true)) else 0.0
 	return 0.0
 
+# Applies one setting by key, without saving it. Private by name, but the
+# control channel's `set` and the tests call it, with _setting_value, to
+# change a setting exactly as this screen would.
 func _apply_setting(key: String, value: float) -> void:
 	var on := value > 0.5
 	if RenderFeatures.DEFAULTS.has(key):
@@ -1159,6 +1180,8 @@ func _apply_setting(key: String, value: float) -> void:
 			if key.begins_with("mat_") and client.has_method("set_material_strength"):
 				client.set_material_strength(key.substr(4), value)
 
+# A setting's value as it is running now, from whichever owner holds it, or
+# `fallback` when nothing does.
 func _setting_value(key: String, fallback: float) -> float:
 	if RenderFeatures.DEFAULTS.has(key):
 		var m := _main_node()
@@ -1357,15 +1380,16 @@ func _build_settings() -> Control:
 	add_child(centre)
 	return centre
 
-# One of a few named values, stored as text: the interface style. It applies
-# at once, like the other settings on this screen.
-# A choice row's options: the list in SETTINGS, or for "voices" the system's
-# voices, which are only known at run time.
+## A choice row's options: the list in SETTINGS, or for "voices" the system's
+## voices, which are only known at run time. menu.gd uses it for its rows too.
 static func setting_choices(entry: Array) -> Array:
 	if entry[5] is String and entry[5] == "voices":
 		return preload("res://ui/narrator.gd").voice_choices()
 	return entry[5]
 
+# One of a few named values, stored as text (the interface style, the speech
+# voice, the voice typing model and language). It applies at once, like the
+# other settings on this screen.
 func _build_choice_row(row: VBoxContainer, entry: Array) -> void:
 	var key: String = entry[1]
 	var picker := OptionButton.new()
@@ -1432,9 +1456,10 @@ func _setting_text(key: String) -> String:
 # built the new state and released the old before the next group arrives.
 const PROFILE_STAGE_FRAMES := 3
 
-# Moves every setting a preset controls to that preset, in the stages
-# GraphicsProfiles.transition_stages plans (see STAGES there for why), then
-# saves the preset in one write.
+## Moves every setting a preset controls to that preset, in the stages
+## GraphicsProfiles.transition_stages plans (see STAGES there for why), then
+## saves the preset in one write. A coroutine: await it to know it has
+## finished. tests/graphics_profiles.gd calls it as well as the picker.
 func change_profile(name: String) -> void:
 	if profile_changing or not GraphicsProfiles.PROFILES.has(name):
 		return
@@ -1755,6 +1780,11 @@ func _build_menu(title: String, entries: Array) -> Control:
 	return centre
 
 # --- inventory interaction ---------------------------------------------------
+#
+# This node is the open form's item source (formspec.gd's `item_source`): the
+# form asks it for slot contents, icons, textures, model previews, sounds and
+# node metadata text, and calls back through its slot signals, connected in
+# _ready. formspec_conformance.gd stands a FakeClient behind it.
 
 func _learn_item_defs(st: Dictionary) -> void:
 	var lists: Dictionary = st.get("lists", {})
@@ -1764,7 +1794,9 @@ func _learn_item_defs(st: Dictionary) -> void:
 			if n != "" and not item_defs.has(n):
 				item_defs[n] = it
 
-# Formspec item source: an item dictionary for one slot, or {} if unknown.
+## Formspec item source: an item dictionary for one slot, or {} if unknown.
+## `location` is an inventory location as a form names it (current_player,
+## context, nodemeta:x,y,z, detached:name).
 func get_list_item(location: String, listname: String, index: int) -> Dictionary:
 	if location == "current_player":
 		var lists: Dictionary = inv_cache.get("lists", {})
@@ -1800,6 +1832,8 @@ func _poll_other_inventories() -> void:
 		form.refresh_lists()
 		_after_inventory_update()
 
+## A texture by its Luanti texture string, modifiers and all, from the
+## client's texture source; cached for the session.
 func ui_texture(name: String) -> Texture2D:
 	if name.strip_edges() == "":
 		return null
@@ -1809,39 +1843,41 @@ func ui_texture(name: String) -> Texture2D:
 	tex_cache[name] = tex
 	return tex
 
-# A formspec model[] preview: {node: Node3D, aabb: AABB}, or {} when the mesh
-# media has not arrived or the extension is too old to know the method. Not
-# cached, because each element poses its own copy of the model.
+## A formspec model[] preview: {node: Node3D, aabb: AABB}, or {} when the mesh
+## media has not arrived or the extension is too old to know the method. Not
+## cached, because each element poses its own copy of the model.
 func model_preview(mesh_name: String, textures: PackedStringArray, frame_loop: Vector2,
 		speed: float) -> Dictionary:
 	if mesh_name == "" or not client.has_method("model_preview"):
 		return {}
 	return client.model_preview(mesh_name, textures, frame_loop, speed)
 
-# "${key}" in a node's own form, from that node's metadata; any other form
-# has no metadata to resolve against and keeps its text.
+## "${key}" in a node's own form, from that node's metadata; any other form
+## has no metadata to resolve against and keeps its text.
 func resolve_text(text: String) -> String:
 	if form_context == "" or not client.has_method("resolve_nodemeta_text"):
 		return text
 	return client.resolve_nodemeta_text(form_context, text)
 
-# A form's style sound, played here and heard only here, as upstream's
-# m_sound_manager->playSound(0, ...) is.
+## A form's style sound, played here and heard only here, as upstream's
+## m_sound_manager->playSound(0, ...) is.
 func play_form_sound(sound_name: String) -> void:
 	if audio != null:
 		audio.play(sound_name, 1.0, 1.0, false, null, 0, "form")
 
-# Whether a stack is on the cursor. The form shows no item tooltips while one
-# is, as GUIInventoryList hides them while an item is selected.
+## Whether a stack is on the cursor. The form shows no item tooltips while one
+## is, as GUIInventoryList hides them while an item is selected.
 func holding_stack() -> bool:
 	return not selected.is_empty()
 
-# The description in an item's definition, for item_image_button[]'s tooltip.
+## The description in an item's definition, for item_image_button[]'s tooltip.
 func item_description(item_string: String) -> String:
 	if item_string == "" or not client.has_method("item_description"):
 		return ""
 	return client.item_description(item_string)
 
+## An item's inventory icon, cached by name; never null (see
+## _placeholder_icon).
 func item_icon(item_name: String) -> Texture2D:
 	if item_name == "":
 		return null
@@ -1860,8 +1896,9 @@ func item_icon(item_name: String) -> Texture2D:
 	icon_cache[item_name] = tex
 	return tex
 
-# Nodes without an inventory image are drawn as a cube in vanilla; until the
-# wield mesh renderer exists, a coloured tile with the item's short name.
+# The last resort, when neither client.item_icon (which draws a node as
+# vanilla's item mesh does) nor an inventory image gives a texture: a tile
+# coloured from a hash of the item's name, so different items still differ.
 func _placeholder_icon(item_name: String) -> Texture2D:
 	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
 	var h := hash(item_name)
@@ -2120,6 +2157,9 @@ func _on_slot_released(location: String, listname: String, index: int, button: i
 		# put all of it down there (upstream's m_selected_dragging).
 		_move_selected(location, listname, index, int(selected["amount"]))
 
+# A mouse button went down on a slot. Connected to formspec.gd's slot_clicked;
+# the player agent channel and the tests call it directly, followed by
+# _on_slot_released, to click as a player would.
 func _on_slot_clicked(location: String, listname: String, index: int, button: int,
 		shift: bool, press := true) -> void:
 	if not client.has_method("inventory_action"):
@@ -2214,6 +2254,8 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		amt = mini(10, amt)
 	_move_selected(location, listname, index, amt)
 
+# Runs after each inventory update the open form refreshes for: finishes a
+# craft that was waiting on the server and keeps the cursor stack honest.
 func _after_inventory_update() -> void:
 	# after a craft the result sits in craftresult: pick it up, as vanilla does
 	if pending_craft:
@@ -2260,6 +2302,11 @@ func _after_inventory_update() -> void:
 			selected["amount"] = mini(selected["amount"], cur["count"])
 
 # --- HUD ---------------------------------------------------------------------
+#
+# Everything here draws into the one `hud` Control, redrawn each frame from
+# client.hud_state(): the server's HUD elements in z_index order, as
+# Hud::drawLuaElements in luanti/src/client/hud.cpp does, plus Goanna's own
+# overlays (the far field hint, the performance counter, the test label).
 
 # What a scripted session is doing, drawn only when the control channel is open
 # (docs/agents/control-channel.md). A window that is not moving looks the same whether
@@ -2460,8 +2507,9 @@ func _draw_hud() -> void:
 		var l := 8.0 * hud_scale
 		hud.draw_line(c - Vector2(l, 0), c + Vector2(l, 0), Color(1, 1, 1, 0.8), 2.0)
 		hud.draw_line(c - Vector2(0, l), c + Vector2(0, l), Color(1, 1, 1, 0.8), 2.0)
-		# Dig progress ring: fills clockwise as a node is mined. The authentic
-		# per-node crack overlay is a rendering job; this is the input feedback.
+		# Dig progress ring: fills clockwise as a node is mined. The crack on
+		# the node itself is meshed into its block (stepInteract queues it,
+		# poll_blocks meshes it); this ring is extra feedback at the crosshair.
 		var mnode := _main_node()
 		if mnode != null and mnode.get("pointed") is Dictionary:
 			var pt: Dictionary = mnode.pointed

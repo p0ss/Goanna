@@ -1,6 +1,13 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
+## Draws a Luanti formspec as Godot Controls and reports what the player does
+## in it. game_ui.gd preloads it and keeps one instance as its `form`, showing
+## the inventory and every server formspec in it; ui/narrator.gd reads it, and
+## the control channel (agents/control_ui.gd) and the player agent channel
+## read it through describe(). Main thread only; it never calls GoannaClient,
+## everything server side goes through `item_source` and the signals below.
+#
 # Formspec renderer: parses a Luanti formspec string and builds Godot
 # Controls for it. The layout rules (imgsize, spacing, padding, the two
 # coordinate systems, position and anchor) follow GUIFormSpecMenu in
@@ -17,17 +24,24 @@
 #   slot_double_clicked(location: String, listname: String, index: int)
 extends Control
 
+## The player sent the form: every field collect_fields gathers plus what the
+## event itself sends. game_ui.gd forwards it to the server, with `quit` set
+## when the form should close.
 signal fields_submitted(fields: Dictionary, quit: bool)
+## A press on an inventory slot. game_ui.gd turns it into an inventory action
+## the way upstream's GUIFormSpecMenu does for the same click.
 signal slot_clicked(location: String, listname: String, index: int, button: int, shift: bool)
-# The pointer crossed into another slot with a mouse button held down. One
-# report per slot entered, so a drag can share a stack out over the slots it
-# passes over.
+## The pointer crossed into another slot with a mouse button held down. One
+## report per slot entered, so a drag can share a stack out over the slots it
+## passes over.
 signal slot_dragged(location: String, listname: String, index: int, button: int)
-# A mouse button came up. The slot named is the one under the pointer, which
-# is not necessarily the one the press went to; an empty listname means the
-# pointer was not over a slot at all.
+## A mouse button came up. The slot named is the one under the pointer, which
+## is not necessarily the one the press went to; an empty listname means the
+## pointer was not over a slot at all.
 signal slot_released(location: String, listname: String, index: int, button: int)
 signal slot_double_clicked(location: String, listname: String, index: int)
+## Declared but not emitted at present: a form closes through
+## fields_submitted with `quit` true, as upstream sends quit=true.
 signal closed()
 
 const ELEM_SEP := "]"
@@ -41,7 +55,11 @@ const DEFAULT_LIST_SLOT_BORDER := Color8(0, 0, 0, 200)
 const DEFAULT_TOOLTIP_BG := Color8(110, 130, 60)
 const DEFAULT_TOOLTIP_FG := Color8(255, 255, 255)
 
-var item_source: Node                # game_ui.gd, see get_list_items / item_icon
+## Where inventories, textures and item art come from: game_ui.gd in play, a
+## stub in the tests. It must have get_list_item, item_icon and ui_texture;
+## resolve_text, item_description, holding_stack, model_preview and
+## play_form_sound are used when it has them.
+var item_source: Node
 var formname := ""
 var allow_close := true
 var real_coordinates := false
@@ -132,9 +150,13 @@ var last_show: Array = []            # show_formspec's arguments, for restyle()
 
 # --- public -----------------------------------------------------------------
 
-# `prepend` is the game's window theme, from TOCLIENT_FORMSPEC_PREPEND. It is
-# built behind the form unless the form asked for no_prepend[], which is why
-# it is parsed after the form and not simply glued in front of it.
+## Replaces whatever is shown with the form in `spec`, laid out for a screen
+## of `screen` pixels. `name` is the formname sent back with its fields (empty
+## for the player's inventory). Showing the same name again keeps the focus,
+## as a server's resend of a form does upstream.
+## `prepend` is the game's window theme, from TOCLIENT_FORMSPEC_PREPEND. It is
+## built behind the form unless the form asked for no_prepend[], which is why
+## it is parsed after the form and not simply glued in front of it.
 func show_formspec(spec: String, name: String, screen: Vector2, prepend := "") -> void:
 	var kept := _focused_key() if name == formname else ""
 	last_show = [spec, name, screen, prepend]
@@ -194,8 +216,8 @@ func _show(spec: String, name: String, screen: Vector2, prepend: String, want_gl
 	_build()
 	refresh_lists()
 
-# Builds the open form again in the current `style`, keeping what the player
-# has typed, ticked or chosen. Nothing is sent to the server.
+## Builds the open form again in the current `style`, keeping what the player
+## has typed, ticked or chosen. Nothing is sent to the server.
 func restyle() -> void:
 	if last_show.is_empty() or root == null:
 		return
@@ -240,20 +262,22 @@ func restyle() -> void:
 			_apply_scroll(n)
 	building = was
 
+## Redraws every slot from item_source, after the inventory changed under an
+## open form. Cheap: the form itself is not rebuilt.
 func refresh_lists() -> void:
 	for s in slots:
 		if is_instance_valid(s):
 			s.refresh()
 
-# The fields every submission carries, as GUIFormSpecMenu::acceptInput sends
-# them: the elements whose FieldSpec is built with send set, which are edit
-# boxes and password fields, dropdowns, scrollbars and animated images.
-# Buttons, check boxes, tab headers, text lists and tables are sent only by
-# the event they cause (submit's `extra`), never along with another's. A form
-# that reads a check box's field as "the player changed this" would otherwise
-# see every check box change whenever any button is pressed, which is what
-# kept Mineclonia's player settings form from ever going back to the
-# inventory.
+## The fields every submission carries, as GUIFormSpecMenu::acceptInput sends
+## them: the elements whose FieldSpec is built with send set, which are edit
+## boxes and password fields, dropdowns, scrollbars and animated images.
+## Buttons, check boxes, tab headers, text lists and tables are sent only by
+## the event they cause (submit's `extra`), never along with another's. A form
+## that reads a check box's field as "the player changed this" would otherwise
+## see every check box change whenever any button is pressed, which is what
+## kept Mineclonia's player settings form from ever going back to the
+## inventory.
 func collect_fields(dropdowns := true) -> Dictionary:
 	var out := {}
 	for n in fields:
@@ -281,8 +305,9 @@ static func _dropdown_value(ob: OptionButton) -> String:
 		return str(i + 1)
 	return ob.get_item_text(i) if i >= 0 else ""
 
-# `extra` is what the event itself sends. A changed dropdown is the one
-# dropdown upstream sends with it, so `dropdowns` is false for that event.
+## Sends the form: emits fields_submitted with collect_fields plus `extra`.
+## `extra` is what the event itself sends. A changed dropdown is the one
+## dropdown upstream sends with it, so `dropdowns` is false for that event.
 func submit(extra: Dictionary, quit: bool, dropdowns := true) -> void:
 	var f := collect_fields(dropdowns)
 	for k in extra:
@@ -293,10 +318,10 @@ func submit(extra: Dictionary, quit: bool, dropdowns := true) -> void:
 
 # --- introspection, read only ------------------------------------------------
 
-# The form as the control channel's ui_tree reports it (docs/agents/control-channel.md):
-# every named element with its formspec type, every inventory slot with its
-# stack, and the tooltip on screen. `visible` is false for anything hidden or
-# scrolled out of its scroll_container. Nothing here changes the form.
+## The form as the control channel's ui_tree reports it (docs/agents/control-channel.md):
+## every named element with its formspec type, every inventory slot with its
+## stack, and the tooltip on screen. `visible` is false for anything hidden or
+## scrolled out of its scroll_container. Nothing here changes the form.
 func describe() -> Dictionary:
 	var elements: Array = []
 	for n in named_controls:
@@ -319,12 +344,13 @@ func describe() -> Dictionary:
 		"allow_close": allow_close, "rect": root.get_global_rect() if root else Rect2(),
 		"elements": elements, "slots": list_slots, "tooltip": tip, "hovered": hover_name}
 
-# The <action> links of a hypertext element, in order, each with the name it
-# sends and the text it shows, as the player reads them. Nothing here changes
-# the form.
+# hypertext_actions' patterns, compiled once.
 static var _action_tags := RegEx.create_from_string("(?s)<action(\\s[^>]*)?>(.*?)</action>")
 static var _any_tag := RegEx.create_from_string("<[^>]*>")
 static var _markup_escape := RegEx.create_from_string("\\\\(.)")
+## The <action> links of a hypertext element, in order, each with the name it
+## sends and the text it shows, as the player reads them. Nothing here changes
+## the form. Used by the player agent channel and the narrator.
 static func hypertext_actions(rt: Control) -> Array:
 	var out: Array = []
 	for m in _action_tags.search_all(String(rt.get_meta("markup", ""))):
@@ -334,9 +360,9 @@ static func hypertext_actions(rt: Control) -> Array:
 			"url": String(attrs.get("url", "")), "text": strip_enriched(shown).strip_edges()})
 	return out
 
-# The part of a control the player can see: its rectangle cut by every
-# clipping ancestor, such as a scroll_container's clipper, or an empty one
-# when it is hidden.
+## The part of a control the player can see: its rectangle cut by every
+## clipping ancestor, such as a scroll_container's clipper, or an empty one
+## when it is hidden.
 func shown_rect(c: Control) -> Rect2:
 	if not c.is_visible_in_tree():
 		return Rect2()
@@ -350,6 +376,9 @@ func shown_rect(c: Control) -> Rect2:
 
 # --- parsing ---------------------------------------------------------------
 
+# Every per form member back to the state regenerateGui starts a form from.
+# A new member that holds per form state has to be cleared here too, or the
+# last form's value leaks into the next.
 func _reset() -> void:
 	real_coordinates = false
 	allow_close = true
@@ -413,7 +442,7 @@ static func _default_scrollbar_options() -> Dictionary:
 	return {"min": 0, "max": 1000, "smallstep": 10, "largestep": 100,
 		"thumbsize": 1, "arrows": "default"}
 
-# Luanti's split: a backslash escapes the next character (kept, unescaped later).
+## Luanti's split: a backslash escapes the next character (kept, unescaped later).
 static func fs_split(s: String, delim: String) -> PackedStringArray:
 	var out := PackedStringArray()
 	var cur := ""
@@ -432,11 +461,13 @@ static func fs_split(s: String, delim: String) -> PackedStringArray:
 	out.append(cur)
 	return out
 
+## A formspec field's text as plain text: the backslash escapes and the
+## colour escapes both gone.
 static func fs_unescape(s: String) -> String:
 	return strip_enriched(fs_unescape_raw(s))
 
-# unescape_string: the backslashes gone and colour escapes kept, for text
-# upstream draws as an EnrichedString.
+## unescape_string: the backslashes gone and colour escapes kept, for text
+## upstream draws as an EnrichedString.
 static func fs_unescape_raw(s: String) -> String:
 	var out := ""
 	var esc := false
@@ -450,6 +481,11 @@ static func fs_unescape_raw(s: String) -> String:
 			out += ch
 	return out
 
+# Splits the form into the header elements, applied to the form as a whole
+# here, and the rest, queued in pending_elements for _build. Upstream's
+# regenerateGui reads formspec_version, size, position, anchor and padding
+# only from the front of the form, in that order; this takes them wherever
+# they stand, which no form in the conformance suite has needed to tell apart.
 func _parse(spec: String) -> void:
 	for raw in fs_split(spec, ELEM_SEP):
 		var e := raw.strip_edges()
@@ -603,6 +639,10 @@ static func _opaque_share(tex: Texture2D) -> float:
 
 # --- layout maths (GUIFormSpecMenu::regenerateGui) ---------------------------
 
+# regenerateGui's sizing, with gui_scaling at 1: imgsize, the unit every
+# coordinate is in, is the smaller of a fifteenth of the padded screen and
+# what lets the whole size[] fit on it. The 5/4 and 15/13 factors are the old
+# coordinate system's slot pitch, which spacing and padding then follow.
 func _layout(screen: Vector2) -> void:
 	screen_size = screen
 	var padded := Vector2(screen.x * (1.0 - form_padding.x * 2.0), screen.y * (1.0 - form_padding.y * 2.0))
@@ -749,9 +789,9 @@ const NAMED_COLOURS := {
 	"whitesmoke": 0xf5f5f5, "yellow": 0xffff00, "yellowgreen": 0x9acd32
 }
 
-# parseColorString in luanti/src/util/string.cpp: #RGB, #RGBA, #RRGGBB or
-# #RRGGBBAA, or a colour name, in any case, optionally followed by # and one
-# or two hex digits of alpha. Anything else is the fallback.
+## parseColorString in luanti/src/util/string.cpp: #RGB, #RGBA, #RRGGBB or
+## #RRGGBBAA, or a colour name, in any case, optionally followed by # and one
+## or two hex digits of alpha. Anything else is the fallback.
 static func parse_color(s: String, fallback: Color) -> Color:
 	s = s.strip_edges()
 	if s == "":
@@ -785,14 +825,15 @@ static func parse_color(s: String, fallback: Color) -> Color:
 		return fallback
 	return Color.hex((int(NAMED_COLOURS[base]) << 8) | ("0x" + alpha).hex_to_int())
 
-# Splits Luanti's enriched-text escape sequences into colour runs, for
-# anything that draws its own text instead of handing it to a Label:
-# HUD text, item tooltips, chat. `core.get_color_escape_sequence` writes
-# `ESC(c@#rrggbb)`; `core.colorize` wraps it with `ESC(c@)` to reset. A
-# translated string arrives as `ESC(T@textdomain)...ESCE`, from
-# `core.translate`: Goanna has no client-side translation catalogue, so,
-# like an upstream client missing the language pack, the marked text is
-# kept as-is rather than translated (docs/lua_api.md, "Escape sequences").
+## Splits Luanti's enriched-text escape sequences into colour runs, for
+## anything that draws its own text instead of handing it to a Label:
+## HUD text, item tooltips, chat. `core.get_color_escape_sequence` writes
+## `ESC(c@#rrggbb)`; `core.colorize` wraps it with `ESC(c@)` to reset. A
+## translated string arrives as `ESC(T@textdomain)...ESCE`, from
+## `core.translate`: Goanna has no client-side translation catalogue, so,
+## like an upstream client missing the language pack, the marked text is
+## kept as-is rather than translated (luanti/doc/lua_api.md, "Escape
+## sequences").
 static func parse_enriched_runs(s: String, default_color: Color) -> Array:
 	var runs := []
 	var cur := default_color
@@ -833,8 +874,8 @@ static func parse_enriched_runs(s: String, default_color: Color) -> Array:
 		runs.append({"text": buf, "color": cur})
 	return runs
 
-# The plain-text form of parse_enriched_runs, for contexts (tooltips, chat)
-# that can only show one colour.
+## The plain-text form of parse_enriched_runs, for contexts (tooltips, chat)
+## that can only show one colour.
 static func strip_enriched(s: String) -> String:
 	var out := ""
 	for run in parse_enriched_runs(s, Color.WHITE):
@@ -843,6 +884,9 @@ static func strip_enriched(s: String) -> String:
 
 # --- building --------------------------------------------------------------
 
+# Turns the parsed elements into Controls under `root`: the game's window
+# theme first, then the form's own elements in order, then the old draw
+# order sort for forms below version 3, and the glass pass when `glass`.
 func _build() -> void:
 	# Named tooltips are looked up by name when the pointer reaches the
 	# element, as m_tooltips is, so one may come before or after its element.
@@ -861,7 +905,8 @@ func _build() -> void:
 			tooltips[fs_unescape(p[0])] = {"text": fs_unescape_raw(p[1]),
 				"bg": parse_color(p[2], tip_bg) if p.size() == 4 else tip_bg,
 				"fg": parse_color(p[3], tip_fg) if p.size() == 4 else tip_fg}
-	# a fullscreen tint behind the form, if asked for
+	# The form's panel. The full screen tint behind it is not drawn here:
+	# game_ui.gd colours its own fullscreen_tint from fullscreen_bg.
 	add_child(root)
 	bg_layer = Control.new()
 	bg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1085,6 +1130,9 @@ func _glass_line_art() -> void:
 			img.set("texture", lit)
 			img.set_meta("glass_line_art", true)
 
+# The lightened copy of one texture, or null when it does not qualify
+# (_glass_line_art has the rule). Cached by texture, since a form is rebuilt
+# on every resend and the test reads every pixel.
 static func _light_line_art(tex: Texture2D) -> Texture2D:
 	if tex == null:
 		return null
@@ -1303,6 +1351,7 @@ func _replace_empty_slot_frames(framing: Dictionary) -> void:
 		c.visible = false
 		c.set_meta("glass_replaced", true)
 
+# An empty glass slot, standing where the game's own slot frame art was.
 class GlassEmptySlot extends Control:
 	func _draw() -> void:
 		GlassStyle.draw_slot(self, Rect2(Vector2.ZERO, size), false, true)
@@ -1724,6 +1773,8 @@ func _scrollbar_arrows(bar: ScrollBar, vertical: bool, size: int, enabled: bool)
 			bar.add_theme_icon_override(end + suffix,
 				_arrow_texture(size, dir, glass, enabled, int(looks[suffix])))
 
+# One scrollbar end button, drawn rather than loaded so it needs no media.
+# `state` is 0 normal, 1 hovered, 2 pressed. Cached by every argument.
 static func _arrow_texture(size: int, dir: String, glassy: bool, enabled: bool, state: int) -> Texture2D:
 	var key := "%d|%s|%s|%s|%d" % [size, dir, glassy, enabled, state]
 	if _arrow_cache.has(key):
@@ -1828,6 +1879,10 @@ func _background(parts: PackedStringArray) -> void:
 	# still under a form's own backgrounds.
 	bg_layer.add_child(r)
 
+# A middle[] rectangle (GUIFormSpecMenu::parseMiddleRect) as nine patch
+# margins: one value for all four sides, two for x and y, or the rectangle's
+# corners as x1,y1,x2,y2, where a negative x2 or y2 counts back from the
+# texture's far edge. A zero vector means no nine patch.
 func _middle_margins(value: String, tex: Texture2D) -> Vector4:
 	if value.strip_edges() == "":
 		return Vector4.ZERO
@@ -2346,9 +2401,9 @@ func _markup_text(rt: RichTextLabel, run: String, stack: Array) -> void:
 			return
 	spans.append(span)
 
-# The text of a hypertext element in runs of one style, each with its colour
-# as #rrggbb, bold, italic and underline when set, and the action it belongs
-# to. Read only.
+## The text of a hypertext element in runs of one style, each with its colour
+## as #rrggbb, bold, italic and underline when set, and the action it belongs
+## to. Read only.
 static func markup_spans(rt: Control) -> Array:
 	return (rt.get_meta("spans", []) as Array).duplicate(true)
 
@@ -3690,11 +3745,11 @@ func _holding_stack() -> bool:
 	return item_source != null and item_source.has_method("holding_stack") \
 		and item_source.holding_stack()
 
-# The tooltip standing at `point` (viewport coordinates) with `hovered` under
-# the pointer for `rested_ms`, or {}. drawMenu's order, later rules winning:
-# an area tooltip, an area hypertip, the stack in the slot under the pointer
-# unless one is being carried, then, once the pointer has rested on it, the
-# element's own tooltip or failing that its hypertip.
+## The tooltip standing at `point` (viewport coordinates) with `hovered` under
+## the pointer for `rested_ms`, or {}. drawMenu's order, later rules winning:
+## an area tooltip, an area hypertip, the stack in the slot under the pointer
+## unless one is being carried, then, once the pointer has rested on it, the
+## element's own tooltip or failing that its hypertip.
 func tooltip_at(point: Vector2, hovered: Control, rested_ms: int) -> Dictionary:
 	var tip := {}
 	for kind in ["text", "markup"]:
@@ -4383,10 +4438,10 @@ func _slot_released(loc: String, lname: String, index: int, button: int) -> void
 func _slot_double_clicked(loc: String, lname: String, index: int) -> void:
 	slot_double_clicked.emit(loc, lname, index)
 
-# The slot under a point in viewport coordinates, or null. Godot hands motion
-# and release events to whichever Control took the press, wherever the pointer
-# has got to since, so a drag across slots has to ask where the pointer
-# actually is; GUIFormSpecMenu does the same with getItemAtPos().
+## The slot under a point in viewport coordinates, or null. Godot hands motion
+## and release events to whichever Control took the press, wherever the pointer
+## has got to since, so a drag across slots has to ask where the pointer
+## actually is; GUIFormSpecMenu does the same with getItemAtPos().
 func slot_at(global_pos: Vector2) -> Control:
 	for s in slots:
 		if is_instance_valid(s) and s.is_visible_in_tree() \
@@ -4394,7 +4449,7 @@ func slot_at(global_pos: Vector2) -> Control:
 			return s
 	return null
 
-# The next list in the ring after (loc, lname), for shift-click moves; empty if none.
+## The next list in the ring after (loc, lname), for shift-click moves; empty if none.
 func next_in_ring(loc: String, lname: String) -> Dictionary:
 	if list_rings.size() < 2:
 		return {}
@@ -4405,6 +4460,9 @@ func next_in_ring(loc: String, lname: String) -> Dictionary:
 	return {}
 
 
+# An animated_image[]: a vertical strip of `frames` frames, stepped by a
+# timer. Its field is the frame shown, counted from 1, which collect_fields
+# sends as GUIAnimatedImage's does.
 class AnimatedFormspecImage extends Control:
 	var atlas := AtlasTexture.new()
 	var current_frame := 0
