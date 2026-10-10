@@ -46,6 +46,18 @@ goanna_far_summary_cache_areas (Far summary areas in memory) int 4096 64 65536
 #    and the reason the rate above can be raised at all.
 goanna_far_summary_lag (Far summary lag limit) float 0.5 0.0 60.0
 
+#    Summarise blocks on Luanti's async worker threads rather than in the
+#    server step. The map is still read in the step, which is quick; the Lua
+#    that folds each block into its summary, most of the cost, runs on the
+#    workers, several at once. Needs Luanti 5.9 or later; older servers, or
+#    false here, summarise in the step as before.
+goanna_far_summary_async (Far summaries off the server thread) bool true
+
+#    Summary jobs that may be waiting on the async workers at once, 16
+#    mapblocks each. At this many, no new blocks are read until some return,
+#    so a server whose workers are busy is not handed more than they clear.
+goanna_far_summary_async_jobs (Far summary async jobs) int 16 1 64
+
 #    Generate terrain around each player out to the far rendering distance,
 #    one 128 node area at a time, a slice of an area per emerge call, and
 #    hand each area's summary to the clients near it. A summary can only

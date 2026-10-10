@@ -2749,3 +2749,45 @@ sculk and the still netherrack and sand did not. With animation switched off
 and the tiers rebuilt, the same four cubes drew as flat colours. Not
 measured: the draw call cost at a real vista full of animated cubes, such as
 an ocean monument, which a fresh world did not have in reach.
+
+### Summaries off the server thread, 2026-10-10
+
+Folding a mapblock into its far summary was Lua on the server thread, the
+one every mod's globalsteps and every player's movement share. On Luanti
+5.9 and later the mod now reads each block there and hands a copy of its
+VoxelManip to Luanti's async workers, which run `far_summary.lua` in jobs of
+16 blocks, several at once; the server thread packs the results into the
+store when the jobs come back. Nothing about the records changed: 400
+randomised blocks, generated, part generated, ungenerated and with unnamed
+contents, packed byte for byte the same as the old `block_summary` under
+LuaJIT. `goanna_server_mod/README.md` has the settings,
+`goanna_far_summary_async` and `goanna_far_summary_async_jobs`.
+
+Measured with the bundled Luanti 5.17.0 server on a copy of the explored
+Mineclonia world `fdfd3w` with the mod's summary store emptied, so backfill
+summarised the explored world around one Goanna client (Godot 4.5.1, under
+`--headless`, 1024 node grant, pregeneration off). Four minute runs, with
+`goanna_far_log_stats` counting the server thread time of the summary pass
+and of filing results, per 30 seconds, over the windows after the join:
+
+| Run | Blocks read per 30 s | Server thread ms per 30 s | Per block | Mean max lag |
+| --- | --- | --- | --- | --- |
+| Server thread, run 1 | 47,201 | 17,291 (58%) | 366 us | 0.105 s |
+| Server thread, run 2 | 49,270 | 14,322 (48%) | 291 us | 0.091 s |
+| Async, cap checked once a step (up to 13 jobs) | 38,043 | 3,014 (10%) | 79 us | 0.060 s |
+| Async, strict cap of 8 jobs | 30,020 | 2,185 (7%) | 73 us | 0.051 s |
+| Async, strict cap of 16 jobs, 3 windows only | 37,854 | 3,375 (11%) | 89 us | 0.069 s |
+
+So backfill had been taking about half of the server thread, and now takes
+about a tenth, for roughly four fifths of the throughput at 16 jobs. The
+default cap is 16 for that reason. The remaining server thread cost is the
+map read and filing the record, of which `set_record` rebuilding the
+area's 47 KB blob string for every record is the obvious next target.
+
+The machine was shared with other sessions' servers throughout, and the
+16 job run was cut short when the machine began swapping (load average over
+200) and stalled every process on it for 16 minutes; only its three windows
+before that are counted. One run per row, with the server thread rows
+repeated. Not yet measured: a server with several players, and Kythen or
+VoxeLibre. `fine.lua`'s full detail replies and the far surface provider's
+synthesis still run on the server thread.

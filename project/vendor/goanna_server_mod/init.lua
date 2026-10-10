@@ -164,42 +164,6 @@ end)
 local function server_lag()
 	return step_lag
 end
-local c_ignore = core.CONTENT_IGNORE
-local c_air = core.CONTENT_AIR
-
--- content id -> {filled, solid, liquid}, from the node's registration.
--- The same rule the client's chain uses: a full cube or cube shaped drawtype
--- or a liquid draws, and a full solid cube blocks light. Version 4 treats
--- vegetation as ordinary occupied voxels; there is no separate heightfield
--- path that needs to classify it away from terrain.
-local cls_cache = {}
-local function classify(cid)
-	local c = cls_cache[cid]
-	if c then
-		return c
-	end
-	c = {filled = false, solid = false, liquid = false}
-	if cid ~= c_ignore and cid ~= c_air then
-		local name = core.get_name_from_content_id(cid)
-		local def = name and core.registered_nodes[name]
-		if def then
-			local dt = def.drawtype or "normal"
-			if dt == "normal" then
-				c.filled = true
-				c.solid = true
-			elseif dt == "allfaces" or dt == "allfaces_optional" or dt == "glasslike"
-					or dt == "glasslike_framed" or dt == "glasslike_framed_optional" then
-				c.filled = true
-			elseif dt == "liquid" or dt == "flowingliquid" then
-				c.filled = true
-				c.liquid = true
-			end
-		end
-	end
-	cls_cache[cid] = c
-	return c
-end
-
 -- One block's record, or nil if the block is not generated. Protocol
 -- version 7, 2026-08-26, 92 bytes:
 --   flags (16 has data, 8 record complete, 32 provider surface shell)
@@ -224,17 +188,24 @@ end
 -- area, so a trunk buried in a crown cannot repaint that crown as wood.
 -- The client retains separate materials for all six faces on live/store
 -- nodes; this compact wire format has room for only the top representative.
-local surface_material = dofile(core.get_modpath(core.get_current_modname()) .. "/surface_material.lua")
-local function block_summary(bx, by, bz, names, name_index)
+--
+-- The summary itself is far_summary.lua, which runs off the server thread
+-- where Luanti allows it ("Summaries off the server thread" below). What
+-- stays here is the read, which must happen on this thread, and the
+-- packing, which assigns palette indices and so must too.
+local modpath = core.get_modpath(core.get_current_modname())
+local far_summary = dofile(modpath .. "/far_summary.lua")
+
+local function read_block(bx, by, bz)
 	local pmin = vector.new(bx * 16, by * 16, bz * 16)
-	local pmax = vector.add(pmin, 15)
 	-- read_from_map is what get_voxel_manip does; the emerged area may be
 	-- larger than asked, and an ungenerated block reads back as ignore.
-	local vm = core.get_voxel_manip(pmin, pmax)
-	local emin, emax = vm:get_emerged_area()
-	local data = vm:get_data()
-	local light = vm:get_light_data()
-	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+	return core.get_voxel_manip(pmin, vector.add(pmin, 15)), pmin
+end
+
+-- far_summary's table as the wire record, naming contents from the area's
+-- palette and adding to it as needed.
+local function pack_record(s, names, name_index)
 	local function idx_of(cid)
 		if not cid then
 			return 0
@@ -257,76 +228,15 @@ local function block_summary(bx, by, bz, names, name_index)
 		end
 		return i
 	end
-	local contents, liquid_tops, liquid_cells = {}, {}, {}
-	local block_liquid = nil
-	local block_known, block_complete = false, true
-	local block_day, block_night = 0, 0
-	for cz = 0, 3 do
-		for cy = 0, 3 do
-			for cx = 0, 3 do
-				local ci = (cz * 4 + cy) * 4 + cx
-				local chosen_liquid = nil
-				local liquid_top = 0
-				local cell_known, day, night = false, 0, 0
-				for z = pmin.z + cz * 4, pmin.z + cz * 4 + 3 do
-					for y = pmin.y + cy * 4, pmin.y + cy * 4 + 3 do
-						for x = pmin.x + cx * 4, pmin.x + cx * 4 + 3 do
-							local vi = area:index(x, y, z)
-							local cid = data[vi]
-							if cid ~= c_ignore then
-								cell_known, block_known = true, true
-								local li = light[vi] or 0
-								day = math.max(day, li % 16)
-								night = math.max(night, math.floor(li / 16) % 16)
-								local c = classify(cid)
-								if c.filled then
-									if c.liquid then
-										liquid_top = math.max(liquid_top,
-											y - (pmin.y + cy * 4) + 1)
-										chosen_liquid, block_liquid = cid, cid
-									end
-								end
-							else
-								block_complete = false
-							end
-						end
-					end
-				end
-				local chosen = surface_material(4, function(x, y, z)
-					local cid = data[area:index(pmin.x + cx * 4 + x,
-						pmin.y + cy * 4 + y, pmin.z + cz * 4 + z)]
-					local c = classify(cid)
-					if c.filled and not c.liquid then return cid end
-				end)
-				contents[ci] = not cell_known and 255 or idx_of(chosen)
-				liquid_cells[ci] = chosen_liquid ~= nil
-				liquid_tops[ci] = chosen_liquid and liquid_top < 4 and liquid_top or 0
-				block_day = math.max(block_day, day)
-				block_night = math.max(block_night, night)
-			end
-		end
+	local parts = {string.char(16 + (s.complete and 8 or 0))}
+	for i = 0, 63 do
+		local cid = s.cells[i]
+		parts[#parts + 1] = string.char(cid == -1 and 255 or idx_of(cid or nil))
 	end
-	if not block_known then
-		return nil
-	end
-	local parts = {string.char(16 + (block_complete and 8 or 0))}
-	for i = 0, 63 do parts[#parts + 1] = string.char(contents[i]) end
-	for i = 0, 15 do
-		local packed = 0
-		for j = 0, 3 do
-			packed = packed + (liquid_tops[i * 4 + j] or 0) * 2 ^ (j * 2)
-		end
-		parts[#parts + 1] = string.char(packed)
-	end
-	parts[#parts + 1] = string.char(block_day, block_night)
-	parts[#parts + 1] = string.char(idx_of(block_liquid))
-	for b = 0, 7 do
-		local packed = 0
-		for j = 0, 7 do
-			if liquid_cells[b * 8 + j] then packed = packed + 2 ^ j end
-		end
-		parts[#parts + 1] = string.char(packed)
-	end
+	parts[#parts + 1] = s.tops
+	parts[#parts + 1] = string.char(s.day, s.night)
+	parts[#parts + 1] = string.char(idx_of(s.liquid))
+	parts[#parts + 1] = s.mask
 	return table.concat(parts)
 end
 
@@ -752,21 +662,64 @@ local function synthesise_area(a)
 	return made > 0
 end
 
--- Summarise one block into the store. Returns true when the map was read,
--- which is what the per step budget counts; false when the store already
--- had an answer and nothing was spent.
-local reoffer = {}
+-- Summaries off the server thread, 2026-10-10.
+--
+-- A summary is two costs. Reading the block out of the map has to happen
+-- on the server thread and is quick, a copy in C++. Folding its 4096 nodes
+-- into the record is Lua, and it was most of the time this pass took from
+-- every server step, the step that every mod's globalsteps and every
+-- player's movement share. So where Luanti offers an async environment
+-- that can take a VoxelManip (core.register_mapgen_script marks the 5.9
+-- servers that can), the read stays here and the folding goes to Luanti's
+-- async workers, a copy of each block's VoxelManip per job. Each step's
+-- reads leave as several jobs rather than one, so the engine's pool of
+-- workers, which it sizes to the machine, summarise them in parallel.
+--
+-- The store is only ever touched on this thread. A result comes back in the
+-- job's callback on a later step and lands through land_summary, which does
+-- what summarise used to do with the record. Until then the block counts as
+-- in flight: a second read of it is not started unless it changed, a newer
+-- read supersedes an older one whose answer arrives late, and an area with
+-- reads in flight is not sent or synthesised until they land, so a client is
+-- never sent an area with a hole that is about to be filled.
+--
+-- goanna_far_summary_async = false, or an older server, keeps everything on
+-- the server thread as before, through the same far_summary.lua.
+local async_summaries = conf_bool("goanna_far_summary_async", true) and
+		core.handle_async ~= nil and core.register_async_dofile ~= nil and
+		core.register_mapgen_script ~= nil
+if async_summaries then
+	core.register_async_dofile(modpath .. "/far_summary.lua")
+end
+-- Blocks per job, and jobs out at once. Sixteen blocks is a few milliseconds
+-- of a worker's time, large enough that a job's overhead is small beside it.
+-- The cap on jobs in flight is what stops a busy server queueing work faster
+-- than the workers clear it: at the cap, no new reads start.
+local ASYNC_BATCH = 16
+local async_max_jobs = conf_num("goanna_far_summary_async_jobs", 16)
 
-local function summarise(bx, by, bz, force, fresh)
+local reoffer = {}
+local inflight = {}       -- block hash -> sequence of its newest read
+local area_inflight = {}  -- area key -> blocks of it in flight
+local read_seq = 0
+local jobs_out = 0
+local batch = {}
+-- Server thread time the summary pass and the landing of its results take,
+-- and the blocks read, for goanna_far_log_stats. Microseconds.
+local summary_stats = {pass_us = 0, land_us = 0, reads = 0}
+
+local function area_busy(key)
+	return (area_inflight[key] or 0) > 0
+end
+
+-- The second half of a summary: the record into the store. `s` is
+-- far_summary's table, or nil when the block was not generated.
+local function land_summary(bx, by, bz, s)
 	local ax, ay, az = fdiv(bx, AREA), fdiv(by, AREA), fdiv(bz, AREA)
 	local a = load_area(ax, ay, az)
 	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
 	local synth = a.synth and a.synth[i]
-	if not force and ((record_known(a.blob, i) and not (synth and fresh)) or
-			(a.checked[i] and not record_available(a.blob, i) and not fresh)) then
-		return false
-	end
-	local rec = block_summary(bx, by, bz, a.names, a.name_index)
+	local rec = s and pack_record(s, a.names, a.name_index)
 	if rec then
 		set_record(a, i, rec)
 		if synth then
@@ -783,7 +736,80 @@ local function summarise(bx, by, bz, force, fresh)
 		settled[a.key] = true
 		settled_dirty = true
 	end
-	last_summarised[core.hash_node_position({x = bx, y = by, z = bz})] = now()
+end
+
+-- Send this step's reads to the workers, ASYNC_BATCH blocks to a job.
+local function dispatch_summaries()
+	while #batch > 0 do
+		local meta, vms = {}, {}
+		for _ = 1, math.min(ASYNC_BATCH, #batch) do
+			local e = table.remove(batch)
+			meta[#meta + 1] = e
+			vms[#vms + 1] = {e.vm, e.pmin}
+			e.vm = nil
+		end
+		jobs_out = jobs_out + 1
+		core.handle_async(function(blocks)
+			return goanna_far_summary_batch(blocks)
+		end, function(results)
+			local t0 = core.get_us_time()
+			jobs_out = jobs_out - 1
+			for k, e in ipairs(meta) do
+				local h = e.h
+				-- Only the newest read of a block lands. An older one that
+				-- finishes late is dropped; the newer one is still coming.
+				if inflight[h] == e.seq then
+					inflight[h] = nil
+					area_inflight[e.key] = area_inflight[e.key] - 1
+					if area_inflight[e.key] <= 0 then
+						area_inflight[e.key] = nil
+					end
+					-- A worker that failed answers nothing; the record stays as
+					-- it was, and the block is read again when next wanted.
+					if results then
+						land_summary(e.x, e.y, e.z, results[k] or nil)
+					end
+				end
+			end
+			summary_stats.land_us = summary_stats.land_us + core.get_us_time() - t0
+		end, vms)
+	end
+end
+
+-- Summarise one block into the store. Returns true when the map was read,
+-- which is what the per step budget counts; false when the store already
+-- had an answer, or a read of it is already in flight, and nothing was
+-- spent. `force` reads whatever the store holds, for a block that has
+-- changed; `fresh` reads a block the store has only ever seen ungenerated,
+-- for one that has just been generated.
+local function summarise(bx, by, bz, force, fresh)
+	local ax, ay, az = fdiv(bx, AREA), fdiv(by, AREA), fdiv(bz, AREA)
+	local a = load_area(ax, ay, az)
+	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
+	local synth = a.synth and a.synth[i]
+	if not force and ((record_known(a.blob, i) and not (synth and fresh)) or
+			(a.checked[i] and not record_available(a.blob, i) and not fresh)) then
+		return false
+	end
+	local h = core.hash_node_position({x = bx, y = by, z = bz})
+	if inflight[h] and not force then
+		return false
+	end
+	last_summarised[h] = now()
+	summary_stats.reads = summary_stats.reads + 1
+	local vm, pmin = read_block(bx, by, bz)
+	if not async_summaries then
+		land_summary(bx, by, bz, far_summary.block(vm, pmin))
+		return true
+	end
+	if not inflight[h] then
+		area_inflight[a.key] = (area_inflight[a.key] or 0) + 1
+	end
+	read_seq = read_seq + 1
+	inflight[h] = read_seq
+	batch[#batch + 1] = {
+		vm = vm, pmin = pmin, x = bx, y = by, z = bz, h = h, key = a.key, seq = read_seq,
+	}
 	return true
 end
 
@@ -980,7 +1006,7 @@ end
 
 local EDGE_BLOCKS = AREA_BLOCKS
 
-core.register_globalstep(function(dtime)
+local function summary_pass(dtime)
 	flush_timer = flush_timer + dtime
 	if flush_timer > 1 then
 		flush_timer = 0
@@ -998,6 +1024,12 @@ core.register_globalstep(function(dtime)
 		return
 	end
 	local budget = blocks_per_step
+	-- Reads this step are bounded by the room left under the cap on jobs in
+	-- flight, so at the cap nothing new is read. Areas whose reads have all
+	-- landed are still answered.
+	if async_summaries then
+		budget = math.min(budget, math.max(0, async_max_jobs - jobs_out) * ASYNC_BATCH)
+	end
 	local sent = 0
 	-- Generated blocks are the output side of the asynchronous producer.
 	-- Requests used to run first and could consume this whole budget forever
@@ -1035,7 +1067,8 @@ core.register_globalstep(function(dtime)
 			end
 			job.i = i + 1
 		end
-		if job.i < EDGE_BLOCKS then
+		if job.i < EDGE_BLOCKS or
+				area_busy(area_key(fdiv(job.ox, AREA), fdiv(job.oy, AREA), fdiv(job.oz, AREA))) then
 			break
 		end
 		table.remove(far_queue, 1)
@@ -1126,12 +1159,19 @@ core.register_globalstep(function(dtime)
 		end
 		backfill.i = i + 1
 	end
-	if backfill.i >= AREA_BLOCKS then
+	if backfill.i >= AREA_BLOCKS and not area_busy(a.key) then
 		if far_provider then
 			synthesise_area(a)
 		end
 		backfill.area = nil
 	end
+end
+
+core.register_globalstep(function(dtime)
+	local t0 = core.get_us_time()
+	summary_pass(dtime)
+	dispatch_summaries()
+	summary_stats.pass_us = summary_stats.pass_us + core.get_us_time() - t0
 end)
 
 -- Pregeneration: the other half of "places you have never been" on a world
@@ -1420,10 +1460,14 @@ if far_log_stats then
 		core.log("action", string.format(
 				"[goanna] far stats: areas_started=%d active=%d pending=%d " ..
 				"reply_queue=%d asked=%d generated_queue=%d cache_areas=%d " ..
-				"lua_mb=%.1f lag=%.3f max_lag=%.3f",
+				"lua_mb=%.1f lag=%.3f max_lag=%.3f summary_reads=%d " ..
+				"summary_pass_ms=%.1f summary_land_ms=%.1f summary_async=%s jobs_out=%d",
 				done, #pregen.active, #pregen.pending, #far_queue, asked,
 				generated, store_count, collectgarbage("count") / 1024,
-				server_lag(), core.get_server_max_lag()))
+				server_lag(), core.get_server_max_lag(), summary_stats.reads,
+				summary_stats.pass_us / 1000, summary_stats.land_us / 1000,
+				tostring(async_summaries), jobs_out))
+		summary_stats.reads, summary_stats.pass_us, summary_stats.land_us = 0, 0, 0
 	end)
 end
 

@@ -141,6 +141,14 @@ smoothed over about a second, is above that many seconds, keeping part finished 
 it. `goanna_far_summary_cache_areas` bounds how many areas stay in memory;
 past it, areas untouched for ten minutes are written out and let go.
 
+On Luanti 5.9 and later, only the read of each block happens in the server
+step. Folding its 4096 nodes into a summary, which is Lua and most of the
+cost, runs on Luanti's async worker threads (`far_summary.lua`), in jobs of
+16 blocks that the workers take in parallel, and the records are filed when
+the jobs come back. `goanna_far_summary_async = false` keeps it all in the
+step, and `goanna_far_summary_async_jobs` caps how many jobs may be waiting
+at once.
+
 What the store does not do yet is tell a client that a block it already has
 changed. A client never asks twice for an area that came back complete, so
 far terrain another player alters stays as it was until the client walks
