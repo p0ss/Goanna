@@ -16,7 +16,22 @@
 //
 // No Godot types: the client converts the output to arrays. The occupancy
 // tracer is the one in goanna_occlusion.h, run against a field at the tier's
-// cell size, which is the far field term in docs/systems/far-rendering.md.
+// cell size, which is the far field term in docs/design/far-rendering-plan.md,
+// "The term, in two ranges".
+//
+// Threads: chains are built on the LodStorage worker (goanna_lod_storage.h)
+// from stored, live or fine data, and on the main thread from server
+// summaries (GoannaClient::lodTakeSummaries). Once built they are shared
+// immutable through shared_ptr<const BlockLodChain>. GoannaClient keeps them
+// in m_lod_chains on the main thread. meshLodRegion runs on a MeshPool worker
+// against a LodRegionSnapshot captured on the main thread, or inline on the
+// main thread when the pool is off. The tier choice (lodDetailRadius,
+// lodProjectedTier) and visitLodBox are called on the main thread. See
+// docs/develop/architecture.md, "The far field and LOD".
+//
+// Main types: LodLevel and BlockLodChain (the data), LodRegionSnapshot and
+// LodRegionSpec (a region's input), LodRegionMesh (its output) and
+// LodTileCache.
 
 #include <array>
 #include <cstdint>
@@ -119,6 +134,9 @@ struct LodLevel {
     bool built() const { return !cells.empty(); }
 };
 
+// Every level of one mapblock, finest first. Never changed once another
+// thread can see it: a newer version of a block gets a new chain, and readers
+// holding the old shared_ptr keep a consistent copy.
 struct BlockLodChain {
     static constexpr int kLevels = 5; // cell 1, 2, 4, 8, 16
     LodLevel level[kLevels];
@@ -137,7 +155,8 @@ struct BlockLodChain {
     std::array<uint16_t, 64> fine_record_base{};
     std::vector<FineRecord> fine_records;   // sorted by index
     // Derived from the store rather than from a live block: what the far
-    // tiers mark as stale (docs/history/far-rendering-log.md, "Staleness").
+    // tiers mark as stale (docs/history/far-rendering-log.md, "What landed at
+    // rung 5, 2026-08-21", where staleness is described).
     bool stored = false;
     // Built from a server summary rather than from nodes. A later summary of
     // the same block replaces it; a chain from nodes is never replaced by one.
@@ -179,7 +198,9 @@ LodTopSample lodHorizonTop(const BlockLodChain &chain);
 // retain cell 1, so the mesher emits its exact exposed voxel boundary: thin
 // trunks, leaves, cave walls and island undersides all remain on the node
 // grid. Every occupied cell remains a voxel at coarser levels; terrain is not
-// reconstructed from a heightfield.
+// reconstructed from a heightfield. Off the main thread, `block` must be a
+// copy the caller owns, never a block in the session's map: the LodStorage
+// callers deserialise or copy one first for that reason.
 void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &out, int min_level = 0);
 
 // Build every level above first_level from its 2 by 2 by 2 children. Summary
@@ -239,7 +260,8 @@ struct LodRegionMesh {
     // unit per node). Handed to the region's MeshInstance3D as an instance
     // uniform so the shader can flatten a panel that is merged flat and wide
     // even where it sits close to the camera, not only where it is far
-    // (docs/systems/far-rendering.md, "Shade the far field as a far field").
+    // (docs/history/far-rendering-log.md, "Stipple and close tiling, closed
+    // 2026-08-22", which added it as `lod_repeat`).
     int max_span = 0;
     bool empty() const { return surfaces.empty(); }
 };
@@ -321,6 +343,9 @@ struct LodRegionSnapshot {
     std::vector<Entry> entries; // edge() cubed
 };
 
+// What meshLodRegion is asked to mesh. Its callbacks are the only way the
+// mesher reads chains. Bound to live client state they are main thread only;
+// on a worker they must be bound to a LodRegionSnapshot (bind()).
 struct LodRegionSpec {
     v3s16 origin;       // block position of the low corner
     int blocks = 8;     // blocks per axis
@@ -341,7 +366,9 @@ struct LodRegionSpec {
     std::function<int(v3s16)> drawn_cell;
 };
 
-// materials may be null, in which case every block ID is 0.
+// materials may be null, in which case every block ID is 0. ndef, tsrc and
+// materials are the session's and only read; tiles takes its own lock, so
+// several workers can mesh regions at once.
 LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *ndef,
         GoannaTextureSource *tsrc, const MaterialTable *materials, LodTileCache &tiles);
 

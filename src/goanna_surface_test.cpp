@@ -1,4 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// Baked surface tiles and fine node replies, checked without Godot: the wire
+// decoders and the multi part assembler reject what they must, the wanted
+// tile order covers the grant before refining, forest spans hide behind the
+// blocks that already draw them, and a SurfaceJob run inline leaves holes
+// exactly where published voxel ground covers the surface. Single threaded.
 #include "goanna_surface.h"
 #include "goanna_fine.h"
 #include "nodedef.h"

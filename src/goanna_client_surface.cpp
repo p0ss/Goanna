@@ -1,5 +1,18 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Main-thread ownership of the baked surface stream and its published mesh.
+//
+// GoannaClient's side of goanna_surface.h, split out of goanna_client.cpp:
+// surfaceUpdate (called from update_lod) takes tiles off the session, asks
+// for the ones wanted, and submits a SurfaceJob; surfacePublish swaps the
+// finished surface in, chunk by chunk under a 2 ms budget, revealing it only
+// once every chunk is uploaded. The surface and the voxel meshes hand over
+// in step: surfaceStage hides a newly published far region until a surface
+// built with it in mind is shown, so the two do not draw the same ground, and
+// surfaceRetire keeps a mesh that is leaving until a surface built without it
+// is shown, so its footprint is never empty for a frame.
+//
+// Threads: Godot's main thread only. The m_surface_* state has no lock; the
+// job sees only what surfaceUpdate copied into it.
 #include "goanna_client.h"
 #include "goanna_session.h"
 #include "nodedef.h"

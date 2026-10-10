@@ -12,6 +12,14 @@
 // The snapshot is extracted on the main thread (the chains are main-thread
 // state) with every colour already resolved, so the worker that marches
 // the rays touches nothing but its own copy.
+//
+// Threads: GoannaClient::horizon_bake_request starts a HorizonSnapshot on the
+// main thread, and horizon_bake_poll fills it a bounded slice per frame, then
+// starts one short lived thread at a time to run buildHorizonPanorama, which
+// hands the HorizonResult back under GoannaClient::m_horizon_mutex. The main
+// thread turns the result into images for the sky shader.
+//
+// Main types: HorizonSnapshot (the input) and HorizonResult (the panorama).
 
 #pragma once
 

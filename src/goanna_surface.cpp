@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Baked surface tiles: validation, overview-first scheduling and stepped mesh.
+// SurfaceJob::run is the worker half; the rest runs on the main thread. See
+// goanna_surface.h for which.
 #include "goanna_surface.h"
 #include "util/base64.h"
 #include <algorithm>

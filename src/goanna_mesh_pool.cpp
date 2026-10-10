@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// MeshPool's workers, admission limits and priority order. workerMain runs
+// on the pool's threads; every other method is called from Godot's main
+// thread. goanna_mesh_pool.h says what m_mutex guards.
+
 #include "goanna_mesh_pool.h"
 #include "goanna_schedule.h"
 

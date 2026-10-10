@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+// The far field's chain reducer and region mesher, checked on hand built
+// chains with no Godot and no session: the mip keeps exposed materials and
+// liquid envelopes, the ground surface follows valleys and joins its
+// neighbours without gaps or overlap, cell 1 keeps exact boundaries, unknown
+// is never meshed as open, and the projected tier takes altitude and screen
+// resolution into account. Single threaded; run by the `check` target.
+
 #include "goanna_lod.h"
 
 #include "mapblock.h"

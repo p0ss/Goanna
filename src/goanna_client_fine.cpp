@@ -1,4 +1,15 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// GoannaClient's side of fine node data (goanna_fine.h): deciding which far
+// blocks to ask the server mod for, asking, and turning replies into LOD
+// chains through the LodStorage worker. Split out of goanna_client.cpp.
+//
+// Threads: Godot's main thread only. fineUpdate runs from update_lod with the
+// session's map lock held, so blockRevision and the map reads agree with the
+// replies taken in the same call. The state it keeps (m_fine_states,
+// m_fine_pending, the scan cursor) is main thread state with no lock of its
+// own. Asks are capped at 16 in flight and time out after 10 seconds; a block
+// already fine is asked again every 30 seconds, which catches bulk and ABM
+// edits that no `farfine_changed` notice announced.
 #include "goanna_client.h"
 #include "goanna_session.h"
 #include "goanna_fine.h"

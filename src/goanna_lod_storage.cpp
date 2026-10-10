@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// The prepared terrain record format (GLDC chain records, GLDS summary
+// records) and the LodStorage worker. The public methods run on Godot's main
+// thread and work() on the worker; goanna_lod_storage.h has the thread rules.
 #include "goanna_lod_storage.h"
 #include "goanna_shared_cache.h"
 #include <atomic>
@@ -13,6 +16,9 @@
 namespace goanna {
 
 namespace {
+// Process wide, so every GoannaClient in a split screen session shares it.
+// The cache locks itself; the hit counter is atomic because the LodStorage
+// workers of several clients bump it while render_stats reads it.
 SharedCache<BlockLodChain> shared_chains(64ull << 20);
 std::atomic<uint64_t> shared_chain_hits{0};
 }

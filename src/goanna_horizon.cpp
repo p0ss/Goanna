@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// The ray march behind buildHorizonPanorama. A pure function of its
+// snapshot, run on the short lived horizon bake thread.
 #include "goanna_horizon.h"
 
 #include <algorithm>

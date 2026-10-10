@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// Decoding of the server mod's `farfine` replies, and the LOD chain built
+// from one. Plain C++; goanna_fine.h says which thread calls each.
 #include "goanna_fine.h"
 #include "mapblock.h"
 #include "goanna_lod_storage.h"

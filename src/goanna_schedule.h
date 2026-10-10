@@ -25,7 +25,11 @@
 // hand is what made the far field build the world behind the player first.
 //
 // No Godot types and no client state, so it is testable on its own:
-// src/goanna_schedule_test.cpp.
+// src/goanna_schedule_test.cpp. Pure functions on values, so any thread may
+// call them: the main thread encodes priorities when it queues work, and
+// MeshPool ages them under its own lock on the main and worker threads.
+//
+// Main types: ViewPriority.
 
 #include <algorithm>
 #include <cmath>
@@ -47,6 +51,9 @@ inline v3f godotCentreOfBlock(const v3s16 &bp, int block_size) {
     return godotCentreOfBlocks(bp, 1, block_size);
 }
 
+// The camera a frame's priorities are taken against. The client makes a
+// fresh value each time it schedules (GoannaClient::viewPriority), so a copy
+// is a snapshot and needs no lock.
 struct ViewPriority {
     // What is missing, coarsest first. A class is a hard band: every
     // candidate in one is ordered ahead of every candidate in the next,

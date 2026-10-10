@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// The occupancy field and the hemisphere trace. Plain arithmetic, run on
+// the mesh workers; goanna_occlusion.h has the thread rule for the budget.
 #include "goanna_occlusion.h"
 
 #include <algorithm>

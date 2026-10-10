@@ -16,8 +16,17 @@
 // MapBlock in and MapBlockMesh out.
 //
 // The rule a job must obey is the same rule the session thread obeys, stated
-// in CLAUDE.md: no Godot objects, and no reading of live client state. A job
-// carries everything it needs, captured on the main thread when it is made.
+// in CONTRIBUTING.md, "Code style": no Godot objects, and no reading of live
+// client state. A job carries everything it needs, captured on the main thread
+// when it is made.
+//
+// Threads: submit, next, requeueReady, cancel and stats are called from
+// Godot's main thread (GoannaClient owns the one pool, m_mesh_pool); run()
+// runs on the workers. One mutex, m_mutex, guards every queue in the class.
+// See docs/develop/architecture.md, "From the main thread to the workers".
+//
+// Main types: MeshJobKey (what a job is about), MeshJob (the work), MeshPool
+// (the workers and the two queues) and MeshWorkStage (admission classes).
 
 #include <atomic>
 #include <chrono>
@@ -82,6 +91,12 @@ public:
     virtual void run() = 0;
 };
 
+// The workers and their queues. A job goes from m_queue (submitted, waiting)
+// to a worker (counted in m_active, its key in m_inflight) to m_ready
+// (finished, waiting for the main thread). A worker that finishes while
+// m_ready is full waits for the main thread to collect, which is the back
+// pressure that keeps finished meshes from piling up faster than they can be
+// published.
 class MeshPool {
 public:
     MeshPool() = default;
@@ -178,12 +193,27 @@ private:
     int effectivePriorityLocked(const Done &d) const;
     bool canAdmitLocked(const MeshJobKey &key, MeshWorkStage stage) const;
 
+    // Guards m_queue, m_ready, m_inflight, m_active, the limits and
+    // m_rejected. The main thread takes it to submit, collect, cancel and
+    // read stats; a worker takes it to take a job and to hand its result back,
+    // never while run() is executing.
     mutable std::mutex m_mutex;
+    // Wakes workers for two things: a job was queued (submit), and space
+    // opened in m_ready (next) for a worker waiting to hand a result back.
+    // stop() wakes them all to exit.
     std::condition_variable m_wake;
+    // Submitted and not yet started. Written by the main thread, taken by
+    // the workers in priority order (takeLocked).
     std::deque<Queued> m_queue;
+    // Finished and not yet collected. Written by the workers, drained by the
+    // main thread through next(), which may push one back (requeueReady).
     std::deque<Done> m_ready;
     std::map<MeshJobKey, uint64_t> m_inflight; // key -> generation being run
+    // Created by start() and joined by stop(), both on the main thread.
     std::vector<std::thread> m_threads;
+    // Written by start() and stop() (under m_mutex in stop, so a worker
+    // cannot miss the wake); read by the workers' wait predicates and by
+    // running().
     std::atomic<bool> m_running{false};
     int m_active = 0; // jobs inside run()
     int m_max_queued = 256;

@@ -9,7 +9,15 @@
 // it is grid arithmetic, so it can be tested offline against a dense reference
 // integral (goanna_light_test.cpp) and reused unchanged by the far tiers,
 // which trace the same shapes against a coarser field. See
-// docs/design/far-rendering-plan.md, "Baked ambient occlusion", and docs/systems/mesh-attributes.md.
+// docs/design/far-rendering-plan.md, "Baked ambient occlusion, and why it
+// lives here", and docs/systems/mesh-attributes.md.
+//
+// Threads: the trace runs on the mesh workers, through goanna_light.h for
+// near blocks and meshLodRegion for far regions, each against a field of its
+// own. The tracing budget below is process wide and has no lock: it is set
+// only by the native tests, before any worker runs, and read by every trace.
+//
+// Main types: OccupancyField.
 
 #include <cstdint>
 #include <vector>
@@ -50,9 +58,11 @@ struct OccupancyField {
 float traceOcclusion(const OccupancyField &f, const v3f &p, const v3f &n, float radius);
 
 
-// Tracing budget, shared by every field. Twelve rays over six nodes tells a
-// pit from a plain and is cheap enough to run while meshing; the numbers are
-// variable so lighting_chart.tscn can sweep them against the reference.
+// Tracing budget, shared by every field. The default (goanna_occlusion.cpp
+// says why it is eight rays over six nodes) is what the client runs with; the
+// setter exists so goanna_light_test.cpp can sweep the budget against the
+// dense reference. It is not synchronised, so set it only while no mesh
+// worker is running.
 void setOcclusionQuality(int rays, int steps, float radius);
 int occlusionRays();
 int occlusionSteps();

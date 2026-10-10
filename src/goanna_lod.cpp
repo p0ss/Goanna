@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// The LOD chain builder and reducer, the region snapshot, and the far region
+// mesher (meshLodRegion): cull, merge into quads, sample light and trace
+// occlusion per vertex. Runs on whichever thread goanna_lod.h names for each
+// entry point; the only shared state is the LodTileCache, under its mutex.
+
 #include "goanna_lod.h"
 
 #include "goanna_materials.h"
