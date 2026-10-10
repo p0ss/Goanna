@@ -260,9 +260,6 @@ void GoannaClient::surfaceUpdate() {
     hash(job->x); hash(job->z); hash(radius); hash(reach); hash(m_surface_received);
     hash(m_surface_retired_serial);
     hash(m_surface_source_revision);
-    for (const auto &kv : job->coverage) {
-        hash(kv.first.first); hash(kv.first.second); hash((int)kv.second);
-    }
     if (signature == m_surface_signature) {
         m_surface_input_signature = input_signature;
         return;
