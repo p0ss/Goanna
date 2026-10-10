@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 """MkDocs hooks for Goanna's documentation site.
 
-The pages link to source files (../../project/main.gd) and to measurement
+The pages link to source files (../../project/game/main.gd) and to measurement
 records under docs/perf/ with ordinary relative links, so the links work
 when the Markdown is read on GitHub or in a checkout. Neither is part of the
 built site: source lives outside docs/, and docs/perf/ is excluded in

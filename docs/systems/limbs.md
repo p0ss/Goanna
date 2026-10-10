@@ -4,7 +4,8 @@ Block-limbed player models bend at the knee and elbow, and bodies in the
 water swim and tread water. `src/goanna_limbs.h` has the geometry and the
 poses; `ModelAnimator` (`src/goanna_models.cpp`) drives them;
 `EntityRenderer` (`src/goanna_entities.cpp`) decides what each body is doing
-in the water; `project/ui/wake.gd` turns strokes into ripples and splashes.
+in the water; `project/game/effects/wake.gd` turns strokes into ripples and
+splashes.
 
 ## The model
 

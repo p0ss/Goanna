@@ -3,8 +3,8 @@
 
     python3 tools/test/dig-review/run.py
 
-Goanna already carries a dig harness: GOANNA_DIGTEST in project/main.gd points
-the player at the ground, digs from t=4.0 to t=4.9, and saves a shot mid dig
+Goanna already carries a dig harness: GOANNA_DIGTEST in project/game/main.gd
+points the player at the ground, digs from t=4.0 to t=4.9, and saves a shot mid dig
 plus four as the node breaks. This runs it twice against one world, once with
 GOANNA_CARVE=0 so the dig is the crack overlay alone and once with carving on,
 so the pair is the same dig on the same node and the only difference is the

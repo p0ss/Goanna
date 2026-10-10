@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # End-to-end private channel, camera and order checks against the scratch server.
 extends SceneTree
-const Overseer := preload("res://overseer.gd")
+const Overseer := preload("res://game/overseer.gd")
 const Unit := preload("res://tests/overseer.gd")
 var client: GoannaClient
 var main: Node3D

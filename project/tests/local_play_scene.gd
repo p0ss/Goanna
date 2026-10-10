@@ -3,8 +3,8 @@
 # Real player scenes and menus, with networking disabled and a dummy renderer.
 extends SceneTree
 
-const Shell := preload("res://local_play.gd")
-const Main := preload("res://main.tscn")
+const Shell := preload("res://game/local_play.gd")
+const Main := preload("res://game/main.tscn")
 var failures := 0
 
 func check(condition: bool, message: String) -> void:

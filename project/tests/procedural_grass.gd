@@ -3,7 +3,7 @@
 # surfaces, changing base terrain, or leaving grass-owned AA enabled.
 extends SceneTree
 
-class TestMain extends "res://main.gd":
+class TestMain extends "res://game/main.gd":
 	func _ready() -> void:
 		pass
 	func _process(_delta: float) -> void:
@@ -40,7 +40,7 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
-	var menu = load("res://menu.gd").new()
+	var menu = load("res://menu/menu.gd").new()
 	check(menu._settings_default(["Video","procedural_grass","toggle"])==0.0,
 		"The main menu must show grass off before the first game")
 	menu.free()

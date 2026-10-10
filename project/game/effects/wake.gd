@@ -22,8 +22,8 @@
 # "Wakes" and "Ripples", has the design and what is untested.
 extends Node
 
-const PlayerContext := preload("res://player_context.gd")
-const Splashes := preload("res://ui/splashes.gd")
+const PlayerContext := preload("res://game/player_context.gd")
+const Splashes := preload("res://game/effects/splashes.gd")
 
 # The shader's constants, repeated for the copy of its maths below
 # (ring()); project/tests/wake.gd checks them against the source by text.

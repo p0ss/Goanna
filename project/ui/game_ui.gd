@@ -11,7 +11,7 @@
 # offset and scale rules); formspecs are rendered by ui/formspec.gd.
 extends CanvasLayer
 
-const PlayerContext := preload("res://player_context.gd")
+const PlayerContext := preload("res://game/player_context.gd")
 
 const FormspecScript := preload("res://ui/formspec.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
@@ -89,10 +89,10 @@ var show_fps := false          # compact renderer/performance overlay
 var show_position := false     # player's server/world coordinates
 var render_stats_cache: Dictionary = {}
 var render_stats_next_at := 0.0 # render_stats walks retained terrain; sample, do not poll every frame
-var shader_weather := true     # draw rain and snow by shader (ui/weather.gd)
+var shader_weather := true     # draw rain and snow by shader (game/effects/weather.gd)
 var flash_rect: ColorRect
 var cursor_ctl: Control      # dragged stack, drawn above the formspec
-var audio: Node              # ui/audio.gd, sound
+var audio: Node              # game/audio.gd, sound
 var narrator: Node           # ui/narrator.gd, read aloud
 var voice_input: Node        # ui/voice_input.gd, voice typing
 var flash_alpha := 0.0
@@ -174,13 +174,13 @@ func _ready() -> void:
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(flash_rect)
 
-	var particles = preload("res://ui/particles.gd").new()
+	var particles = preload("res://game/effects/particles.gd").new()
 	particles.client = client
 	particles.shader_weather = shader_weather
 	var phost := _main_node()
 	if phost != null:
 		phost.add_child.call_deferred(particles)
-	audio = preload("res://ui/audio.gd").new()
+	audio = preload("res://game/audio.gd").new()
 	audio.client = client
 	# 3D voices need to live in the 3D scene to be positioned; a CanvasLayer
 	# is not part of the 3D world.
@@ -225,7 +225,7 @@ func _on_resize() -> void:
 func _exit_tree() -> void:
 	if main != null and main.player_slot != null:
 		return  # the shared shell owns the local server
-	var launch := preload("res://local_launch.gd")
+	var launch := preload("res://game/local_launch.gd")
 	if launch.server != null:
 		launch.server.stop()
 		launch.server = null
@@ -838,7 +838,7 @@ const SETTINGS_CFG := "user://goanna.cfg"
 # Setting kinds whose value is text rather than a number. They are
 # saved and read as strings and never go through _apply_setting.
 const TEXT_SETTING_KINDS := ["path", "pack", "choice"]
-const RenderFeatures := preload("res://render_features.gd")
+const RenderFeatures := preload("res://game/render_features.gd")
 # [tab, key, type, label, description, (min, max, step) for sliders,
 # ([[stored value, name shown], ...]) for a choice]
 const SETTINGS := [
@@ -958,7 +958,7 @@ const SETTINGS := [
 	["Updates", "update_check", "toggle", "Check for Goanna updates", "When the menu opens, ask GitHub whether a newer Goanna is out, and offer to update. Only releases signed by Goanna's maintainer are offered. A copy run from source never updates itself."],
 	["Updates", "material_updates", "toggle", "Download material updates", "Fetch new versions of Goanna's enhanced materials (the surface detail, gloss and relief) when the menu opens, and the materials a server you join uses. Only bundles checked against Goanna's catalogue are installed, and they apply to the next game you start or join."],
 ]
-const GraphicsProfiles := preload("res://graphics_profiles.gd")
+const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 
 # What a player sees before opening Advanced. Everything else in SETTINGS is
 # still there, one disclosure away, but a panel that opens on thirty sliders
@@ -967,7 +967,7 @@ const GraphicsProfiles := preload("res://graphics_profiles.gd")
 # and how big it is, not how its materials respond.
 #
 # The Video tab also carries the profile picker, which is what actually moves
-# the settings a profile is about (project/graphics_profiles.gd).
+# the settings a profile is about (project/game/graphics_profiles.gd).
 # Tabs that are entirely player preference rather than graphics quality, so
 # they are shown whole and have no Advanced half.
 const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
@@ -1719,7 +1719,7 @@ func _disconnect() -> void:
 	client.disconnect_from_server()
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	OS.set_environment("GOANNA_MENU", "1")
-	get_tree().change_scene_to_file.call_deferred("res://menu.tscn")
+	get_tree().change_scene_to_file.call_deferred("res://menu/menu.tscn")
 
 func _build_menu(title: String, entries: Array) -> Control:
 	var centre := CenterContainer.new()

@@ -286,6 +286,6 @@ The existing local-play scene and menu regressions also passed. These
 checks exercise state and ownership; the rendered sweep checks the GPU path.
 
 [inventory]: ../history/performance-inventory.md
-[shell]: ../../project/local_play.gd
+[shell]: ../../project/game/local_play.gd
 [render-scope]: ../../src/goanna_render_scope.cpp
 [screening]: ../perf/render-features-2026-09-27/report.md

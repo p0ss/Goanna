@@ -3,7 +3,7 @@
 # Copyright (C) 2026 the Goanna contributors
 #
 # The profile bench plans name their tier values literally, and nothing in
-# the harness checks them against project/graphics_profiles.gd. That has
+# the harness checks them against project/game/graphics_profiles.gd. That has
 # already produced a report of the wrong client: three settings were added
 # to the profiles and not to the plans, and a twenty-five minute sweep came
 # back with a healthy noise floor, tidy percentages, and the old tiers under
@@ -20,7 +20,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-PROFILES_GD = REPO / "project" / "graphics_profiles.gd"
+PROFILES_GD = REPO / "project" / "game" / "graphics_profiles.gd"
 PLANS = [
     REPO / "tools" / "bench" / "bench_plans" / "profiles.json",
     REPO / "tools" / "bench" / "bench_plans" / "profiles-night.json",
@@ -88,6 +88,6 @@ def main():
 if __name__ == "__main__":
     if sys.argv[1:2] in (["-h"], ["--help"]):
         print("usage: tools/bench/check-bench-plans.py\n\nCheck the profile bench plans' "
-              "tier values against project/graphics_profiles.gd; exits non-zero on drift.")
+              "tier values against project/game/graphics_profiles.gd; exits non-zero on drift.")
         sys.exit(0)
     sys.exit(main())

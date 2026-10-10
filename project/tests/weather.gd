@@ -34,10 +34,10 @@
 # It renders nothing: how any of it looks is not tested here.
 extends SceneTree
 
-const RainCover := preload("res://ui/rain_cover.gd")
-const Weather := preload("res://ui/weather.gd")
-const Particles := preload("res://ui/particles.gd")
-const Lightning := preload("res://ui/lightning.gd")
+const RainCover := preload("res://game/effects/rain_cover.gd")
+const Weather := preload("res://game/effects/weather.gd")
+const Particles := preload("res://game/effects/particles.gd")
+const Lightning := preload("res://game/effects/lightning.gd")
 
 var failures := 0
 
@@ -152,7 +152,7 @@ func _test_cover() -> void:
 # over 30 by 18 beside 50 sheets 260 across on the horizon. Kythen: a 0.55
 # second burst of 60 at world coordinates round the player, called water.
 func _test_other_games() -> void:
-	var W = load("res://ui/weather.gd")
+	var W = load("res://game/effects/weather.gd")
 	var light: Dictionary = W.describe({"amount": 300, "time": 0.0,
 		"pos_min": Vector3(-15, 30, -15), "pos_max": Vector3(15, 30, 21),
 		"vel_min": Vector3(-1, -30, -1), "vel_max": Vector3(1, -20, 1), "size_min": 10.0},
@@ -171,7 +171,7 @@ func _test_other_games() -> void:
 	var kythen := {"amount": 60, "time": 0.55, "vertical": true, "collision_removal": true,
 		"pos_min": Vector3(92, 17, -208), "pos_max": Vector3(108, 20, -192),
 		"vel_min": Vector3(0, -14, 0), "vel_max": Vector3(0.3, -11, 0.3)}
-	var P = load("res://ui/particles.gd")
+	var P = load("res://game/effects/particles.gd")
 	check(P.rain_burst(kythen), "Kythen's burst falls like rain")
 	check(P._centred_on_player(kythen, Vector3(100, 10, -200)), "Kythen's burst is round the player")
 	check(not P._centred_on_player(kythen, Vector3(140, 10, -200)), "a burst 40 nodes off is not")
@@ -200,8 +200,8 @@ func _rw(box: Vector3, v_offset: float, amount: float, velocity: float, size: fl
 
 
 func _test_regional_weather() -> void:
-	var W = load("res://ui/weather.gd")
-	var P = load("res://ui/particles.gd")
+	var W = load("res://game/effects/weather.gd")
+	var P = load("res://game/effects/particles.gd")
 	var feet := Vector3(0, 10, 0)
 	var rain := _rw(Vector3(18, 2, 18), 6, 15, 6, 2)
 	var heavy := _rw(Vector3(18, 0, 18), 7, 17, 7, 30)
@@ -1043,7 +1043,7 @@ func _test_lightning() -> void:
 
 func _test_flash_sky() -> void:
 	var main_script := Lightning
-	check(FileAccess.get_file_as_string("res://main.gd").contains("Lightning.is_flash_sky(sky)"),
+	check(FileAccess.get_file_as_string("res://game/main.gd").contains("Lightning.is_flash_sky(sky)"),
 			"main.gd tells the flash by lightning.gd's test")
 	var white := Color(1, 1, 1)
 	var flash := {"day_sky": white, "day_horizon": white, "dawn_sky": white,

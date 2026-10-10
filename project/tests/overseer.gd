@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Headless contract tests for the isolated overseer world and stale replies.
 extends SceneTree
-const Overseer := preload("res://overseer.gd")
+const Overseer := preload("res://game/overseer.gd")
 var failures := 0
 var checks := 0
 

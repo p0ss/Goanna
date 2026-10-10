@@ -2,8 +2,8 @@
 # Copyright (C) 2026 the Goanna contributors
 extends Control
 
-const Launch := preload("res://local_launch.gd")
-const Slot := preload("res://player_slot.gd")
+const Launch := preload("res://game/local_launch.gd")
+const Slot := preload("res://game/player_slot.gd")
 
 var slots: Array = []
 var layout := "grid"
@@ -173,7 +173,7 @@ func return_to_menu() -> void:
 		return
 	_closing = true
 	OS.set_environment("GOANNA_MENU", "1")
-	get_tree().change_scene_to_file.call_deferred("res://menu.tscn")
+	get_tree().change_scene_to_file.call_deferred("res://menu/menu.tscn")
 
 func _exit_tree() -> void:
 	if owned_server != null:

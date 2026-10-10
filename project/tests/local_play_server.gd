@@ -3,7 +3,7 @@
 # Run by tools/test/test-local-play.py against its disposable Luanti server.
 extends SceneTree
 
-const Shell := preload("res://local_play.gd")
+const Shell := preload("res://game/local_play.gd")
 var failures := 0
 
 func check(condition: bool, message: String) -> void:

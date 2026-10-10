@@ -49,7 +49,7 @@ func _ready() -> void:
 	gamepad.local_input = true
 	gamepad.device_id = device_id
 	viewport.add_child(gamepad)
-	game = game_factory.call() if game_factory.is_valid() else preload("res://main.tscn").instantiate()
+	game = game_factory.call() if game_factory.is_valid() else preload("res://game/main.tscn").instantiate()
 	game.player_slot = self
 	game.connection_options = options.duplicate(true)
 	viewport.add_child(game)

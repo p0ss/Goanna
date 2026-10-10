@@ -406,7 +406,7 @@ def git_state(root):
 def tier_tables(root):
     """PROFILES out of the build's own graphics_profiles.gd, as
     tools/bench/check-bench-plans.py reads it."""
-    text = (root / "project" / "graphics_profiles.gd").read_text()
+    text = (root / "project" / "game" / "graphics_profiles.gd").read_text()
     start = text.index("const PROFILES")
     end = text.index("const ORDER", start) if "const ORDER" in text[start:] else len(text)
     out = {}

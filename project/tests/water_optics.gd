@@ -27,7 +27,7 @@
 # It renders nothing: how any of it looks is not tested here.
 extends SceneTree
 
-const Optics := preload("res://water_optics.gd")
+const Optics := preload("res://game/effects/water_optics.gd")
 const WATER := "res://shaders/water.gdshader"
 
 var failures := 0
@@ -98,7 +98,7 @@ func _test_shader() -> void:
 	var swamp_hue: Color = Optics.murk_hue(Optics.REGIONS["swamp"])
 	check(swamp_hue.g > swamp_hue.r and swamp_hue.g > swamp_hue.b and swamp_hue.g < 0.3,
 			"a swamp's murk is not a dark green: %s" % swamp_hue)
-	var main_src := FileAccess.get_file_as_string("res://main.gd")
+	var main_src := FileAccess.get_file_as_string("res://game/main.gd")
 	check(main_src.contains("WaterOptics.murk_hue(o)") and main_src.contains("WATER_NOON_LIGHT"),
 			"main.gd does not light the murk's hue")
 	check(src.contains("vec3 rdir = reflect(normalize(VERTEX), NORMAL);"),
@@ -263,7 +263,7 @@ func _test_sea() -> void:
 
 
 func _test_dry_sky() -> void:
-	var main_script: GDScript = load("res://main.gd")
+	var main_script: GDScript = load("res://game/main.gd")
 	var colours := ["day_sky", "day_horizon", "dawn_sky", "dawn_horizon", "night_sky", "night_horizon"]
 	var make := func(base: Color, top: Color, clouds: bool) -> Dictionary:
 		var sky := {"type": "regular", "clouds": clouds}

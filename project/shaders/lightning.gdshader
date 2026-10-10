@@ -1,5 +1,5 @@
 // Goanna: a lightning bolt, as the server's strike spawner describes it.
-// project/ui/lightning.gd builds one quad per strike and drives `flash`;
+// project/game/effects/lightning.gd builds one quad per strike and drives `flash`;
 // docs/systems/weather.md has the whole picture.
 //
 // The quad stands upright and turns about its own vertical axis to face the

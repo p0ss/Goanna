@@ -396,7 +396,7 @@ this avoids becoming a six month branch that never lands.
    puts about a sixth extinction at that edge so the horizon fades to sky
    and the mid distance stays clear. Aerial perspective and sky affect rise
    with the distance, so a 512 node horizon reads as haze rather than a hard
-   edge. `_apply_sky` in `project/main.gd`.
+   edge. `_apply_sky` in `project/game/main.gd`.
 5. **The store**, gated on the server allowing it, on by default only for
    the local server Goanna launches itself. Full blocks as received, the
    derived chain alongside, a reader for the `far_rendering` grant, and the

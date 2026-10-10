@@ -1,9 +1,10 @@
 # Water optics
 
 One description of the water round the eye, for both sides of its surface.
-`project/water_optics.gd` holds it; the water shader and the underwater fog
-both read it. Tested headless only (`project/tests/water_optics.gd`); how it
-looks has not been observed at the time of writing.
+`project/game/effects/water_optics.gd` holds it; the water shader and the
+underwater fog both read it. Tested headless only
+(`project/tests/water_optics.gd`); how it looks has not been observed at the
+time of writing.
 
 ## Why
 

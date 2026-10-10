@@ -16,7 +16,7 @@ from the server (empty sender) and queued under the server-options mutex.
 Relayed player messages never supply geometry. The session thread never
 touches Godot objects.
 
-`project/overseer.gd` sends an explicit ready message after joining. It
+`project/game/overseer.gd` sends an explicit ready message after joining. It
 opens the camera from the server's hello, requests bounded rectangles,
 reassembles bounded chunks and submits planning requests. Server removal
 of the HUD grant, bye, Escape and connection timeout all close the view.
@@ -135,7 +135,7 @@ into unknown rock.
 
 ## Planning interface
 
-`project/overseer_ui.gd` supplies the labelled tool families, contextual
+`project/game/overseer_ui.gd` supplies the labelled tool families, contextual
 panel, navigation and Plans view. The renderer remains in `overseer.gd`.
 Two corners now create a draft; Submit plan explicitly sends it. Existing
 live tests were updated to exercise that extra step. Drafts stay anchored

@@ -44,7 +44,7 @@ func run() -> void:
 		camera.environment = env
 		var client := TestClient.new()
 		world.add_child(client)
-		var transmission := preload("res://ice_transmission.gd").new()
+		var transmission := preload("res://game/effects/ice_transmission.gd").new()
 		world.add_child(transmission)
 		transmission.initialise(camera, env, client)
 		if not ready_probe:

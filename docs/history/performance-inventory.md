@@ -371,13 +371,13 @@ stale results can be recognised. This one desktop cannot validate a
 general recommendation model; integrated and lower-power machines remain
 essential follow-up tests.
 
-[profiles]: ../../project/graphics_profiles.gd
+[profiles]: ../../project/game/graphics_profiles.gd
 [local-report]: ../perf/local-multiplayer-2026-09-27/report.md
 [grass-report]: ../perf/procedural-grass-wind-2026-09-25.md
-[main]: ../../project/main.gd
+[main]: ../../project/game/main.gd
 [client]: ../../src/goanna_client.cpp
 [mesh-pool]: ../../src/goanna_mesh_pool.cpp
-[local-play]: ../../project/local_play.gd
+[local-play]: ../../project/game/local_play.gd
 [entities]: ../../src/goanna_entities.cpp
 [sky]: ../../project/shaders/sky.gdshader
 [shafts]: ../../project/shaders/light_shafts.gdshader
@@ -385,13 +385,13 @@ essential follow-up tests.
 [nodes]: ../../project/shaders/nodes_array.gdshader
 [water]: ../../project/shaders/water.gdshader
 [ice]: ../../project/shaders/ice.gdshader
-[ice-capture]: ../../project/ice_transmission.gd
+[ice-capture]: ../../project/game/effects/ice_transmission.gd
 [grass]: ../systems/procedural-grass.md
-[weather]: ../../project/ui/weather.gd
-[particles]: ../../project/ui/particles.gd
-[wake]: ../../project/ui/wake.gd
+[weather]: ../../project/game/effects/weather.gd
+[particles]: ../../project/game/effects/particles.gd
+[wake]: ../../project/game/effects/wake.gd
 [ui]: ../../project/ui/game_ui.gd
-[audio]: ../../project/ui/audio.gd
+[audio]: ../../project/game/audio.gd
 [agent-rules]: ../agents/agent-interfaces.md#rules-for-test-clients
 
 ## Tier controls implemented after this inventory

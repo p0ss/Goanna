@@ -23,7 +23,7 @@
 # gradual change, not a switch.
 extends Node
 
-const PlayerContext := preload("res://player_context.gd")
+const PlayerContext := preload("res://game/player_context.gd")
 
 # Each region's optics.
 #   absorption  Beer-Lambert absorption per node looked through from above,

@@ -242,7 +242,7 @@ func _open() -> void:
 	last_corner = null
 	pending = {}
 	cursor = {}
-	ui = preload("res://overseer_ui.gd").new()
+	ui = preload("res://game/overseer_ui.gd").new()
 	ui.build(self)
 
 func _clear_children(parent: Node) -> void:

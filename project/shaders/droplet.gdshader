@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 //
-// One droplet of a splash (project/ui/splashes.gd): a short streak along the
+// One droplet of a splash (project/game/effects/splashes.gd): a short streak along the
 // way it is flying, turned about that line to face the eye. The particles
 // are aligned with their velocity (align_y), so the particle's own y axis
 // is the line. Round billboards read as white bubbles coming out of the

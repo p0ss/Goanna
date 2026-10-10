@@ -24,7 +24,7 @@
 # all for quick calibration runs.
 extends Node3D
 
-const SkyDirector := preload("res://sky_director.gd")
+const SkyDirector := preload("res://game/effects/sky_director.gd")
 
 const ELEVS := [-0.30, -0.20, -0.12, -0.06, 0.0, 0.06, 0.12, 0.20]
 
@@ -116,7 +116,7 @@ func _ready() -> void:
 	atmosphere_mat.shader = load("res://shaders/atmosphere_volume.gdshader")
 	atmosphere_mat.set_shader_parameter("mist_level", 18.0)
 	atmosphere_mat.set_shader_parameter("cloud_layers",
-			preload("res://cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
+			preload("res://game/effects/cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
 	atmosphere_mat.set_shader_parameter("cloud_density", 0.026)
 	atmosphere_mat.set_shader_parameter("quality", 1.0)
 	vol.material = atmosphere_mat
@@ -251,7 +251,7 @@ func _apply(elev: float, use_ridge: bool) -> void:
 	sky_mat.set_shader_parameter("star_density", 0.35)
 	sky_mat.set_shader_parameter("cloud_coverage", 0.5)
 	sky_mat.set_shader_parameter("cloud_layers",
-			preload("res://cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
+			preload("res://game/effects/cloud_layers.gd").build(CLOUD_H, 16.0, 0.5, 0.0, 0.0, 2))
 	sky_mat.set_shader_parameter("cloud_beam",
 			Vector3(beam_cloud.r, beam_cloud.g, beam_cloud.b))
 	sky_mat.set_shader_parameter("air_beam",

@@ -35,7 +35,7 @@ streaming, weather transitions or small split-screen readability.
 
 ## Current implementation
 
-[graphics_profiles.gd](../../project/graphics_profiles.gd) is the source of
+[graphics_profiles.gd](../../project/game/graphics_profiles.gd) is the source of
 truth. Every preset names the same controlled keys, including all 20
 feature gates and the texture resolution. Applying Ultra after Lowest restores its effects; applying
 Lowest after an experiment restores its intended features. Quality edits

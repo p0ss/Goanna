@@ -26,7 +26,7 @@ func _ready() -> void:
 		client.disconnect_from_server();get_tree().quit(1);return
 	client.send_chat("/overseer_fixture")
 	await get_tree().create_timer(1).timeout
-	view = preload("res://overseer.gd").new();view.main=main;view.client=client;main.add_child(view)
+	view = preload("res://game/overseer.gd").new();view.main=main;view.client=client;main.add_child(view)
 	client.send_chat("/overseer")
 	if not await wait_for(func() -> bool: return view.session_ready and not view.snapshot.is_empty()):
 		client.disconnect_from_server();get_tree().quit(1);return

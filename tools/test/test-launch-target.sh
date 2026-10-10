@@ -18,7 +18,8 @@
 # targets; docs/develop/launch-target.md's GOANNA_CFG=<path> portable fallback is
 # not implemented. GOANNA_LOCAL_TEST="game:world" is menu.gd's own
 # development guard for driving the "start a local game" screen without a
-# human at the keyboard; see the comment above SKIP_VARS in project/menu.gd.
+# human at the keyboard; see the comment above SKIP_VARS in
+# project/menu/menu.gd.
 #
 # The client runs in headless gamescope through tools/goanna-headless, on the
 # GPU, so no window reaches the desktop. The shots are read back from

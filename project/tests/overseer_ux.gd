@@ -2,7 +2,7 @@
 # Draft lifecycle and accessible input contracts without a renderer.
 extends SceneTree
 const Unit := preload("res://tests/overseer.gd")
-const Overseer := preload("res://overseer.gd")
+const Overseer := preload("res://game/overseer.gd")
 var failures := 0
 var checks := 0
 func check(ok: bool, text: String) -> void:

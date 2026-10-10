@@ -760,7 +760,7 @@ func _capture_chat() -> void:
 	if not lines.is_empty():
 		_last_chat = lines[lines.size() - 1]
 
-# Every sound the client plays reaches ui/audio.gd's played signal, before
+# Every sound the client plays reaches game/audio.gd's played signal, before
 # the player's own volume and mute, as it would reach a person's ears. Each
 # becomes a sound event: what it is, how loud it was played, whether it loops,
 # and for one in the world the look that would face it and its distance in

@@ -13,7 +13,7 @@
     "the only thing that moves between variants. Load and streaming are",
     "profiles.json's job and are not repeated here.",
     "",
-    "The variants are project/graphics_profiles.gd key for key, as there.",
+    "The variants are project/game/graphics_profiles.gd key for key, as there.",
     "view_range, lod_distance and far_distance are carried even though",
     "this scene cannot show them, because a profile is measured as a whole",
     "or it is not the profile."

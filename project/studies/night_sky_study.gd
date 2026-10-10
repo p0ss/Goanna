@@ -121,7 +121,7 @@ func capture(directory: String) -> Dictionary:
 	material.set_shader_parameter("clouds_enabled", true)
 	material.set_shader_parameter("cloud_style", 0)
 	material.set_shader_parameter("cloud_coverage", 0.65)
-	material.set_shader_parameter("cloud_layers", preload("res://cloud_layers.gd").build(
+	material.set_shader_parameter("cloud_layers", preload("res://game/effects/cloud_layers.gd").build(
 			120.0, 16.0, 0.65, 0.0, 0.0, 0))
 	material.set_shader_parameter("cloud_color", Color(0.09, 0.11, 0.16))
 	material.set_shader_parameter("cloud_ambient_color", Vector3(0.015, 0.02, 0.03))

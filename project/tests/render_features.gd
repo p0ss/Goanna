@@ -3,9 +3,9 @@
 # Exercise real player scenes, settings and environment state without a GPU.
 extends SceneTree
 
-const Shell := preload("res://local_play.gd")
-const Main := preload("res://main.tscn")
-const Features := preload("res://render_features.gd")
+const Shell := preload("res://game/local_play.gd")
+const Main := preload("res://game/main.tscn")
+const Features := preload("res://game/render_features.gd")
 var failures := 0
 
 func check(condition: bool, message: String) -> void:

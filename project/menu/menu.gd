@@ -15,7 +15,7 @@ const Narrator := preload("res://ui/narrator.gd")
 # Read aloud (ui/narrator.gd): announces each screen and reads the control
 # the keyboard or pointer is on, when the player has it on.
 var narrator: Node
-const LocalLaunch := preload("res://local_launch.gd")
+const LocalLaunch := preload("res://game/local_launch.gd")
 var local_roster: Array = []
 var local_layout := "grid"
 var local_graphics_profile := "low"
@@ -1069,7 +1069,7 @@ func _setup_failed(reason: String) -> void:
 const GameUI := preload("res://ui/game_ui.gd")
 
 var menu_groups_open := {}   # which Graphics groups are open, kept across reopens
-const GraphicsProfiles := preload("res://graphics_profiles.gd")
+const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 
 func _show_settings() -> void:
 	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.", true)
@@ -2051,7 +2051,7 @@ func _process(_delta: float) -> void:
 			OS.set_environment("GOANNA_VIEW_RANGE", "18")
 			OS.set_environment("GOANNA_LOD", "32")
 			OS.set_environment("GOANNA_FAR_DISTANCE", "384")
-			var world_scene := preload("res://main.tscn").instantiate()
+			var world_scene := preload("res://game/main.tscn").instantiate()
 			add_child(world_scene)
 			return
 		status_label.text = "Joining ..."
@@ -2403,11 +2403,11 @@ func _go_to_game() -> void:
 		LocalLaunch.graphics_profile = local_graphics_profile
 		LocalLaunch.server = server
 		server = null
-		get_tree().change_scene_to_file.call_deferred("res://local_play.tscn")
+		get_tree().change_scene_to_file.call_deferred("res://game/local_play.tscn")
 	else:
 		LocalLaunch.server = server
 		server = null
-		get_tree().change_scene_to_file.call_deferred("res://main.tscn")
+		get_tree().change_scene_to_file.call_deferred("res://game/main.tscn")
 
 # Local player slots are configured once, then used by Start Game or Join Game.
 # Each extra player authenticates normally, including on remote servers.

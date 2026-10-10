@@ -69,7 +69,7 @@ GPU_LOCK_FD = None
 # Settings a running client cannot take. Everything else is applied over the
 # channel, which is the better way round: the world has already streamed
 # identically, so the only difference between the two samples is the setting.
-# project/main.gd makes the same argument for GOANNA_AB.
+# project/game/main.gd makes the same argument for GOANNA_AB.
 RELAUNCH_KEYS = {"texture_pack"}
 
 
@@ -894,7 +894,7 @@ def run_live_sweep(plan, variants, out_root, port, keep_profiles, build_scene=Fa
     settle to a slightly different scene, so a small difference between them
     is partly the streaming; switched live, the geometry, the block set and
     the light pool are identical and the setting is the only thing that
-    moved. It is the argument project/main.gd already makes for GOANNA_AB.
+    moved. It is the argument project/game/main.gd already makes for GOANNA_AB.
     """
     base = dict(plan.get("base") or {})
     out_root.mkdir(parents=True, exist_ok=True)

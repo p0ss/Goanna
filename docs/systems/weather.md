@@ -104,16 +104,18 @@ textures (`weather_pack_snow_snowflake1.png` and `2.png`), but its
 under a new id, so one is running at a time: 500 a second for rain, 900 in a
 thunderstorm, 100 for snow. The live check saw one rain spawner of 500.
 
-`project/ui/particles.gd` already recognised these by texture name (the
-`is_weather` test: the name contains `rain` or `snow`) for `precipitation()`,
-which drives wet ground (`goanna_wetness`) and the storm sky in `main.gd`.
+`project/game/effects/particles.gd` already recognised these by texture name
+(the `is_weather` test: the name contains `rain` or `snow`) for
+`precipitation()`, which drives wet ground (`goanna_wetness`) and the storm sky
+in `main.gd`.
 
 With shader weather on, a weather spawner that follows the player (attached,
-or given in player relative coordinates) is handed to `project/ui/weather.gd`
-and no `GPUParticles3D` is built for it. Everything else keeps the particle
-path, including a spawner with a rain texture fixed somewhere in the world,
-since the shader only draws round the camera. `precipitation()` reports the
-same either way, so wetness and the sky do not change with the setting.
+or given in player relative coordinates) is handed to
+`project/game/effects/weather.gd` and no `GPUParticles3D` is built for it.
+Everything else keeps the particle path, including a spawner with a rain texture
+fixed somewhere in the world, since the shader only draws round the camera.
+`precipitation()` reports the same either way, so wetness and the sky do not
+change with the setting.
 
 ### Other games
 
@@ -204,8 +206,8 @@ name. Nothing else is needed, and nothing changes for any other client.
 ## What it draws
 
 **Falling rain and snow** (`project/shaders/precipitation.gdshader`, placed
-by `project/ui/weather.gd`). Each drop is one instance of a MultiMesh of
-unit quads, one draw call per kind of weather. The shader places every drop
+by `project/game/effects/weather.gd`). Each drop is one instance of a MultiMesh
+of unit quads, one draw call per kind of weather. The shader places every drop
 itself from its instance number (`skip_vertex_transform`), so the instance
 transforms are identity and nothing is uploaded per frame.
 
@@ -497,9 +499,9 @@ a time and both show, eased over 2.5 seconds each.
 
 ## Occlusion: the rain cover map
 
-`project/ui/rain_cover.gd` keeps a 64 by 64 map, one texel per node column,
-centred on the player: the top face of the highest node in the column that
-would stop rain. The precipitation shader draws a drop only above it; the
+`project/game/effects/rain_cover.gd` keeps a 64 by 64 map, one texel per node
+column, centred on the player: the top face of the highest node in the column
+that would stop rain. The precipitation shader draws a drop only above it; the
 splash and ripple terms apply only at or above it (with a margin of 0.55 for
 a liquid surface, which sits a little below its node's top). So there is no
 rain indoors, under a roof or under a canopy, while rain still falls past
@@ -574,15 +576,15 @@ face); a white sky colour layer through `mcl_weather.skycolor` with the
 day night ratio overridden to 1, removed about a tenth of a second later;
 and a thunder sound.
 
-**The bolt** (`project/ui/lightning.gd`, `project/shaders/lightning.gdshader`).
-With shader weather on, particles.gd recognises the spawner by its texture
-name, as it does rain (the name contains `lightning` and the amount is 4 or
-less), and hands it to lightning.gd instead of building an emitter. That
-draws the server's own texture on a quad of the spawner's size, turned
-about its upright axis to face the camera as a vertical particle is,
-additive, unshaded and six times white so it blooms; with no texture, a
-jagged line with one branch is drawn instead, meeting the ground at the
-same point. It flickers through a first stroke and up to two weaker return
+**The bolt** (`project/game/effects/lightning.gd`,
+`project/shaders/lightning.gdshader`). With shader weather on, particles.gd
+recognises the spawner by its texture name, as it does rain (the name contains
+`lightning` and the amount is 4 or less), and hands it to lightning.gd instead
+of building an emitter. That draws the server's own texture on a quad of the
+spawner's size, turned about its upright axis to face the camera as a vertical
+particle is, additive, unshaded and six times white so it blooms; with no
+texture, a jagged line with one branch is drawn instead, meeting the ground at
+the same point. It flickers through a first stroke and up to two weaker return
 strokes over the spawner's time, then dies away over a quarter second.
 
 **The light.** An OmniLight3D a few nodes over the strike point, range 48,
@@ -620,8 +622,8 @@ client already draws, the water is looked up in the map it already holds,
 and nothing is asked of the server. Tested headless only; nothing of it has
 been observed.
 
-**Sources** (`project/ui/wake.gd`, a child of the particles node). Ten times
-a second: the local player (its walking position from `step_player`, or
+**Sources** (`project/game/effects/wake.gd`, a child of the particles node). Ten
+times a second: the local player (its walking position from `step_player`, or
 1.6 nodes under the eye with the free camera) and the entities in
 `GoannaClient::entity_list`, the nearest 15 of them within 32 nodes of the
 eye. An entity within 0.4 nodes of the local player is taken to be its own
@@ -744,8 +746,8 @@ seconds after dropping in. Jumping in and out for five seconds peaks at 0.08
 round the body. It also checks a swimmer's crest is ahead of it and its trough
 behind, centred on it.
 
-**Which bodies** (`project/ui/wake.gd`, `claim` and `ripple_frame`). The
-patch lies on one water surface: the local player's, when it is in the
+**Which bodies** (`project/game/effects/wake.gd`, `claim` and `ripple_frame`).
+The patch lies on one water surface: the local player's, when it is in the
 water, or else that of the nearest wet body inside the patch. Every body on
 that surface (within 0.35 of it) and at least three nodes inside the patch
 is drawn by the patch and lays no rings; every other body, a duck on a pond
@@ -812,8 +814,8 @@ crest.
 ## Splashes
 
 The droplets a body throws out of the water, beside the waves the ripple
-patch draws (`project/ui/splashes.gd`, driven by `wake.gd`). Only the bodies
-the patch draws splash. Presentation only; seen headless on software
+patch draws (`project/game/effects/splashes.gd`, driven by `wake.gd`). Only the
+bodies the patch draws splash. Presentation only; seen headless on software
 rendering (a fall into the water, a blow at it, crowns at fixed ages), not
 yet on a GPU.
 
@@ -1128,11 +1130,11 @@ sleeps within 20 seconds; moving the patch keeps the waves where they were;
 a fast body turning hard stays finite; and a swimmer as wake.gd hands it
 over, a player or an animal, treading water or moving at 1 to 3 nodes a
 second, leaves a slope the eye can pick out 1.5 to 6 nodes away. It prints
-the numbers the constants were tuned on, and the cost of a step. `project/tests/ripples.gd`
-(headless) drives wake.gd over a stand in lake with an island and a higher
-pond: the water shader reads the globals and they are registered; a
-swimmer and a duck in the lake are the patch's and lay no rings, while a
-frog on the pond keeps its rings; the patch pushes a crest ahead of the
+the numbers the constants were tuned on, and the cost of a step.
+`project/tests/ripples.gd` (headless) drives wake.gd over a stand in lake with
+an island and a higher pond: the water shader reads the globals and they are
+registered; a swimmer and a duck in the lake are the patch's and lay no rings,
+while a frog on the pond keeps its rings; the patch pushes a crest ahead of the
 swimmer and is published round it on the lake's surface; the mask marks
 the lake open and the island and the pond not, and is read in; coming into
 the water splashes the patch and lays no ring; and after the swimmer climbs

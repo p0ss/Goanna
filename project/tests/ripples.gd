@@ -33,7 +33,7 @@
 # of it looks is not tested here.
 extends SceneTree
 
-const Wake := preload("res://ui/wake.gd")
+const Wake := preload("res://game/effects/wake.gd")
 const WATER := "res://shaders/water.gdshader"
 const DT := 1.0 / 60.0
 
@@ -349,7 +349,7 @@ func _test_strike() -> void:
 
 
 func _test_splash_emitters() -> void:
-	var sp: Node3D = load("res://ui/splashes.gd").new()
+	var sp: Node3D = load("res://game/effects/splashes.gd").new()
 	root.add_child(sp)
 	var small: int = sp.burst("entry", Vector3.ZERO, 0.1)
 	var big: int = sp.burst("entry", Vector3.ZERO, 1.0)

@@ -76,7 +76,7 @@ uniform float refraction = 0.12;
 const float REFRACT_DEPTH = 1.5;
 // Beer-Lambert absorption per node, and the body's own tint on the tile's
 // colour: the optics of the water round the eye, which the underwater fog is
-// made from too (project/water_optics.gd, docs/systems/water-optics.md). Red dies
+// made from too (project/game/effects/water_optics.gd, docs/systems/water-optics.md). Red dies
 // first, like real water. A beach's or a reef's is (0.45, 0.11, 0.05),
 // which keeps a bed visible ten or so nodes down through a teal shift; the
 // old (0.55, 0.24, 0.16) went opaque within a few nodes, so every lake read
@@ -126,7 +126,7 @@ global uniform vec3 goanna_sun_glow;
 #include "res://shaders/weather_common.gdshaderinc"
 // The rings round swimmers and animals moving through the water.
 #include "res://shaders/wake.gdshaderinc"
-// The ripple patch round the eye (project/ui/wake.gd, src/goanna_ripples.h):
+// The ripple patch round the eye (project/game/effects/wake.gd, src/goanna_ripples.h):
 // the surface's height, one float a cell, eight cells a node.
 global uniform sampler2D goanna_ripple_height : filter_linear, repeat_disable;
 // x, y the world xz of the patch's corner, z its side in nodes, w the

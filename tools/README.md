@@ -167,7 +167,7 @@ Current: the authoring, gates and bundle tools.
   takes the lock and makes the GPU checks without a client. Also a library:
   `bench-local-play.py` and the `docs/perf` run scripts import it.
 - `check-bench-plans.py`: check the plans' tier values against
-  `project/graphics_profiles.gd`. Current; run before believing a profile
+  `project/game/graphics_profiles.gd`. Current; run before believing a profile
   report.
 - `bench-local-play.py`, `local-feature-fixture.lua`,
   `local-feature-scenes.json`: measure local players in one rendered process

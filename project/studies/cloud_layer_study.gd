@@ -2,7 +2,7 @@
 # Offline production-shader study, invoked inside a headless control client.
 extends Node
 
-const Layers := preload("res://cloud_layers.gd")
+const Layers := preload("res://game/effects/cloud_layers.gd")
 var viewport: SubViewport
 var material: ShaderMaterial
 var camera: Camera3D

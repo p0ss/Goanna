@@ -15,7 +15,7 @@
 # It renders nothing: how either looks is not tested here.
 extends SceneTree
 
-const GraphicsProfiles := preload("res://graphics_profiles.gd")
+const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 
 const NODES := "res://shaders/nodes_array.gdshader"
 const SCISSOR := "res://shaders/nodes_array_scissor.gdshader"

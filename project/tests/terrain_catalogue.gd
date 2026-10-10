@@ -51,7 +51,7 @@ func _init() -> void:
 			_fail("%s has no preview at %s" % [id, art])
 			return
 	# The picker is built from this list, so it must also parse.
-	if load("res://menu.gd") == null:
+	if load("res://menu/menu.gd") == null:
 		_fail("menu.gd did not load")
 		return
 	# Optional: point GOANNA_TEST_TERRAIN_ARCHIVE at a downloaded world to check

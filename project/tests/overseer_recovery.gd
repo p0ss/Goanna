@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Live session recovery and worker execution in the opt-in scratch fixture.
 extends SceneTree
-const Overseer := preload("res://overseer.gd")
+const Overseer := preload("res://game/overseer.gd")
 const Unit := preload("res://tests/overseer.gd")
 var client: GoannaClient
 var main: Node3D

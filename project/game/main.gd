@@ -1,7 +1,7 @@
 extends Node3D
 
-const PlayerContext := preload("res://player_context.gd")
-const RenderFeatures := preload("res://render_features.gd")
+const PlayerContext := preload("res://game/player_context.gd")
+const RenderFeatures := preload("res://game/render_features.gd")
 var render_features: Dictionary = RenderFeatures.DEFAULTS.duplicate()
 var cloud_body_texture: NoiseTexture3D
 # Defer expensive allocation until saved settings and the local preset agree.
@@ -10,7 +10,7 @@ var ice_capture: Node
 # water_optics.gd: what the water round the eye is like, for the water
 # shader and the underwater murk alike.
 var water_optics: Node
-const WaterOptics := preload("res://water_optics.gd")
+const WaterOptics := preload("res://game/effects/water_optics.gd")
 # The zenith colour, linear, as _apply_sky last set it: the sky light that
 # falls on the water, for the murk's brightness.
 var _sky_top_lin := Color(0.3, 0.45, 0.7)
@@ -26,7 +26,7 @@ var frame_work_worst_usec := {}
 const AssetUpdater := preload("res://update/asset_updater.gd")
 const AssetStore := preload("res://update/asset_store.gd")
 const LocalServerScript := preload("res://net/local_server.gd")
-const LookGrade := preload("res://look_grade.gd")
+const LookGrade := preload("res://game/effects/look_grade.gd")
 var look_grade := LookGrade.new()
 
 var grass_aa_active := false
@@ -93,7 +93,7 @@ var cloud_speed := Vector2(-2.0, 0.0)
 var grass_wind := Vector2(0.35, 0.0)
 var cloud_height := 120.0
 var cloud_thickness := 16.0
-const CloudLayers := preload("res://cloud_layers.gd")
+const CloudLayers := preload("res://game/effects/cloud_layers.gd")
 var cloud_layers := CloudLayers.build(120.0, 16.0, 0.4, 0.0, 0.0, 2)
 # Optical depth around the eye, sampled from the same local fog-volume field.
 # It gates post effects that otherwise draw on top of a cloud they cannot see.
@@ -318,9 +318,9 @@ var bench: Node = null
 # _apply_hardware_defaults and read by the settings panel so it can say when
 # a stored config is below what the hardware could do.
 var hardware_profile := "high"
-const GraphicsProfiles := preload("res://graphics_profiles.gd")
-const SkyDirector := preload("res://sky_director.gd")
-const Lightning := preload("res://ui/lightning.gd")
+const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
+const SkyDirector := preload("res://game/effects/sky_director.gd")
+const Lightning := preload("res://game/effects/lightning.gd")
 
 # Named live-server fixtures bind the whole visual-test state together. These
 # coordinates match goanna_visual_test_mod. Add a new site there and here as
@@ -692,7 +692,7 @@ func _ready() -> void:
 	e.fog_aerial_perspective = 0.12
 	env.environment = e
 	add_child(env)
-	ice_capture = preload("res://ice_transmission.gd").new()
+	ice_capture = preload("res://game/effects/ice_transmission.gd").new()
 	add_child(ice_capture)
 	ice_capture.initialise(cam, e, client)
 	water_optics = WaterOptics.new()
@@ -1424,7 +1424,7 @@ func take_work_worst() -> Dictionary:
 
 func _process(delta: float) -> void:
 	if overseer == null and client != null and cam != null:
-		overseer = preload("res://overseer.gd").new()
+		overseer = preload("res://game/overseer.gd").new()
 		overseer.main = self
 		overseer.client = client
 		add_child(overseer)
@@ -2730,7 +2730,7 @@ func _lamp_budget() -> int:
 
 # A dig or punch pressed at the water: wake.gd finds open water along the
 # view ray within reach, short of whatever node the blow hit, and splashes
-# it (ui/splashes.gd). Not a blow at a mob, which lands on the mob.
+# it (game/effects/splashes.gd). Not a blow at a mob, which lands on the mob.
 func _strike_water() -> void:
 	var pn := PlayerContext.find(self, "goanna_particles")
 	if pn == null or pn.get("wake") == null or not pn.wake.has_method("strike"):

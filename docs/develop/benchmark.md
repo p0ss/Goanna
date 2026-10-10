@@ -89,7 +89,7 @@ cold store and an identical start, and it runs `move_early` rather than
 which collapses to nothing when the camera flies high enough to clear the
 terrain.
 
-**The variants in all three are `project/graphics_profiles.gd` key for key,
+**The variants in all three are `project/game/graphics_profiles.gd` key for key,
 and nothing enforces it.** A tier value therefore lives in three files, and
 changing it in one is a silent failure: on 2026-08-30 three settings were
 added to the profiles and not to the plans, and the sweep ran for

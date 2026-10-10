@@ -15,11 +15,11 @@
 # texture, and handed to lightning.gd. docs/systems/weather.md.
 extends Node3D
 
-const PlayerContext := preload("res://player_context.gd")
+const PlayerContext := preload("res://game/player_context.gd")
 
-const Weather := preload("res://ui/weather.gd")
-const Lightning := preload("res://ui/lightning.gd")
-const Wake := preload("res://ui/wake.gd")
+const Weather := preload("res://game/effects/weather.gd")
+const Lightning := preload("res://game/effects/lightning.gd")
+const Wake := preload("res://game/effects/wake.gd")
 
 const MAX_SPAWNERS := 24
 

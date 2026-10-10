@@ -32,7 +32,7 @@ import goanna_headless as headless  # noqa: E402
 GPU_LOCK_FD = None
 spec = importlib.util.spec_from_file_location("benchmark", REPO / "tools/bench/goanna-bench.py")
 FEATURE_KEYS = re.findall(r'"(render_[a-z_]+)": true',
-                         (REPO / "project/render_features.gd").read_text())
+                         (REPO / "project/game/render_features.gd").read_text())
 SCENES = json.loads((REPO / "tools/bench/local-feature-scenes.json").read_text())["scenes"]
 benchmark = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(benchmark)
@@ -288,7 +288,7 @@ if main.player_slot != null:
     games = main.player_slot.shell.slots.map(func(s): return s.game)
 for game in games:
     game.ui._apply_setting("procedural_grass", 0.0)
-    var profile = load("res://graphics_profiles.gd").PROFILES[profile_name]
+    var profile = load("res://game/graphics_profiles.gd").PROFILES[profile_name]
     for key in profile:
         game.ui._apply_setting(key, profile[key])
 var recorder = load("res://bench/local_bench.gd").new()

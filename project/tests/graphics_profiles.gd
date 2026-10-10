@@ -3,9 +3,9 @@
 # Actual settings transitions in two views, without connecting or rendering.
 extends SceneTree
 
-const Profiles := preload("res://graphics_profiles.gd")
-const Features := preload("res://render_features.gd")
-const Shell := preload("res://local_play.gd")
+const Profiles := preload("res://game/graphics_profiles.gd")
+const Features := preload("res://game/render_features.gd")
+const Shell := preload("res://game/local_play.gd")
 var failures := 0
 
 func check(ok: bool, message: String) -> void:
@@ -41,7 +41,7 @@ func _run() -> void:
 	shell.capture_mouse = false
 	shell.graphics_profile = "lowest"
 	shell.game_factory = func() -> Node:
-		var game := preload("res://main.tscn").instantiate()
+		var game := preload("res://game/main.tscn").instantiate()
 		game.connect_automatically = false
 		return game
 	root.add_child(shell)

@@ -3,9 +3,9 @@
 # CPU-only checks for slot ownership, routing, layout and shader isolation.
 extends SceneTree
 
-const Shell := preload("res://local_play.gd")
-const Launch := preload("res://local_launch.gd")
-const Context := preload("res://player_context.gd")
+const Shell := preload("res://game/local_play.gd")
+const Launch := preload("res://game/local_launch.gd")
+const Context := preload("res://game/player_context.gd")
 var failures := 0
 
 class Game extends Node3D:

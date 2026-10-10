@@ -21,7 +21,7 @@
 # It renders nothing: how any of it looks is not tested here.
 extends SceneTree
 
-const Wake := preload("res://ui/wake.gd")
+const Wake := preload("res://game/effects/wake.gd")
 const INCLUDE := "res://shaders/wake.gdshaderinc"
 const WATER := "res://shaders/water.gdshader"
 

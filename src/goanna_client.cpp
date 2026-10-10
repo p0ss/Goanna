@@ -2591,7 +2591,7 @@ float GoannaClient::ground_height(const Vector3 &center) {
 // with nothing in the way answers y_bottom - 0.5, which reads as open sky
 // all the way down to the scan's floor. Unloaded blocks are skipped rather
 // than treated as solid, so an edge of the loaded world never shelters
-// anything. project/ui/rain_cover.gd calls this a band at a time, so one
+// anything. project/game/effects/rain_cover.gd calls this a band at a time, so one
 // call holds the map lock for a few hundred columns and no more.
 //
 // What stops rain is what a player would see stop it: anything walkable

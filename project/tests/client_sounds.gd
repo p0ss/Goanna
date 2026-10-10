@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The sounds the client makes for the local player (ui/audio.gd), against
+# The sounds the client makes for the local player (game/audio.gd), against
 # upstream's SoundMaker and Camera::step, and what the player agent hears of
 # every sound played. Offline, with a fake client; the session's own sounds
 # (place, use, damage, other objects' footsteps) need a server and are not
@@ -10,7 +10,7 @@
 #   godot --headless --path project -s tests/client_sounds.gd
 extends SceneTree
 
-const Audio := preload("res://ui/audio.gd")
+const Audio := preload("res://game/audio.gd")
 const Channel := preload("res://agents/player_agent_channel.gd")
 
 var failures := 0

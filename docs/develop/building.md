@@ -222,7 +222,7 @@ Flatpak, is in [hosting a world](../host/index.md#running-a-server-yourself).
 
 ### Point Goanna at it
 
-Run the project and a menu (`project/menu.gd`) asks for the server address,
+Run the project and a menu (`project/menu/menu.gd`) asks for the server address,
 port, player name and password. It remembers the address, port and name in
 Godot's user data directory (`user://goanna.cfg`, which on Linux is
 `~/.local/share/godot/app_userdata/Goanna/goanna.cfg`) and never the
@@ -232,7 +232,7 @@ The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or
 `GOANNA_NAME` and Goanna connects straight away; set `GOANNA_MENU=1` to get
 the menu anyway, prefilled from whatever else is set. The variables are read
-in `project/main.gd`:
+in `project/game/main.gd`:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -285,7 +285,7 @@ game's `fly` privilege and asks the server for nothing.
 
 ## Automated runs
 
-`project/main.gd` has a few environment variables used for smoke tests and
+`project/game/main.gd` has a few environment variables used for smoke tests and
 for producing the screenshots in `docs/`. They are development aids, not
 features.
 

@@ -115,7 +115,7 @@ func scene_evidence() -> Array:
 		var sun_dir: Vector3 = game.sky_mat.get_shader_parameter("sun_dir")
 		var sun_point: Vector3 = game.cam.global_position + sun_dir * 1000.0
 		entry["sun_in_view"] = not game.cam.is_position_behind(sun_point) and game.get_viewport().get_visible_rect().has_point(game.cam.unproject_position(sun_point))
-		var particles = preload("res://player_context.gd").find(game, "goanna_particles")
+		var particles = preload("res://game/player_context.gd").find(game, "goanna_particles")
 		if particles != null:
 			entry["precipitation"] = particles.precipitation()
 			entry["weather"] = particles.weather.debug_state()
@@ -125,7 +125,7 @@ func scene_evidence() -> Array:
 var feature_baselines: Array = []
 
 func set_feature_variant(disabled: Array) -> bool:
-	var defaults: Dictionary = preload("res://render_features.gd").DEFAULTS
+	var defaults: Dictionary = preload("res://game/render_features.gd").DEFAULTS
 	for key in disabled:
 		if not defaults.has(key):
 			return false
@@ -160,7 +160,7 @@ func configure_scene(config: Dictionary, settings: Dictionary) -> void:
 		if scene.has("wetness"):
 			game.set_meta("benchmark_wetness", scene.wetness)
 		if scene.get("rain", false):
-			var particles = preload("res://player_context.gd").find(game, "goanna_particles")
+			var particles = preload("res://game/player_context.gd").find(game, "goanna_particles")
 			particles.inject_test_spawner("rain")
 
 func prepare(spread := false) -> bool:

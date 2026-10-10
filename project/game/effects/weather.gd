@@ -14,9 +14,9 @@
 # client already holds. docs/systems/weather.md has the design and what is untested.
 extends Node3D
 
-const PlayerContext := preload("res://player_context.gd")
+const PlayerContext := preload("res://game/player_context.gd")
 
-const RainCover := preload("res://ui/rain_cover.gd")
+const RainCover := preload("res://game/effects/rain_cover.gd")
 const SHADER := preload("res://shaders/precipitation.gdshader")
 
 # Mineclonia's own rates, as the unit of intensity. Its rain.lua loops over

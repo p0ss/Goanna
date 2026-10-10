@@ -1,7 +1,7 @@
 // Goanna: wake ripples on water, round the player and the animals moving
 // through it. docs/systems/weather.md, "Wakes", has the whole picture.
 //
-// project/ui/wake.gd drops a point on the water behind each swimmer at
+// project/game/effects/wake.gd drops a point on the water behind each swimmer at
 // intervals set by its speed, and one every second or so under a body
 // standing still in water, and publishes the live ones here. Each point grows
 // one ring that spreads at a fixed speed and dies away over two seconds. A

@@ -22,8 +22,8 @@ Use the normal headless launcher when testing rendered clients.
 
 ## Ownership
 
-`project/local_launch.gd` transfers the roster and the locally launched
-server from the menu. `project/local_play.gd` owns that server, the window
+`project/game/local_launch.gd` transfers the roster and the locally launched
+server from the menu. `project/game/local_play.gd` owns that server, the window
 input routing, layout and the collection of `player_slot.gd` instances.
 Each slot owns:
 

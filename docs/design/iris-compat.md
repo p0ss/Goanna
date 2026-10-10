@@ -452,7 +452,7 @@ a pack that has one has taken over the surface the fog is applied to.
 The rule, then, and it applies to every pack rather than to ours alone:
 
 - The pack has `final`: Godot's tonemap goes linear. Already implemented in
-  `project/main.gd`.
+  `project/game/main.gd`.
 - The pack has a translated terrain program: Godot's `fog_density`,
   `fog_aerial_perspective` and `fog_sky_affect` writes are skipped, and the
   drawn distance `main.gd` already computes is handed to the pack as

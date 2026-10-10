@@ -2,7 +2,7 @@
 // Goanna: what the ground, water and falling rain shaders share about the
 // weather. docs/systems/weather.md has the whole picture.
 //
-// Set by project/ui/weather.gd, only while a weather spawner is running and
+// Set by project/game/effects/weather.gd, only while a weather spawner is running and
 // shader weather is on; with it off, or in fair weather, goanna_rain is 0 and
 // every branch below is skipped.
 
@@ -12,7 +12,7 @@
 // and ripples stop with the rain, puddled gloss does not.
 global uniform float goanna_rain;
 // Top of the highest rain stopping node per column, one texel per node,
-// around the player (project/ui/rain_cover.gd).
+// around the player (project/game/effects/rain_cover.gd).
 global uniform sampler2D goanna_rain_cover : filter_nearest, repeat_disable;
 // World xz of the map's outer corner, its size in nodes, and 1 once a map
 // has been published.

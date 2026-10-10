@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 extends SceneTree
 
-const Layers := preload("res://cloud_layers.gd")
+const Layers := preload("res://game/effects/cloud_layers.gd")
 var failures := 0
 
 
@@ -45,7 +45,7 @@ func _initialize() -> void:
 						overhead = overhead or budget[i].x > ground
 				check(active == clampi(count, 1, 3), "Layer budget is enforced and clamped")
 				check(overhead, "Every budget retains clouds above high terrain")
-	var game := preload("res://main.gd").new()
+	var game := preload("res://game/main.gd").new()
 	game.cloud_cov = 0.85
 	game.atmosphere_quality = 1.0
 	for style in 3:

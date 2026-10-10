@@ -2,7 +2,7 @@
   "label": "the shipped graphics profiles, steady state, the vista by day",
   "comment": [
     "2026-09-27: revised complete tier candidates, including Lowest. Older measurements do not apply to these settings; see docs/graphics-tiers.md.",
-    "The variants below are the profiles in project/graphics_profiles.gd,",
+    "The variants below are the profiles in project/game/graphics_profiles.gd,",
     "key for key. They are not a proposal: changing a number here without",
     "changing it there makes the report describe a client nobody runs.",
     "",

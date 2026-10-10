@@ -1,6 +1,6 @@
 // Goanna: rain and snow, drawn rather than simulated. docs/systems/weather.md.
 //
-// Every drop is one instance of a MultiMesh (built in project/ui/weather.gd),
+// Every drop is one instance of a MultiMesh (built in project/game/effects/weather.gd),
 // so a kind of weather is one draw call. A drop has a place in a box around
 // the eye, hashed from its instance number, and falls through it: its world
 // position is the box's corner plus (seed + velocity * time - corner) wrapped

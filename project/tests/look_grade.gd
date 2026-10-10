@@ -2,7 +2,7 @@
 # Copyright (C) 2026 the Goanna contributors
 extends SceneTree
 
-const Grade := preload("res://look_grade.gd")
+const Grade := preload("res://game/effects/look_grade.gd")
 
 func _initialize() -> void:
 	# Every established twilight hue must bypass the new correction, including

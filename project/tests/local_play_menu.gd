@@ -23,7 +23,7 @@ func buttons(node: Node, text: String) -> Array:
 func _run() -> void:
 	OS.set_environment("GOANNA_MENU", "1")
 	OS.set_environment("GOANNA_NO_SHOWCASE", "1")
-	var menu := preload("res://menu.tscn").instantiate()
+	var menu := preload("res://menu/menu.tscn").instantiate()
 	root.add_child(menu)
 	menu.local_roster = [{"name": "one", "device": -1},
 		{"name": "two", "device": -2, "password": "not-persisted"}]
