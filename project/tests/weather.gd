@@ -418,7 +418,15 @@ func _test_shaders() -> void:
 	var l := _shader_uniforms("res://shaders/lightning.gdshader")
 	for n in ["bolt_texture", "use_texture", "flash", "seed", "energy"]:
 		check(l.has(n), "lightning.gdshader has no uniform " + n)
-	for g in ["goanna_rain", "goanna_rain_cover", "goanna_rain_cover_area"]:
+	# The storm work's surfaces: snow on leaves, droplets on grass, and the
+	# particle weather kept from under roofs, one shader per blend.
+	_shader_uniforms("res://shaders/waving_leaves.gdshader")
+	_shader_uniforms("res://shaders/grass_volume.gdshader")
+	for blend in ["mix", "add", "sub"]:
+		var c := _shader_uniforms("res://shaders/particle_covered_%s.gdshader" % blend)
+		check(c.has("albedo_tex") and c.has("scissor"),
+				"particle_covered_%s.gdshader lacks what particles.gd sets" % blend)
+	for g in ["goanna_rain", "goanna_rain_cover", "goanna_rain_cover_area", "goanna_snow_cover"]:
 		check(g in RenderingServer.global_shader_parameter_get_list(),
 				"global " + g + " is not registered in project.godot")
 

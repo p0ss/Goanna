@@ -1077,7 +1077,10 @@ godot --headless --path project --script res://tests/weather.gd
 ```
 
 It checks that the precipitation, water and both node array shaders compile
-with the uniforms the scripts set, that the globals are registered, the
+with the uniforms the scripts set, as do the leaves, the grass volume and
+the three covered particle shaders (Godot's shader parser runs under
+`--headless`; no GPU compiles anything), that the globals are registered,
+`goanna_snow_cover` among them, the
 rain cover map against a stand in for `rain_cover_rows` (banding, whole map
 publishing, texel placement matching the shader's lookup, recentring,
 clearing), `GoannaClient.rain_cover_rows`'s and `top_surface_at`'s bindings
