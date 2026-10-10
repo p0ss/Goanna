@@ -156,12 +156,13 @@ public:
     GoannaShaderSource &shsrc() { return m_shsrc; }
     // How much world to ask the server to stream, in mapblocks (16 nodes
     // each), and the camera FOV we report. Vanilla derives both from the
-    // client's own settings; servers cap the range themselves. Plain fields,
-    // set by the main thread (at connect and from the view settings) and
-    // read without a lock by the session thread as it writes each position
-    // packet: a stale value costs one packet's worth of the old range.
-    int wantedRange = 12;
-    float cameraFov = 70.0f;
+    // client's own settings; servers cap the range themselves. Set by the
+    // main thread (at connect and from the view settings) and read by the
+    // session thread as it writes each position packet. Relaxed atomics: a
+    // stale value costs one packet's worth of the old range, and nothing
+    // else is ordered through them.
+    std::atomic<int> wantedRange{12};
+    std::atomic<float> cameraFov{70.0f};
     // Interaction options, set from the UI, read in stepInteract.
     bool safeDig = false;
     float repeatDigInterval = 0.0f;

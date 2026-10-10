@@ -1951,8 +1951,8 @@ void GoannaSession::writePlayerPosTo(NetworkPacket &pkt) {
     // about 105, so the honest number is 146 and the wire carried 84.
     // cameraFov is the frame's enclosing circular cone in degrees, set by
     // main.gd which is the only place that knows the viewport's shape.
-    u8 fov = (u8)std::clamp(cameraFov * (float)M_PI / 180.0f * 80.0f, 1.0f, 255.0f);
-    u8 wanted_range = (u8)std::clamp(wantedRange, 1, 255); // mapblocks
+    u8 fov = (u8)std::clamp(cameraFov.load(std::memory_order_relaxed) * (float)M_PI / 180.0f * 80.0f, 1.0f, 255.0f);
+    u8 wanted_range = (u8)std::clamp(wantedRange.load(std::memory_order_relaxed), 1, 255); // mapblocks
     u8 camera_inverted = 0;
     pkt << position << speed << ipitch << iyaw << keys << fov << wanted_range << camera_inverted
         << movement_speed << movement_dir;

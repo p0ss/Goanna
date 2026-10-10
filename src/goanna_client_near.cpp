@@ -638,7 +638,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         player_block = v3s16((s16)std::floor(pb.X), (s16)std::floor(pb.Y), (s16)std::floor(pb.Z));
         have_player = true;
     }
-    const int keep = m_session->wantedRange + 4;
+    const int keep = m_session->wantedRange.load(std::memory_order_relaxed) + 4;
     std::set<v3s16> seen;
     // A notification means either this block changed, one of the boundary
     // neighbours copied into its MeshMakeData changed, or this is a retry.

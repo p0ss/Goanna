@@ -93,9 +93,9 @@ int GoannaClient::resident_blocks() { return m_session ? (int)m_session->residen
 void GoannaClient::set_view_range(int blocks) {
     m_view_range = blocks < 1 ? 1 : (blocks > 60 ? 60 : blocks);
     if (m_session)
-        m_session->wantedRange = m_view_range;
+        m_session->wantedRange.store(m_view_range, std::memory_order_relaxed);
 }
-int GoannaClient::view_range() const { return m_session ? m_session->wantedRange : m_view_range; }
+int GoannaClient::view_range() const { return m_session ? m_session->wantedRange.load(std::memory_order_relaxed) : m_view_range; }
 // The camera's enclosing circular field of view, in degrees. Not the vertical
 // angle Godot's Camera3D carries: the server culls against a circular cone, so
 // it has to reach the window corners. main.gd works it out because the
@@ -103,7 +103,7 @@ int GoannaClient::view_range() const { return m_session ? m_session->wantedRange
 void GoannaClient::set_view_fov(float degrees) {
     m_view_fov = std::clamp(degrees, 1.0f, 179.0f);
     if (m_session)
-        m_session->cameraFov = m_view_fov;
+        m_session->cameraFov.store(m_view_fov, std::memory_order_relaxed);
 }
 
 void GoannaClient::set_safe_dig(bool on) { if (m_session) m_session->safeDig = on; }
@@ -207,10 +207,10 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // arrives before the session. Apply the retained cone before the first
     // player-position packet or the server streams only its 70 degree
     // default and cuts vertical wedges from a wide viewport.
-    m_session->cameraFov = m_view_fov;
+    m_session->cameraFov.store(m_view_fov, std::memory_order_relaxed);
     // Likewise the view range: the settings are applied before the session
     // exists, and the session's own default is 12 whatever the tier said.
-    m_session->wantedRange = m_view_range;
+    m_session->wantedRange.store(m_view_range, std::memory_order_relaxed);
     if (m_session->tsrc()) {
         m_session->tsrc()->setInferredReliefStrength(m_auto_bump);
         m_session->tsrc()->setTextureSize((u32)m_texture_size);
@@ -321,7 +321,7 @@ Dictionary GoannaClient::status() const {
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["media_received"] = (int)s.media_received;
     d["materials"] = m_materials.size();
-    d["camera_fov"] = m_session->cameraFov;
+    d["camera_fov"] = m_session->cameraFov.load(std::memory_order_relaxed);
     int n_lights = 0;
     for (auto &kv : m_block_lights)
         n_lights += (int)kv.second.size();
