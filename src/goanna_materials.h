@@ -12,7 +12,7 @@
 // authored LabPBR companion a plausible one (smoothness, F0, metalness,
 // scattering) in place of the neutral filler, which is what takes material
 // coverage from the authored fraction to all of it. The tables mirror
-// tools/pbr_bake.py, which classifies the same way offline for the bake.
+// tools/pbr/pbr_bake.py, which classifies the same way offline for the bake.
 //
 // Column two is the Minecraft block a node most resembles, through the
 // texture map (a game_texture,pack_path CSV), for the semantic ID an Iris
@@ -119,7 +119,7 @@ bool nameHasWord(const std::string &node_name, const char *word);
 // a mineral or armour overlay is included.
 int gemTextureCode(const std::string &texture);
 
-// game_texture -> pack path, from the CSV tools/mc_texture_map.py writes.
+// game_texture -> pack path, from the CSV tools/pbr/mc_texture_map.py writes.
 // Empty if the path does not read.
 std::map<std::string, std::string> readTextureMap(const std::string &csv_path);
 

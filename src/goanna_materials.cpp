@@ -13,7 +13,7 @@ namespace goanna {
 
 namespace {
 
-// Mirrors tools/pbr_bake.py CLASS_SPEC and CLASS_SSS. Real material
+// Mirrors tools/pbr/pbr_bake.py CLASS_SPEC and CLASS_SSS. Real material
 // knowledge, not measured; the bake's comment records that a learned
 // roughness estimator was tried and rejected for a spread too narrow to trust.
 const ClassSpec kSpecs[(int)MaterialClass::Count] = {
@@ -114,7 +114,7 @@ const char *className(MaterialClass c) {
 std::string tileBaseName(const std::string &tile) {
     // What is before the first modifier. A tile can be a generator
     // ("[combine:...", "(foo.png^[transformR180)") or a name with a colon,
-    // none of which is a file, as tools/goanna_nodedef_dump.lua also rules.
+    // none of which is a file, as tools/pbr/goanna_nodedef_dump.lua also rules.
     size_t caret = tile.find('^');
     std::string base = caret == std::string::npos ? tile : tile.substr(0, caret);
     if (base.empty())

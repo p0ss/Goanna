@@ -214,7 +214,7 @@ float reliefDepth(const Ref<Image> &img, float node_span, const std::vector<int>
     if (islands && islands->size() != (size_t)w * h)
         islands = nullptr;
     // The height's slope along one axis inside the texel's island, as
-    // tools/pbr_author/lib.py's island_gradient takes it: central where both
+    // tools/pbr/pbr_author/lib.py's island_gradient takes it: central where both
     // neighbours are on the island, one sided where one is, 0 where neither.
     auto island_slope = [&](int x, int y, int dx, int dy) -> float {
         const int me = (*islands)[(size_t)y * w + x];
@@ -317,7 +317,7 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
                 img = goanna_image_to_godot(gt->image());
                 if (img.is_valid()) {
                     // A companion at a different resolution to the base is
-                    // normal, not a fault: tools/pbr_bake.py writes a flat _s
+                    // normal, not a fault: tools/pbr/pbr_bake.py writes a flat _s
                     // at 4x4 on purpose (FLAT_SPEC_SIZE, a constant colour
                     // reads the same at any size and a full resolution copy is
                     // wasted VRAM), and an authored pack may simply be coarser
@@ -632,7 +632,7 @@ Ref<ImageTexture> GoannaTexture::godotCompanionNormal(float strength) {
 // wholesale: every texel, coloured by its own albedo, at the same emission
 // strength. A torch's wood handle is not black, so it glowed along with the
 // flame, and the whole node read as lit rather than just the flame doing the
-// lighting. tools/pbr_bake.py leaves the baked _s alpha at 255 (no emission)
+// lighting. tools/pbr/pbr_bake.py leaves the baked _s alpha at 255 (no emission)
 // everywhere and defers to the node's protocol light_source instead, so there
 // is no authored mask to fall back on either.
 //

@@ -439,7 +439,7 @@ private:
     // else _s, composed ones included) is exactly k times the generated image
     // in both axes, 1 < k <= kMaxLayerScale, and 1 otherwise. Stems whose art
     // is also cut by pixel offsets or laid into a [combine ship maps but no
-    // map sized albedo (tools/pbr_author/stems/mineclonia.maps_only.txt), and
+    // map sized albedo (tools/pbr/pbr_author/stems/mineclonia.maps_only.txt), and
     // without this their node layers were the art's size and the maps were
     // shrunk to it. Only array layers are enlarged: the image itself, and so
     // items, the HUD, entities and every [combine that uses it as a part,

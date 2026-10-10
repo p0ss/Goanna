@@ -138,7 +138,7 @@ int main() {
     // either side. Built as upstream builds it, the cut keeps that
     // transparency (the 2026-10-05 review's pale slab was a pack's 256 px
     // albedo in place of the skin, which a pixel offset [combine cannot
-    // take; see tools/pbr_author/stems/mineclonia.maps_only.txt).
+    // take; see tools/pbr/pbr_author/stems/mineclonia.maps_only.txt).
     {
         insert(tsrc, "blank.png", solid(1, 1, video::SColor(0, 0, 0, 0)));
         video::IImage *tri = solid(32, 32, video::SColor(0, 0, 0, 0));

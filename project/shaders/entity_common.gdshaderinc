@@ -124,7 +124,7 @@ global uniform float goanna_lamp_reach;
 #include "res://shaders/cloud_shadow.gdshaderinc"
 
 // Hair's along the strand highlight (direct_light.gdshaderinc), on texels
-// whose _s green byte is 12 (atlas.HAIR_F0_BYTE in tools/pbr_author): F0
+// whose _s green byte is 12 (atlas.HAIR_F0_BYTE in tools/pbr/pbr_author): F0
 // 0.047, which no other map writes, so the byte marks hair. 0 draws them
 // with the isotropic lobe, the default until it is judged on the GPU. Set
 // by EntityRenderer::setHair from the "hair" material strength times

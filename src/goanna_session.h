@@ -116,7 +116,7 @@ public:
     // resource pack dress a Luanti game whose textures are named nothing like
     // Minecraft's. Read in place at connect; nothing is ever written back out,
     // because most Minecraft packs are ordinary copyrighted work and reading
-    // your own copy is not redistributing it. See tools/mc_texture_map.py.
+    // your own copy is not redistributing it. See tools/pbr/mc_texture_map.py.
     void setTextureMap(const std::string &csv) { m_texture_map = csv; }
     // What the paired server mod said it allows. See goanna_server_mod/.
     std::map<std::string, std::string> serverOptions() const {

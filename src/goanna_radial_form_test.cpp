@@ -4,11 +4,12 @@
 // Sub node damage, v3, checked against the other implementation of it.
 //
 // The reference vectors this file loads are GENERATED, not authored here:
-// `tools/dig-review/reference_v3.json` is `luajit
-// tools/dig-review/generate_reference.lua > tools/dig-review/reference_v3.json`
-// run against Kythen's own `mods/kythen/core/radial_form.lua` at commit
-// 809475f (branch form/damage). Regenerate it from Kythen when the Lua
-// changes; never hand edit it, and never hand edit the numbers below either.
+// `tools/test/dig-review/reference_v3.json` is the output of Kythen's own
+// `tools/dig-review/generate_reference.lua`, run against Kythen's
+// `mods/kythen/core/radial_form.lua` at commit 809475f (branch form/damage).
+// Regenerate it with `tools/test/dig-review/check_kythen.py KYTHEN --update`
+// when the Lua changes; never hand edit it, and never hand edit the numbers
+// below either.
 // A difference here is a block that would change shape depending on which
 // implementation drew it, and that is the one failure no screenshot of either
 // half would show on its own.
@@ -580,7 +581,7 @@ void testPlayerStores() {
 } // namespace
 
 int main(int argc, char **argv) {
-    const std::string path = argc >= 2 ? argv[1] : "tools/dig-review/reference_v3.json";
+    const std::string path = argc >= 2 ? argv[1] : "tools/test/dig-review/reference_v3.json";
     testPlayerStores();
     testAgainstReference(path);
     testBoxesBaseline();
