@@ -3,6 +3,21 @@
 
 #pragma once
 
+// GoannaClient, the Node3D that GDScript drives: it owns one GoannaSession
+// and everything drawn from it, and is the whole C++ surface main.gd sees.
+// Its methods run on Godot's main thread only; the session thread and the
+// workers never call into it. It hands work out through the MeshPool, the
+// LodStorage worker and the horizon bake thread, each of which carries its
+// own queue and mutex, and reads the session through mapLock() and the
+// session's take methods. See docs/develop/architecture.md, "Threads and
+// the handoff", and "The GDExtension surface" for the groups of methods.
+//
+// The implementation is spread over goanna_client.cpp (near meshing, LOD,
+// materials, lights, entities and the GDScript bindings),
+// goanna_client_surface.cpp (baked surface tiles) and
+// goanna_client_fine.cpp (fine node data). Also here: MaterialKey, what a
+// world material is cached on, and arrayTileKey.
+
 #include <algorithm>
 #include <chrono>
 #include <deque>
@@ -57,8 +72,6 @@ namespace goanna {
 class GoannaSession;
 struct NodeAnimation;
 
-// Root node of a Goanna session. Owns the transplanted Luanti client and
-// feeds what it produces (mapblock meshes, player pose) into the scene.
 // What a world material is keyed on: Luanti texture id, Goanna shader id
 // (which carries Luanti's material type) and culling.
 struct MaterialKey {
@@ -118,6 +131,12 @@ class GoannaTexture;
 // an array with no alpha anywhere, comes back unchanged.
 MaterialKey arrayTileKey(const MaterialKey &key, const GoannaTexture *array, u16 layer);
 
+// Root node of a Goanna session. Owns the transplanted Luanti client and
+// feeds what it produces (mapblock meshes, player pose) into the scene.
+// Main thread only, like every Godot object; the state that crosses to
+// other threads is the session (behind its own locks), the mesh pool, the
+// LodStorage worker and the horizon bake members, each commented where it
+// is declared.
 class GoannaClient : public godot::Node3D {
     GDCLASS(GoannaClient, godot::Node3D)
 
@@ -853,6 +872,12 @@ private:
     // means erasing the entry and building a new one, never writing through
     // one that is already in the map. See goanna_mesh_pool.h.
     std::map<v3s16, std::shared_ptr<const BlockLodChain>> m_lod_chains;
+    // The prepared terrain worker (goanna_lod_storage.h). The main thread
+    // requests chains and collects them in lodCollectChains; the callbacks
+    // lodStartStorage hands it run on the worker, and read the session's
+    // BlockStore and its node definitions, which are fixed once content is
+    // prepared. Started after content is prepared, stopped in the
+    // destructor before the session goes.
     LodStorage m_lod_storage;
     struct LodLoad { uint64_t ticket = 0, revision = 0, fine_token = 0, fine_fingerprint = 0; };
     struct FineState {
@@ -978,19 +1003,16 @@ private:
     // asks every frame.
     godot::Dictionary m_render_info;
     std::chrono::steady_clock::time_point m_render_info_at{};
-    // The ridge probe (docs/systems/sky-orchestration.md): the terrain horizon
-    // toward the sun's azimuth as the eye last saw it, published through
-    // sky_state() so main.gd can re-base its dawn ramps on the sun's
-    // altitude relative to what actually occludes it. sin is
-    // sin(elevation), the same units as sun_direction.y; height and
-    // distance describe the winning ridge so the cloud deck can derive its
-    // own, altitude-corrected horizon. The far set is walked with a
-    // bounded cursor like the prune sweeps, so the partials below carry a
-    // cycle in progress while the published values hold the last complete
-    // one.
     // The horizon bake (goanna_horizon.h): the snapshot is extracted on
     // the main thread, the panorama marches on this one worker, and the
     // result waits under the mutex until horizon_bake_poll collects it.
+    // m_horizon_mutex guards m_horizon_busy, m_horizon_fresh and
+    // m_horizon_result. horizon_bake_poll sets busy before it starts the
+    // thread; the thread, as its last act, stores the result, sets fresh
+    // and clears busy; horizon_bake_request reads busy and the poll reads
+    // and clears fresh. The thread owns its moved snapshot and touches
+    // nothing else of the client. The extraction members after them are
+    // main thread only. The destructor joins the thread.
     std::thread m_horizon_thread;
     std::mutex m_horizon_mutex;
     bool m_horizon_busy = false;
@@ -1004,6 +1026,16 @@ private:
     HorizonSnapshot m_horizon_pending;
     std::unordered_map<uint32_t, uint32_t> m_horizon_colours;
     v3s16 m_horizon_extract_cursor{-32768, -32768, -32768};
+    // The ridge probe (docs/systems/sky-orchestration.md): the terrain horizon
+    // toward the sun's azimuth as the eye last saw it, published through
+    // sky_state() so main.gd can re-base its dawn ramps on the sun's
+    // altitude relative to what actually occludes it. sin is
+    // sin(elevation), the same units as sun_direction.y; height and
+    // distance describe the winning ridge so the cloud deck can derive its
+    // own, altitude-corrected horizon. The far set is walked with a
+    // bounded cursor like the prune sweeps, so the partials below carry a
+    // cycle in progress while the published values hold the last complete
+    // one.
     float m_ridge_sin = 0.0f;
     float m_ridge_height = 0.0f;
     float m_ridge_dist = 0.0f;

@@ -1,6 +1,24 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Most of GoannaClient (goanna_client.h): the near meshing pipeline
+// (poll_blocks, nearSubmit, nearRebuild, nearPublishBatch), the far field
+// and its LOD tiers (update_lod and the lod* methods), materials
+// (keyForIrr, materialFor), node animation, node lights and motes, the
+// entity hookup, the interface getters GDScript reads (take_*, hud_state,
+// inventory_state, sky_state) and _bind_methods. The surface and fine data
+// halves of the far field are in goanna_client_surface.cpp and
+// goanna_client_fine.cpp.
+//
+// Every GoannaClient method runs on Godot's main thread. The three mesh job
+// types defined here (NearBatchJob, NearBlockJob, LodRegionJob) are the
+// exception: their run() executes on a MeshPool worker and must keep to the
+// rule in goanna_mesh_pool.h, working only on what was captured when the job
+// was made. docs/develop/architecture.md, "Threads and the handoff", and
+// "The life of a session" walk through the order things happen in.
+//
+// This file is due to be split; until then, search for the method name.
+
 #include "goanna_client.h"
 #include "util/hashing.h"
 #include "goanna_grass.h"
@@ -1094,7 +1112,8 @@ void GoannaClient::set_auto_bump(float strength) {
     if (m_entities)
         m_entities->setAutoBump(strength);
     // The array path infers the same relief for layers with no authored _n
-    // (docs/design/pbr-plan.md step 2), and its companions are cached per texture.
+    // (docs/design/pbr-plan.md, "Current implementation"), and its
+    // companions are cached per texture.
     if (m_session && m_session->tsrc())
         m_session->tsrc()->setInferredReliefStrength(strength);
     // Re-request the loaded blocks so their meshes pick up the new materials.
@@ -1454,10 +1473,6 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     m_lod_chain_waiters.clear();
     m_lod_chain_retry_regions.clear();
     m_lod_handoff_near.clear();
-    m_lod_handoff_far.clear();
-    m_lod_handoff_to_near.clear();
-    m_lod_handoff_old_counts.clear();
-    m_lod_frozen_at.clear();
     m_lod_chain_missing.clear();
     {
         // Workers resolve tiles through this cache; take their lock.
@@ -3627,8 +3642,9 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // The far tiers are past the reach of the node light pool, so
             // their block light is added as emission, which the near mesh
             // must not do or a torch counts twice. They also alias at range
-            // (docs/systems/far-rendering.md, "Shade the far field as a far field"),
-            // so each layer's own average colour rides along for the shader
+            // (docs/history/far-rendering-log.md, "The launch target's four
+            // defects, closed 2026-08-22", item 2c), so each layer's own
+            // average colour rides along for the shader
             // to blend toward with distance; the near mesh never draws far
             // enough to need it and leaves lod_flatten false.
             if (key.lod) {
@@ -4393,9 +4409,8 @@ Dictionary GoannaClient::wield_info() {
 
 // The light the wielded item would cast placed as a node, decoded 0 to 255,
 // or 0 for anything unlit. main.gd drives the head light with it, so a torch
-// in the hand lights the way (docs/design/pbr-plan.md, "The macro scale"). Client
-// side only: nothing is asked of the server and nothing shown that is not
-// the player's own flame.
+// in the hand lights the way. Client side only: nothing is asked of the
+// server and nothing shown that is not the player's own flame.
 int GoannaClient::wield_light() {
     if (!m_session)
         return 0;
@@ -5589,7 +5604,7 @@ int GoannaClient::lodCellFor(int tier) const {
 
 // Region edge, in blocks. Keep the finest pass at roughly 32 cells per axis:
 // an indivisible cell-1 build over the old four-block edge visited a 64-cubed
-// volume and took 16--42 ms by itself, making any per-frame time budget
+// volume and took 16 to 42 ms by itself, making any per-frame time budget
 // meaningless. Coarser tiers grow spatially while retaining the same meshing
 // workload and better batching at distance.
 int GoannaClient::lodRegionBlocks(int tier) const {
@@ -8339,7 +8354,7 @@ int GoannaClient::update_lod(const Vector3 &around, int max_rebuild) {
     // at a request every two seconds. The scan is a few milliseconds, so it
     // runs a few times a second while there is room in flight.
     const auto t_requests = clock_t_::now();
-	if (m_far_inflight < 12 && m_far_radius > 0 && ms_since(m_far_scan) > 250.0)
+    if (m_far_inflight < 12 && m_far_radius > 0 && ms_since(m_far_scan) > 250.0)
         lodRequestSummaries(m_far_centre, m_far_radius);
     ema(m_ms_lod_requests, ms_since(t_requests));
     for (const v3s16 &bp : changed) {
@@ -8537,8 +8552,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // The network handler has already persisted the compact serialised
         // block. Do not synchronously derive a second exact hierarchy for a
         // block about to receive an exact near mesh: cell-1 made this poll
-        // take 90--127 ms while streaming. If it later leaves the live set,
-        // The storage worker derives or reloads its hierarchy when needed.
+        // take 90 to 127 ms while streaming. If it later leaves the live set,
+        // the storage worker derives or reloads its hierarchy when needed.
         m_lod_loads.erase(bp); // invalidate any older asynchronous result
         m_lod_chains.erase(bp); // discard an older summary/store view
         m_lod_chain_queued.erase(bp); // stale deque entries are harmless
@@ -9178,7 +9193,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // lodAssign(bp, 0) already dirtied the old far region. Let the normal
         // debounce coalesce all live blocks arriving in that region. Rebuilding
         // its 64-cubed cell field here for every individual block made one
-        // nominally six-millisecond poll take 130--158 ms.
+        // nominally six-millisecond poll take 130 to 158 ms.
         ema(m_ms_upload, ms_since(t_upload));
         ++done;
     }
