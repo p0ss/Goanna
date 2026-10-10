@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Entity parallax probe: checks the entity shaders' parallax march stays on
+## its face, moves the picture, self shadows and keeps the silhouette. Exits 0
+## when every check passes, 1 otherwise.
+## Run: tools/goanna-headless fixture res://studies/entity_parallax_probe.tscn
 extends Node3D
 
 # Does the entity parallax march (entity_common.gdshaderinc) stay on its
@@ -33,9 +37,8 @@ extends Node3D
 #   - walls: the raised square's walls draw whole, where the chord alone
 #     (parallax_refine 0) drew them as a staircase of slices.
 #
-# Run, inside headless gamescope (it needs a display):
-#   godot --path project studies/entity_parallax_probe.tscn
-# ENTITY_PROBE_OUT names a directory for on.png, off.png and chord.png. Exit code 0
+# Run through tools/goanna-headless fixture, as the header says (it needs a
+# display). ENTITY_PROBE_OUT names a directory for on.png, off.png and chord.png. Exit code 0
 # when every check passes, 1 otherwise.
 
 const ART := Vector2i(24, 8)

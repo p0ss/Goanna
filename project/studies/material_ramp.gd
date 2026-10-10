@@ -1,3 +1,7 @@
+## The material calibration ramp: smoothness and metalness steps and real
+## pack sets on node cubes under the world's lighting recipe, printing what
+## each face rendered at. See docs/history/material-calibration.md.
+## Run: tools/goanna-headless fixture res://studies/material_ramp.tscn --env PROBE_OUT=/tmp/ramp
 extends Node3D
 
 # The material calibration ramp. No world, no server: a fixed camera and the
@@ -60,7 +64,7 @@ extends Node3D
 # sun is 0.53; main.gd leaves Godot's 0, a point, which is what makes the
 # smoothest steps lose the glint: the lobe is a needle that never lands).
 #
-# Run: PROBE_OUT=/tmp/ramp godot --path project studies/material_ramp.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 const STEPS := [0, 64, 128, 192, 230, 255]
 

@@ -1,5 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Offline production-shader study, invoked inside a headless control client.
+## Cloud layer study: sky.gdshader's three cloud styles in fair weather,
+## storm, between and above the layers and over a mountain, with the bounds
+## from game/effects/cloud_layers.gd. capture_edges(directory) adds the layer
+## edges. See docs/perf/cloud-layers-2026-09-29/report.md.
+## Not a scene: in a client tools/goanna-headless started with the control
+## channel, tools/goanna-control run adds it with
+## main.add_child(load("res://studies/cloud_layer_study.gd").new()) and awaits
+## its capture(directory). It owns its viewport and never touches the world.
 extends Node
 
 const Layers := preload("res://game/effects/cloud_layers.gd")

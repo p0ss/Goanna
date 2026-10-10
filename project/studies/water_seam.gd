@@ -1,3 +1,6 @@
+## Near and far water hand-off fixture: one water sheet split into a near
+## mesh strip and a far tier strip, viewed toward a low sun, to show any seam.
+## Run: tools/goanna-headless fixture res://studies/water_seam.tscn --env GOANNA_SHOT=/tmp/seam
 # Goanna: offline fixture for the near/far water hand-off.
 #
 # One sheet of water, split at HANDOFF into a "near mesh" strip and a "far

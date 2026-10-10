@@ -1,3 +1,6 @@
+## The water calibration ramp: water.gdshader over a sand bed at stepped
+## depths beside dry sand, measuring colour and saturation per depth.
+## Run: tools/goanna-headless fixture res://studies/water_ramp.tscn --env PROBE_OUT=/tmp/w
 extends Node3D
 
 # The water calibration ramp: water.gdshader over a sand bed stepped from
@@ -27,7 +30,7 @@ extends Node3D
 # the way the world draws it, instead of a plain box; GOANNA_MAT then
 # reaches the bed's material (parallax=0 switches the march off).
 #
-# Run: PROBE_OUT=/tmp/w godot --path project studies/water_ramp.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 const DEPTHS := [0.5, 1.0, 2.0, 4.0, 8.0]
 const STRIP_W := 6.0

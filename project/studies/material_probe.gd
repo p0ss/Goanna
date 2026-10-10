@@ -1,3 +1,6 @@
+## LabPBR decode probe: the node and entity shaders against Godot's own
+## StandardMaterial3D fed the values they should decode to; all three rows
+## should match. Run: tools/goanna-headless fixture res://studies/material_probe.tscn
 extends Node3D
 
 # Differential probe for the LabPBR decode in shaders/nodes_array.gdshader,
@@ -21,7 +24,7 @@ extends Node3D
 # are supposed to decode those bytes into. If the decode is right all three
 # are the same pixel. Any difference is ours.
 #
-# Run: godot --path project studies/material_probe.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 const SIZE := 1
 

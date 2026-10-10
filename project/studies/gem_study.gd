@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Gem fixture: every gem kind as ore, block and item through the production
+## shaders, with the gem treatment off and on. See docs/systems/materials.md.
+## Run: tools/goanna-headless fixture res://studies/gem_study.tscn --env GOANNA_SHOT=/tmp/gems
 #
 # Offline gem fixture: every gem kind the shaders know (diamond, emerald,
 # amethyst, mese, quartz) as ore, block and item, drawn by the production
 # array and item shaders from the games' own art, under a fixed camera and
-# lamp. Needs a display, like the other fixtures:
-#
-#   GOANNA_SHOT=/tmp/gems godot --path project studies/gem_study.tscn
+# lamp. Needs a display, like the other fixtures, so it runs through
+# tools/goanna-headless fixture as the header says.
 #
 # Writes gems_off.png (treatment off), gems_on.png and gems_side.png (lamp
 # moved), then quits. GOANNA_GAMES is the Luanti games directory (default

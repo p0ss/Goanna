@@ -1,3 +1,7 @@
+## Dawn orchestration fixture: the real sky, fog, mist and shaft shaders
+## swept through a dawn over flat ground and a ridge, driven by SkyDirector
+## (game/effects/sky_director.gd). See docs/systems/sky-orchestration.md.
+## Run: tools/goanna-headless fixture res://studies/dawn_sweep.tscn --env GOANNA_SHOT=/tmp/dawn
 # Goanna: offline fixture for the dawn orchestration.
 #
 # Renders the real sky, fog, froxel mist and shaft shaders over a boxy

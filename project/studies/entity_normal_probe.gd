@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Entity normal map probe: checks that a mob's normal map lights the way its
+## art is drawn, on every face direction and mirrored, against the node
+## mesher's tangent frame. Exits 0 when every quad agrees, 1 otherwise.
+## Run: tools/goanna-headless fixture res://studies/entity_normal_probe.tscn
 extends Node3D
 
 # Does an entity's normal map sit on its art? A fixture, no server, no
@@ -25,9 +29,8 @@ extends Node3D
 # (right in the image), green above 128 tilts it toward the top of the image
 # (smaller V). That is the encoding the node path decodes with no green flip.
 #
-# Run, inside headless gamescope (it needs a display):
-#   godot --path project studies/entity_normal_probe.tscn
-# ENTITY_PROBE_OUT names a directory for right.png and top.png. Exit code 0
+# Run through tools/goanna-headless fixture, as the header says (it needs a
+# display). ENTITY_PROBE_OUT names a directory for right.png and top.png. Exit code 0
 # when every quad agrees, 1 otherwise.
 
 const SIZE := 32

@@ -1,3 +1,7 @@
+## The lighting and material chart: one node cube per material class under
+## each lighting condition, through nodes_array.gdshader, printing what each
+## cell rendered at. tools/bench/chart_summary.py reduces its JSON.
+## Run: tools/goanna-headless fixture res://studies/lighting_chart.tscn --env CHART_OUT=/tmp/chart.json
 extends Node3D
 
 # The material chart, docs/design/pbr-plan.md step 1: the lighting and material
@@ -73,7 +77,7 @@ extends Node3D
 # off) and sdfgi_read_sky_light (off, the bay fell to 14,5,0). SSAO barely
 # touched the bay and cost the sun cube two counts.
 #
-# Run: godot --path project studies/lighting_chart.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 const MATERIALS := [
 	# label, baked stem. Twelve classes, the ones step 2's table names.

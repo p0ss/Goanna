@@ -1,3 +1,6 @@
+## Material field: long strips of node tiles per material, to judge tiling
+## repetition and the near against far tier look without a server.
+## Run: tools/goanna-headless fixture res://studies/material_field.tscn --env GOANNA_SHOT=/tmp/field
 extends Node3D
 
 # A field of node sized tiles per material, through the shader the client
@@ -33,7 +36,7 @@ extends Node3D
 #                           a different colour in every other lod_avg_colour
 #                           entry, so an index that misses shows up
 #
-# Run: godot --path project studies/material_field.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 # name, texture stem, MaterialClass (src/goanna_materials.h). Five granular
 # classes the treatment claims, and one plank strip that it must leave alone.

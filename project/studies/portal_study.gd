@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Offline portal review and rendering checks. Run through goanna-headless.
+## Portal study: the Nether and End portal shaders on synthetic tiles,
+## checking motion, depth, foreground objects, the clock and water absorption.
+## Exits 0 with no failures. GOANNA_PORTAL_OUT names the output directory.
+## Run: tools/goanna-headless fixture res://studies/portal_study.tscn --size 1280x800
+## See docs/systems/portal-materials.md.
 extends Node3D
 
 var camera: Camera3D

@@ -1,3 +1,6 @@
+## Plant ramp: plantlike nodes close up through waving_plants.gdshader with
+## the pack's maps, relief on and off, the way material_ramp judges blocks.
+## Run: tools/goanna-headless fixture res://studies/plant_ramp.tscn --env GOANNA_SHOT=/tmp/plants
 extends Node3D
 # Plants close up, through the shader the world draws them with
 # (waving_plants.gdshader) and the pack's own maps, the way the material
@@ -5,8 +8,6 @@ extends Node3D
 # standing on a log or on stone, so the plant reads against extruded
 # blocks as it does in play. Every case is rendered with the authored
 # relief on and off.
-#
-#   GOANNA_SHOT=<dir> godot --path project studies/plant_ramp.tscn
 #
 # GOANNA_PLANT_STEMS="a,b,c" picks the stems (default: mushrooms, fern,
 # flowers, a sapling), GOANNA_PACK_DIR the textures, GOANNA_TIMES the

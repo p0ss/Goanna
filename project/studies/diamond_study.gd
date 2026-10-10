@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Offline material study using the production shaders and local game art.
-# Add through the developer control channel, then await capture(directory).
+## Diamond material study: the production node and item shaders on the
+## games' diamond art, before and after the treatment, plus capture_interior,
+## _transparency, _ore and _item_basis. See docs/perf/diamond-2026-09-29/.
+## Not a scene: in a client tools/goanna-headless started with the control
+## channel, tools/goanna-control run adds it with
+## main.add_child(load("res://studies/diamond_study.gd").new()) and awaits
+## its capture(directory). It owns its viewport and never touches the world.
 extends Node
 
 var viewport: SubViewport

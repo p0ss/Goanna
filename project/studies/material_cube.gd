@@ -1,3 +1,6 @@
+## Material cube: a baked LabPBR set on a row of cubes through the node
+## shader, one specular channel varied at a time, so the decode can be seen.
+## Run: tools/goanna-headless fixture res://studies/material_cube.tscn --env GOANNA_SHOT=/tmp/cube
 extends Node3D
 
 # Render a baked material on cubes, through the shader the client actually
@@ -18,7 +21,7 @@ extends Node3D
 #   GOANNA_SHOT=<dir>         write frames here and quit
 #   GOANNA_MAT_TOD=<0..1>     where the sun sits, default mid morning
 #
-# Run: godot --path project studies/material_cube.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 const CASES := [
 	["albedo only", 0.0, 0.04, false, 0.0, 0.0, 1.0],

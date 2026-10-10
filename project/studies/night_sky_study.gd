@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Offline sky composition and visibility checks, using the production shader.
-# From the developer control channel: add this node and await capture(path).
-# The fixture owns its viewport and never connects to a server.
+## Night sky study: sky.gdshader's stars, galaxy and constellations at night,
+## twilight and day, checking that hidden stars and disabled additions leave
+## the sky unchanged. See docs/systems/sky-orchestration.md.
+## Not a scene: in a client tools/goanna-headless started with the control
+## channel, tools/goanna-control run adds it with
+## main.add_child(load("res://studies/night_sky_study.gd").new()) and awaits
+## its capture(directory). It owns its viewport and never touches the world.
 extends Node
 
 var viewport: SubViewport

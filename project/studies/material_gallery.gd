@@ -1,3 +1,6 @@
+## Material gallery: each material as a block through the node shader beside
+## an item card through the entity shader, for judging by eye.
+## Run: tools/goanna-headless fixture res://studies/material_gallery.tscn --env GOANNA_SHOT=/tmp/gallery
 extends Node3D
 
 # One plinth per material, each carrying the same stuff twice: a block on the
@@ -23,7 +26,7 @@ extends Node3D
 #                           from the game the server is running
 #   GOANNA_GALLERY_SET=items  show tools and armour rather than materials
 #
-# Run: godot --path project studies/material_gallery.tscn
+# Run it as the header says, through tools/goanna-headless fixture.
 
 # label, texture stem, MaterialClass (src/goanna_materials.h)
 const CASES := [

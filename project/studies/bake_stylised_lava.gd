@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Bake the supplied Material Maker colour graph; Goanna supplies live flow.
+## Bakes the Material Maker stylised lava export (asset_bundles/stylised_lava*)
+## to flat textures in baked/stylised-lava/textures, a client side texture
+## pack; Goanna's lava shader adds the flow and crust live. A SceneTree script:
+## godot --path project --script res://studies/bake_stylised_lava.gd. It
+## renders a SubViewport, so it needs a real renderer, not --headless; check
+## tools/goanna-headless gpu-free first.
 extends SceneTree
 
 func _initialize() -> void:
