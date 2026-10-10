@@ -34,8 +34,17 @@ beside another game client: 2026-09-19 with two headless sessions, and
 (gpu_clients) and refuses while a Godot, gamescope or Luanti is listed;
 GOANNA_SHARED_GPU=1 overrides it. software=True renders on lavapipe and
 llvmpipe and never creates a GPU context, at a much lower frame rate.
+
+A GPU start also takes the shared GPU lock (GPU_LOCK, the file the render
+service holds) and refuses while anyone else holds it. The supervisor keeps
+the lock for the client's whole life. Under `flock LOCKFILE goanna-headless
+...` the inherited lock is used rather than refused. GPU starts put
+gamescope itself on lavapipe (cpu_compositor, the default since 2026-10-10;
+--gpu-compositor opts out), because gamescope on the NVIDIA card is what
+wedged the driver on 2026-10-02.
 """
 
+import fcntl
 import json
 import os
 import pathlib
@@ -416,10 +425,121 @@ def gpu_clients():
     return found
 
 
-def _spawn(rec, timeout=60.0):
+# --- the GPU lock ------------------------------------------------------------
+
+# The lock every agent takes before a GPU render, the same file the render
+# service (tools/goanna_render.py) holds for its whole life. It used to be a
+# rule agents had to remember, and a forgotten flock is how two clients end
+# up on the card at once. A GPU start now takes it itself and hands it to
+# the instance's supervisor, so it is held exactly as long as the client
+# runs and dropped by the kernel when the supervisor exits, however it
+# exits.
+GPU_LOCK = os.environ.get("GOANNA_GPU_LOCK", "/tmp/claude-1000/goanna-gpu.lock")
+
+
+def _lock_holders(path=GPU_LOCK):
+    """Processes of ours with the lock file open, as "pid N (name)". The
+    PID /proc/locks names is the one that took the lock, which may have
+    exited after handing it on, so look at open descriptors instead."""
+    try:
+        target = os.stat(path)
+    except OSError:
+        return []
+    found = []
+    for entry in pathlib.Path("/proc").iterdir():
+        if not entry.name.isdigit() or int(entry.name) == os.getpid():
+            continue
+        try:
+            fds = list((entry / "fd").iterdir())
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                st = os.stat(fd)
+            except OSError:
+                continue
+            if (st.st_dev, st.st_ino) == (target.st_dev, target.st_ino):
+                try:
+                    comm = (entry / "comm").read_text().strip()
+                except OSError:
+                    comm = "?"
+                found.append("pid %s (%s)" % (entry.name, comm))
+                break
+    return found
+
+
+def _inherited_lock_fd(path=GPU_LOCK):
+    """A descriptor for the lock file this process already has open, as it
+    does under `flock LOCKFILE goanna-headless start ...`, the form the
+    rules used to ask for. Locking it again is a no-op when the caller
+    holds the lock, so that form keeps working."""
+    try:
+        target = os.stat(path)
+    except OSError:
+        return None
+    for fd in pathlib.Path("/proc/self/fd").iterdir():
+        try:
+            st = os.fstat(int(fd.name))
+        except (OSError, ValueError):
+            continue
+        if (st.st_dev, st.st_ino) == (target.st_dev, target.st_ino):
+            return int(fd.name)
+    return None
+
+
+def acquire_gpu_lock(wait=0.0, path=GPU_LOCK):
+    """Take the GPU lock without blocking, retrying for up to `wait`
+    seconds, and return (fd, opened): opened is False when the descriptor
+    was inherited and is not ours to close. Raises LaunchError naming the
+    holders when it is busy."""
+    fd = _inherited_lock_fd(path)
+    opened = fd is None
+    if opened:
+        pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o644)
+    deadline = time.time() + max(0.0, float(wait))
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd, opened
+        except BlockingIOError:
+            if time.time() >= deadline:
+                break
+            time.sleep(0.5)
+    if opened:
+        os.close(fd)
+    holders = _lock_holders(path)
+    raise LaunchError(
+        "the GPU lock %s is held%s. Only one client may be on the GPU at a time: two at "
+        "once have left the NVIDIA driver needing a reboot. Take frames through the render "
+        "service (tools/goanna-render shoot JOB.json), wait for the holder to finish, or "
+        "use --software" % (path, " by " + ", ".join(holders) if holders else ""))
+
+
+def _spawn(rec, timeout=60.0, gpu_lock_fd=None, lock_wait=0.0):
     """Start the supervisor for a prepared record and wait until the client
     process exists inside gamescope, or until it fails."""
     need("gamescope")
+    # The lock first, then the process checks: a client that took the lock
+    # a moment ago may not be on the card yet.
+    lock_fd, close_lock = None, False
+    if not rec.get("software"):
+        if gpu_lock_fd is not None:
+            lock_fd = int(gpu_lock_fd)
+        else:
+            lock_fd, close_lock = acquire_gpu_lock(lock_wait)
+        rec["gpu_lock"] = GPU_LOCK
+    try:
+        return _spawn_locked(rec, timeout, lock_fd)
+    finally:
+        # The supervisor has its own copy of the descriptor, which keeps
+        # the lock held until it exits; or it never started, and closing
+        # this one gives the lock back.
+        if close_lock:
+            os.close(lock_fd)
+
+
+def _spawn_locked(rec, timeout, lock_fd):
     if not rec.get("software") and os.environ.get("GOANNA_SHARED_GPU") != "1":
         busy = gpu_clients()
         if busy:
@@ -452,7 +572,8 @@ def _spawn(rec, timeout=60.0):
     proc = subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve()),
                              "_supervise", rec["id"]],
                             stdin=subprocess.DEVNULL, stdout=sup_log, stderr=subprocess.STDOUT,
-                            start_new_session=True, close_fds=True)
+                            start_new_session=True, close_fds=True,
+                            pass_fds=() if lock_fd is None else (lock_fd,))
     sup_log.close()
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -480,10 +601,17 @@ def _base_record(ident, kind, width, height, software):
 
 def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name="dev",
                  password="", width=1280, height=720, software=False, env=None, label="",
-                 ready_timeout=120.0, meta=None, cpu_compositor=False):
+                 ready_timeout=120.0, meta=None, cpu_compositor=True, gpu_lock_fd=None,
+                 lock_wait=0.0):
     """Start Goanna from project (a checkout, a worktree or its project
     directory) in headless gamescope, with its control channel on
-    control_port, and return once that channel answers."""
+    control_port, and return once that channel answers.
+
+    A GPU start takes the GPU lock (acquire_gpu_lock) and refuses while
+    another holds it; a caller that already holds it, the render service,
+    passes its descriptor as gpu_lock_fd. cpu_compositor keeps gamescope
+    itself on lavapipe while the client renders on the GPU; it is the
+    default, and False puts gamescope on the card as well."""
     project = resolve_project(project)
     exported = exported_build(project)
     godot = str(exported) if exported else find_godot(project)
@@ -521,7 +649,7 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
                      "%dx%d" % (int(width), int(height))]
                     + ([] if exported else ["--path", str(project)]),
                client_log=str(pathlib.Path(rec["log_dir"]) / "output.log"))
-    rec = _spawn(rec)
+    rec = _spawn(rec, gpu_lock_fd=gpu_lock_fd, lock_wait=lock_wait)
     deadline = time.time() + ready_timeout
     while time.time() < deadline:
         cur = load(rec["id"])
@@ -573,7 +701,8 @@ def run_fixture(project, scene, width=1600, height=900, software=False, env=None
 
 
 def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", width=1280,
-                  height=720, software=False, settings=None, app=FLATPAK_APP, meta=None):
+                  height=720, software=False, settings=None, app=FLATPAK_APP, meta=None,
+                  lock_wait=0.0):
     """Start the vanilla Luanti client (the Flatpak) in headless gamescope,
     joined straight to host:port, with a configuration file of its own so
     the owner's own client settings are never touched."""
@@ -605,7 +734,7 @@ def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", wid
     rec.update(server="%s:%d" % (host, int(port)), name=str(name), env={}, argv=argv,
                meta=meta or {},
                client_log=str(home / "client.log"), config=str(home / "client.conf"))
-    return _spawn(rec)
+    return _spawn(rec, lock_wait=lock_wait)
 
 
 def tail(path, lines=20):
@@ -913,7 +1042,8 @@ def describe(rec):
     """The parts of a record worth showing."""
     keys = ("id", "kind", "status", "reason", "control_port", "server", "name", "project",
             "width", "height", "software", "display", "gamescope_socket", "supervisor_pid",
-            "gamescope_pid", "child_pid", "log_dir", "client_log", "started_by")
+            "gamescope_pid", "child_pid", "log_dir", "client_log", "started_by",
+            "cpu_compositor", "gpu_lock")
     return {k: rec[k] for k in keys if k in rec}
 
 
@@ -922,15 +1052,17 @@ def describe(rec):
 USAGE = """usage:
   goanna-headless start [--project PATH] [--control-port N] [--server HOST:PORT]
                         [--name NAME] [--password PW] [--size WxH] [--software]
-                        [--cpu-compositor]
+                        [--gpu-compositor] [--lock-wait SECONDS]
                         [--label TEXT] [--env KEY=VALUE ...]
   goanna-headless vanilla [--server HOST:PORT] [--name NAME] [--password PW]
-                        [--size WxH] [--software] [--set KEY=VALUE ...]
+                        [--size WxH] [--software] [--lock-wait SECONDS]
+                        [--set KEY=VALUE ...]
   goanna-headless shot ID PATH [--method auto|gamescope|x11]
   goanna-headless stop ID
   goanna-headless list [--all]
   goanna-headless port-free N
   goanna-headless gpu-free
+  goanna-headless gpu-lock
   goanna-headless fixture SCENE [--project PATH] [--size WxH] [--software]
                         [--timeout SECONDS] [--env KEY=VALUE ...]
 """
@@ -940,7 +1072,7 @@ def _parse(argv):
     opts, pos, i = {"env": {}, "set": {}}, [], 0
     while i < len(argv):
         arg = argv[i]
-        if arg in ("--software", "--all", "--cpu-compositor"):
+        if arg in ("--software", "--all", "--cpu-compositor", "--gpu-compositor"):
             opts[arg[2:]] = True
         elif arg in ("--env", "--set"):
             key, _, value = argv[i + 1].partition("=")
@@ -983,7 +1115,8 @@ def main(argv):
                                name=opts.get("name", "dev"), password=opts.get("password", ""),
                                width=w, height=h, software=opts.get("software", False),
                                env=opts["env"], label=opts.get("label", ""),
-                               cpu_compositor=opts.get("cpu-compositor", False))
+                               cpu_compositor=not opts.get("gpu-compositor", False),
+                               lock_wait=float(opts.get("lock_wait", 0)))
             out = describe(rec)
         elif cmd == "vanilla":
             host, port = _server(opts)
@@ -991,7 +1124,8 @@ def main(argv):
             out = describe(start_vanilla(host=host, port=port, name=opts.get("name", "vanilla"),
                                          password=opts.get("password", ""), width=w, height=h,
                                          software=opts.get("software", False),
-                                         settings=opts["set"]))
+                                         settings=opts["set"],
+                                         lock_wait=float(opts.get("lock_wait", 0))))
         elif cmd == "fixture":
             w, h = _size(opts) if "size" in opts else (1600, 900)
             out = run_fixture(opts.get("project", pathlib.Path(__file__).resolve().parent.parent),
@@ -1015,6 +1149,19 @@ def main(argv):
                               "driver_errors": len(errors),
                               "last_driver_error": errors[-1] if errors else ""}, indent=2))
             return 0 if ok else 1
+        elif cmd == "gpu-lock":
+            # Whether a GPU start would get the lock now, without taking it
+            # for longer than the question.
+            try:
+                fd, opened = acquire_gpu_lock()
+            except LaunchError:
+                print(json.dumps({"free": False, "lock": GPU_LOCK,
+                                  "holders": _lock_holders()}, indent=2))
+                return 1
+            if opened:
+                os.close(fd)
+            print(json.dumps({"free": True, "lock": GPU_LOCK}, indent=2))
+            return 0
         else:
             print(USAGE, file=sys.stderr)
             return 2

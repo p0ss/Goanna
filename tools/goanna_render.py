@@ -660,8 +660,12 @@ class Client:
     """One headless Goanna client, launched through goanna_headless with a
     profile written for its launch key and read back once it is up."""
 
-    def __init__(self, logdir, server, software=False):
+    def __init__(self, logdir, server, software=False, gpu_lock=None):
         self.server = server
+        # The service's own GpuLock. goanna_headless takes the lock itself
+        # for a GPU start and would refuse this one as busy, so it is handed
+        # the descriptor the service already holds.
+        self.gpu_lock = gpu_lock
         server_port = server.port
         self.software = software
         self.logdir = logdir
@@ -749,6 +753,8 @@ class Client:
                                            name=PLAYER, width=w, height=h, env=env,
                                            software=self.software,
                                            label="render service", cpu_compositor=True,
+                                           gpu_lock_fd=(self.gpu_lock.fd if self.gpu_lock
+                                                        else None),
                                            ready_timeout=180.0,
                                            meta={"render_service": os.getpid()})
             except gh.LaunchError as exc:
@@ -988,7 +994,7 @@ class Service:
         self.server = Server(self.opt.game, self.opt.world_from, self.stage, self.floor,
                              self.logdir, far=self.opt.far or bool(self.opt.world_from))
         self.server.start()
-        self.client = Client(self.logdir, self.server, self.opt.software)
+        self.client = Client(self.logdir, self.server, self.opt.software, self.lock)
         self.status = "starting the client"
         self.publish()
         self.ensure_client(self.default)

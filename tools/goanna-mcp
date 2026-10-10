@@ -239,6 +239,8 @@ def start_goanna(reg, args):
                                   height=int(args.get("height", 720)),
                                   software=bool(args.get("software", False)), env=env,
                                   label=args.get("label", ""),
+                                  cpu_compositor=not bool(args.get("gpu_compositor", False)),
+                                  lock_wait=float(args.get("lock_wait", 0)),
                                   meta=dict(args, project=project), **kw)
         except gh.LaunchError as exc:
             raise ChannelError(str(exc))
@@ -279,10 +281,22 @@ def start_window(reg, project, control_port, kw, env, args):
     run_env.update({"GOANNA_CONTROL": str(control_port), "GOANNA_NO_POINTER_CAPTURE": "1",
                     "GOANNA_HOST": str(kw["host"]), "GOANNA_PORT": str(kw["port"]),
                     "GOANNA_NAME": str(kw["name"]), "GOANNA_PASS": str(kw["password"])})
+    # A window is on the GPU too, so it takes the GPU lock like a headless
+    # start. The client inherits the descriptor and holds the lock until it
+    # exits; this server's copy is closed straight after.
+    try:
+        lock_fd, opened = gh.acquire_gpu_lock(float(args.get("lock_wait", 0)))
+    except gh.LaunchError as exc:
+        raise ChannelError(str(exc))
     handle = open(log_path, "w")
-    proc = subprocess.Popen([gh.find_godot(project), "--path", str(project)], env=run_env,
-                            stdout=handle, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                            start_new_session=True)
+    try:
+        proc = subprocess.Popen([gh.find_godot(project), "--path", str(project)], env=run_env,
+                                stdout=handle, stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL, start_new_session=True,
+                                pass_fds=(lock_fd,))
+    finally:
+        if opened:
+            os.close(lock_fd)
     inst = Instance("window-%d" % control_port, "window", control_port, owned=True,
                     args=dict(args, project=str(project), log=str(log_path)), proc=proc)
     deadline = time.time() + 120.0
@@ -351,7 +365,8 @@ TOOLS = [
             "that is already in use (leave it out and a free one is chosen). start_vanilla "
             "runs the vanilla Luanti client (the Flatpak) the same way, for reference frames "
             "through goanna_shot. software=true renders on the CPU with no GPU context, "
-            "slowly. restart is the only way to see a C++ change, because the GDExtension is "
+            "slowly. A GPU start takes the shared GPU lock and refuses while another client "
+            "holds it; prefer the render service for frames. restart is the only way to see a C++ change, because the GDExtension is "
             "not reloadable; pass build=true to run cmake first. A fresh client has no "
             "deviations, so a number measured on it is one the committed code produces. stop "
             "only stops clients this session started, unless force=true. Never drive the "
@@ -381,6 +396,17 @@ TOOLS = [
                 "software": {"type": "boolean",
                              "description": "render on lavapipe and llvmpipe, never the GPU. "
                                             "Slow (about one frame a second for Goanna)"},
+                "gpu_compositor": {"type": "boolean",
+                                   "description": "start: put gamescope itself on the GPU "
+                                                  "too. Default false: gamescope composites "
+                                                  "on lavapipe while the client renders on "
+                                                  "the GPU, since gamescope on the card has "
+                                                  "wedged the NVIDIA driver"},
+                "lock_wait": {"type": "number",
+                              "description": "seconds to wait for the GPU lock before "
+                                             "refusing, default 0. A GPU start takes the "
+                                             "shared lock itself and holds it while the "
+                                             "client runs"},
                 "headless": {"type": "boolean",
                              "description": "default true. false opens a window on the "
                                             "desktop: only when the owner asked to watch"},
@@ -703,7 +729,8 @@ def session_tool(args, reg):
         return inst, out
     if action == "start_vanilla":
         try:
-            rec = gh.start_vanilla(host=args.get("host", "127.0.0.1"),
+            rec = gh.start_vanilla(lock_wait=float(args.get("lock_wait", 0)),
+                                   host=args.get("host", "127.0.0.1"),
                                    port=int(args.get("port", 30000)),
                                    name=args.get("name", "vanilla"),
                                    password=args.get("password", ""),
@@ -741,9 +768,13 @@ def session_tool(args, reg):
                            ("software", rec.get("software"))):
             if value is not None and key not in again:
                 again[key] = value
-        for key in ("build", "env", "project", "name", "host", "port", "label", "software"):
+        for key in ("build", "env", "project", "name", "host", "port", "label", "software",
+                    "gpu_compositor"):
             if key in args:
                 again[key] = args[key]
+        # The old supervisor gives the GPU lock back as it exits, a moment
+        # after stop returns.
+        again["lock_wait"] = max(20.0, float(again.get("lock_wait") or 0))
         again["control_port"] = inst.control_port
         again["headless"] = inst.kind == "goanna"
         stopped = stop_instance(inst, force=bool(args.get("force")))
