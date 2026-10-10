@@ -271,10 +271,12 @@ struct LodRegionMesh {
 // owner clears it when the session changes.
 struct LodTileCache {
     // Shared by every mesh worker (goanna_mesh_pool.h) and cleared on the
-    // main thread when the textures change, so both the map and the texture
-    // source calls that fill it are taken under this lock. tileFor returns a
-    // copy rather than a reference for the same reason: a clear must not be
-    // able to invalidate something a worker is still reading.
+    // main thread when the textures change, so the map is read and filled
+    // under this lock. The texture source calls that fill it also take the
+    // texture source's own lock (goanna_textures.h), which is what keeps
+    // them safe against the main thread, always in that order. tileFor
+    // returns a copy rather than a reference: a clear must not be able to
+    // invalidate something a worker is still reading.
     mutable std::mutex mutex;
     struct Entry {
         u32 texture_id = 0;   // array texture id, or 0 for the fallback

@@ -695,6 +695,7 @@ Ref<ImageTexture> GoannaTexture::godotEmissionMask() {
 // GoannaTextureSource
 
 std::string GoannaTextureSource::geometryIdentity() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (!m_geometry_identity.empty()) return m_geometry_identity;
     std::string bytes;
     for (const auto &texture : m_textures) {
@@ -732,17 +733,20 @@ GoannaTextureSource::GoannaTextureSource() {
 GoannaTextureSource::~GoannaTextureSource() = default;
 
 void GoannaTextureSource::dropCompanions() {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     for (auto &t : m_textures)
         if (t)
             t->dropCompanions();
 }
 
 void GoannaTextureSource::setMaterialTable(const MaterialTable *table) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_material_table = table;
     dropCompanions();
 }
 
 void GoannaTextureSource::setInferredReliefStrength(float strength) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (strength < 0.0f)
         strength = 0.0f;
     if (strength == m_relief_strength)
@@ -757,6 +761,7 @@ video::IImage *GoannaTextureSource::getOrGenerateImage(const std::string &name) 
 }
 
 u32 GoannaTextureSource::getTextureId(const std::string &image) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_name_to_id.find(image);
     if (it != m_name_to_id.end())
         return it->second;
@@ -774,18 +779,21 @@ u32 GoannaTextureSource::getTextureId(const std::string &image) {
 }
 
 std::string GoannaTextureSource::getTextureName(u32 id) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (id >= m_textures.size())
         return "";
     return m_textures[id]->getName().getPath().c_str();
 }
 
 video::ITexture *GoannaTextureSource::getTexture(u32 id) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (id == 0 || id >= m_textures.size())
         return nullptr;
     return m_textures[id].get();
 }
 
 video::ITexture *GoannaTextureSource::getTexture(const std::string &name, u32 *id) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     u32 i = getTextureId(name);
     if (id)
         *id = i;
@@ -844,11 +852,13 @@ u32 GoannaTextureSource::nodeLayerScale(const std::string &image) {
 }
 
 void GoannaTextureSource::setImageCaching(bool enabled) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_node_layer_sizing = enabled;
     m_node_layer_asked.clear();
 }
 
 video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::string> &images, u32 *id) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // node_visuals' grouping is over once it makes its first array.
     m_node_layer_sizing = false;
     m_node_layer_asked.clear();
@@ -897,6 +907,7 @@ video::ITexture *GoannaTextureSource::addArrayTexture(const std::vector<std::str
 }
 
 std::string GoannaTextureSource::imageName(u32 texture_id, u16 layer) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     GoannaTexture *gt = goannaTexture(texture_id);
     if (!gt)
         return std::string();
@@ -909,6 +920,7 @@ std::string GoannaTextureSource::imageName(u32 texture_id, u16 layer) {
 }
 
 std::string GoannaTextureSource::companionImage(const std::string &tile, const char *suffix) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     const size_t caret = tile.find('^');
     const std::string base = caret == std::string::npos ? tile : tile.substr(0, caret);
     const size_t dotpos = base.rfind('.');
@@ -961,6 +973,7 @@ static Rgba8 imageToRgba8(video::IImage *img) {
 
 GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture,
         const char *suffix, bool *supported) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     const std::string key = texture + '\x1f' + suffix;
     auto it = m_composed.find(key);
     if (it == m_composed.end()) {
@@ -1050,6 +1063,7 @@ GoannaTexture *GoannaTextureSource::composedCompanion(const std::string &texture
 }
 
 GoannaTexture *GoannaTextureSource::tileCompanion(const std::string &tile, const char *suffix) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto plain = [&]() -> GoannaTexture * {
         const std::string name = companionImage(tile, suffix);
         return name.empty() ? nullptr : dynamic_cast<GoannaTexture *>(getTexture(name));
@@ -1079,6 +1093,7 @@ GoannaTexture *GoannaTextureSource::tileCompanion(const std::string &tile, const
 }
 
 void GoannaTextureSource::buildNodeAnimations(const NodeDefManager *ndef) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (!ndef)
         return;
     auto table = std::make_unique<NodeAnimationTable>();
@@ -1214,6 +1229,7 @@ void GoannaTextureSource::buildNodeAnimations(const NodeDefManager *ndef) {
 }
 
 GoannaTexture *GoannaTextureSource::goannaTexture(u32 id) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (id == 0 || id >= m_textures.size())
         return nullptr;
     return m_textures[id].get();
@@ -1221,6 +1237,7 @@ GoannaTexture *GoannaTextureSource::goannaTexture(u32 id) {
 
 // Copied from TextureSource::getPalette (texturesource.cpp), minus threading.
 Palette *GoannaTextureSource::getPalette(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (name.empty())
         return nullptr;
     auto it = m_palettes.find(name);
@@ -1257,6 +1274,7 @@ Palette *GoannaTextureSource::getPalette(const std::string &name) {
 }
 
 bool GoannaTextureSource::isKnownSourceImage(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_known_source.find(name);
     if (it != m_known_source.end())
         return it->second;
@@ -1273,6 +1291,7 @@ bool GoannaTextureSource::isKnownSourceImage(const std::string &name) {
 }
 
 core::dimension2du GoannaTextureSource::getTextureDimensions(const std::string &image) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (m_node_layer_sizing) {
         // node_visuals pools each tile once, so a name asked again is
         // fillTileAttribs after the grouping: the grouping is over.
@@ -1296,6 +1315,7 @@ core::dimension2du GoannaTextureSource::realTextureDimensions(const std::string 
 }
 
 video::SColor GoannaTextureSource::getTextureAverageColor(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (name.empty())
         return {0, 0, 0, 0};
     video::IImage *image = getOrGenerateImage(name);
@@ -1307,6 +1327,7 @@ video::SColor GoannaTextureSource::getTextureAverageColor(const std::string &nam
 }
 
 float GoannaTextureSource::textureCoverage(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (name.empty())
         return 1.0f;
     auto it = m_coverage_cache.find(name);
@@ -1348,6 +1369,7 @@ float GoannaTextureSource::textureCoverage(const std::string &name) {
 // it is shape. The share is that over the whole variance, so it does not
 // care how contrasty the tile is, only how the contrast is arranged.
 float GoannaTextureSource::textureCoarseness(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (name.empty())
         return 0.0f;
     auto it = m_coarseness.find(name);
@@ -1399,6 +1421,7 @@ float GoannaTextureSource::textureCoarseness(const std::string &name) {
 }
 
 void GoannaTextureSource::insertSourceImage(const std::string &name, video::IImage *img) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_imagesource.insertSourceImage(name, img, true);
     m_known_source[name] = true;
 }
@@ -1460,6 +1483,7 @@ video::IImage *GoannaTextureSource::capImage(const std::string &name, video::IIm
 }
 
 void GoannaTextureSource::finishTextureCap() {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     const std::set<std::string> pending = m_cap_pending;
     for (const std::string &name : pending) {
         if (m_art_dims.find(artNameOf(name)) == m_art_dims.end())
@@ -1517,6 +1541,7 @@ static bool packMayReplace(const std::string &name, video::IImage *img) {
 }
 
 void GoannaTextureSource::insertMediaImage(const std::string &name, video::IImage *img) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     video::IImage *small = capImage(name, img, true);
     m_imagesource.insertSourceImage(name, small ? small : img, packMayReplace(name, img));
     if (small)
@@ -1525,6 +1550,7 @@ void GoannaTextureSource::insertMediaImage(const std::string &name, video::IImag
 }
 
 void GoannaTextureSource::insertLocalImage(const std::string &name, video::IImage *img) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // The pack's own import (loadNativePack, after the server's media): the
     // same exception as packMayReplace. With companions withheld a wholly
     // transparent pack image over art the server sent is a cut that would
@@ -1539,6 +1565,7 @@ void GoannaTextureSource::insertLocalImage(const std::string &name, video::IImag
 }
 
 bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::string &bytes) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     video::IImage *img = goanna_decode_image_memory(bytes, name);
     if (!img)
         return false;
@@ -1557,6 +1584,7 @@ bool GoannaTextureSource::insertMediaImage(const std::string &name, const std::s
 }
 
 bool GoannaTextureSource::insertLocalImage(const std::string &name, const std::string &bytes) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     video::IImage *img = goanna_decode_image_memory(bytes, name);
     if (!img)
         return false;
@@ -1578,6 +1606,7 @@ GoannaShaderSource::GoannaShaderSource() {
 }
 
 const ShaderInfo &GoannaShaderSource::getShaderInfo(u32 id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (id >= m_shaders.size())
         id = 0;
     return m_shaders[id].info;
@@ -1585,6 +1614,7 @@ const ShaderInfo &GoannaShaderSource::getShaderInfo(u32 id) {
 
 u32 GoannaShaderSource::getShader(const std::string &name, const ShaderConstants &input_const,
         video::E_MATERIAL_TYPE base_mat, IShaderUniformSetterRC *) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     int mt = TILE_MATERIAL_BASIC;
     auto it = input_const.find("MATERIAL_TYPE");
     if (it != input_const.end() && std::holds_alternative<int>(it->second))
@@ -1612,16 +1642,19 @@ u32 GoannaShaderSource::getShader(const std::string &name, const ShaderConstants
 }
 
 bool GoannaShaderSource::usesArrayTexture(u32 id) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return id < m_shaders.size() && m_shaders[id].array_texture;
 }
 
 MaterialType GoannaShaderSource::materialType(u32 id) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (id >= m_shaders.size())
         return TILE_MATERIAL_BASIC;
     return m_shaders[id].material_type;
 }
 
 video::E_MATERIAL_TYPE GoannaShaderSource::baseMaterial(u32 id) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (id >= m_shaders.size())
         return video::EMT_SOLID;
     return m_shaders[id].info.base_material;

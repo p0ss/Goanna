@@ -39,14 +39,14 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
 // state, which stepInteract writes, so it runs on the main thread with
 // session.mapLock() held.
 //
-// meshGathered turns that copy into geometry, reading only the copy and a
-// snapshot of the block's carves (CarveStore locks itself), so it runs on
-// any thread. The one exception is a block with a dig crack in it: that
-// path asks the texture source for the crack overlay
-// (transplant/client/mapblock_mesh.cpp), which is not thread safe here, so
-// gatherMeshData reports it and the caller meshes that block inline. It is
-// one block, the one under the player's cursor, and it re-meshes every crack
-// step anyway.
+// meshGathered turns that copy into geometry, reading only the copy, a
+// snapshot of the block's carves (CarveStore locks itself) and the texture
+// and shader sources, which lock themselves (goanna_textures.h): a crack,
+// the live dig's or a stored carve's, asks for crack_anylength.png by name
+// (transplant/client/mapblock_mesh.cpp). So it runs on any thread. The block
+// with the live dig crack in it is still meshed inline, as gatherMeshData
+// reports it: it re-meshes on every crack step, and meshBlock stamps the
+// crack level from the interaction state, which is the main thread's.
 bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &out, bool &has_crack);
 std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data);
 

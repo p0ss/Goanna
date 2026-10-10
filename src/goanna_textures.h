@@ -17,23 +17,31 @@
 // fills the texture source in GoannaSession::prepareContentIfReady (media,
 // packs, node visuals, animation arrays, the material table) and later in
 // loadPushedMedia, and it is the only thread that makes Godot textures
-// (godotTexture, godotArray and the rest). The near mesh workers mesh from a
-// MeshMakeData copy and are meant to leave it alone; a block being dug would
-// ask it for the crack overlay, so that block is meshed inline instead
-// (goanna_mesher.h). One exception, not yet guarded: a stored carve's crack
-// (GOANNA_PERSISTENT_CRACK) still makes MapBlockMesh ask for
-// crack_anylength.png by name on the worker. The far mesh workers call it,
-// from tileFor in goanna_lod.cpp, for ids, names, average colours and
-// nodeAnimation; those calls are serialised against each other by
-// LodTileCache::mutex but not against the main thread, so they are only
-// safe while nothing on the main thread adds a texture at the same moment.
-// The node animation table is the one piece built for lock free reading
-// from workers; see buildNodeAnimations.
+// (godotTexture, godotArray and the rest). The main thread keeps adding to
+// it after content is prepared: entity and item textures, pushed media.
+//
+// The mesh workers use it too. A far worker resolves tiles (tileFor in
+// goanna_lod.cpp) to ids, names, average colours and node animations, and
+// can add a texture while doing so; a near worker meshing a stored carve's
+// crack (GOANNA_PERSISTENT_CRACK) asks MapBlockMesh for crack_anylength.png
+// by name. So every public method of GoannaTextureSource that reads or
+// writes its tables, the image source's cache included, takes m_mutex, a
+// recursive mutex because the methods call one another. A GoannaTexture,
+// once made, is never removed or moved, and its CPU side (name, image,
+// layer names) never changes, so a pointer to one stays valid after the
+// lock is let go. Its Godot side is the main thread's alone. The node
+// animation table is read without the lock; see buildNodeAnimations.
+//
+// The shader source is read by the near workers (MapBlockMesh asks for each
+// buffer's ShaderInfo) while the main thread can add shaders for item and
+// wield meshes, so it has a mutex of its own; see GoannaShaderSource.
 
 #include <atomic>
+#include <deque>
 #include <map>
 #include <set>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -447,6 +455,11 @@ public:
     void dropCompanions();
 
 private:
+    // Taken by every public method that touches the tables below or the
+    // image source; see the thread notes at the top of this file. Held
+    // across a whole image generation, so a worker resolving a new tile can
+    // keep the main thread waiting for that long, once per tile.
+    mutable std::recursive_mutex m_mutex;
     static u32 texelCapFor(u32 size) { return size / 16; }
     // img held to the cap, as a new image the caller drops, or nullptr when
     // it is within it. Records its art first if it is the first image of
@@ -510,7 +523,12 @@ private:
 // Hands node_visuals a shader id for each (material type, base material)
 // and remembers what each id meant, so GoannaClient::keyForIrr can choose a
 // Godot material from a mesh buffer. Filled mainly while node visuals are
-// filled in GoannaSession::prepareContentIfReady, on the main thread.
+// filled in GoannaSession::prepareContentIfReady, on the main thread, and
+// later on the main thread too, whenever an item or wield mesh first asks
+// for its shader. The near mesh workers read it meanwhile (getShaderInfo,
+// from MapBlockMesh), so every method takes m_mutex, and the entries sit in
+// a deque so that the ShaderInfo reference getShaderInfo returns stays valid
+// when a later id is added. An entry never changes once added.
 class GoannaShaderSource final : public IWritableShaderSource {
 public:
     GoannaShaderSource();
@@ -542,7 +560,8 @@ private:
         MaterialType material_type = TILE_MATERIAL_BASIC;
         bool array_texture = false;
     };
-    std::vector<Entry> m_shaders;
+    mutable std::mutex m_mutex;
+    std::deque<Entry> m_shaders;
     std::map<std::string, u32> m_keys;
 };
 

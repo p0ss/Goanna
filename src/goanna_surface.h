@@ -89,9 +89,10 @@ struct SurfaceChunk {
 // and `sources` and `ground` are the chains and ground patches of the meshes
 // already published, so the surface can leave a hole exactly where the voxel
 // far field covers it. The definition, texture and material pointers are the
-// session's, read only, and the tile cache takes its own lock. The result is
-// partitioned into `chunks`, which the main thread uploads a few at a time in
-// surfacePublish, keeping the old surface drawn until all of them are in.
+// session's; the tile cache and the texture source behind it take their own
+// locks (goanna_lod.h, goanna_textures.h). The result is partitioned into
+// `chunks`, which the main thread uploads a few at a time in surfacePublish,
+// keeping the old surface drawn until all of them are in.
 struct SurfaceJob : MeshJob {
     SurfaceTiles tiles;
     SurfaceCoverage coverage;

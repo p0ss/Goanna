@@ -538,7 +538,8 @@ regions into `LodRegionJob`s, and `lodCollectMeshes` publishes them with
    and sends `INTERACT_START_DIGGING`. As the dig goes on it raises the
    crack level and queues that block with `queueBlockUpdate`. The next
    `poll_blocks` remeshes it inline with `meshBlock`, not on a worker,
-   because the crack needs the texture source.
+   because each crack step remeshes it and the crack level comes from the
+   main thread's interaction state.
    Burst events go into `m_dug_nodes` for `particles.gd`.
 3. When the dig completes it predicts the result as Luanti's client does
    (`removeNodeAndUpdate`, or the node's `node_dig_prediction`), queues the

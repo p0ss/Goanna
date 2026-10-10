@@ -346,8 +346,9 @@ void GoannaClient::set_mesh_threads(int threads) {
 // 3x3x3 neighbourhood into `data`, and the light field copied the same
 // neighbourhood's light and occupancy, both on the main thread under the map
 // lock. What is left is the two expensive parts, Luanti's mesher and the
-// occlusion trace, neither of which touches the map, Godot or (for a block
-// with no dig crack in it) the texture source.
+// occlusion trace, neither of which touches the map or Godot. The mesher
+// does read the shader source, and the texture source for a stored carve's
+// crack; both lock themselves (goanna_textures.h).
 namespace {
 struct NearBlockJob : goanna::MeshJob {
     goanna::GoannaSession *session = nullptr;
@@ -400,7 +401,8 @@ struct NearBlockJob : goanna::MeshJob {
 // chains, membership and drawn cell sizes, and the three pointers below are
 // owned by the session and outlive the job because the pool is stopped before
 // the session goes. The tile cache is shared with the other workers and takes
-// its own lock (goanna_lod.h, LodTileCache).
+// its own lock (goanna_lod.h, LodTileCache), and the texture source it asks
+// takes another (goanna_textures.h).
 namespace {
 struct LodRegionJob : goanna::MeshJob {
     LodRegionSnapshot snap;
@@ -758,9 +760,10 @@ bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
     bool has_crack = false;
     if (!goanna::gatherMeshData(*m_session, block, *job->data, has_crack))
         return false;
-    // The block being dug asks the texture source for the crack overlay while
-    // it meshes, which is main thread only here, and it re-meshes on every
-    // crack step anyway. One block, meshed inline.
+    // The block being dug re-meshes on every crack step and has its crack
+    // level stamped from the interaction state (meshBlock), so it is meshed
+    // inline. One block. A stored carve's crack meshes on a worker; the
+    // texture source it asks locks itself.
     if (has_crack)
         return false;
     job->session = m_session.get();

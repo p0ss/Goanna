@@ -222,6 +222,12 @@ target_include_directories(goanna_upright_sprite_test PRIVATE src)
 add_executable(goanna_tile_companion_test EXCLUDE_FROM_ALL src/goanna_tile_companion_test.cpp)
 target_include_directories(goanna_tile_companion_test PRIVATE src)
 target_link_libraries(goanna_tile_companion_test PRIVATE goanna luanti_core godot::cpp)
+# The texture and shader sources used from a worker while the main thread
+# adds to them, as the mesh workers do once content is prepared. Built with
+# -fsanitize=thread it shows any access they leave unguarded.
+add_executable(goanna_texture_threads_test EXCLUDE_FROM_ALL src/goanna_texture_threads_test.cpp)
+target_include_directories(goanna_texture_threads_test PRIVATE src)
+target_link_libraries(goanna_texture_threads_test PRIVATE goanna luanti_core godot::cpp Threads::Threads)
 add_executable(goanna_mining_cycle_test EXCLUDE_FROM_ALL
     src/goanna_mining_cycle_test.cpp src/goanna_radial_form.cpp)
 target_include_directories(goanna_mining_cycle_test PRIVATE src)
@@ -307,6 +313,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_overlay_companions_test
     goanna_shared_cache_test
     goanna_texture_size_test
+    goanna_texture_threads_test
     goanna_tile_companion_test
     goanna_mining_cycle_test
     goanna_radial_form_test

@@ -4,7 +4,8 @@
 // The LOD chain builder and reducer, the region snapshot, and the far region
 // mesher (meshLodRegion): cull, merge into quads, sample light and trace
 // occlusion per vertex. Runs on whichever thread goanna_lod.h names for each
-// entry point; the only shared state is the LodTileCache, under its mutex.
+// entry point; the shared state is the LodTileCache, under its mutex, and the
+// texture source behind it, under its own.
 
 #include "goanna_lod.h"
 
@@ -679,8 +680,9 @@ namespace {
 
 // The tile behind (content, side), resolved once.
 //
-// Runs on a mesh worker, so the cache and the texture source calls that fill
-// it are both under cache.mutex. Nothing here creates a Godot object: the
+// Runs on a mesh worker, so the cache is under cache.mutex, and each texture
+// source call takes the texture source's own lock as well, since the main
+// thread adds textures at any time. Nothing here creates a Godot object: the
 // texture source is asked only for an id, a name, an average colour and its
 // GoannaTexture wrapper, and the Godot side texture is made separately, on
 // the main thread, on first use (goanna_textures.h). Returns a copy so a
