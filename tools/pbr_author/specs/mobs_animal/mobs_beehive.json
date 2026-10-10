@@ -1,0 +1,54 @@
+{
+ "class": "wood",
+ "micro": "wood",
+ "micro_dir": "h",
+ "sss": 0,
+ "materials": {
+  "straw": {
+   "mode": "shade",
+   "base": 0.4,
+   "span": 0.5,
+   "levels": 3,
+   "detail": 0.3,
+   "joint": 0.5,
+   "smooth": 0.26,
+   "smooth_spread": 0.06
+  },
+  "leaf": {
+   "mode": "shade",
+   "base": 0.78,
+   "span": 0.14,
+   "levels": 2,
+   "detail": 0.3,
+   "joints": false,
+   "smooth": 0.36,
+   "smooth_spread": 0.04
+  },
+  "outline": {
+   "mode": "flat",
+   "base": 0.3,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.2
+  },
+  "hole": {
+   "mode": "flat",
+   "base": 0.0,
+   "span": 0,
+   "micro": 0,
+   "smooth": 0.1
+  }
+ },
+ "palette": {
+  "#495a1b": "leaf",
+  "#617c1e": "leaf",
+  "#72951c": "leaf",
+  "#81a820": "leaf",
+  "#8b9c3a": "leaf",
+  "#98bb25": "leaf",
+  "#9aa776": "leaf",
+  "#a4ad27": "leaf",
+  "#3a301c": "outline",
+  "#161614": "hole"
+ }
+}
