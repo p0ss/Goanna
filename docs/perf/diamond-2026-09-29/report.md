@@ -12,7 +12,8 @@ response on its separate texture layer.
 ## Validation
 
 - C++ build: `cmake --build build -j 3` passed.
-- GDScript parse check for `project/diamond_study.gd` passed on Godot 4.5.1.
+- GDScript parse check for `project/studies/diamond_study.gd` passed on Godot
+  4.5.1.
 - Production opaque and cut-out node/entity shaders rendered in the offline
   study. Moving the lamp changes the highlights without changing the art.
 - With every illumination source disabled, treatment on/off frames are

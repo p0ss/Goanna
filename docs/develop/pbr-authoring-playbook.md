@@ -322,7 +322,7 @@ which the mortar, and puts real structure there.
    read, the output directory (one per agent, never cleared), and the
    rules the family is most likely to break.
 4. **Have the judging ready.** The close-up ramp,
-   `project/material_ramp.tscn` with `GOANNA_CLOSE=1`, takes
+   `project/studies/material_ramp.tscn` with `GOANNA_CLOSE=1`, takes
    `GOANNA_RAMP_STEMS` (comma separated, `side+top` pairs dress a block the
    way the world does) and `GOANNA_BAKED_DIR` pointing at the agent's
    output. Run it with `GOANNA_TIMES=afternoon,low,lamp`: the afternoon sun

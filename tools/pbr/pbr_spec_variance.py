@@ -38,7 +38,7 @@ Usage:
 
 Without --out the _s.png files are rewritten in place. --stems limits the
 pass to a comma separated list of texture stems, which is how the twelve
-core surfaces were judged on the ramp (project/material_ramp.tscn) before
+core surfaces were judged on the ramp (project/studies/material_ramp.tscn) before
 the whole pack was touched. --classes is the same JSON tools/pbr/pbr_bake.py
 takes; without it the class is read back out of the baked bytes, which
 carry it: G says metal, B says which translucent class, and the smoothness

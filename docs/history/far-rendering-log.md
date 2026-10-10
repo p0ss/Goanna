@@ -1242,8 +1242,8 @@ well: a sand face whose neighbour layer is planks would have taken the
 treatment on half its pixels and not the other half. One rounded index fixes
 both, and it went in on the same day the treatment did.
 
-**Measured offline first.** `project/material_field.tscn` renders strips of
-real pack textures through `nodes_array.gdshader` with no server, and it
+**Measured offline first.** `project/studies/material_field.tscn` renders strips
+of real pack textures through `nodes_array.gdshader` with no server, and it
 already had every uniform this needed. Two modes were added to
 `material_field.gd`, `GOANNA_FIELD_LOD` and `GOANNA_FIELD_LAYER`, described
 under "Instruments" below. With the tile at array layer 0, which is where
@@ -2003,7 +2003,7 @@ enters into it. The distance rules:
   absorbed anyway, and the forcing gives the far tier the same answer its
   zero measured thickness cannot.
 
-Verified offline in `project/water_seam.tscn`, a fixture that draws one
+Verified offline in `project/studies/water_seam.tscn`, a fixture that draws one
 sheet of water split at 240 nodes into a near strip and a far tier strip
 under a sunset (`GOANNA_SEAM_OLD=1` reproduces the old material set for a
 before shot): before, the far strip is a flat dark band with a hard edge;

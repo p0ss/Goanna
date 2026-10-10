@@ -45,7 +45,7 @@ style. The full volumetric style's density field is unchanged.
   weather variation, hidden clouds and reduced layer budgets. The sample
   area now spans enough ground to contain the larger, sparser bodies.
 - `tests/graphics_profiles.gd`: zero failures.
-- `tests/cloud_layer_study.gd`: all three styles in fair weather, storm,
+- `studies/cloud_layer_study.gd`: all three styles in fair weather, storm,
   between-layer, above-layer and mountain views. Hidden clouds and zero
   coverage produced identical images.
 - `capture_edges()` in the same study: four cardinal views plus straight

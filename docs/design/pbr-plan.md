@@ -38,7 +38,8 @@ near/far boundary from reading as two different worlds.
 - The automatic bump path derives relief from diffuse luminance when no normal
   map exists.
 - Lighting defaults are judged with the standalone chart in
-  `project/lighting_chart.tscn` rather than by an uncontrolled world view.
+  `project/studies/lighting_chart.tscn` rather than by an uncontrolled world
+  view.
 - Settings expose normal, AO, roughness, specular, emission, surface detail,
   bevel and leaf-translucency strengths.
 

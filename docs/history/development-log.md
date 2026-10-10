@@ -894,11 +894,11 @@ one heading, ending at the v0.8.0-alpha tag.
 - Material calibration, 2026-09-15. Feedback on Mineclonia in full sun
   said "plastic", and the guess behind it was missing normal and albedo
   maps. Two new offline fixtures measure the renderer instead of guessing:
-  `project/material_ramp.tscn` (a roughness and metalness ramp beside the
-  pack's core sets, with the sun swept to each column's mirror direction)
-  and `project/water_ramp.tscn` (water over sand at five depths beside dry
-  sand). Findings in `docs/history/material-calibration.md`: the pack's terrain
-  shows almost no specular in daylight, spreading its roughness maps
+  `project/studies/material_ramp.tscn` (a roughness and metalness ramp beside
+  the pack's core sets, with the sun swept to each column's mirror direction)
+  and `project/studies/water_ramp.tscn` (water over sand at five depths beside
+  dry sand). Findings in `docs/history/material-calibration.md`: the pack's
+  terrain shows almost no specular in daylight, spreading its roughness maps
   (`tools/pbr/pbr_spec_variance.py`, new) moves nothing by more than a count in
   the sun, a dielectric loses the sun glint above smoothness 230, and no
   surface can show a mirror because nothing but the sky is there to
@@ -1217,7 +1217,8 @@ an RTX 3090, unless marked otherwise.
 ## Log since v0.3.0-alpha (2026-08-28)
 
 Verified on a local Mineclonia server on Luanti 5.17.0 with Godot 4.5.1
-unless marked otherwise; the offline fixture is `project/water_seam.tscn`.
+unless marked otherwise; the offline fixture is
+`project/studies/water_seam.tscn`.
 
 - The near/far water hand-off no longer draws a seam. Both tiers run the
   same water material with the same parameters and every difference is a

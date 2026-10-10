@@ -12,7 +12,7 @@ measurement; an in-world screenshot is only confirmation (see
 
 ```sh
 PROBE_OUT=/tmp/ramp RAMP_OUT=/tmp/ramp/ramp.json \
-  godot --path project material_ramp.tscn
+  godot --path project studies/material_ramp.tscn
 ```
 
 Three rows of node sized cubes through `nodes_array.gdshader`: a grey
@@ -59,7 +59,7 @@ What it settled, patch means in sRGB, the sun at 1.0:
 
 ```sh
 PROBE_OUT=/tmp/w WATER_OUT=/tmp/w/water.json \
-  godot --path project water_ramp.tscn
+  godot --path project studies/water_ramp.tscn
 ```
 
 A sheet of `water.gdshader` over sand stepped from half a node to eight

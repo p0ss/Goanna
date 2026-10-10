@@ -49,5 +49,5 @@ python3 tools/test/lava-review/run_mineclonia.py stylised baked/stylised-lava/te
 ```
 
 The runner starts its own client on control port 30882 and closes it after
-the four captures. `project/tests/bake_stylised_lava.gd` regenerates the
+the four captures. `project/studies/bake_stylised_lava.gd` regenerates the
 stylised artwork from the supplied Material Maker shader export.

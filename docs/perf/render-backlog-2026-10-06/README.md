@@ -7,7 +7,7 @@ faces.
 Setup: RTX 3090, Godot 4.5.1, Luanti 5.17.0 server, Mineclonia release
 38561, profile High read back at every launch, adapter "NVIDIA GeForce RTX
 3090", `mat_parallax` 1. The build was main's checkout as it stood (HEAD
-dec70408, then 019bc7d1, each with `project/material_ramp.gd` and
+dec70408, then 019bc7d1, each with `project/studies/material_ramp.gd` and
 `project/project.godot` dirty), the pack its `pbr_packs/mineclonia`.
 
 ## What broke on the GPU, and the fixes

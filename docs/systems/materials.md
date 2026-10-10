@@ -76,7 +76,7 @@ the enderman's eye byte 6 (0.024) at 0.014. The plain byte 10 moved from
 as it always has and as the far averages, the gem path and ice do, so it
 scales F0 by its square and its default of 1 changes nothing. The metal
 branch is unchanged: a metal's F0 is its albedo whatever `SPECULAR` says.
-`project/material_probe.tscn` checks the decode against
+`project/studies/material_probe.tscn` checks the decode against
 `StandardMaterial3D` at F0 bytes 6, 10, 15, 20 and 26. The record is
 `docs/perf/specular-mapping-2026-10-03/`.
 
@@ -334,7 +334,7 @@ Clarity scales how much the gem lets through: the ore recess's view of the
 rock, the mix between its inner planes, and an item's transparency. Mese
 and quartz at full clarity turned the colour of the rock behind them.
 
-`project/gem_study.tscn` renders every kind as ore, block and item from
+`project/studies/gem_study.tscn` renders every kind as ore, block and item from
 the games' art, and can render the same scene with an older copy of the
 shaders. See [the gem study](../perf/gems-2026-09-29/report.md). Glowing and
 blended gems (caverealms, Everness crystal blocks, `too_many_stones`) take
@@ -355,8 +355,8 @@ record of the 2026-10-01 pass is in
 plus U (right in the image), green above 128 toward the top of the image, with
 no green flip. B is ambient occlusion, A height (255 the crest), which the
 parallax march below reads. `_s` is as in the table above.
-`project/entity_normal_probe.tscn` renders a probe dome in that encoding on all
-six face directions of a mob box, plain and mirrored, beside a quad on
+`project/studies/entity_normal_probe.tscn` renders a probe dome in that encoding
+on all six face directions of a mob box, plain and mirrored, beside a quad on
 SurfaceTool's tangents (the frame the node mesher matches), and fails unless
 every quad lights on the side the light comes from. Until 2026-10-01 only gem
 items had a frame rebuilt from their UVs; every other entity normal map was
@@ -470,10 +470,10 @@ of the range inside one face) drew as vertical slices of rim and floor
 `GOANNA_ENTITY_PARALLAX_REFINE=0` restores the chord. The node path keeps its
 chord: its baked and authored fields are smooth enough that the chord is better
 there, and stepped node maps were not tested. Gems keep no parallax.
-`project/entity_parallax_probe.tscn` checks containment, the mirrored march, the
-shadow, the silhouette and the walls. Not handled: a face whose connected UVs
-are not a rectangle clamps to their bounding box, and a skin whose albedo is
-painted rather than pixel art takes its own pixels as art texels. See
+`project/studies/entity_parallax_probe.tscn` checks containment, the mirrored
+march, the shadow, the silhouette and the walls. Not handled: a face whose
+connected UVs are not a rectangle clamps to their bounding box, and a skin whose
+albedo is painted rather than pixel art takes its own pixels as art texels. See
 `docs/perf/entity-parallax-2026-10-02/`.
 
 **Hair's highlight.** Hair reads as hair mostly by its highlight, a

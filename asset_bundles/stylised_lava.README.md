@@ -9,7 +9,7 @@ Bake its colour graph into a native lava pack with:
 
 ```sh
 ../Godot_v4.5.1-stable_linux.x86_64 --path project \
-    --script res://tests/bake_stylised_lava.gd
+    --script res://studies/bake_stylised_lava.gd
 ```
 
 This writes three lava texture names and `texture_pack.conf` under

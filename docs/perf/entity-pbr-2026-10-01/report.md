@@ -16,10 +16,10 @@ east. Before is 7487da7; after is this branch.
 
 Luanti's skinned and item meshes carry no tangents; Godot then builds a
 frame from the vertex normal alone. entity_common.gdshaderinc rebuilt it
-from the UVs only for gem items. project/entity_normal_probe.tscn renders
-mob-style quads (no tangent array), six face directions plain and mirrored,
-beside a SurfaceTool reference, with one probe dome lit from the right and
-the top.
+from the UVs only for gem items. project/studies/entity_normal_probe.tscn
+renders mob-style quads (no tangent array), six face directions plain and
+mirrored, beside a SurfaceTool reference, with one probe dome lit from the right
+and the top.
 
 - probe-before.png: 19 of 28 checks wrong. Faces along Z show the dome
   turned a quarter; the others are mirrored on one axis or both.

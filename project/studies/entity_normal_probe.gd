@@ -26,7 +26,7 @@ extends Node3D
 # (smaller V). That is the encoding the node path decodes with no green flip.
 #
 # Run, inside headless gamescope (it needs a display):
-#   godot --path project entity_normal_probe.tscn
+#   godot --path project studies/entity_normal_probe.tscn
 # ENTITY_PROBE_OUT names a directory for right.png and top.png. Exit code 0
 # when every quad agrees, 1 otherwise.
 

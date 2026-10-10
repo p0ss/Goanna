@@ -34,7 +34,7 @@ extends Node3D
 #     (parallax_refine 0) drew them as a staircase of slices.
 #
 # Run, inside headless gamescope (it needs a display):
-#   godot --path project entity_parallax_probe.tscn
+#   godot --path project studies/entity_parallax_probe.tscn
 # ENTITY_PROBE_OUT names a directory for on.png, off.png and chord.png. Exit code 0
 # when every check passes, 1 otherwise.
 

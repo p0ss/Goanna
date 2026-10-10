@@ -23,7 +23,7 @@ extends Node3D
 #                           from the game the server is running
 #   GOANNA_GALLERY_SET=items  show tools and armour rather than materials
 #
-# Run: godot --path project material_gallery.tscn
+# Run: godot --path project studies/material_gallery.tscn
 
 # label, texture stem, MaterialClass (src/goanna_materials.h)
 const CASES := [

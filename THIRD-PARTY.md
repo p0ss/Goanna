@@ -193,7 +193,7 @@ These are reproduced here under those terms, for documentation.
 the Material Maker website's library,
 <https://www.materialmaker.org/material?id=222>, released there under CC0
 1.0. The Material Maker export and its four input images are kept
-unchanged. `project/tests/bake_stylised_lava.gd` bakes them into lava tiles,
+unchanged. `project/studies/bake_stylised_lava.gd` bakes them into lava tiles,
 and `docs/perf/lava-mineclonia-2026-09-18/stylised.png` is a render of the
 result. The library gives each material its own author and licence (CC0, CC
 BY or CC BY-SA), so any further Material Maker material needs its own entry

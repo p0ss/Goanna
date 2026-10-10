@@ -18,7 +18,7 @@ exposure, star opacity and silhouette. The old image uses the previous
 `sky.gdshader`; the new image uses the production shader and its include.
 The fixture's star alpha is 0.4117647, matching the received server value.
 The silhouette is a stand-in, not server terrain. Other fixture conditions
-are specified in `project/night_sky_study.gd`.
+are specified in `project/studies/night_sky_study.gd`.
 
 ## Checks
 

@@ -60,7 +60,7 @@ extends Node3D
 # sun is 0.53; main.gd leaves Godot's 0, a point, which is what makes the
 # smoothest steps lose the glint: the lobe is a needle that never lands).
 #
-# Run: PROBE_OUT=/tmp/ramp godot --path project material_ramp.tscn
+# Run: PROBE_OUT=/tmp/ramp godot --path project studies/material_ramp.tscn
 
 const STEPS := [0, 64, 128, 192, 230, 255]
 

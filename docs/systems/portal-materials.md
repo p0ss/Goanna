@@ -53,7 +53,7 @@ The offline visual study uses synthetic tiles and separate node quads:
 
 ```sh
 tools/goanna-headless gpu-free
-tools/goanna-headless fixture res://portal_study.tscn --size 1280x800
+tools/goanna-headless fixture res://studies/portal_study.tscn --size 1280x800
 ```
 
 It captures both materials, a moved camera, a zero-depth End comparison,

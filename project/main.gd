@@ -132,7 +132,7 @@ var test_mode := false
 var _virtual_capture := false
 # Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE/EXPOSURE/
 # SKY_FILL and then settable live from the Lighting settings tab. The values
-# are the recipe settled on project/lighting_chart.tscn on 2026-08-21
+# are the recipe settled on project/studies/lighting_chart.tscn on 2026-08-21
 # (docs/design/pbr-plan.md step 3): sun 1.0 and white 4.0 with exposure 0.46 put a
 # sunlit stone top at 1.28 times its albedo and snow at 229 with no clipping,
 # where 1.5, 1.5 and 1.0 had put stone at 1.87 times and snow flat white;
@@ -594,7 +594,7 @@ func _ready() -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	# The exposure was decided on project/lighting_chart.tscn, 2026-08-21,
+	# The exposure was decided on project/studies/lighting_chart.tscn, 2026-08-21,
 	# by the numbers in docs/design/pbr-plan.md step 3: it used to be too hot
 	# (sunlit stone of albedo 131 rendered at 207, snow and sea lanterns
 	# clipped to flat white with every texel gone), and the fix is sun 1.0,
@@ -613,7 +613,7 @@ func _ready() -> void:
 	# Luanti's does.
 	#
 	# GOANNA_AMBIENT does nothing, and cannot be made to while sdfgi_enabled
-	# is true below. Measured with project/lighting_chart.gd, which renders
+	# is true below. Measured with project/studies/lighting_chart.gd, which renders
 	# this same recipe with no world attached, sampling a dirt wall in a
 	# roofed bay (values are srgb8, sun at midday):
 	#

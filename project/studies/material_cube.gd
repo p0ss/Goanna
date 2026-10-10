@@ -18,7 +18,7 @@ extends Node3D
 #   GOANNA_SHOT=<dir>         write frames here and quit
 #   GOANNA_MAT_TOD=<0..1>     where the sun sits, default mid morning
 #
-# Run: godot --path project material_cube.tscn
+# Run: godot --path project studies/material_cube.tscn
 
 const CASES := [
 	["albedo only", 0.0, 0.04, false, 0.0, 0.0, 1.0],

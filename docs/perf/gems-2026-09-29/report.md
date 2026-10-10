@@ -1,7 +1,7 @@
 # Gem treatment beyond diamond, 2026-09-29
 
-`project/gem_study.tscn` draws each gem kind as ore, block and item through
-the production shaders (`nodes_array`, `nodes_array_scissor`,
+`project/studies/gem_study.tscn` draws each gem kind as ore, block and item
+through the production shaders (`nodes_array`, `nodes_array_scissor`,
 `entity_diamond`), from the games' own textures: Mineclonia for diamond,
 emerald, amethyst and quartz, minetest_game for mese. The mese ore is
 `default_stone.png` with `default_mineral_mese.png` composited over it, as

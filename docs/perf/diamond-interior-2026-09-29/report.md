@@ -18,7 +18,7 @@ texture scales retain the limitations described in the original study.
 ## Validation
 
 - Godot 4.5.1 Forward+, software Vulkan in headless gamescope.
-- `project/diamond_study.gd` parses and renders production shaders.
+- `project/studies/diamond_study.gd` parses and renders production shaders.
 - Interior on/off produces different frames at all three tested viewing
   angles. The comparison retains the same lamp and camera for each pair.
 - Scattering on/off produces different frames with surface and inner

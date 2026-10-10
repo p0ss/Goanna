@@ -282,6 +282,6 @@ how the cheap correct version gets lost.
 - `build/goanna_light_test` checks the tracer against a dense reference
   integral on shapes whose answer is known by inspection, and fails on an
   ordering inversion or an error over 0.12.
-- `project/lighting_chart.tscn` is where the shader's treatment of these
+- `project/studies/lighting_chart.tscn` is where the shader's treatment of these
   channels is judged, per `docs/design/pbr-plan.md`, against printed numbers
   rather than screenshots.

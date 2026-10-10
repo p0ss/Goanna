@@ -130,7 +130,7 @@ are unchanged. The control is gated outside the protected twilight interval.
 
 ## The fixture
 
-`project/dawn_sweep.tscn` renders the real shaders over a boxy stand-in
+`project/studies/dawn_sweep.tscn` renders the real shaders over a boxy stand-in
 ridge, sweeping the sun through dawn twice (flat and ridge variants), with
 no server. `GOANNA_SWEEP_ELEVS`, `GOANNA_SWEEP_RIDGE` and
 `GOANNA_MIST_GLOW` narrow a calibration run. Judge composition there;
@@ -194,9 +194,9 @@ authorities for the warm horizon. Celestial detail and the new scattering
 are omitted from the radiance cubemap; they do not add ambient light or
 appear in that reflection fallback.
 
-`project/night_sky_study.gd` is an offline fixture with its own viewport.
-Add it to a developer client and await `capture(directory)` to save night,
-twilight, daylight and cloud views. It also compares hidden stars against
+`project/studies/night_sky_study.gd` is an offline fixture with its own
+viewport. Add it to a developer client and await `capture(directory)` to save
+night, twilight, daylight and cloud views. It also compares hidden stars against
 zero count/scale and checks that disabling the additions leaves full
 daylight identical. It does not replace a server or performance test.
 The [night-sky study](../perf/night-sky-2026-09-29/report.md) records the first

@@ -112,7 +112,7 @@ result:
   budget that fills half an area a second is being spent on layers the player
   cannot see. That measurement is what "Where the summary budget actually
   went" is.
-- `project/material_field.tscn`, run as `godot --path project
+- `project/studies/material_field.tscn`, run as `godot --path project
   material_field.tscn`, draws strips of a pack's own textures through
   `nodes_array.gdshader` with no server, no streaming and no privileges, so a
   question about the shader can be answered when no client on the machine

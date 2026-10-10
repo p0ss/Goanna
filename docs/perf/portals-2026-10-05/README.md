@@ -1,6 +1,6 @@
 # Portal shader study
 
-Offline captures from `project/portal_study.tscn`, Godot 4.5.1 Forward+,
+Offline captures from `project/studies/portal_study.tscn`, Godot 4.5.1 Forward+,
 RTX 3090, 1280 by 800, through `tools/goanna-headless fixture`. Synthetic
 flat textures and block frames; these are not live Mineclonia screenshots.
 These initial captures predate the underwater absorption and alpha

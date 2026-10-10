@@ -103,7 +103,7 @@ global uniform vec4 goanna_water_sea;
 // tile at half strength, lit by the full sun, which made every lake a
 // painted blue floor brighter than the reflection could ever be, and the
 // bed seen through it was lit a second time on the way out. Measured on
-// project/water_ramp.tscn, 2026-09-15: deep water sat at 0.7 of the dry
+// project/studies/water_ramp.tscn, 2026-09-15: deep water sat at 0.7 of the dry
 // sand's luma and 0.45 saturation against the sand's 0.27.
 uniform float body_gain : hint_range(0.0, 1.0) = 0.35;
 uniform bool waving = true;

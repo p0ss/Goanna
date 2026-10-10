@@ -27,7 +27,7 @@ extends Node3D
 # the way the world draws it, instead of a plain box; GOANNA_MAT then
 # reaches the bed's material (parallax=0 switches the march off).
 #
-# Run: PROBE_OUT=/tmp/w godot --path project water_ramp.tscn
+# Run: PROBE_OUT=/tmp/w godot --path project studies/water_ramp.tscn
 
 const DEPTHS := [0.5, 1.0, 2.0, 4.0, 8.0]
 const STRIP_W := 6.0

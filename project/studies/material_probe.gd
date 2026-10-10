@@ -21,7 +21,7 @@ extends Node3D
 # are supposed to decode those bytes into. If the decode is right all three
 # are the same pixel. Any difference is ours.
 #
-# Run: godot --path project material_probe.tscn
+# Run: godot --path project studies/material_probe.tscn
 
 const SIZE := 1
 

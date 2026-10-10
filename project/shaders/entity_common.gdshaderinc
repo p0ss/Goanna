@@ -172,7 +172,7 @@ void fragment() {
 	// Every surface with a normal map needs it, not only gems: Godot's
 	// fallback frame comes from the vertex normal alone, so on a mob skin
 	// it turned or mirrored the relief on every face and flattened it on
-	// the faces along Z (project/entity_normal_probe.tscn shows both).
+	// the faces along Z (project/studies/entity_normal_probe.tscn shows both).
 	vec2 gem_dx = dFdx(UV), gem_dy = dFdy(UV);
 	vec3 gem_position_dx = dFdx(VERTEX), gem_position_dy = dFdy(VERTEX);
 	float gem_det = gem_dx.x * gem_dy.y - gem_dx.y * gem_dy.x;

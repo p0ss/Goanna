@@ -33,7 +33,7 @@ extends Node3D
 #                           a different colour in every other lod_avg_colour
 #                           entry, so an index that misses shows up
 #
-# Run: godot --path project material_field.tscn
+# Run: godot --path project studies/material_field.tscn
 
 # name, texture stem, MaterialClass (src/goanna_materials.h). Five granular
 # classes the treatment claims, and one plank strip that it must leave alone.

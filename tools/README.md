@@ -180,7 +180,7 @@ Current: the authoring, gates and bundle tools.
   records whether the client was on the desktop or headless, and a headless
   run's frame rates are relative only.
 - `chart_summary.py`: reduce a lighting chart run to pass or fail lines.
-  Current. See `project/lighting_chart.gd`.
+  Current. See `project/studies/lighting_chart.gd`.
 - `terrain-baked-review.py`, `terrain-storage-flight.py`,
   `terrain-surface-descent.py`: the terrain storage and surface flights of
   September 2026, against a running client. Historical.

@@ -6,7 +6,7 @@ extends Node3D
 # blocks as it does in play. Every case is rendered with the authored
 # relief on and off.
 #
-#   GOANNA_SHOT=<dir> godot --path project plant_ramp.tscn
+#   GOANNA_SHOT=<dir> godot --path project studies/plant_ramp.tscn
 #
 # GOANNA_PLANT_STEMS="a,b,c" picks the stems (default: mushrooms, fern,
 # flowers, a sapling), GOANNA_PACK_DIR the textures, GOANNA_TIMES the

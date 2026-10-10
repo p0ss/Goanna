@@ -593,7 +593,7 @@ static Ref<Image> inferNormalImage(video::IImage *image, float strength, bool la
             // October 2026, which was right while the mesher's binormal ran
             // along plus V and wrong from 0e3fa49 on: inferred relief was
             // upside down along V, a raised texel lit from below the light
-            // (project/entity_normal_probe.tscn, the auto bump quads).
+            // (project/studies/entity_normal_probe.tscn, the auto bump quads).
             dst[i + 0] = (uint8_t)std::clamp((nx * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
             dst[i + 1] = (uint8_t)std::clamp((-ny * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);
             dst[i + 2] = labpbr ? 255 : (uint8_t)std::clamp((nz * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f);

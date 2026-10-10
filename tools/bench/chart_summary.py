@@ -3,7 +3,7 @@
 # Copyright (C) 2026 the Goanna contributors
 """Reduce a lighting chart run to docs/design/pbr-plan.md step 3's pass or fail lines.
 
-    godot --path project lighting_chart.tscn   (with CHART_OUT=chart.json)
+    godot --path project studies/lighting_chart.tscn   (with CHART_OUT=chart.json)
     tools/bench/chart_summary.py chart.json [other.json]
 
 With two files, every figure is printed side by side, which is how a change

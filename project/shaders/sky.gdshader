@@ -78,7 +78,7 @@ uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
 // half where the look and the light disagree. Three ways, all judged on
-// project/lighting_chart.tscn (docs/design/pbr-plan.md step 3):
+// project/studies/lighting_chart.tscn (docs/design/pbr-plan.md step 3):
 //   radiance_ground_lift  the visible ground half of the dome is the horizon
 //                         colour darkened, which reads as a horizon; as
 //                         light it tells a vertical face that the ground

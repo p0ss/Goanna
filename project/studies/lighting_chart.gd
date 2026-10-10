@@ -73,7 +73,7 @@ extends Node3D
 # off) and sdfgi_read_sky_light (off, the bay fell to 14,5,0). SSAO barely
 # touched the bay and cost the sun cube two counts.
 #
-# Run: godot --path project lighting_chart.tscn
+# Run: godot --path project studies/lighting_chart.tscn
 
 const MATERIALS := [
 	# label, baked stem. Twelve classes, the ones step 2's table names.

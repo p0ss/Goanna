@@ -6,7 +6,7 @@
 # array and item shaders from the games' own art, under a fixed camera and
 # lamp. Needs a display, like the other fixtures:
 #
-#   GOANNA_SHOT=/tmp/gems godot --path project gem_study.tscn
+#   GOANNA_SHOT=/tmp/gems godot --path project studies/gem_study.tscn
 #
 # Writes gems_off.png (treatment off), gems_on.png and gems_side.png (lamp
 # moved), then quits. GOANNA_GAMES is the Luanti games directory (default

@@ -52,6 +52,6 @@ change has not had a calibrated performance comparison or handheld test.
 - Graphics-profile transitions and render-feature tests passed. Shader
   parsing and repository style checks passed.
 
-The offline study is `project/tests/cloud_layer_study.gd`. Add an instance
+The offline study is `project/studies/cloud_layer_study.gd`. Add an instance
 inside a headless control client and await its `capture(directory)` method.
 It owns a viewport and does not connect to a server.
