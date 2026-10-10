@@ -63,7 +63,7 @@ goanna_server_mod/director/
 
 Two consequences for Goanna itself:
 
-- `project/local_server.gd` copies the mod file by file from
+- `project/net/local_server.gd` copies the mod file by file from
   `GOANNA_SERVER_MOD_FILES`. A subdirectory needs the tree copy it already has
   (`_copy_resource_tree`).
 - `core.request_http_api()` "only works at init time and must be called from the

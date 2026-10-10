@@ -12,11 +12,10 @@
 # choice remembered. GOANNA_SERVER_CMD overrides the argv prefix (space
 # separated).
 extends RefCounted
-class_name GoannaLocalServer
 
-const AssetStore := preload("res://asset_store.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 
-var owned_process := preload("res://owned_process.gd").new()
+var owned_process := preload("res://net/owned_process.gd").new()
 var pid := -1
 var port := 0
 var gameid := "" # the game start() was asked for, for per game client defaults

@@ -19,7 +19,7 @@ const PanelFit := preload("res://ui/panel_fit.gd")
 # Only to list the texture packs the detected Luanti install already carries,
 # for the Texture pack setting. The same read only borrowing the Content
 # screen does: Goanna does not install packs, it offers what is already there.
-const LocalServer := preload("res://local_server.gd")
+const LocalServer := preload("res://net/local_server.gd")
 
 const HUD_ELEM_IMAGE := 0
 const HUD_ELEM_TEXT := 1

@@ -2,7 +2,7 @@
 # Verify the generated local-server grant and its required transport.
 extends SceneTree
 
-const LocalServer := preload("res://local_server.gd")
+const LocalServer := preload("res://net/local_server.gd")
 
 
 func _initialize() -> void:

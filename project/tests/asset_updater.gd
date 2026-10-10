@@ -1,7 +1,7 @@
 extends SceneTree
 
-const AssetStore := preload("res://asset_store.gd")
-const AssetUpdater := preload("res://asset_updater.gd")
+const AssetStore := preload("res://update/asset_store.gd")
+const AssetUpdater := preload("res://update/asset_updater.gd")
 
 # The updater asks the session two questions, so answering those two covers
 # the queueing rule with no connection, no server and no client extension.

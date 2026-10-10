@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# Sign a Goanna release so clients can update to it (project/updater.gd).
+# Sign a Goanna release so clients can update to it (project/update/updater.gd).
 # Writes dist/manifest.json, naming each platform's zip with its size and
 # SHA-256, and dist/manifest.json.sig, an RSA-SHA256 signature of it made
 # with the maintainer's private key, then uploads both to the GitHub release.

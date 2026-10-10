@@ -109,7 +109,7 @@ no errors, and the frame shows the spawn jungle as grey green cells beyond
 the live edge. That is the first frame of this client that drew terrain the
 server was not sending.
 
-Goanna's own local server grants it: `project/local_server.gd` writes
+Goanna's own local server grants it: `project/net/local_server.gd` writes
 `goanna_far_rendering = true` and a distance of 1024 into the conf it
 launches with, and copies `goanna_server_mod` into the world's `worldmods`
 so the grant reaches the client over the channel.
@@ -192,7 +192,7 @@ finished area is summarised for every client within range without being
 asked, because a client that asked while it was still ungenerated was told
 there was nothing and does not ask twice. The client needs no change for
 this: an unsolicited summary is taken exactly like an answered one. The
-local server Goanna launches turns it on (`project/local_server.gd`); a
+local server Goanna launches turns it on (`project/net/local_server.gd`); a
 public operator decides for themselves.
 
 It stays inside the boundary: the server generates its own world on its own
@@ -262,7 +262,7 @@ pregeneration could make the server silently refuse a player's own ask, and
   Duplicate jobs for the same client and area collapse into one.
 
 **The numbers.** Godot 4.5.1, mineclonia 0.90 on Luanti 5.16.1, the local
-server `project/local_server.gd` starts, on a shared and loaded machine (one
+server `project/net/local_server.gd` starts, on a shared and loaded machine (one
 minute load average 1.8 to 5.6 across the runs, three other agents working).
 Each run is a brand new world on a fixed map seed, joined through the menu,
 28 seconds to settle, then a teleport to (3000, 90, 3000), which no run has
@@ -377,7 +377,7 @@ worst `poll_blocks` call 0.43 ms, and 137 blocks still at full detail near
 the player. `docs/play/requirements.md`'s draw call budget is not threatened by
 this; 1024 nodes is the number recorded as affordable on this machine at the
 default settings, and it is also, not coincidentally, the number
-`project/local_server.gd` has granted since before this task.
+`project/net/local_server.gd` has granted since before this task.
 
 ### Why distant patches never filled in, 2026-08-22
 

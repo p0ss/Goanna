@@ -6,7 +6,7 @@
 # file swap is all or nothing. Nothing is downloaded and nothing is run.
 extends SceneTree
 
-const Updater := preload("res://updater.gd")
+const Updater := preload("res://update/updater.gd")
 var failures := 0
 var base := ""
 

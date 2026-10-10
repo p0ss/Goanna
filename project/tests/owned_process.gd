@@ -2,7 +2,7 @@
 # Copyright (C) 2026 the Goanna contributors
 extends SceneTree
 
-const OwnedProcess := preload("res://owned_process.gd")
+const OwnedProcess := preload("res://net/owned_process.gd")
 var failures := 0
 
 func check(condition: bool, message: String) -> void:

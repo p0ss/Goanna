@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 extends Node
 
-const AssetStore := preload("res://asset_store.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 const CFG_PATH := "user://goanna.cfg"
 
 signal bundle_installed(bundle_id: String)

@@ -20,8 +20,8 @@ var local_roster: Array = []
 var local_layout := "grid"
 var local_graphics_profile := "low"
 
-const LocalServer := preload("res://local_server.gd")
-const AssetUpdater := preload("res://asset_updater.gd")
+const LocalServer := preload("res://net/local_server.gd")
+const AssetUpdater := preload("res://update/asset_updater.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 const PanelFit := preload("res://ui/panel_fit.gd")
 const SKIP_VARS := ["GOANNA_LOCAL_PLAY", "GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
@@ -79,7 +79,7 @@ var _background_materials: Node
 var _material_check: Node
 var _material_wait_game := ""
 var _materials_current := {}
-var server  # GoannaLocalServer (local_server.gd)
+var server  # net/local_server.gd
 var server_deadline := 0.0
 var showcase_launch := false
 # The graphics benchmark's world and one of its own camera poses, so the menu
@@ -108,7 +108,7 @@ const BACKGROUNDS := [
 	"res://menu_backgrounds/lava.jpg",
 ]
 
-const Updater := preload("res://updater.gd")
+const Updater := preload("res://update/updater.gd")
 var updater: Node
 
 func _ready() -> void:

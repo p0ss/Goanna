@@ -80,7 +80,7 @@ views with missing ground are not evidence of efficient complete coverage.
 
 ## Confirmed local-server defect
 
-`project/local_server.gd` intended to disable movement checking for its
+`project/net/local_server.gd` intended to disable movement checking for its
 local player using `anticheat_flags = digging,interaction`. Luanti's
 `Settings::getFlagStr` inherits omitted flags from the parent settings, so
 movement checking remained enabled. The generated configuration now uses

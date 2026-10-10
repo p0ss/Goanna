@@ -203,8 +203,8 @@ unmodified server on localhost, and joins it over the ordinary protocol,
 exactly as if you had started the server yourself in another terminal. It
 looks for every Luanti install on the machine (distribution packages,
 Flatpak, Snap, AppImages, unpacked builds; "finding Luanti" in
-`project/local_server.gd` lists where) and applies Luanti's own path rules to
-find each one's games and data. It uses the install the player chose on the
+`project/net/local_server.gd` lists where) and applies Luanti's own path rules
+to find each one's games and data. It uses the install the player chose on the
 menu's Luanti screen, or else the first that has a game, and remembers the
 choice in `goanna.cfg` under `[luanti]`. Set `GOANNA_SERVER_CMD` to override
 the command, and `GOANNA_SERVER_DATA_DIR` for its data directory. It
@@ -450,8 +450,8 @@ Writes `dist/manifest.json` (each zip's size and SHA-256) and
 `~/.config/goanna-release/update-signing.pem`, checks the signature against
 `project/update_key.pub.pem`, and uploads both to the release. A client
 offers the update only when that signature checks and the version is newer
-than its own (`project/updater.gd`). Keep the private key backed up and out
-of the repository: losing it means players download one release by hand to
+than its own (`project/update/updater.gd`). Keep the private key backed up and
+out of the repository: losing it means players download one release by hand to
 move to a new key.
 
 ## Troubleshooting

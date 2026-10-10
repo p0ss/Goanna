@@ -48,9 +48,11 @@ status=0
 results=()
 for image in "${images[@]}"; do
 	tree="$work/$(printf '%s' "$image" | tr '/:' '__')"
-	mkdir -p "$tree/project/tests" "$tree/dist/luanti-server"
-	cp project/local_server.gd project/asset_store.gd project/owned_process.gd \
-		project/terrain_worlds.json "$tree/project/"
+	mkdir -p "$tree/project/tests" "$tree/project/net" "$tree/project/update" \
+		"$tree/dist/luanti-server"
+	cp project/net/local_server.gd project/net/owned_process.gd "$tree/project/net/"
+	cp project/update/asset_store.gd "$tree/project/update/"
+	cp project/terrain_worlds.json "$tree/project/"
 	cp project/tests/fresh_install.gd "$tree/project/tests/"
 	printf 'config_version=5\n\n[application]\n\nconfig/name="Goanna"\n' > "$tree/project/project.godot"
 	cp -r goanna_server_mod "$tree/"

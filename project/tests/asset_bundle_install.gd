@@ -19,8 +19,8 @@ extends SceneTree
 #
 #   godot --headless --path project --script res://tests/asset_bundle_install.gd
 
-const AssetStore := preload("res://asset_store.gd")
-const AssetUpdater := preload("res://asset_updater.gd")
+const AssetStore := preload("res://update/asset_store.gd")
+const AssetUpdater := preload("res://update/asset_updater.gd")
 
 const GAME := "goanna_fixture"
 const BUNDLE_ID := "org.goanna.test.fixture"

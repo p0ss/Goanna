@@ -1,6 +1,6 @@
 extends SceneTree
 
-const AssetStore := preload("res://asset_store.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 const ARCHIVE_TEXTURES := ["textures/granite_n.png", "textures/granite_s.png"]
 
 # A tripped assert halts the engine without ever reaching quit(), which reads

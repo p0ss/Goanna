@@ -10,7 +10,7 @@
 # tools/test/test-fresh-install.sh provides, not a developer's machine.
 extends SceneTree
 
-const LocalServer := preload("res://local_server.gd")
+const LocalServer := preload("res://net/local_server.gd")
 var failures := 0
 
 

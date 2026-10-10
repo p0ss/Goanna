@@ -25,7 +25,7 @@ extends Node
 
 signal state_changed
 
-const LocalServer := preload("res://local_server.gd")
+const LocalServer := preload("res://net/local_server.gd")
 const RELEASES_API := "https://api.github.com/repos/p0ss/Goanna/releases?per_page=15"
 const KEY_PATH := "res://update_key.pub.pem"
 const CFG_PATH := "user://goanna.cfg"

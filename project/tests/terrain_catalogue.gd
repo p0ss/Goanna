@@ -1,6 +1,6 @@
 extends SceneTree
 
-const LocalServer := preload("res://local_server.gd")
+const LocalServer := preload("res://net/local_server.gd")
 
 # The world picker is only as good as this data: a wrong hash or a missing
 # preview is not a crash, it is a download that fails or a blank panel.

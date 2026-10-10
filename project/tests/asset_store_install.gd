@@ -1,6 +1,6 @@
 extends SceneTree
 
-const AssetStore := preload("res://asset_store.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 
 # A tripped assert halts the engine without ever reaching quit(), so every
 # failure of this check used to hang until the caller's timeout killed it,

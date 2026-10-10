@@ -56,7 +56,7 @@ changes two bundles re-points two rows and every other bundle keeps pointing
 at the release it was published in. An unchanged bundle is never re-uploaded.
 
 A local or CI install can use `tools/pbr/pbr_bundle.py`; downloaded archives use
-the same checks in `project/asset_store.gd`.
+the same checks in `project/update/asset_store.gd`.
 
 The player archive embeds a stable core bundle under `assets/`. Goanna installs
 it before resolving the first connection's material profile. When automatic

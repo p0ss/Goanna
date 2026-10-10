@@ -120,7 +120,8 @@ mkdir -p "$PKG/assets"
 cp "$CORE_ASSET" "$PKG/assets/"
 chmod +x "$PKG/Goanna/$EXE" 2>/dev/null || true
 # The version the in-client updater compares releases against
-# (project/updater.gd). A source checkout has none and never updates itself.
+# (project/update/updater.gd). A source checkout has none and never updates
+# itself.
 printf '{"version": "%s", "platform": "%s"}\n' "$VERSION" "$PLATFORM" > "$PKG/Goanna/version.json"
 
 # The launcher. Godot's own wrapper only runs the binary, so its log went to

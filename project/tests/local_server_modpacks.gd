@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Modpack choices must expand into Luanti leaf mod names.
 extends SceneTree
-const Server = preload("res://local_server.gd")
+const Server = preload("res://net/local_server.gd")
 var failures = 0
 func check(ok, label):
 	print("PASS " if ok else "FAIL ", label)

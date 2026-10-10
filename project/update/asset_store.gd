@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Versioned, independently installed Goanna asset bundles.
 extends RefCounted
-class_name GoannaAssetStore
 
 const SCHEMA := "org.goanna.asset-bundle/v1"
 const CATALOGUE_SCHEMA := "org.goanna.asset-catalogue/v1"

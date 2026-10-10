@@ -83,12 +83,12 @@ tools/test/test-director.py                the end to end test
 The layout differs from the proposal in [Server
 half](../design/director-design.md#server-half): pacing and memory are small
 enough to live in `logic.lua` and `intents.lua`, there are no quests, and there
-is no channel transport. `project/local_server.gd` lists the director's files in
-`GOANNA_SERVER_MOD_FILES` (creating the subdirectories as it copies), writes
-`goanna_director = true` and `secure.http_mods = goanna_server_mod` for every
-world it launches, and the vendored copy in `project/vendor/goanna_server_mod`
-is kept identical, which `project/tests/local_server_terrain_diffusion.gd`
-checks.
+is no channel transport. `project/net/local_server.gd` lists the director's
+files in `GOANNA_SERVER_MOD_FILES` (creating the subdirectories as it copies),
+writes `goanna_director = true` and `secure.http_mods = goanna_server_mod` for
+every world it launches, and the vendored copy in
+`project/vendor/goanna_server_mod` is kept identical, which
+`project/tests/local_server_terrain_diffusion.gd` checks.
 
 ### Transport
 

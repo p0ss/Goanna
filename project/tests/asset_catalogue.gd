@@ -1,6 +1,6 @@
 extends SceneTree
 
-const AssetStore := preload("res://asset_store.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 
 # The catalogue is served from the repository, not from the release that
 # carries the archives, so a bundle url has nothing to resolve against. These

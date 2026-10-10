@@ -23,9 +23,9 @@ var profile_frame_work := false
 var frame_work_usec := {}
 var frame_work_worst_usec := {}
 
-const AssetUpdater := preload("res://asset_updater.gd")
-const AssetStore := preload("res://asset_store.gd")
-const LocalServerScript := preload("res://local_server.gd")
+const AssetUpdater := preload("res://update/asset_updater.gd")
+const AssetStore := preload("res://update/asset_store.gd")
+const LocalServerScript := preload("res://net/local_server.gd")
 const LookGrade := preload("res://look_grade.gd")
 var look_grade := LookGrade.new()
 

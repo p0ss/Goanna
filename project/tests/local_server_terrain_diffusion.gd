@@ -5,8 +5,8 @@
 # does not launch Luanti or touch a user's worlds.
 extends SceneTree
 
-const LocalServer := preload("res://local_server.gd")
-const AssetStore := preload("res://asset_store.gd")
+const LocalServer := preload("res://net/local_server.gd")
+const AssetStore := preload("res://update/asset_store.gd")
 var failures := 0
 
 
