@@ -25,6 +25,75 @@ fifth check); they have been rebuilt as small rings in the ground's own
 shading, and the puddles as water filling the relief. All of that has been
 tested headless only, and nothing of it has been observed.
 
+## Storms, other games' weather and snow: status
+
+Landed on main on 2026-10-10, after a rebase onto weeks of other weather,
+water and sky work. What it adds, each described in its own section:
+
+- **Storm cells** (below): a drifting field of storm cells scales rain,
+  snow, hail and dust from a drizzle at a cell's edge to a downpour at its
+  heart, and scales the storm deck and the wetness with it.
+- **Snowstorms**: snow rises further than rain at a cell's heart and
+  turns into a whiteout that closes the fog in and greys it and the sky.
+- **Settled snow**: snow builds `goanna_snow_cover` instead of wetting the
+  ground, and the node and leaves shaders dust up facing surfaces open to
+  the sky, texel by texel.
+- **Wet grass droplets** (`grass_volume.gdshader`): a few tilted, mirror
+  smooth droplets on wet blades where the sky reaches, gated, like the
+  rest of the wet look, by the tier's wet surfaces flag.
+- **Hail and blowing sand** ("Hail, blowing sand and the rest"): drawn
+  by the precipitation shader as kinds of their own, with dust closing
+  and browning the fog.
+- **Covered particles**: weather still drawn as particles is kept out
+  from under roofs by the rain cover map.
+- **Other games' weather** ("Other games"): Mineclonia and VoxeLibre
+  (`mcl_weather`), pmb_core (`aom_weather`), backroomtest (`br_weather`),
+  Kythen, Regional Weather (Climate API), theFox's `weather`, Mymonths and
+  Snowdrift.
+- **`storm_override`** on the weather node: 0 to 1 pins where in a storm
+  cell the viewer stands, for a test or a screenshot; below 0, the
+  default, the field decides.
+
+How it was verified, and how not:
+
+- On 2026-09-27, before the rebase, each supported mod was run against a
+  local server (Minetest Game, or Mineclonia for `mcl_weather`) with a
+  headless client on the software renderer, and the recognised weather
+  and its intensity were read from the client ("Other games").
+- On 2026-09-28, still before the rebase, a GPU look pass in headless
+  gamescope found the defects listed below.
+- At the landing, on 2026-10-10, only headless checks with Godot 4.5.1's dummy
+  renderer: `project/tests/weather.gd` and the native tests (`cmake --build
+  build --target check`), both passing, and the other headless tests that load
+  the changed scripts: `ripples`, `wake`, `water_optics`, `cloud_layers`,
+  `procedural_grass`, `local_play`, `graphics_profiles` and `render_features`
+  pass; `local_play_scene` (3 menu failures) and `portal_materials` (3
+  failures) fail the same way on main before the landing. These draw no frame.
+  The rebased code, which now sets its shader globals per view for local
+  multiplayer, loads the covered particle shaders through the view's scope and
+  gates the droplets on the tier flag, has not been run against a server or
+  looked at on a GPU since the rebase. None of it is claimed to look right.
+
+Known defects, open, from the 2026-09-28 GPU look pass (realistic rates,
+not the fake spawner):
+
+- **Blowing dust is invisible.** The grains (`DUST_RADIUS` 0.012, alpha
+  0.5) are near invisible, and Mymonths' sandstorm at 0.67 shows nothing.
+  The fog does close in and brown.
+- **The sky stays sunny under a storm.** `storm_cover` reaches 0.93, but
+  the sky keeps blue gaps and full sun lies on the ground.
+- **Hail is sparse**: thin, sparse streaks rather than a hailstorm.
+- **The fake snow spawner is far heavier than real snow.** `weather snow
+  fake=true` (`particles.gd`, `inject_test_spawner`) is 400 a second over
+  16 by 16 nodes, about 39 times Mineclonia's snow by density, so it sits
+  at the cap of 4 and a full whiteout at any storm strength. Judge snow
+  with a spawner of 100 a second over 50 by 50 (density 1) instead. Its
+  rain is over the cap too. Not changed here, since `local_bench.gd`'s
+  rain benchmark uses the same spawner.
+
+Rain and snow at realistic rates did scale with the storm as intended in
+that pass.
+
 ## Where weather comes from
 
 Luanti has no weather in the protocol. A game that rains attaches particle
@@ -357,7 +426,8 @@ little, so a dust box counts from just below the head).
 
 Particle weather this client does not draw by shader, and all of it with
 shader weather off, is drawn with `particle_covered.gdshaderinc` in place
-of its StandardMaterial3D when it falls from a box round the player and
+of its StandardMaterial3D (through `particle_covered_mix`, `_add` or
+`_sub.gdshader`, one per blend, loaded through the view's scope) when it falls from a box round the player and
 above their head: the same texture, colour, billboard, kept scale,
 animation and blend, and nothing under the cover map's roof, since
 Goanna's particles do not collide and such weather fell through every
@@ -1037,10 +1107,9 @@ Everything visual. In particular, the owner's visual check should look at:
   `wake`, `in_water` should count the player while swimming and any
   animal in the water. The rings with rain falling on them too.
 
-Not done: a settling snow look on the ground, splashes on leaves and plants,
-drops sliding down walls, and splashes thrown up from the ground by the
-falling drops themselves (the splashes are the ground's own, not the
-drops').
+Not done: splashes on leaves and plants, drops sliding down walls, and
+splashes thrown up from the ground by the falling drops themselves (the
+splashes are the ground's own, not the drops').
 Lamps light nearby rain now that it is lit, which is also untested.
 
 ## Tests
