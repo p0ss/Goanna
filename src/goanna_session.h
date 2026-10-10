@@ -557,11 +557,20 @@ private:
     std::set<v3s16> m_store_pending; // received block being written outside mapLock()
     void saveBlockToStore(MapBlock *b); // caller holds mapLock()
 
-    // Luanti's connection. Made by the session thread in threadMain; the
-    // main thread also sends through it (chat, interactions, inventory),
-    // which is safe because Connection::Send only queues for Luanti's own
-    // send thread.
+    // Luanti's connection. Made by the session thread in threadMain, and
+    // made again for the resolver's other address if the first does not
+    // answer in 1.8 seconds. The main thread also sends through it (chat,
+    // interactions, inventory), which Connection allows because Send only
+    // queues for Luanti's own send thread. m_con and m_con_retired are the
+    // session thread's (and stop()'s, after the join); every other use goes
+    // through connection(), which loads m_con_live, published with release
+    // each time a transport is made. A replaced transport is kept in
+    // m_con_retired until stop(), so a send the main thread started on it
+    // never runs on a freed object.
     std::unique_ptr<con::IConnection> m_con;
+    std::unique_ptr<con::IConnection> m_con_retired;
+    std::atomic<con::IConnection *> m_con_live{nullptr};
+    con::IConnection *connection() const { return m_con_live.load(std::memory_order_acquire); }
     std::thread m_thread;
     // Set by start() and cleared by stop() on the main thread; the session
     // thread polls it each loop and clears it itself on a fatal error.

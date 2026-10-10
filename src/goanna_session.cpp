@@ -217,10 +217,12 @@ void GoannaSession::stop() {
     m_running = false;
     if (m_thread.joinable())
         m_thread.join();
+    m_con_live.store(nullptr, std::memory_order_release);
     if (m_con) {
         m_con->Disconnect();
         m_con.reset();
     }
+    m_con_retired.reset();
     if (m_store) {
         // edits made this session, written back before the store closes
         std::lock_guard<std::mutex> lk(m_map_mutex);
@@ -484,7 +486,7 @@ void GoannaSession::applyFallDamage(const std::vector<CollisionInfo> &collisions
 }
 
 void GoannaSession::sendDamage(u16 damage) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_DAMAGE, sizeof(u16));
     pkt << damage;
@@ -543,7 +545,7 @@ static const char *kGoannaChannel = "goanna:v1";
 // renders exactly as it does today. That is the point: the mod can only grant
 // permissions, so its absence is the conservative case rather than a failure.
 void GoannaSession::joinGoannaChannel() {
-    if (!m_con)
+    if (!connection())
         return;
     std::string channel(kGoannaChannel);
     NetworkPacket pkt(TOSERVER_MODCHANNEL_JOIN, 2 + channel.size());
@@ -557,7 +559,7 @@ void GoannaSession::joinGoannaChannel() {
 }
 
 void GoannaSession::reportCarve(v3s16 pos, const std::string &bytes) {
-    if (!m_con)
+    if (!connection())
         return;
     // Only the other players need this. This client already draws its own
     // carve from its own memory of its own digging, and needs no server to do
@@ -586,7 +588,7 @@ void GoannaSession::reportCarve(v3s16 pos, const std::string &bytes) {
 }
 
 void GoannaSession::requestFarSummary(v3s16 origin_blocks, int edge_blocks, int cell) {
-    if (!m_con)
+    if (!connection())
         return;
     std::string channel(kGoannaChannel);
     // Version 7: the per-block record is a 4 by 4 by 4 coarse voxel field,
@@ -610,7 +612,7 @@ std::vector<std::string> GoannaSession::takeFarSummaries() {
 }
 
 void GoannaSession::requestFineBlock(v3s16 p,uint64_t token) {
-    if(!m_con) return;
+    if (!connection()) return;
     NetworkPacket packet(TOSERVER_MODCHANNEL_MSG,0);
     packet << std::string(kGoannaChannel) << ("farfine? 1 "+std::to_string(token)+" "+
             std::to_string(p.X)+" "+std::to_string(p.Y)+" "+std::to_string(p.Z));
@@ -631,7 +633,7 @@ bool GoannaSession::farSummariesOffered() const {
 // key=value lines, one per line. Deliberately not JSON: the payload is a
 // handful of flags and numbers, and this needs no parser on either side.
 void GoannaSession::requestSurface(const std::string &revision, int step, int x, int z) {
-    if (!m_con) return;
+    if (!connection()) return;
     NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
     const auto options = serverOptions();
     const auto capability = options.find("surface_tiles");
@@ -649,7 +651,7 @@ std::vector<std::string> GoannaSession::takeSurfaces() {
 }
 
 bool GoannaSession::setOverseerChannel(const std::string &channel) {
-    if (!m_con) return false;
+    if (!connection()) return false;
     if (!channel.empty()) {
         if (channel.size() != 44 || channel.compare(0, 12, "dorfcraft:o:") != 0)
             return false;
@@ -682,7 +684,7 @@ bool GoannaSession::setOverseerChannel(const std::string &channel) {
 }
 
 void GoannaSession::sendOverseer(const std::string &message) {
-    if (!m_con || message.size() > 8192) return;
+    if (!connection() || message.size() > 8192) return;
     std::string channel;
     {
         std::lock_guard<std::mutex> lock(m_server_opts_mutex);
@@ -763,7 +765,7 @@ void GoannaSession::onModChannelSignal(NetworkPacket &pkt) {
 }
 
 void GoannaSession::sendChat(const std::wstring &message) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_CHAT_MESSAGE, 2 + message.size() * sizeof(u16));
     pkt << message;
@@ -771,7 +773,7 @@ void GoannaSession::sendChat(const std::wstring &message) {
 }
 
 void GoannaSession::sendInventoryAction(const std::string &action) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_INVENTORY_ACTION, action.size());
     pkt.putRawString(action.c_str(), action.size());
@@ -779,7 +781,7 @@ void GoannaSession::sendInventoryAction(const std::string &action) {
 }
 
 void GoannaSession::sendPlayerItem(u16 index) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_PLAYERITEM, 2);
     pkt << index;
@@ -788,7 +790,7 @@ void GoannaSession::sendPlayerItem(u16 index) {
 
 void GoannaSession::sendInventoryFields(const std::string &formname,
         const std::map<std::string, std::string> &fields) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_INVENTORY_FIELDS, 0);
     pkt << formname << (u16)fields.size();
@@ -816,7 +818,7 @@ std::vector<GoannaSession::ShownFormspec> GoannaSession::takeShownFormspecs() {
 
 void GoannaSession::sendNodemetaFields(v3s16 p, const std::string &formname,
         const std::map<std::string, std::string> &fields) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_NODEMETA_FIELDS, 0);
     pkt << p << formname << (u16)(fields.size() & 0xFFFF);
@@ -1172,7 +1174,7 @@ int GoannaSession::crackAnimationLength() {
 
 // Client::interact, transplanted.
 void GoannaSession::sendInteract(u8 action, const PointedThing &pointed) {
-    if (!m_con)
+    if (!connection())
         return;
     NetworkPacket pkt(TOSERVER_INTERACT, 1 + 2 + 0);
     pkt << action;
@@ -1687,7 +1689,7 @@ void GoannaSession::setState(SessionState s, const std::string &msg) {
 }
 
 void GoannaSession::send(NetworkPacket &pkt, bool reliable) {
-    m_con->Send(PEER_ID_SERVER, 0, &pkt, reliable);
+    connection()->Send(PEER_ID_SERVER, 0, &pkt, reliable);
 }
 
 void GoannaSession::threadMain() {
@@ -1703,7 +1705,17 @@ void GoannaSession::threadMain() {
             // Recreate the UDP transport because its address family is fixed
             // at construction, then try the other family just as Luanti's
             // Game::connectToServer does.
+            //
+            // The main thread may be inside a send on the first transport
+            // when it is replaced, so it is retired rather than destroyed,
+            // and lives until stop(); the main thread finds the current one
+            // through m_con_live.
+            if (m_con) {
+                m_con->Disconnect();
+                m_con_retired = std::move(m_con);
+            }
             m_con.reset(con::createMTP(CONNECTION_TIMEOUT, target.isIPv6(), this));
+            m_con_live.store(m_con.get(), std::memory_order_release);
             setState(SessionState::Connecting, std::string(fallback ? "trying alternate address for " :
                     "connecting to ") + m_host);
             infostream << "goanna: connecting to ";
