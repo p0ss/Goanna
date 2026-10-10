@@ -12,14 +12,17 @@
 shader_type spatial;
 render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
 
+// The server's bolt texture and whether it has arrived; lightning.gd sets
+// both per strike.
 uniform sampler2D bolt_texture : source_color, filter_nearest_mipmap;
 uniform bool use_texture = false;
 // 0 to 1, the strokes and afterglow, from lightning.gd.
 uniform float flash = 0.0;
-// Picks the procedural bolt's shape.
+// Picks the procedural bolt's shape, 0 to 999, per strike from lightning.gd.
 uniform float seed = 0.0;
 // How many times white the core is drawn, so it survives the exposure and
 // catches the glow. Additive, so this is light added, not a colour.
+// lightning.gd's BOLT_ENERGY. bolt_colour, the tint, is a default only.
 uniform float energy = 6.0;
 uniform vec3 bolt_colour = vec3(0.86, 0.9, 1.0);
 
@@ -34,6 +37,8 @@ void vertex() {
 	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);
 }
 
+// The classic fract(sin()) hash: arguments here stay small, where it does
+// not band.
 float bolt_hash(float x) {
 	return fract(sin(x * 127.1 + seed * 311.7) * 43758.5453);
 }

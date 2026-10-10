@@ -14,12 +14,16 @@
 // Drawn on a full screen quad parented to the camera, additive, after the
 // opaque pass. main.gd owns the strength: it follows the light shafts
 // slider, dies underwater and at night, and fades as the sun climbs,
-// because a crepuscular ray is a low sun effect.
+// because a crepuscular ray is a low sun effect. The quad is shown only
+// while the Light shafts switch (render_shafts) is on, which every tier but
+// Lowest sets (docs/systems/graphics-tiers.md).
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, depth_test_disabled, cull_disabled, fog_disabled;
 
+// The opaque pass's depth, read raw: only "was anything drawn here" matters.
 uniform sampler2D depth_tex : hint_depth_texture, repeat_disable, filter_nearest;
-// Set from main.gd: zero disables the pass entirely.
+// Set from main.gd: zero disables the pass entirely. The light shafts
+// slider, 0 to 3, times the day, weather and sun height terms there.
 uniform float shaft_strength = 0.0;
 // The sun's direction and its glow colour, the same globals the water's
 // fallback reflection uses; the glow is already zero at night and under

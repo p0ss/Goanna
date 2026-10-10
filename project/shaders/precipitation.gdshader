@@ -91,6 +91,8 @@ const float EDGE_FADE = 1.5;
 // environment's ambient alone.
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
+// 1 while the eye is under water (GoannaClient, goanna_client.cpp), when no
+// drop is drawn at all.
 global uniform float goanna_eye_underwater;
 
 varying vec3 v_world;
@@ -182,6 +184,8 @@ void vertex() {
 	// whichever is wider, with the coverage kept in the weight.
 	vec3 mid = mix(p, tail, 0.5);
 	float dist = max(length(mid - cam), 0.01);
+	// One pixel's height in nodes at that distance: the view's height at
+	// dist is 2 * dist / P[1][1] (P[1][1] is cot of half the field of view).
 	float pixel = dist * 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
 	// Flakes are not all one size: most are small, a few are clumps of
 	// several stuck together, which is most of what reads as snow rather

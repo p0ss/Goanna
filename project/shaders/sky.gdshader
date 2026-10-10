@@ -3,11 +3,27 @@
 // of them, so nights were blank and water had nothing to reflect. Drawing
 // them in the sky shader puts them in the radiance cubemap too, so
 // reflections pick them up for free.
+//
+// main.gd builds the WorldEnvironment's sky material from this file (through
+// GoannaClient.load_view_shader, so split screen views get their own copy)
+// and sets almost every uniform per frame in _apply_sky, from the server's
+// sky, sun, moon, stars and clouds packets as SkyDirector orchestrates them
+// (docs/systems/sky-orchestration.md). The offline studies, lighting_chart.gd,
+// dawn_sweep.gd, night_sky_study.gd and the material ramps, load it as well.
 shader_type sky;
 
+// The dome. Zenith and horizon colours from the server's sky colours, the
+// ground colour the depth of the fog wall below the horizon (see sky()).
+// Set by main.gd's _apply_sky.
 uniform vec4 sky_top : source_color = vec4(0.36, 0.55, 0.85, 1.0);
 uniform vec4 sky_horizon : source_color = vec4(0.72, 0.8, 0.9, 1.0);
 uniform vec4 ground_color : source_color = vec4(0.2, 0.2, 0.22, 1.0);
+// Sun and moon. Directions are unit vectors toward each body in world space;
+// sizes are the half width of the disc's billboard in the same units as a
+// direction (roughly radians), Luanti's sun and moon scale times a base.
+// The *_use_tex flags say whether the server's disc texture has arrived
+// (main.gd's _set_sky_disc); without one a soft procedural disc is drawn.
+// moon_tint is a default only; sun_tint follows the sun light's colour.
 uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
 uniform vec3 moon_dir = vec3(0.0, -1.0, 0.0);
 uniform float sun_size : hint_range(0.0, 0.5) = 0.05;
@@ -20,9 +36,14 @@ uniform sampler2D sun_tex : source_color, filter_nearest;
 uniform sampler2D moon_tex : source_color, filter_nearest;
 uniform vec4 sun_tint : source_color = vec4(1.0, 0.95, 0.85, 1.0);
 uniform vec4 moon_tint : source_color = vec4(0.9, 0.92, 1.0, 1.0);
+// Stars, from Luanti's star parameters: opacity is the star colour's alpha
+// times how dark it is, density is the server's star count over 3000.
+// The panorama itself is night_sky.gdshaderinc.
 uniform float star_opacity = 0.0;
 uniform vec4 star_color : source_color = vec4(0.92, 0.92, 1.0, 1.0);
 uniform float star_density = 0.35;
+// Clouds. cloud_color is the server's directly lit cloud colour, set by
+// _apply_sky.
 uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 0.9);
 // Diffuse light retained by the droplets after many scattering events. The
 // server supplies this separately from the directly lit cloud colour. It is
@@ -45,7 +66,10 @@ uniform vec3 air_beam = vec3(0.0);
 // from the same beam and air the live terrain answers to, so it rides
 // through dawn, dusk and biome fades without being re-rendered. U wraps
 // the azimuth with theta 0 facing -Z, V spans horizon_y_min..max in the
-// same sin-elevation units as sun_dir.y.
+// same sin-elevation units as sun_dir.y. main.gd's _update_environment_extras
+// sets the textures and bounds when a bake lands, and horizon_on to 0 or 1.
+// horizon_fade0 and horizon_r1 are the bake's near and far radius in nodes,
+// over which its aerial perspective runs.
 uniform float horizon_on = 0.0;
 uniform sampler2D horizon_tex : source_color, filter_linear, repeat_enable;
 uniform sampler2D horizon_dist : hint_default_black, filter_linear, repeat_enable;
@@ -61,24 +85,40 @@ uniform vec3 horizon_light = vec3(0.5);
 // the land throws back up at the deck: see the underside term in the
 // march.
 global uniform vec3 goanna_sun_glow;
+// The server's cloud density, 0 to 1, set by _apply_sky. Each deck's own
+// coverage is in cloud_layers (cloud_layers.gdshaderinc).
 uniform float cloud_coverage = 0.4;
+// The Sky clouds render feature switch (render_sky_clouds), set by main.gd's
+// _apply_cloud_feature beside the next two.
 uniform bool clouds_enabled = true;
+// The graphics tier's cloud style: 0 plain blocks (Lowest), 1 fluffy blocks
+// (Low), 2 the full volume (Medium and up). docs/systems/graphics-tiers.md.
 uniform int cloud_style : hint_range(0, 2) = 2;
+// The tier's cloud lighting quality, 0 to 2: how many view and sun samples
+// the block styles take, and how many sun samples the volume takes.
 uniform int cloud_quality : hint_range(0, 2) = 2;
 #include "res://shaders/cloud_layers.gdshaderinc"
+// How far the clouds have drifted, in weather field units. main.gd's
+// _update_environment_extras integrates the server's cloud speed into it
+// every frame; the atmosphere volume gets the same value as weather_offset.
 uniform vec2 cloud_offset = vec2(0.0);
+// The air colour: the depth fog's colour, which the haze band, the fog wall
+// and shadowed clouds all take. haze_twilight, 0 to 1, is how far into the
+// dawn or dusk window the sky is, which warms that air. Both from _apply_sky.
 uniform vec4 haze_color : source_color = vec4(0.72, 0.8, 0.9, 1.0);
 uniform float haze_twilight : hint_range(0.0, 1.0) = 0.0;
 // How much of the air colour the sky takes along the geometric horizon by
 // day. This is the band a hole in the far field is seen against, and at the
 // old 0.26 it stayed three quarters sky while the terrain beside it faded
 // fully into the air, so a gap read as a pale slot between brown hills.
+// Default only.
 uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // Goanna: what the sky feeds to lighting is not what it shows. Godot samples
 // this shader into the radiance cubemap that SDFGI and the ambient term read,
 // with AT_CUBEMAP_PASS set, so the lighting half can differ from the visible
 // half where the look and the light disagree. Three ways, all judged on
-// project/studies/lighting_chart.tscn (docs/design/pbr-plan.md step 3):
+// project/studies/lighting_chart.tscn (docs/design/pbr-plan.md, "Current
+// implementation"), and set by _apply_sky:
 //   radiance_ground_lift  the visible ground half of the dome is the horizon
 //                         colour darkened, which reads as a horizon; as
 //                         light it tells a vertical face that the ground
@@ -100,11 +140,14 @@ uniform float horizon_air_day : hint_range(0.0, 1.0) = 0.26;
 // over (docs/history/far-rendering-log.md, "Background, overlay, foreground"): terrain
 // that has not arrived, or a hole between two panels, reads as haze at the
 // same colour the fog fades the far edge to, rather than as a void.
+// main.gd's sky_ground_curve, set in _apply_sky.
 uniform float ground_curve : hint_range(0.2, 8.0) = 0.6;
 uniform float radiance_ground_lift : hint_range(0.0, 1.0) = 0.0;
 uniform float radiance_desaturate : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 radiance_floor = vec3(0.0);
 
+// Dave Hoskins' sine free hash, and value noise built on it: stable on every
+// GPU, where the usual fract(sin()) hash bands at large arguments.
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
 	p3 += dot(p3, p3.yzx + 33.33);
@@ -163,6 +206,10 @@ float block_cloud_density(vec3 p, vec3 midpoint, vec3 half_size, float scale) {
 	return shell * mix(0.45, 1.0, body);
 }
 
+// The fluffy block style (cloud_style 1). Beer's law along the view ray,
+// with a short march toward the sun inside the same cell for self shadow;
+// sigma is scaled so a deck of any thickness has the same optical depth.
+// The phase term is a softened forward lobe, so the sunward side silvers.
 // Integrate a soft body inside one occupied cell. Return premultiplied
 // radiance and opacity so a thin edge reveals clouds farther along the ray.
 vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
@@ -206,6 +253,9 @@ vec4 fluffy_block_cell(vec3 ro, vec3 dir, vec3 lo, vec3 hi,
 	return vec4(accumulated, 1.0 - transmittance);
 }
 
+// The two block styles (cloud_style 0 and 1). The ray walks the 2D grid of
+// cells cell by cell (a DDA, as in voxel ray tracing), so empty cells cost
+// one hash each, and each occupied cell's box is hit with the slab test.
 // One height-varying layer of cloud cells traversed in grid order. Plain blocks use
 // an analytic solid surface; fluffy blocks integrate density inside rounded
 // bounds. Both follow the drifting weather envelope and server colours.
@@ -331,6 +381,8 @@ float cloud_light_od(vec3 wp, vec3 toward_sun, float base_w, float deck, float w
 	return od * stride;
 }
 
+// The server's disc textures are square sprites, as in Luanti, so the disc
+// is a square billboard facing the eye rather than a round decal.
 // Billboard uv of `dir` on a disc of angular half-size `size` around `center`.
 vec2 disc_uv(vec3 dir, vec3 center, float size, out float inside) {
 	vec3 u_ax = normalize(cross(abs(center.y) > 0.99 ? vec3(1, 0, 0) : vec3(0, 1, 0), center));
@@ -340,6 +392,10 @@ vec2 disc_uv(vec3 dir, vec3 center, float size, out float inside) {
 	return vec2(du, dv) / (2.0 * size) + 0.5;
 }
 
+// The full volume style (cloud_style 2): ray march one deck's slab front to
+// back, accumulating light and transmittance, with a short march toward the
+// sun at each sample for self shadow. Returns colour and opacity, the colour
+// not premultiplied.
 vec4 volume_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 	float base_w = cloud_layers[layer].x;
 	float deck = cloud_layers[layer].y;
@@ -379,7 +435,8 @@ vec4 volume_clouds(vec3 eye, vec3 dir, bool cubemap, int layer) {
 		vec3 acc = vec3(0.0);
 		float mu = dot(dir, sun_dir);
 		// A forward lobe over an isotropic floor: silver linings toward
-		// the sun without the away side going black.
+		// the sun without the away side going black. The lobe is
+		// Henyey-Greenstein with g = 0.55, weighted 0.55 against a flat 1.
 		float hg = 0.55;
 		float phase = mix(1.0, (1.0 - hg * hg) / pow(1.0 + hg * hg - 2.0 * hg * mu, 1.5), 0.55);
 		// The sun as the clouds see it: the shared beam at the deck's
@@ -461,6 +518,7 @@ void sky() {
 			base = mix(sky_horizon.rgb, haze_color.rgb, smoothstep(0.0, -0.03, up));
 		col = mix(base, ground_color.rgb, pow(-up, ground_curve));
 	}
+	// The lighting half only: see the radiance_* uniforms above.
 	if (AT_CUBEMAP_PASS) {
 		if (up < 0.0)
 			col = mix(col, sky_horizon.rgb, radiance_ground_lift);

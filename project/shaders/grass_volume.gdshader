@@ -2,34 +2,70 @@
 // Bounded procedural grass experiment. Inspired by MonterMan's grass field
 // (shadertoy dd2cWh, supplied by the user); independently implemented tapered
 // blade distance estimator, per-surface bounds, depth and Godot lighting.
+//
+// No blade is geometry. goanna::append_grass (src/goanna_grass.cpp) adds one
+// box per grassy top patch to a terrain mesh, near or far, and this shader
+// traces the blades inside it from the box's back faces (cull_front), writing
+// the depth of what it hits. On only when Procedural grass is on: Medium,
+// High and Ultra (docs/systems/procedural-grass.md, graphics-tiers.md).
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 render_mode cull_front, diffuse_burley, specular_schlick_ggx, alpha_to_coverage, depth_draw_always;
 
+// The terrain's sky fill (nodes_array_common.gdshaderinc) and the world's
+// wetness, 0 to 1, both set by main.gd's _apply_sky.
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
 global uniform float goanna_wetness;
+
+// Quality, from main.gd's _apply_grass_quality through the client's
+// goanna_grass_parameters meta, which append_grass copies onto the one
+// shared material. density is the settings slider, 0.1 to 1 (blade spacing
+// grows as it falls); draw_distance is in nodes, the last fifth a fade;
+// past detail_near nodes the blades blend into a flat canopy, wholly by
+// detail_far.
 uniform bool enabled = true;
 uniform float density : hint_range(0.1, 1.0) = 1.0;
 uniform float draw_distance = 80.0;
 uniform float interaction_distance = 16.0;
+// Wind, from main.gd's _apply_sky: strength 0 to 1, eased toward the
+// server's cloud speed plus the storm cover, and a unit direction in xz.
 uniform float wind_strength : hint_range(0.0, 1.0) = 0.35;
 uniform vec2 wind_direction = vec2(1.0, 0.0);
+// The march's step budget per pixel. A default only; the review scripts in
+// tools/test/grass-review/ vary it.
 uniform int march_steps : hint_range(16, 128) = 64;
 uniform float detail_near = 25.0;
 uniform float detail_far = 65.0;
+// Review switches, defaults in play. clock_override freezes the wind at a
+// time in seconds (negative uses TIME); debug_iterations paints the step
+// count, debug_bounds the boxes; analytic_blades solves each blade
+// directly rather than sphere tracing the distance field, and
+// composite_edges lets a partly covered pixel show the blade behind.
 uniform float clock_override = -1.0;
 uniform bool debug_iterations = false;
 uniform bool debug_bounds = false;
 uniform bool analytic_blades = true;
 uniform bool composite_edges = true;
+// The opaque pass's depth, so the march stops at a creature standing in it.
 uniform sampler2D scene_depth : hint_depth_texture, filter_nearest;
+// Actors that push blades aside: xyz the foot position in world nodes, w
+// the push radius. goanna::update_grass_interactors sets both from
+// EntityRenderer::grass_interactors, up to the Grass actors setting.
+// interaction_enabled and interaction_distance come with the quality
+// parameters; interaction_angle, the most a blade leans in radians, is a
+// default only. The Grass interaction switch (goanna_render_grass_interaction)
+// gates it all.
 uniform int interaction_count = 0;
 uniform vec4 interaction_centres[8];
 uniform bool interaction_enabled = true;
 uniform float interaction_angle : hint_range(0.0, 0.8) = 0.8;
 
+// Per patch, from the vertex stage. patch is the root area's xz bounds (min,
+// max); root_light is x the root height, y the sky light and z the
+// occlusion at the patch; patch_margin is how far a bent blade can lean past
+// those bounds; shadow_pass is non zero when drawing a shadow map.
 varying flat vec3 grass_camera;
 varying flat vec4 patch;
 varying flat vec3 root_light;
@@ -37,6 +73,8 @@ varying flat float shadow_pass;
 varying flat float patch_margin;
 varying vec3 world_exit;
 
+// Distance between blade roots in nodes: 12 centimetres at full density,
+// wider as density falls so the blades per node scale with it.
 float blade_spacing() {
     return 0.12 / sqrt(clamp(density, 0.1, 1.0));
 }
@@ -129,6 +167,8 @@ void vertex() {
     shadow_pass = length(INV_VIEW_MATRIX[3].xyz - MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
 }
 
+// The strongest push on the blade rooted at anchor: xy the unit direction
+// away from the actor, z the weight 0 to 1.
 vec3 grass_interaction(vec2 anchor) {
     vec3 result=vec3(0.0);
     if (!interaction_enabled || goanna_render_grass_interaction < 0.5 || interaction_weight(anchor) <= 0.0) return result;
@@ -159,6 +199,8 @@ mat3 grass_unbend(vec3 pressure) {
         vec3(axis.x*axis.y*d,axis.x*s,c+axis.y*axis.y*d));
 }
 
+// How many cells round p's own the distance field must search for roots
+// whose blades could reach p, wind and pushes included.
 int grass_neighbourhood(vec3 p) {
     int radius=int(ceil(grass_wind_reach()/blade_spacing()));
     if (!interaction_enabled || goanna_render_grass_interaction < 0.5) return radius;
@@ -179,6 +221,10 @@ int grass_neighbourhood(vec3 p) {
     return radius;
 }
 
+// The distance field the sphere tracer uses when analytic_blades is off: a
+// blade is a tapered slab, its centreline bent along a parabola (t * t) by
+// its own lean and the wind. The 0.55 scales every step down because that
+// bend warps space, so the raw slab distance can overstep.
 float grass_distance(vec3 p, float tm) {
     float spacing = blade_spacing();
     float y = p.y-root_light.x;
@@ -245,6 +291,10 @@ vec3 nearer_blade(vec3 a, vec3 b) {
     return a.x<b.x ? a : b;
 }
 
+// The nearest blade a ray segment meets, as blade_root's (t, coverage,
+// height). Each candidate root is tested in its own unbent frame: the
+// blade's centre plane, bent by h * h, crosses the ray where a quadratic in
+// t is zero (qa, qb, qc), solved in the numerically stable form.
 vec3 cell_intersection(vec3 origin, vec3 rd, ivec2 cell, float max_t, float footprint, float tm) {
     vec3 closest=vec3(1e20,0.0,0.0);
     vec3 segment_end=origin+rd*max_t;

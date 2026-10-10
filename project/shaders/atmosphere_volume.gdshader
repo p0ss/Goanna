@@ -12,24 +12,48 @@
 //
 // What the grid is good at is exactly this: bounded, close to the camera, and
 // soft-edged by nature.
+//
+// main.gd gives it to one world-shaped FogVolume (through
+// GoannaClient.load_view_shader), shown only while the Volumetric atmosphere
+// switch (render_atmosphere) is on, the tier's atmosphere_quality is above
+// zero and the eye is above water: Low and up, not Lowest
+// (docs/systems/graphics-tiers.md). Every uniform is set from main.gd.
 shader_type fog;
 
+// Valley mist. atmosphere_color is the fog colour (_apply_sky). mist_level is
+// the world height in nodes the mist pools below, the regional ground plus
+// 18; mist_density its peak extinction per node, scaled by cloud cover, the
+// mist's day cycle and atmosphere_quality (_update_environment_extras).
 uniform vec3 atmosphere_color : source_color = vec3(0.72, 0.80, 0.90);
 uniform float mist_level = 64.0;
 uniform float mist_density : hint_range(0.0, 0.1) = 0.012;
 // Clear-air scattering belongs near the surface. A uniform Environment
 // density also fills the zenith, forcing an incorrect partial sky composite
 // to keep the clouds visible. Fade smoothly with height instead.
+// air_density is the clear air's extinction per node, the scattering the
+// light shafts are seen in, and air_albedo the sun's colour it scatters;
+// both from main.gd's _apply_sky, which zeroes the Environment's own density
+// while this volume carries the air.
 uniform float air_density = 0.0;
 uniform vec3 air_albedo : source_color = vec3(1.0, 0.98, 0.95);
+// The sky's cloud_offset, so the local bodies drift with the projected deck
+// (_update_environment_extras).
 uniform vec2 weather_offset = vec2(0.0);
+// The tier's atmosphere_quality, 0 to 1: Low 0.35, Medium 0.65, High and
+// Ultra 1. Below 0.34 the noise is one octave, below 0.67 two, else three.
 uniform float quality : hint_range(0.0, 1.0) = 1.0;
 #include "res://shaders/cloud_layers.gdshaderinc"
+// The sky's cloud style (sky.gdshader), so a local body matches the shape
+// drawn beyond it: below 2 it follows the block cells, at 2 the volume.
+// Set with cloud_layers in main.gd's _update_cloud_layers.
 uniform int cloud_style = 2;
+// Extinction per node of a local cloud body at full deck coverage, 0.026
+// times atmosphere_quality (_update_environment_extras). cloud_albedo is a
+// default only.
 uniform float cloud_density : hint_range(0.0, 0.1) = 0.025;
 uniform vec3 cloud_albedo : source_color = vec3(0.95, 0.96, 1.0);
 // The mist's own faint light, set from the night radiance floor in
-// main.gd. Fog on the fens exists at night; without this it was invisible
+// main.gd's _apply_sky. Fog on the fens exists at night; without this it was invisible
 // until dawn arrived to light it, so the dawn appeared to summon the fog
 // rather than pierce it. Zero by day, when the sun owns the banks.
 uniform vec3 mist_glow : source_color = vec3(0.0);
@@ -43,8 +67,14 @@ uniform vec3 cloud_under_glow : source_color = vec3(0.0);
 // Approximate the multiple scattering a water cloud retains. Godot's fog
 // lighting is largely single scattering; without a diffuse floor, dense
 // near-camera cloud extinguishes the sky to black rather than becoming grey.
+// Set in _apply_sky beside the sky's cloud_ambient_color.
 uniform vec3 cloud_ambient : source_color = vec3(0.12, 0.14, 0.16);
 
+// The same sine free hash as the sky's hash12, in three dimensions, and
+// value noise and fbm over it. main.gd keeps an exact CPU copy of the
+// local cloud field (_cloud_hash31 and what follows it), which gives the
+// light shafts pass the cloud's optical depth at the camera, so a change to
+// the field here wants the same change there.
 float hash31(vec3 p) {
 	p = fract(p * 0.1031);
 	p += dot(p, p.yzx + 33.33);

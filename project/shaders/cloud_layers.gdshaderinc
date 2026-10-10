@@ -1,12 +1,30 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // World-space base, depth, coverage and extinction, shared with local fog.
+//
+// The three cloud decks' layout and the grid the block styles cut them
+// into, included by sky.gdshader and atmosphere_volume.gdshader so the far
+// deck the sky projects and the near body the fog volume fills are one
+// field. project/cloud_layers.gd is the GDScript side; where a function here
+// says "Match", the two must agree.
+
+// One vec4 per deck, low to high: x the base height and y the depth, both
+// world nodes, z the coverage 0 to 1 (0 turns the deck off), w a density
+// multiplier. CloudLayers.build makes them from the server's cloud height,
+// thickness and density, the storm cover and the tier's cloud_layer_count
+// (Lowest and Low one deck, Medium two, High and Ultra three); main.gd's
+// _update_cloud_layers sets them on both materials.
 uniform vec4 cloud_layers[3];
+
+// Each deck drifts a little faster than the one below and starts from its
+// own place, so the decks do not move as one sheet.
 
 vec2 cloud_layer_offset(vec2 offset, int layer) {
 	return offset * (1.0 + float(layer) * 0.17)
 		+ vec2(19.7, 43.1) * float(layer);
 }
 
+// Dave Hoskins' sine free hash, value noise and four octave fbm, 0 to 1:
+// the slow 2D weather field that says where cloud masses are.
 float cloud_cell_hash(vec2 p) {
 	vec3 q = fract(vec3(p.xyx) * 0.1031);
 	q += dot(q, q.yzx + 33.33);
@@ -74,7 +92,10 @@ float cloud_cell_base(vec2 cell, vec4 deck) {
 		* deck.y * 1.5;
 }
 
-// Distance in normalised body coordinates, keeping wide clouds rounded.
+// Distance in normalised body coordinates, keeping wide clouds rounded: a
+// rounded box signed distance (negative inside), shrunk by 0.42 and grown
+// back by a 0.58 corner radius, so the surface sits at the box's faces with
+// well rounded edges.
 float cloud_block_distance(vec3 p, vec3 midpoint, vec3 half_size) {
 	vec3 q = abs((p - midpoint) / half_size) - vec3(0.42);
 	return length(max(q, vec3(0.0)))

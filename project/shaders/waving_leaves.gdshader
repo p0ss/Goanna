@@ -1,18 +1,26 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_LEAVES. Alpha-clipped, double sided, swaying.
+//
+// GoannaClient::materialFor (src/goanna_client.cpp) picks it for every
+// waving leaves tile, one material per tile. The sway follows the Foliage
+// wind switch (goanna_render_foliage_wind), on at every graphics tier.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
+// The tile's art, set by materialFor.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
+// Sway amplitude in nodes and its rate in radians a second: defaults only.
 uniform float sway = 0.06;
 uniform float speed = 1.4;
+// Set by materialFor from the tile's Luanti material type.
 uniform bool waving = true;
 // The same sky fill the terrain adds (nodes_array_common.gdshaderinc);
 // without it a canopy went near black at dawn and dusk while the ground
 // under it stayed lit. See waving_plants.gdshader.
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
+// A default in play; the offline material studies set 0 to see the rest.
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
 // The pack's LabPBR companions, looked up by stem in goanna_client.cpp the
@@ -21,7 +29,10 @@ uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 // every mat_ slider in the settings panel did nothing to it while the solid
 // nodes beside it took the pack's gloss in full. In a forested world that
 // is a large part of the frame taking one material response and the rest
-// taking another.
+// taking another. The textures and has_* flags are materialFor's, and so
+// are the *_strength channels, the settings panel's mat_ sliders, which
+// move with set_material_strength. normal_strength is declared for those
+// sliders but unused here: see the relief note in fragment().
 uniform sampler2D normal_tex : hint_normal, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D spec_tex : filter_nearest_mipmap, repeat_enable;
 uniform bool has_normal = false;
@@ -34,7 +45,8 @@ uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float emission_strength : hint_range(0.0, 8.0) = 4.0;
 // How rained-on the world is, the same global the terrain reads.
 global uniform float goanna_wetness;
-// Settled snow, the same global the terrain reads (weather_common).
+// Settled snow, the same global the terrain reads (weather_common), 0 to 1,
+// from main.gd's _apply_sky.
 global uniform float goanna_snow_cover;
 
 varying float v_skylight;
@@ -129,6 +141,7 @@ void fragment() {
 	// without the cover map: a canopy is its own cover).
 	if (goanna_snow_cover > 0.001 && v_wnormal_y > 0.3) {
 		vec2 cell = floor((v_wpos.xz + 0.5) * 16.0 + 1e-3);
+		// A random rank per texel, so the canopy whitens texel by texel.
 		float grain = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
 		float snow = smoothstep(0.3, 0.8, v_wnormal_y) * smoothstep(0.85, 0.95, v_skylight)
 				* smoothstep(grain - 0.03, grain + 0.03, goanna_snow_cover * 1.25 - 0.1);

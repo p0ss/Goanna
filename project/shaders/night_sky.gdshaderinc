@@ -1,13 +1,31 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // A fictional dark-sky panorama, shared by every view. No catalogue assets.
 // Included after the sky's hash12 and fbm helpers.
+//
+// Only sky.gdshader includes it, and its sky() calls these functions for
+// the visible half only: stars, a stepped Milky Way, four small asterisms,
+// three planets and the odd meteor. docs/systems/sky-orchestration.md, "The
+// night panorama", describes it.
+
+// Luanti's star scale, multiplying every star's size. main.gd's _apply_sky.
 uniform float star_scale = 1.0;
+// The sky's rotation in radians, the time of day times tau, so the stars
+// wheel about the same axis the sun and moon cross. _apply_sky.
 uniform float celestial_phase = 0.0;
+// Seconds since the client started, for twinkle and meteors. TIME would do
+// but wraps every hour. _apply_sky.
 uniform float celestial_time = 0.0;
+// 1 under Luanti's "regular" sky, 0 under a skybox or plain sky, so a game
+// that draws its own sky does not get Goanna's galaxy over it. _apply_sky.
 uniform float night_sky_strength : hint_range(0.0, 1.0) = 1.0;
+// How much of the stepped relief the Milky Way shows, and how strongly the
+// asterisms are drawn, 0 to 1. Defaults in play; night_sky_study.gd turns
+// them off to compare.
 uniform float galaxy_relief : hint_range(0.0, 1.0) = 1.0;
 uniform float constellation_strength : hint_range(0.0, 1.0) = 1.0;
 
+// Rotates a view direction into the sky's frame, about world z, the axis
+// Luanti's sun and moon orbit.
 vec3 celestial_direction(vec3 d) {
 	float c = cos(celestial_phase), s = sin(celestial_phase);
 	return vec3(c * d.x - s * d.y, s * d.x + c * d.y, d.z);
@@ -15,7 +33,8 @@ vec3 celestial_direction(vec3 d) {
 
 // Integrate a flat square core over the pixel footprint. Small stars retain
 // their light as they cross pixel boundaries; resolved stars have straight
-// edges and corners. Match the previous Gaussian's total angular area.
+// edges and corners. Match the previous Gaussian's total angular area
+// (0.886 is sqrt(pi) / 2, the side of a square of a unit disc's area).
 float square_star(vec2 delta, float radius, float pixel) {
 	float half_size = radius * 0.886226925;
 	float footprint = max(pixel, 0.000001);
@@ -153,6 +172,8 @@ vec3 galactic_relief(vec2 uv, float footprint) {
 	return vec3(height, shade, (cell.y + 0.5) / 80.0);
 }
 
+// The Milky Way: a band of fbm cloud along a tilted great circle, with a
+// dust lane down its spine, optionally drawn as stepped relief (above).
 vec3 galactic_clouds(vec3 direction, float pixel) {
 	// An inclined great circle, with a bright core and a broken dust lane.
 	vec3 normal = normalize(vec3(0.38, 0.61, 0.69));
@@ -241,6 +262,8 @@ vec4 night_constellations(vec3 d, float pixel, float clock, float altitude) {
 	return vec4(light * strength, mix(1.0, field, strength));
 }
 
+// Three fixed bright points. A Gaussian widened by the pixel footprint,
+// renormalised so a planet keeps its total light when smaller than a pixel.
 vec3 night_planets(vec3 d, float pixel) {
 	vec3 light = vec3(0.0);
 	for (int i = 0; i < 3; i++) {

@@ -4,7 +4,13 @@
 //
 // Set by project/game/effects/weather.gd, only while a weather spawner is running and
 // shader weather is on; with it off, or in fair weather, goanna_rain is 0 and
-// every branch below is skipped.
+// every branch below is skipped. goanna_snow_cover alone is set by main.gd.
+//
+// Included by nodes_array.gdshader, nodes_array_scissor.gdshader,
+// water.gdshader, precipitation.gdshader and particle_covered.gdshaderinc.
+// waving_leaves.gdshader copies goanna_snow rather than including it. The ground's darkening, pools and splashes
+// also wait on the Wet surfaces switch (goanna_render_wet_surfaces in
+// feature_flags.gdshaderinc), which every graphics tier leaves on.
 
 // How hard it is raining now, 0 to 2 (1 is Mineclonia's ordinary rain, 1.8
 // its thunderstorm), eased over a few seconds. Unlike goanna_wetness, which
@@ -34,6 +40,8 @@ float goanna_rain_open(vec3 p, float fallback) {
 	return step(cover - 0.55, p.y);
 }
 
+// Dave Hoskins' sine free hashes, 0 to 1, as the sky shader uses: stable on
+// every GPU at world sized arguments.
 float goanna_weather_hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
 	p3 += dot(p3, p3.yzx + 33.33);
@@ -46,7 +54,12 @@ float goanna_weather_hash(vec2 p) {
 // by texel on the art's own grid, sixteen to a node, so the dusting keeps
 // the blocky look: first scattered texels, then most, then all. On an
 // authored relief the hollows fill before the crests, as with the pools.
+// 0 to 1, set in main.gd's _apply_sky.
 global uniform float goanna_snow_cover;
+
+// `sky` is the vertex sky light, 0 to 1, standing in for the cover map off
+// its edge; `h` the relief height at the drawn texel, used when
+// `relief_known`.
 
 float goanna_snow(vec3 p, vec3 n, float sky, float h, bool relief_known) {
 	if (goanna_snow_cover < 0.001 || n.y < 0.3)

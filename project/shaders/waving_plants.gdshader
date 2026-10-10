@@ -1,12 +1,23 @@
 // Goanna: Luanti TILE_MATERIAL_WAVING_PLANTS. Sway grows with height above the node base.
+//
+// GoannaClient::materialFor (src/goanna_client.cpp) picks it for waving
+// plants, for nodes that only wave like a liquid (lily pads, held still), and
+// for double sided non waving tiles such as sugar cane, saplings, crops and
+// ladders, which need the sky fill the standard material lacks. One material
+// per tile; the sway follows the Foliage wind switch, on at every tier.
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
+// The tile's art, set by materialFor.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_enable;
+// Sway amplitude at the top of the tile in nodes, and its rate in radians a
+// second. Defaults only.
 uniform float sway = 0.12;
 uniform float speed = 1.8;
+// Whether this tile sways at all: materialFor sets it from the tile's
+// Luanti material type, false for the non waving and liquid waving cases.
 uniform bool waving = true;
 // The same sky fill the terrain adds (nodes_array_common.gdshaderinc). This
 // shader had none of it, so at dawn and dusk, when the fill carries most of
@@ -14,6 +25,7 @@ uniform bool waving = true;
 // sugarcane on the showcase beach, the grass at sunset.
 global uniform vec3 goanna_sky_fill;
 global uniform vec3 goanna_ground_fill;
+// A default in play; the offline material studies set 0 to see the rest.
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 
 // The pack's LabPBR companions, looked up by stem in goanna_client.cpp the
@@ -22,7 +34,9 @@ uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
 // every mat_ slider in the settings panel did nothing to it while the solid
 // nodes beside it took the pack's gloss in full. In a forested world that
 // is a large part of the frame taking one material response and the rest
-// taking another.
+// taking another. The textures and has_* flags are materialFor's, and so
+// are the *_strength channels, the settings panel's mat_ sliders, which
+// move with set_material_strength. relief_strength is a default only.
 uniform sampler2D normal_tex : hint_normal, filter_nearest_mipmap, repeat_enable;
 uniform sampler2D spec_tex : filter_nearest_mipmap, repeat_enable;
 uniform bool has_normal = false;
@@ -31,6 +45,7 @@ uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
 // Off for a game whose non-waving allfaces leaves land here: two stacked
 // blocks draw coincident interior faces, and per face normals make that
 // z-fight flicker (measured 0.8% to 1.7% unstable pixels in a canopy).
+// A default in play; plant_ramp.gd turns it off to compare.
 uniform bool relief = true;
 uniform float relief_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float ao_strength : hint_range(0.0, 1.0) = 1.0;
@@ -54,7 +69,10 @@ void vertex() {
 	v_blocklight = CUSTOM0.r;
 	v_wnormal_y = (MODEL_MATRIX * vec4(NORMAL, 0.0)).y;
 	if (waving && goanna_render_foliage_wind > 0.5) {
-		// UV.y = 0 at the top of the tile, 1 at the base
+		// UV.y = 0 at the top of the tile, 1 at the base, so the root stays
+		// planted and the tip moves most. The phase runs with the vertex's
+		// position, so neighbouring plants sway out of step, as a breeze
+		// crossing them does.
 		float k = 1.0 - clamp(UV.y, 0.0, 1.0);
 		float ph = TIME * speed + VERTEX.x * 0.5 + VERTEX.z * 0.4;
 		VERTEX.x += sin(ph) * sway * k;
