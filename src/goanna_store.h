@@ -33,6 +33,7 @@
 // needs happen off the main thread. Everything here is plain C stdio on
 // purpose.
 
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <map>
@@ -75,13 +76,17 @@ public:
     static v3s16 regionOf(v3s16 bp);
     static int slotOf(v3s16 bp);
 
-    // bytes() and blocksKnown() read their counters without the lock. They
-    // are statistics for render_stats, and a figure one put behind is fine.
-    uint64_t bytes() const { return m_bytes; }
+    // bytes() and blocksKnown() read their counters without the lock, so
+    // render_stats never waits behind a disk write; the counters are atomics
+    // for that, written under the lock. A figure one put behind is fine.
+    // regions() takes no lock either but reads the table itself, so it is
+    // only for before another thread uses the store (the log line after
+    // open).
+    uint64_t bytes() const { return m_bytes.load(std::memory_order_relaxed); }
     size_t regions() const { return m_regions.size(); }
     // Blocks in the region files whose indices have been read; a lower
     // bound on what the directory holds, exact once every region is touched.
-    size_t blocksKnown() const { return m_blocks_known; }
+    size_t blocksKnown() const { return m_blocks_known.load(std::memory_order_relaxed); }
 
 private:
     struct Entry {
@@ -106,15 +111,16 @@ private:
     std::string pathFor(v3s16 region) const;
 
     // Guards everything below it: the open directory, the region table with
-    // each region's FILE and index, and the byte and block counts. Held for
+    // each region's FILE and index, and the writes of the byte and block
+    // counts (read without it by bytes() and blocksKnown()). Held for
     // the whole of a disk read or write, which is why the main thread's per
     // frame lookups use the try methods. Its writes on prune and stop wait
     // for the lock like anyone else's.
     std::mutex m_mutex;
     std::string m_dir;
     uint64_t m_cap = 0;
-    uint64_t m_bytes = 0;
-    size_t m_blocks_known = 0;
+    std::atomic<uint64_t> m_bytes{0};
+    std::atomic<size_t> m_blocks_known{0};
     std::map<v3s16, Region> m_regions;
     int m_puts = 0;
 };
