@@ -1,13 +1,17 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Goanna's main menu, and the project's main scene (menu/menu.tscn, named by
+## run/main_scene in project.godot). Start Game launches an ordinary Luanti
+## server in the background (net/local_server.gd) and joins it; Join Game
+## joins a remote server. Both hand off to game/main.tscn, or to
+## game/local_play.tscn for split screen, through _go_to_game and the GOANNA_*
+## environment variables main.gd reads. There is no GoannaClient here.
 #
-# Goanna's main menu: start a local singleplayer game (Goanna launches an
-# ordinary Luanti server in the background and joins it), or join a remote
-# server. Both hand off to the game scene through the GOANNA_* environment
-# variables main.gd reads. The menu steps aside when the environment already
-# says where to go (GOANNA_HOST/GOANNA_NAME or a test mode); GOANNA_MENU=1
-# forces it. Server address, port and name are remembered in user://goanna.cfg;
-# the password is not.
+# The menu steps aside when the environment already says where to go
+# (GOANNA_HOST/GOANNA_NAME or a test mode, SKIP_VARS); GOANNA_MENU=1 forces
+# it. user://goanna.cfg remembers the join form's address, port and player
+# name, the last local world and its game, the hosting options, the chosen
+# Luanti and the local player roster; never a password.
 extends Control
 
 const CFG_PATH := "user://goanna.cfg"
@@ -87,7 +91,7 @@ var showcase_launch := false
 # tools/bench/bench_plans/graphics.json, whose "close" scene is this position and
 # aim, and whose "structures" entry is what put the village there.
 # SHOWCASE_YAW is that scene's aim converted to main.gd's convention
-# (main.gd:1209, yaw = atan2(-d.x, -d.z) in degrees).
+# (main.gd's _aim_at, yaw = atan2(-d.x, -d.z) in degrees).
 #
 # The "close" pose and not that plan's wider "vista" one, for the same reason
 # the backdrop keeps a small view range: this stands in the village with its
@@ -354,8 +358,9 @@ func _fit_panel() -> void:
 	_panel_box.custom_minimum_size = Vector2(maxf(size.x - inner, 240.0),
 			maxf(size.y - inner, 0.0) if _wide else 0.0)
 
-# The interface style changed (Settings, Appearance): rebuild the frame in the
-# new style and come back to the settings screen, where the change was made.
+## The interface style changed (Settings, Appearance): rebuild the frame in the
+## new style and come back to the settings screen, where the change was made.
+## Called through the GlassStyle.GROUP group by ui/glass_style.gd's set_mode.
 func interface_style_changed() -> void:
 	for c in get_children():
 		if c is CanvasItem and c != server:
@@ -1274,9 +1279,9 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		PanelFit.describe(box, str(row[4]))
 		return
 	if kind == "path":
-		# A folder, not a number: stored as a string, and the only setting in
-		# the table that is. Empty means the server's own art, which is what
-		# the client reports as "no texture pack set" when it starts.
+		# A folder, not a number: stored as a string, as the choice and pack
+		# rows are. Empty means the server's own art, which is what the client
+		# reports as "no texture pack set" when it starts.
 		var pe := LineEdit.new()
 		pe.text = str(cfg.get_value("settings", key, ""))
 		pe.placeholder_text = "none: use the server's own textures"
@@ -1317,16 +1322,16 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		desc_text += "\n(not recorded yet: join a world once, or set it here)"
 	PanelFit.describe(box, desc_text)
 
-# Placeholder for a setting goanna.cfg has never carried, which happens only
-# before the first world is joined: after that the in-game panel has recorded
-# what the client is really running with. A slider sits at its own midpoint
-# rather than at zero, and the row says it is not recorded yet, because a
-# confident wrong number is worse than an obvious placeholder.
 # What a setting is before anything was saved, for the rows whose default is
 # not "on" or the middle of the slider.
 const SETTING_DEFAULTS := {"procedural_grass": 0.0, "read_aloud": 0.0, "speech_rate": 1.0,
 	"speech_volume": 1.0, "volume": 0.8}
 
+# Placeholder for a setting goanna.cfg has never carried, which happens only
+# before the first world is joined: after that the in-game panel has recorded
+# what the client is really running with. A slider sits at its own midpoint
+# rather than at zero, and the row says it is not recorded yet, because a
+# confident wrong number is worse than an obvious placeholder.
 func _settings_default(row: Array) -> float:
 	if SETTING_DEFAULTS.has(str(row[1])):
 		return float(SETTING_DEFAULTS[str(row[1])])
@@ -1976,6 +1981,11 @@ func _on_start_local() -> void:
 	server_deadline = _now() + 20.0
 	set_process(true)
 
+# Runs only while something is in flight (set_process(true) where each one
+# starts): a Luanti install, a game, terrain or material download, or a local
+# server coming up. The first of those running owns the status line. When the
+# server answers ready, the GOANNA_* variables are set and the game scene
+# takes over.
 func _process(_delta: float) -> void:
 	var installing := _poll_luanti_install()
 	if game_http != null:
@@ -2071,7 +2081,10 @@ func _process(_delta: float) -> void:
 		OS.set_environment("GOANNA_PACK_SET", "1")
 		OS.set_environment("GOANNA_NO_PBR", "" if bool(local_graphics.get("pbr", true)) else "1")
 		OS.set_environment("GOANNA_PBR_SET", "1")
-		# the game scene stops this server on exit
+		# Marks a server this client started: main.gd offers the free camera
+		# only then, and reports a server that died while connecting.
+		# GOANNA_SP_MATCH gives each local world its own block store. The
+		# server itself is stopped through LocalLaunch.server (_go_to_game).
 		OS.set_environment("GOANNA_SP_PID", str(server.pid))
 		OS.set_environment("GOANNA_SP_MATCH", server.world_path)
 		_go_to_game()
@@ -2355,6 +2368,9 @@ func _local_pbr_selection() -> Dictionary:
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
+# Change to the game scene. A local server travels in LocalLaunch.server,
+# not in this scene, because the scene change frees the menu; the game scene
+# (ui/game_ui.gd, or game/local_play.gd for split screen) stops it on exit.
 func _go_to_game() -> void:
 	# Without the GDExtension the world scene cannot even parse (main.gd
 	# names GoannaClient), and the player got a grey screen with nothing to

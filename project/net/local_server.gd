@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Finds the Luanti installs on this machine and runs one of them as a
+## background server for a local game. menu/menu.gd preloads it: its static
+## functions answer the menu's questions (installs, games, worlds, mods), and
+## an instance is one running server, started with start_config and polled
+## with poll_ready. The menu hands that instance to the game scene through
+## game/local_launch.gd, and ui/game_ui.gd or game/local_play.gd stops it.
 #
-# Launches a Luanti server in the background for singleplayer, and connects
-# Goanna to it. Goanna is a client; "start a game" means running an ordinary
-# unmodified Luanti server on localhost and joining it over the normal
-# protocol, exactly as connecting to any other server. Nothing here modifies
-# the server or the game.
+# Goanna is a client; "start a game" means running an ordinary unmodified
+# Luanti server on localhost and joining it over the normal protocol, exactly
+# as connecting to any other server. The menu does the joining, through the
+# GOANNA_* variables main.gd reads. Nothing here modifies the server or the
+# game.
 #
 # Which Luanti it runs is decided under "finding Luanti" below: every install
 # the machine seems to have, by Luanti's own path rules, with the player's
@@ -60,6 +66,8 @@ const TERRAIN_CATALOGUE := "res://terrain_worlds.json"
 const TERRAIN_CATALOGUE_SCHEMA := "org.goanna.terrain-catalogue/v1"
 static var _terrain_cache: Dictionary = {}
 
+## The parsed terrain_worlds.json, read once per run, or {} when it is
+## missing or not the expected schema.
 static func terrain_catalogue() -> Dictionary:
 	if not _terrain_cache.is_empty():
 		return _terrain_cache
@@ -183,6 +191,9 @@ static func detect() -> Dictionary:
 	_chosen = preferred(installs(), saved_choice())
 	return _chosen
 
+## Which of `all` to use: the one keyed `wanted`, else the first with a game,
+## else the first, never one too old to run. Split from detect so a test can
+## feed it a made up list.
 static func preferred(all: Array, wanted: String) -> Dictionary:
 	# Too old is never chosen, not even when it was chosen before: an earlier
 	# Goanna had no check and may have saved one.
@@ -342,6 +353,8 @@ static func _context() -> Dictionary:
 		ctx["folder_bases"] = bases
 	return ctx
 
+## Every install on the machine `ctx` describes (see _context), merged so one
+## install found by several routes appears once.
 static func scan_installs(ctx: Dictionary) -> Array:
 	var found: Array = []
 	var windows := str(ctx["platform"]) == "Windows"
@@ -1031,6 +1044,9 @@ static func world_gameid(data_dir: String, worldname: String) -> String:
 			return line.get_slice("=", 1).strip_edges()
 	return ""
 
+## A world's choices as its world.mt records them (game, creative, damage,
+## PBR materials, enabled mods), so reopening the menu on an existing world
+## shows what it was started with.
 static func world_options(data_dir: String, worldname: String) -> Dictionary:
 	var result := {"gameid": world_gameid(data_dir, worldname), "creative": false,
 		"damage": true, "mods": [], "pbr_materials": true,
@@ -1059,6 +1075,8 @@ static func world_options(data_dir: String, worldname: String) -> Dictionary:
 				result["mods"].append(choice)
 	return result
 
+## Move a world into worlds/.goanna-trash rather than deleting it, so a slip
+## on Delete world can be undone by hand. "" on success, else the reason.
 static func delete_world_recoverably(data_dir: String, worldname: String) -> String:
 	var source := data_dir.path_join("worlds").path_join(worldname)
 	if not DirAccess.dir_exists_absolute(source):
@@ -1075,6 +1093,8 @@ static func data_dir_or_empty() -> String:
 	var env := detect()
 	return env["data_dir"] if not env.is_empty() else ""
 
+## The texture directory of the PBR materials installed for `game`, or "" when
+## there are none. The menu passes it to the game scene as GOANNA_PACK.
 static func bundled_pbr_texture_path(game: String) -> String:
 	# An installed profile decides on its own, without consulting
 	# PBR_GAME_DIRS. That map names only the packs carried in this
@@ -1361,9 +1381,6 @@ func _prepare_terrain_diffusion_meta(world: String) -> String:
 	output.store_string("\n".join(kept) + "\n")
 	return ""
 
-# Start a server for `gameid` on `worldname` (created under the data dir if
-# new). Picks a free-ish port and writes a log we can watch for readiness.
-# Returns "" on success, or an error message.
 # Where the AI game master's service is: in a release, the director folder
 # beside the program (package-release.sh); in a checkout, tools/. "" when
 # neither has it.
@@ -1406,7 +1423,7 @@ func _write_director_connect(world: String) -> void:
 		f.store_string(text)
 
 # The server mod that relays goanna_* settings to the client, copied into the
-# world as a worldmod so the grant written above reaches the client. A copy,
+# world as a worldmod so the grants start_config writes reach the client. A copy,
 # not a link: the flatpak sandbox sees the world directory and not the
 # checkout.
 func _install_server_mod(world: String) -> String:
@@ -1452,11 +1469,21 @@ func _install_pbr_mod(world: String, game: String) -> String:
 	return ""
 
 
+## start_config with only a game, a world, a player and a terrain world. Kept
+## for older callers; nothing in this project calls it today (2026-10-10).
 func start(gameid_: String, worldname: String, player_name: String = "player",
 		terrain_world_id: String = "") -> String:
 	return start_config({"gameid": gameid_, "world": worldname, "player_name": player_name,
 		"terrain_world": terrain_world_id})
 
+## Start a server on a world, creating it under the data directory if new.
+## `options` is what the menu's Start Game screen gathers: gameid, world,
+## player_name, terrain_world, creative, damage, pbr_materials, mods, and the
+## hosting keys (host, port, server_name, server_description, password,
+## announce, max_users) and far_distance. Writes world.mt, a server config
+## beside the world and the worldmods, picks a free port, and launches the
+## server with a fresh log for poll_ready to watch. Returns "" on success, or
+## an error message for the player.
 func start_config(options: Dictionary) -> String:
 	gameid = str(options.get("gameid", ""))
 	var worldname := str(options.get("world", ""))
@@ -1753,6 +1780,7 @@ func poll_ready() -> String:
 				return line.strip_edges()
 	return "starting"
 
+## Stop the server and anything it started, by PID (net/owned_process.gd).
 func stop() -> void:
 	owned_process.stop()
 	pid = -1
