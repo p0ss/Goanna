@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# End-to-end private channel, camera and order checks against the scratch server.
+## Live overseer test, end to end: the private channel, the camera and
+## orders. Needs the scratch overseer server in docs/systems/overseer.md, "Tests";
+## dummy renderer, no GPU. Run the live tests one at a time:
+## godot --headless --path project --script res://tests/overseer_live.gd
 extends SceneTree
 const Overseer := preload("res://game/overseer.gd")
 const Unit := preload("res://tests/overseer.gd")

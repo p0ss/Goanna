@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Real node meshing and simulation continuing inside the overseer camera.
+## Live overseer test: real node meshing in the overseer view, with
+## entities still moving and animating while it is open. Needs the scratch
+## overseer server in docs/systems/overseer.md, "Tests"; dummy renderer, no GPU:
+## godot --headless --path project --script res://tests/overseer_world.gd
 extends SceneTree
 const Overseer := preload("res://game/overseer.gd")
 const Unit := preload("res://tests/overseer.gd")

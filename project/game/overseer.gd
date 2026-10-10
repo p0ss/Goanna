@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# A server-authorised cutaway in an isolated World3D. The ordinary terrain,
-# far field, particles, entities and lighting cannot enter this world.
+## The overseer camera: a server-authorised cutaway in an isolated World3D,
+## for DorfCraft's planning view. The ordinary terrain, far field, particles,
+## entities and lighting cannot enter this world. game/main.gd makes one per
+## game scene and calls tick() every frame; it stays idle until the server's
+## "dorfcraft:overseer" HUD element grants a channel, then talks over it with
+## GoannaClient.overseer_send and overseer_take. docs/systems/overseer.md.
 extends CanvasLayer
 
 const UNAVAILABLE := Color(0.12, 0.13, 0.14)
@@ -100,6 +104,8 @@ func _send(message: Dictionary) -> void:
 	message.v = 1
 	client.overseer_send(JSON.stringify(message))
 
+## Called by main.gd each frame. Watches the HUD grant, opens or closes the
+## view to match it, drains the channel, and pans while the view is open.
 func tick(delta: float) -> void:
 	hud_poll -= delta
 	if hud_poll <= 0.0:
@@ -300,6 +306,8 @@ func _close() -> void:
 		remove_child(root_control)
 		root_control.queue_free()
 
+## Closes the view at the player's request and ignores the same grant until
+## the server issues a new one, so it does not reopen at once.
 func leave() -> void:
 	if not active:
 		return
@@ -307,6 +315,9 @@ func leave() -> void:
 	ignored_channel = channel
 	_close()
 
+# Every message is from the server (the session drops anything a player
+# relayed), but it is still checked field by field: valid_layer and _pos
+# refuse anything out of the claim, oversized or malformed before it is drawn.
 func _receive(msg: Dictionary) -> void:
 	if int(msg.get("v", 0)) != 1:
 		return
@@ -405,6 +416,9 @@ func _update_materials(value: Variant) -> void:
 		build_material.add_item("No suitable item in stock")
 		build_material.set_item_disabled(0, true)
 
+# A layer too big for one mod channel message arrives as numbered base64
+# chunks. At most two reassemblies at once, 35 chunks and 1 MiB each, and a
+# part set older than 12 seconds is dropped.
 func _receive_part(msg: Dictionary) -> void:
 	var now := _now()
 	for old in parts.keys():
@@ -450,6 +464,10 @@ static func _number(v: Variant, whole := true) -> bool:
 static func _pos(v: Variant, whole := true) -> bool:
 	return v is Dictionary and _number(v.get("x"), whole) and _number(v.get("y"), whole) and _number(v.get("z"), whole)
 
+## Whether a "layer" message answers the current request (seq and level),
+## stays inside both the requested rectangle and the server's claim, and has
+## consistent cell, floor, state and wall arrays. Static so the overseer tests
+## can feed it messages with no view.
 static func valid_layer(msg: Dictionary, seq: int, y: int, rect: Dictionary, bounds: Dictionary) -> bool:
 	if int(msg.get("seq", -1)) != seq or int(msg.get("y", -32000)) != y:
 		return false

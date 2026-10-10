@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Headless contract tests for the isolated overseer world and stale replies.
+## Contract tests for the overseer view (game/overseer.gd) with a stand in
+## game and client: its isolated world, explicit bounds, unknown floors,
+## stale replies, level changes and restoration. The other overseer tests
+## reuse its TestMain and TestClient. Headless, no server or GPU:
+## godot --headless --path project --script res://tests/overseer.gd
 extends SceneTree
 const Overseer := preload("res://game/overseer.gd")
 var failures := 0
