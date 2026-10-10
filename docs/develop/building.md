@@ -217,38 +217,8 @@ you.
 
 ### Running a server yourself
 
-An ordinary Luanti 5.17.0 server works, and you will want your own for
-anything beyond a quick look. Goanna offers protocol versions 37 to 53, as
-Luanti 5.17's own client does, so older 5.x servers can negotiate a
-connection, but only 5.17.0 has been run since Goanna moved to it. Goanna
-connects over the ordinary protocol and asks for nothing special. The
-quickest option is Luanti's own Development Test game, which is small, ugly
-and exercises the basics:
-
-```sh
-luantiserver --gameid devtest --worldname goanna_test --port 30000
-```
-
-Depending on how Luanti was packaged, the server may instead be the main
-binary in server mode:
-
-```sh
-luanti --server --gameid devtest --worldname goanna_test --port 30000
-```
-
-If you installed Luanti as a flatpak, the server is inside it:
-
-```sh
-flatpak run --command=luantiserver org.luanti.luanti \
-  --gameid devtest --worldname goanna_test --port 30000
-```
-
-Note that the flatpak has no access to your home directory, so its worlds
-live under `~/.var/app/org.luanti.luanti/.minetest/worlds/`.
-
-A server running a full game such as minetest_game or Mineclonia will also
-accept the connection, and Goanna will show you something, but expect
-missing and wrong geometry. Only the simplest drawtypes are meshed today.
+How to start an ordinary Luanti server for Goanna to join, from a package or a
+Flatpak, is in [hosting a world](../host/index.md#running-a-server-yourself).
 
 ### Point Goanna at it
 
@@ -301,36 +271,17 @@ first place to look.
 
 ### Controls
 
-| Key | Action |
-| --- | --- |
-| W A S D | Walk |
-| Mouse | Look |
-| Left mouse | Dig the pointed node, held down |
-| Right mouse | Place the wielded item |
-| 1 to 8 | Choose the wielded item |
-| Mouse wheel | Cycle the wielded item |
-| I | Open and close the inventory |
-| T | Open chat |
-| / | Open chat with a command already started |
-| Escape | Pause menu: continue, disconnect to the menu, or quit |
-| Space | Jump, or ascend while flying |
-| Shift | Sneak, or descend while flying |
-| E | Aux1, which is fast movement if the server grants it |
-| F | Toggle the free camera, in your own local game only |
-| Ctrl | Move faster, while flying |
-
+The controls are listed for players in [controls](../play/controls.md).
 Walking uses Luanti's own `LocalPlayer` and collision code, so speeds,
 gravity, step height and sneak behaviour are the server's, not an
 approximation.
 
-Flying is a debug camera, and the note above that it moves the player the
-server sees was wrong. `step_player` is the only thing that moves the player,
-and it does not run at all while the camera is flying: the camera leaves the
-body behind and passes through terrain, so it sees what the player could not
-walk to. That is reach no vanilla client has, which is the one thing Goanna
-must not hand a player on someone else's server, so F is accepted only when
-this client started the server itself. It is still not the game's `fly`
-privilege and still asks the server for nothing.
+`F` toggles a free camera that leaves the body behind and passes through
+terrain. `step_player`, the only thing that moves the player, does not run
+while it is on, so the server never sees the camera move. It still sees what
+the player could not walk to, which is reach no vanilla client has, so `F` is
+accepted only when this client started the server itself. It is not the
+game's `fly` privilege and asks the server for nothing.
 
 ## Automated runs
 

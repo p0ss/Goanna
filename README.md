@@ -65,9 +65,9 @@ cmake --build build
 ```
 
 The menu provides Start Game, Join Game, Content, Settings and About. See
-[docs/play/index.md](docs/play/index.md) for controls, requirements, Terrain
+[the player guide](docs/play/index.md) for controls, requirements, Terrain
 Diffusion downloads and current limitations. See
-[docs/develop/index.md](docs/develop/index.md) to build, test or extend Goanna.
+[the developer guide](docs/develop/index.md) to build, test or extend Goanna.
 
 ## Compatibility and scope
 
@@ -88,27 +88,21 @@ synthetic events on Godot 4.5.1 have run. See
 
 ## Documentation
 
-Player-facing documentation starts at [docs/play/index.md](docs/play/index.md).
-Developer-facing documentation starts at
-[docs/develop/index.md](docs/develop/index.md). The specialised references
-remain available for contributors:
+The documentation is a site, published at
+<https://p0ss.github.io/Goanna/> and built from [`docs/`](docs/index.md):
 
-- [Building and validation](docs/develop/building.md),
-  [requirements](docs/play/requirements.md)
-- [Benchmarking graphics settings](docs/develop/benchmark.md), [rendering
-  baseline](docs/develop/baseline.md)
-- [Distant terrain](docs/systems/far-rendering.md),
-  [materials](docs/systems/materials.md), [PBR plan](docs/design/pbr-plan.md)
-- [Protocol coverage](docs/systems/protocol-coverage.md),
-  [capabilities](docs/design/capabilities.md), [control
-  channel](docs/agents/control-channel.md)
-- [Iris compatibility](docs/design/iris-compat.md), [shader-pack
-  testing](docs/develop/shaderpack-testing.md)
-- [Transplanting Luanti code](docs/develop/transplanting.md),
-  [validation](docs/design/validation.md)
-- [Launch target](docs/develop/launch-target.md),
-  [roadmap](docs/design/roadmap.md)
-- [Game controllers](docs/play/controllers.md), untested on hardware
+- [Play](docs/play/index.md): installing, starting and joining, controls,
+  settings, accessibility and current limitations.
+- [Host](docs/host/index.md): running a server for Goanna players and the
+  optional server mod.
+- [Develop](docs/develop/index.md): building, testing, benchmarks, style
+  and the transplant discipline.
+- [Agents](docs/agents/index.md): the interfaces for coding agents and the
+  AI game master. The agent rules are in [AGENTS.md](AGENTS.md).
+- [Systems](docs/systems/index.md), [design](docs/design/index.md) and
+  [history](docs/history/index.md): how each part works, the plans, and the
+  dated record.
+- [Releases](docs/releases/index.md): release notes.
 
 ## Contributing and licence
 

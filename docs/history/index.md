@@ -3,7 +3,8 @@
 Dated logs and investigations. Each entry describes the code as it was on
 its date, says what it was checked against, and is kept as written, so a
 later entry or the code wins where they disagree. For how things work now,
-read the systems pages; for plans, the design pages.
+read the [systems](../systems/index.md) pages; for plans, the
+[design](../design/index.md) pages.
 
 ## Logs
 

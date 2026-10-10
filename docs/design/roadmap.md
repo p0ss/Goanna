@@ -45,8 +45,9 @@ reads excessively. The working plan is [pbr-plan.md](pbr-plan.md).
 
 ### 4. Compatibility tail
 
-Implement node texture animation, entity animation, connected textures and the
-remaining particle and formspec behaviours. Each feature should be gated by
+Node texture animation ([animated node tiles](../systems/node-animation.md))
+and entity animation are in. Connected textures and the remaining particle
+and formspec behaviours are not. Each feature should be gated by
 the protocol/game capability it actually needs rather than by a Goanna-only
 assumption.
 
