@@ -18,7 +18,9 @@ MCP registrations in users' Claude settings and `core.hooksPath` name them.
 All are current.
 
 - `goanna-headless`, `goanna_headless.py`: run Goanna or the vanilla Luanti
-  client in headless gamescope, and check the GPU (`gpu-free`).
+  client in headless gamescope, wait for one to quit (`wait`), and check the
+  GPU (`gpu-free`, `gpu-lock`). `goanna_headless.Instance` gives a started
+  client the `poll`, `wait` and `terminate` of a `subprocess.Popen`.
   `tools/goanna-headless --help`. See `docs/agent-interfaces.md`.
 - `goanna-render`, `goanna_render.py`, `render-fixture.lua`: the render
   service, one long lived server and client that hold the GPU lock and take
@@ -129,11 +131,11 @@ Current: the authoring, gates and bundle tools.
   `luajit tools/test/test-fine-server.lua` from the repository root.
 - `test-fresh-install.sh`: "Get ready to play" from nothing in clean distro
   containers with podman. Current; needs `dist/luanti-server`.
-- `test-launch-target.sh`: the launch target acceptance harness. Historical;
-  it starts the client as a desktop window.
+- `test-launch-target.sh`: the fresh install harness of
+  `docs/launch-target.md`, on the GPU in headless gamescope. Current.
 - `test-shaderpack.sh`, `shaderpack_check.py`: run with the proof shader pack
-  and check the screenshot. Historical; it needs a display and opens a
-  window. `shaderpack_check.py` alone checks a saved shot.
+  in headless gamescope and check the screenshot. Current; needs a server.
+  `shaderpack_check.py` alone checks a saved shot.
 - `dig-review/`, `forest-review/`, `grass-review/`, `ice-review/`,
   `lava-review/`: live capture harnesses behind the reviews in `docs/perf/`.
   Historical. Most start the client as a desktop window; read the script

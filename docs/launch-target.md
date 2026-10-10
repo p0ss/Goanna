@@ -39,6 +39,38 @@ were implemented.
 - Luanti source transplants retain attribution and are easy to compare with
   their pinned upstream revision.
 
+## The fresh install harness
+
+`tools/test/test-launch-target.sh` checks the first minutes of a new player:
+an empty profile, a new local world started through the menu, the far field
+reaching a real size, a horizon shot, a close shot and a standing still
+burst for the pop measure, all judged by `tools/dev/shotcheck.py
+--launch-target`. `--help` gives its variables.
+
+It runs the client in headless gamescope through `tools/goanna-headless`,
+on the GPU, so nothing appears on the desktop; the shots come from Godot's
+own viewport, which renders for real there. It waits up to
+`GOANNA_LOCK_WAIT` seconds (default 1800) for the shared GPU lock. The
+launcher points a client at a server through `GOANNA_HOST`, `GOANNA_PORT`
+and `GOANNA_NAME`, and `menu.gd` skips the menu when they are set, so the
+harness clears them.
+
+No first run default depends on the screen or the window size. The
+hardware profile comes from the adapter type and the core count
+(`_apply_hardware_defaults` in `main.gd`), and the adapter in headless
+gamescope is the same card. The window size still shapes the shots, the HUD
+scale and the field of view the client reports for the server's culling, so
+the harness fixes it at 1600 by 900, the project's own window size, which
+the desktop runs had.
+`GOANNA_LAUNCH_TARGET_SIZE` changes it.
+
+Not yet run this way on the GPU. On 2026-10-10 the card was held by another
+Godot for the whole session, and a run on lavapipe (`GOANNA_SOFTWARE=1`,
+Godot 4.5.1, Mineclonia, Luanti 5.17.0) went through the menu, started the
+new local world and received its media, but was still building visuals
+when the far field wait ran out, so it failed. Lavapipe is too slow for
+this harness; it shows only that the launch path works.
+
 ## Evidence required for a release
 
 Each release candidate should include:

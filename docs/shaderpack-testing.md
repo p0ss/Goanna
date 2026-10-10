@@ -36,15 +36,20 @@ tools/test/test-shaderpack.sh
 ```
 
 The script finds Godot the same way `tools/test/test-formspec.sh` does (`godot`
-or `godot4` on `PATH`, or `GODOT_BIN=/path/to/godot`), launches Goanna with
-`GOANNA_SHADERPACK` pointing at the proof pack and `GOANNA_SHOT` set, waits
-for the screenshot `a.png` that `main.gd` saves about eight seconds in, then
-checks the log and the image. `GOANNA_HOST` and `GOANNA_PORT` choose the
+or `godot4` on `PATH`, or `GODOT_BIN=/path/to/godot`), launches Goanna in
+headless gamescope through `tools/goanna-headless` with `GOANNA_SHADERPACK`
+pointing at the proof pack and `GOANNA_SHOT` set, waits for the client to
+save the screenshot `a.png` that `main.gd` takes about eight seconds in and
+quit (`goanna-headless wait`, stopping it after 120 s), then checks the log
+and the image. The client's exit status does not reach the launcher, so a
+crash is read from the log instead. `GOANNA_HOST` and `GOANNA_PORT` choose the
 server (default `127.0.0.1:30000`); `GOANNA_NAME` and `GOANNA_PASS` choose
 the player (default `shaderproof`, no password). `GOANNA_TOD` and
 `GOANNA_VIEW` pass through. On failure it prints the log path and keeps the
 run directory; `GOANNA_SHADERPACK_TEST_DIR` names that directory, and a
-directory named this way is kept on success too.
+directory named this way is kept on success too. It holds the client's log
+(`goanna.log`, gamescope's output included) and `instance.json`, the
+launcher's record of the run.
 
 The image check is `tools/test/shaderpack_check.py`, which can also be run on
 its own against any PNG:
@@ -61,15 +66,27 @@ raw measurements. A frame taken without the pack fails three of the five.
 
 ## What it needs
 
-- A graphical display. The screenshot is read back from the real viewport,
-  so Godot's headless driver cannot produce one.
+- The GPU, through the launcher. The screenshot is read back from Godot's
+  own viewport, which renders for real in headless gamescope, so the pixels
+  are the ones a desktop window gives and no window reaches the desktop.
+  Godot's `--headless` draws nothing and cannot produce one. The window is
+  1600 by 900, the project's own size, which the desktop runs had. The
+  launcher takes the shared GPU lock; the script waits up to
+  `GOANNA_LOCK_WAIT` seconds (default 1800) for it, and still refuses while
+  another game client or compute job is on the GPU.
+  `GOANNA_SOFTWARE=1` renders on lavapipe instead, which checks the harness
+  but not the look.
 - A Luanti server answering on the chosen host and port, with a player name
   it will accept. If nothing answers, or the server denies the name, the
   script says so and fails rather than judging a frame of empty sky.
 - A built `project/bin/` extension, as for any Goanna run.
 
-Last run: 2026-08-21, Godot 4.5.1, Mineclonia on a local Luanti 5.16 server,
-pass.
+Last run on a desktop window: 2026-08-21, Godot 4.5.1, Mineclonia on a local
+Luanti 5.16 server, pass. Through the launcher: 2026-10-10, Godot 4.5.1,
+Mineclonia (a fresh world) on a local Luanti 5.17.0 server, with
+`GOANNA_SOFTWARE=1` (lavapipe), pass on all five checks at 1600 by 900. It
+has not yet been run through the launcher on the GPU: the card was held by
+another Godot for the whole session.
 
 ## What it does not prove
 

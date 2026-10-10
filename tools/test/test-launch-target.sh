@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 #
-# The acceptance harness for docs/launch-target.md task 1: start Goanna
+# The fresh install harness of docs/launch-target.md: start Goanna
 # against an empty settings file, start a new local world through the menu
 # path (not a hand started server), wait on the control channel for the far
 # field to reach a real size, take a horizon shot and a close shot, and
@@ -20,11 +20,30 @@
 # development guard for driving the "start a local game" screen without a
 # human at the keyboard; see the comment above SKIP_VARS in project/menu.gd.
 #
-# Needs a graphical display (the screenshots come from the real viewport, so
-# this will not run headless), GOANNA_LAUNCH_TARGET_GAME installed for
-# Luanti (mineclonia by default, the only game with a bundled texture map),
-# and Python 3 with Pillow and numpy for shotcheck.py. GODOT_BIN overrides
-# the Godot binary.
+# The client runs in headless gamescope through tools/goanna-headless, on the
+# GPU, so no window reaches the desktop. The shots are read back from
+# Godot's own viewport, which renders for real there; Godot's --headless
+# cannot produce them. The launcher takes the shared GPU lock, and this
+# waits up to GOANNA_LOCK_WAIT seconds (default 1800) for it rather than
+# refusing. It still refuses while another game client or a compute job is
+# on the GPU. GOANNA_SOFTWARE=1 renders on lavapipe instead, which checks the
+# harness but not the look.
+#
+# No first run default depends on the screen or window size: the hardware
+# profile comes from the adapter type and the core count (main.gd's
+# _apply_hardware_defaults). The window size still shapes the shots, the HUD
+# scale and the field of view the client reports for the server's culling,
+# so the window is fixed at 1600 by 900, the project's own window size,
+# which is what the desktop runs got. GOANNA_LAUNCH_TARGET_SIZE (WxH)
+# changes it.
+#
+# The launcher normally points the client at a server through GOANNA_HOST,
+# GOANNA_PORT and GOANNA_NAME; those are cleared here, because menu.gd skips
+# the menu when they are set, and this harness exists to go through it.
+#
+# Needs GOANNA_LAUNCH_TARGET_GAME installed for Luanti (mineclonia by
+# default, the only game with a bundled texture map), and Python 3 with
+# Pillow and numpy for shotcheck.py. GODOT_BIN overrides the Godot binary.
 #
 # Every run starts a brand new world, named from the current time unless
 # GOANNA_LAUNCH_TARGET_WORLD is set, because the point of this harness is
@@ -38,8 +57,8 @@
 # normal bundled default. This travels through menu.gd's real OptionButton and
 # launch handoff; it is not copied into GOANNA_PACK by this script.
 #
-# The run directory (log, shots, settings.json) is printed on failure; set
-# GOANNA_LAUNCH_TARGET_DIR to choose it and keep it always.
+# The run directory (log, shots, settings.json, instance.json) is printed on
+# failure; set GOANNA_LAUNCH_TARGET_DIR to choose it and keep it always.
 set -euo pipefail
 case "${1:-}" in -h | --help)
     # Usage is the header comment above.
@@ -67,7 +86,9 @@ fi
 
 game=${GOANNA_LAUNCH_TARGET_GAME:-mineclonia}
 world=${GOANNA_LAUNCH_TARGET_WORLD:-goanna_launch_target_$(date +%s)}
-control_port=${GOANNA_LAUNCH_TARGET_PORT:-30800}
+# The control port: GOANNA_LAUNCH_TARGET_PORT, or the launcher picks a free
+# one (never 30800, which every tool not told a port talks to).
+control_port=${GOANNA_LAUNCH_TARGET_PORT:-}
 far_min=${GOANNA_LAUNCH_TARGET_FAR_MIN:-500}
 far_timeout_ms=${GOANNA_LAUNCH_TARGET_FAR_TIMEOUT_MS:-180000}
 startup_timeout_s=${GOANNA_LAUNCH_TARGET_STARTUP_TIMEOUT_S:-90}
@@ -97,27 +118,45 @@ rm -f "$log" "$horizon" "$wall" "$settings_json"
 rm -rf "$pop_dir"
 mkdir -p "$pop_dir"
 
-printf 'launch target test: starting %s:%s (profile %s), log %s\n' "$game" "$world" "$profile_dir" "$log"
+size=${GOANNA_LAUNCH_TARGET_SIZE:-1600x900}
+headless=$repo_dir/tools/goanna-headless
+lock_wait=${GOANNA_LOCK_WAIT:-1800}
+software=()
+if [[ "${GOANNA_SOFTWARE:-}" == 1 ]]; then
+	software=(--software)
+fi
+export GODOT_BIN="$godot_bin"
 
-env \
-	XDG_DATA_HOME="$profile_dir" \
-	GOANNA_LOCAL_TEST="$game:$world" \
-	GOANNA_LOCAL_TEST_GRAPHICS="${GOANNA_LAUNCH_TARGET_GRAPHICS:-}" \
-	GOANNA_CONTROL="$control_port" \
-	"$godot_bin" --path "$repo_dir/project" >"$log" 2>&1 &
-gpid=$!
+printf 'launch target test: starting %s:%s in headless gamescope at %s (profile %s), log %s\n' \
+	"$game" "$world" "$size" "$profile_dir" "$log"
+
+# The launcher returns once the control channel answers.
+port_args=()
+if [[ -n "$control_port" ]]; then
+	port_args=(--control-port "$control_port")
+fi
+if ! "$headless" start --project "$repo_dir" "${port_args[@]}" \
+		--size "$size" --lock-wait "$lock_wait" --label "launch target test" "${software[@]}" \
+		--env GOANNA_HOST= --env GOANNA_PORT= --env GOANNA_NAME= --env GOANNA_PASS= \
+		--env XDG_DATA_HOME="$profile_dir" \
+		--env GOANNA_LOCAL_TEST="$game:$world" \
+		--env GOANNA_LOCAL_TEST_GRAPHICS="${GOANNA_LAUNCH_TARGET_GRAPHICS:-}" \
+		>"$run_dir/instance.json"; then
+	printf 'launch target test: FAIL: the headless launcher did not start Goanna; run directory %s\n' \
+		"$run_dir" >&2
+	exit 1
+fi
+instance=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["id"])' "$run_dir/instance.json")
+client_log=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["client_log"])' \
+	"$run_dir/instance.json")
+control_port=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["control_port"])' \
+	"$run_dir/instance.json")
 
 cleanup() {
-	if kill -0 "$gpid" 2>/dev/null; then
-		kill "$gpid" 2>/dev/null || true
-		for i in $(seq 1 50); do
-			kill -0 "$gpid" 2>/dev/null || break
-			sleep 0.2
-		done
-		if kill -0 "$gpid" 2>/dev/null; then
-			kill -9 "$gpid" 2>/dev/null || true
-		fi
-	fi
+	# The driver's quit normally ends the client; stop it through the
+	# launcher if it has not, and keep its log either way.
+	"$headless" wait "$instance" --timeout 30 >/dev/null 2>&1 || true
+	cp "$client_log" "$log" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -299,6 +338,8 @@ if __name__ == "__main__":
 PY
 driver_status=$?
 set -e
+cleanup
+trap - EXIT
 
 if [[ $driver_status -ne 0 ]]; then
 	say_fail "driving the client failed; see $log"

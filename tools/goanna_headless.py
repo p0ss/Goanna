@@ -952,6 +952,70 @@ def stop(ident, timeout=40.0):
     return {"id": ident, "stopped": stopped, "still_running": left, "status": rec.get("status")}
 
 
+def wait_stopped(ident, timeout=None):
+    """Block until an instance has stopped on its own, as a client run with
+    GOANNA_SHOT does when it has saved its frames and quit. After `timeout`
+    seconds it is stopped, and the result says it timed out. The client's
+    exit status is not known here (gamescope, not the supervisor, is its
+    parent), so a caller judging a run reads the client's log."""
+    deadline = None if timeout is None else time.time() + float(timeout)
+    while True:
+        rec = load(ident)
+        running = rec.get("status") in ("launching", "starting", "running")
+        young = time.time() - float(rec.get("created", 0)) < 60.0
+        if running and not young \
+                and not alive(rec.get("supervisor_pid"), rec.get("supervisor_start")) \
+                and not alive(rec.get("child_pid"), rec.get("child_start")):
+            running = False
+            rec["reason"] = rec.get("reason") or "gone (its supervisor did not record why)"
+        if not running:
+            return {"id": ident, "status": rec.get("status"), "reason": rec.get("reason"),
+                    "timed_out": False, "client_log": rec.get("client_log"),
+                    "log_dir": rec.get("log_dir")}
+        if deadline is not None and time.time() >= deadline:
+            out = stop(ident)
+            out.update(timed_out=True, reason="still running after %gs; stopped" % float(timeout),
+                       client_log=rec.get("client_log"), log_dir=rec.get("log_dir"))
+            return out
+        time.sleep(0.5)
+
+
+class Instance:
+    """A started instance with the parts of subprocess.Popen that the review
+    harnesses under tools/test use, so a harness that started Godot as a
+    desktop window can start it here with its other lines unchanged. poll()
+    is None while the client runs; terminate() and kill() stop it through
+    the supervisor; wait(timeout) waits for it to quit and stops it when the
+    timeout runs out, rather than raising. returncode is 0 once it has
+    stopped, whatever the client exited with, which is not known here."""
+
+    def __init__(self, rec):
+        self.rec = rec
+        self.id = rec["id"]
+        self.pid = rec.get("child_pid")
+        self.log = rec.get("client_log")
+        self.control_port = rec.get("control_port")
+        self.returncode = None
+
+    def poll(self):
+        if load(self.id).get("status") in ("launching", "starting", "running") and (
+                alive(self.rec.get("supervisor_pid"), self.rec.get("supervisor_start"))
+                or alive(self.rec.get("child_pid"), self.rec.get("child_start"))):
+            return None
+        self.returncode = 0
+        return 0
+
+    def wait(self, timeout=None):
+        wait_stopped(self.id, timeout)
+        self.returncode = 0
+        return 0
+
+    def terminate(self):
+        stop(self.id)
+
+    kill = terminate
+
+
 def screenshot(ident, path, method="auto", timeout=20.0):
     """A frame from an instance, by one of two routes, neither of which
     touches the desktop.
@@ -1059,6 +1123,7 @@ USAGE = """usage:
                         [--set KEY=VALUE ...]
   goanna-headless shot ID PATH [--method auto|gamescope|x11]
   goanna-headless stop ID
+  goanna-headless wait ID [--timeout SECONDS]
   goanna-headless list [--all]
   goanna-headless port-free N
   goanna-headless gpu-free
@@ -1135,6 +1200,12 @@ def main(argv):
             out = screenshot(pos[0], pos[1], method=opts.get("method", "auto"))
         elif cmd == "stop":
             out = stop(pos[0])
+        elif cmd == "wait":
+            # Until the client quits by itself; exit 1 if it had to be
+            # stopped at the timeout.
+            out = wait_stopped(pos[0], float(opts["timeout"]) if "timeout" in opts else None)
+            print(json.dumps(out, indent=2))
+            return 1 if out.get("timed_out") else 0
         elif cmd == "list":
             out = [describe(r) for r in list_records()
                    if opts.get("all") or r.get("status") in ("launching", "starting", "running")]
