@@ -65,6 +65,7 @@ add_library(goanna SHARED
     src/register_types.cpp
     src/goanna_client.cpp
     src/goanna_client_near.cpp
+    src/goanna_client_jobs.cpp
     src/goanna_render_scope.cpp
     src/goanna_lava.cpp
     src/goanna_flame.cpp
