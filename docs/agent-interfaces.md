@@ -29,50 +29,114 @@ vocabulary.
 
 ### Rules for test clients
 
+`AGENTS.md` states these rules in brief; this section is their detail.
+
 Agents testing Goanna have taken over the owner's desktop while the owner
 was using it: clients opened in front of their work, took the focus and
 grabbed the mouse, once in the middle of a video call, and an agent tried to
-move a client's pointer with xdotool. So:
+move a client's pointer with xdotool. Agents have also, four times, left
+the NVIDIA driver needing a reboot. So:
 
-- Test clients run headless, through `tools/goanna-headless` or the MCP
-  server (`goanna_session action=start`, headless by default), inside
-  gamescope's headless backend. A window on the desktop only when the owner
-  has asked to watch one.
+#### Two kinds of headless
+
+"Headless" means two different things here, and the difference decides
+whether a client touches the GPU:
+
+- **Godot's `--headless`** is Godot's own dummy display and renderer.
+  Nothing is drawn and nothing touches the GPU, so there is no frame to
+  save, but the scene tree, the control channel and its UI commands all
+  work. Use it for forms, state and anything that needs no picture.
+- **Headless gamescope** is gamescope's headless backend: a compositor
+  with its own nested X display and no output. The client inside it
+  renders for real, on the GPU (or on lavapipe with `--software`), and no
+  window reaches the desktop. `tools/goanna-headless`, the MCP server and
+  the render service all run clients this way.
+
+The rest of this document says which one it means.
+
+#### The desktop
+
+- Test clients run in headless gamescope through `tools/goanna-headless`
+  or the MCP server (`goanna_session action=start`), or under Godot's
+  `--headless`. A window on the desktop only when the owner has asked to
+  watch one.
 - Never inject input into the owner's display (`DISPLAY=:0`,
   `WAYLAND_DISPLAY=wayland-0`, or whatever the desktop's are) with xdotool,
   ydotool or anything else. Drive clients from inside, with the control
   channel's UI commands. The vanilla client is not driven at all; it is
   framed from the server side and photographed through gamescope.
+
+#### Processes
+
 - Stop processes only by the PIDs you started, or through the launcher,
   which checks each PID against its recorded start time. Never by name:
   `pkill goanna`, `pkill -f luanti` and `killall gamescope` hit other
-  agents' clients and the owner's own game.
+  agents' clients and the owner's own game. A `pkill -f` pattern also
+  matches the command line of the shell running it, and has killed the
+  agent's own shell.
 - Give every client its own control port and server port. The launcher
   refuses a control port that is taken; do not work around it.
 - Leave nothing running: stop every client, server and gamescope you
-  started before finishing.
-- One game client on the GPU at a time. Twice a headless gamescope started
-  beside another game client has put the NVIDIA driver into a reset
-  required state (Xid 51 then 154) that lasts until the owner reboots:
-  2026-09-19 with two headless sessions, and 2026-09-25 with one beside a
-  windowed Godot another agent had open. Every Godot fixture, ramp and
-  client then fails with `vkCreateDevice` until the reboot. Before any GPU
-  render run `tools/goanna-headless gpu-free`, which exits 1 and names the
-  client while a Godot, gamescope or Luanti is on the GPU, and wait or use
-  `--software`. It also reads the kernel log and reports not free while the
-  NVIDIA driver has logged errors in the last 30 minutes: on 2026-09-27 it
-  ran out of memory and then refused every new Vulkan device
-  (`NV_ERR_STATE_IN_USE`) with nothing else on the GPU, and a client
-  started into that crashes at once. Do not retry into it. The launcher makes the same check itself and refuses; do
-  not set `GOANNA_SHARED_GPU=1` to get past it.
-- Offline fixtures (the material ramp, the plant ramp, probes) run through
-  `tools/goanna-headless fixture SCENE --env KEY=VALUE ...`, which makes
-  the same check, keeps gamescope itself on lavapipe and waits for the
-  scene to quit. Never build a gamescope command line by hand. On
-  2026-10-02 one set `VK_ICD_FILENAMES` to lavapipe and was run beside the
-  owner's game in the belief that it kept off the card. Those variables
-  steer only the child: gamescope chose the NVIDIA device itself, and the
-  driver needed a reboot. When `gpu-free` says busy, do not render at all.
+  started before finishing. A client left running after its server had
+  gone once held 3.4 GB and half the GPU for 20 hours.
+
+#### The GPU
+
+- Use the tools; they take the lock. Every rendered frame and every GPU
+  timing goes through the render service (`tools/goanna-render`, below).
+  Any other GPU client, a fixture or a client of your own, goes through
+  `tools/goanna-headless`. Both take the one GPU lock,
+  `/tmp/claude-1000/goanna-gpu.lock` (`GOANNA_GPU_LOCK` overrides it), and
+  both check the card before they start, so following them is the rule;
+  there is nothing extra to remember. `tools/goanna-headless gpu-lock`
+  says whether the lock is free and who holds it.
+- One game client on the GPU at a time. A headless gamescope started beside
+  another GPU client has wedged the driver: 2026-09-19 with two headless
+  sessions, 2026-09-25 with one beside a windowed Godot another agent had
+  open.
+- `tools/goanna-headless gpu-free` exits 1 and names the client while a
+  Godot, gamescope, Luanti or compute job (the owner trains models on the
+  same card) is on the GPU, or while the NVIDIA driver has logged errors in
+  the last 30 minutes. When it says busy, do not render at all: wait, or
+  use `--software`. The launcher makes the same check and refuses; do not
+  set `GOANNA_SHARED_GPU=1` to get past it.
+- Never build a gamescope command line by hand. Offline fixtures (the
+  material ramp, the plant ramp, probes) run through `tools/goanna-headless
+  fixture SCENE --env KEY=VALUE ...`, which makes the same checks, keeps
+  gamescope itself on lavapipe and waits for the scene to quit. On
+  2026-10-02 a hand built one set `VK_ICD_FILENAMES` to lavapipe and was
+  run beside the owner's game in the belief that it kept off the card.
+  Those variables steer only the child: gamescope chose the NVIDIA device
+  itself, and the driver needed a reboot.
+- When the owner wants the card back, stop your GPU work at once, check
+  with `nvidia-smi` that nothing of yours is left, and only then say it is
+  free.
+
+#### When the driver has failed
+
+A wedged driver keeps running the processes that already have a device
+and refuses every new one, so the desktop looks fine while every new
+client dies. Its signatures, all seen on this project's development
+machine:
+
+- Kernel log `Xid 51` then `Xid 154` (a function level reset requested),
+  then `NV_ERR_RESET_REQUIRED`.
+- Kernel log `NVRM ... NV_ERR_NO_MEMORY`, then every new Vulkan device
+  failing with `NV_ERR_STATE_IN_USE` (2026-09-27, with nothing else on the
+  GPU). It did not recover on its own.
+- The same refusal after a system update put a new NVIDIA userspace under
+  the still running older kernel module.
+
+In each, Godot fails `vkCreateDevice` (`VK_ERROR_INITIALIZATION_FAILED`)
+and may crash with a segfault at startup. What to do:
+
+- When a GPU start fails, read `journalctl -k | grep -i -E 'xid|nvrm'`
+  before anything else. Retrying, freeing VRAM and cleaning up processes
+  do not help, and a client started into it crashes at once.
+- Treat any of these as needing a reboot, and tell the owner. Do not
+  reboot or restart anything yourself.
+- Until then, use `--software` or Godot's `--headless`; `gpu-free` reports
+  busy for 30 minutes after a driver error in any case.
 
 The launcher and the MCP server are described in `docs/control-channel.md`,
 under "Starting it" and "Driving it from an agent".
@@ -82,21 +146,20 @@ under "Starting it" and "Driving it from an agent".
 Use the render service for every rendered frame and every GPU timing. Do
 not start a GPU client of your own.
 
-Each agent used to build a worktree, import it, make a fixture world, start
-a server and a client, take a few frames and stop, and it held the one GPU
-lock for 30 to 60 minutes to do it, most of that setup. `tools/goanna-render`
-does the setup once and keeps it:
+Before it, every agent wanting a frame imported a checkout, made a fixture
+world, started a server and a client, took a few frames and stopped, and
+held the one GPU lock for 30 to 60 minutes to do it, most of that setup.
+`tools/goanna-render` does the setup once and keeps it:
 
-- `goanna-render serve` takes the GPU lock
-  (`/tmp/claude-1000/goanna-gpu.lock`, the one every agent's `flock`
-  uses) and holds it for the service's whole life, so nothing else renders
+- `goanna-render serve` takes the GPU lock (see "The GPU" above) and
+  holds it for the service's whole life, so nothing else renders
   beside it. Under the lock it requires the card clear: nothing
   `goanna-headless gpu-free` names, no NVIDIA driver errors in the last 30
   minutes, and no compute user in `nvidia-smi` that is not a desktop
   program. It then starts one Luanti server (Mineclonia unless `--game`
   says otherwise) on a fixture world it rebuilds every time it starts, and
-  one headless Goanna client on the GPU, through the launcher with
-  `--cpu-compositor`.
+  one Goanna client in headless gamescope on the GPU, through the launcher
+  with `--cpu-compositor`.
 - `goanna-render shoot JOB.json` queues a job and blocks until it is done,
   printing the result. Jobs from any number of shells queue and run one at
   a time, oldest first. With no service running, `shoot` starts one with
@@ -561,9 +624,9 @@ stale action is a result, not an error.
 - `frame`, only when asked for (`{"width", "format"}`, up to 1280 pixels
   wide, `jpeg` or `png`): a picture of the screen as the player sees it,
   world, HUD and open form together, base64 in `data`. A client started
-  with `--headless` has no picture and says so. `tools/goanna-player-mcp`
-  hands it to the host as an image, and `tools/goanna-player observe
-  --frame PATH` saves it.
+  with Godot's `--headless` has no picture and says so.
+  `tools/goanna-player-mcp` hands it to the host as an image, and
+  `tools/goanna-player observe --frame PATH` saves it.
 
 Text a game colours, with `core.colorize` or hypertext styles, comes as
 `text` and `spans`, each span a run of one look: its `text`, its `color`
@@ -668,8 +731,8 @@ form, inventory counts) and give a reason when nothing visibly did.
 ### Seen working
 
 On 2026-10-01, Goanna from this branch against a Luanti 5.17.0 server
-running Mineclonia on the same machine, Godot 4.5.1, headless with software
-rendering (`tools/goanna-headless start --software`), driven by
+running Mineclonia on the same machine, Godot 4.5.1, in headless gamescope
+with software rendering (`tools/goanna-headless start --software`), driven by
 `tools/goanna-player` and small scripts over `tools/goanna_player.py`:
 
 - `hello`, `observe` with and without the token (refused without);
@@ -692,8 +755,8 @@ rendering (`tools/goanna-headless start --software`), driven by
   straight to the socket answered as unavailable.
 
 On 2026-10-02, the same set up against a Luanti 5.17.0 server running Kythen
-0.1.0-b1 in a fresh world (mapgen v7, no baked terrain), Godot 4.5.1,
-headless with software rendering:
+0.1.0-b1 in a fresh world (mapgen v7, no baked terrain), Godot 4.5.1, in
+headless gamescope with software rendering:
 
 - `use` with the spawn kit's journal wielded opened `kythen:interface_journal`;
   `observe` reported its four buttons and its text as labels;

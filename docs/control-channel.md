@@ -32,7 +32,8 @@ siblings were already there, with no way to reach them from outside.
 
 ## Starting it
 
-Test clients run headless, where the person at the machine never sees them:
+Test clients run in headless gamescope, where the person at the machine
+never sees them:
 
 ```sh
 tools/goanna-headless start --control-port 30851 --server 127.0.0.1:30000 \
@@ -51,8 +52,9 @@ talks to when not told a port, to clients started by hand.
 `tools/goanna-headless list` shows every instance on the machine, `stop
 goanna-30851` stops one, and `shot goanna-30851 /tmp/a.png` saves the
 virtual display as gamescope composites it. The MCP server below does all
-of this as tools. The rules that go with it are in
-`docs/agent-interfaces.md`.
+of this as tools. The rules that go with it, and the difference between
+headless gamescope and Godot's own `--headless`, are in
+`docs/agent-interfaces.md`, "Rules for test clients".
 
 `--software` renders on lavapipe and llvmpipe and never opens a GPU context.
 Goanna then draws about one frame a second at 1280 by 720, which is enough
@@ -297,7 +299,7 @@ command, the same text a vanilla client sends, and needs the same
 privileges. `tp` is `/teleport`, `give` is `/giveme`, `weather` is the
 game's own command. Nothing here reaches past the protocol, and nothing
 here asks for anything a vanilla client cannot ask for. That is the boundary
-in `CLAUDE.md` and the channel does not move it.
+in `AGENTS.md` and the channel does not move it.
 
 Because a server answers a refused command in chat and nowhere else, the
 command verbs return `server_said` with what came back, and set `refused`
@@ -323,7 +325,7 @@ differently.
 ## Cold verify, which is not optional
 
 Tuning a value in a live process and then reporting it as working is not the
-same as the committed code doing it, and `CLAUDE.md` forbids the second
+same as the committed code doing it, and `AGENTS.md` forbids the second
 claim on the strength of the first. A live channel makes that mistake much
 easier to make, so the channel is built to make it hard to make quietly.
 
@@ -469,15 +471,12 @@ works. The UI commands work under Godot's `--headless` too, which is useful
 when there is no GPU at all, though its window is 64 by 64 until a `run`
 snippet sets `main.get_window().size`.
 
-On 2026-09-19 the NVIDIA driver on the machine this was written on went into
-a reset-required state (Xid 51, then Xid 154 asking for a function level
-reset), after which every new Vulkan device failed with `vkCreateDevice`
-until a reboot, while processes that already had one carried on. It came
-within a minute of two headless gamescope sessions starting, one of them this
-work's first probe, after a single headless run earlier had been fine. The
-cause is not known. Until it is, treat two GPU instances at once as
-something to verify rather than assume, and use `--software` when the GPU is
-in that state: `journalctl -k | grep NV_ERR_RESET_REQUIRED` says so.
+One game client on the GPU at a time. On 2026-09-19 two headless gamescope
+sessions started within a minute of each other left the NVIDIA driver
+refusing every new Vulkan device until a reboot, and it has happened since
+in other forms. The rule, the driver's failure signatures and what to do
+about them are in `docs/agent-interfaces.md`, "The GPU" and "When the
+driver has failed".
 
 gamescope does not exit when its child does and ignores SIGTERM. The
 launcher's supervisor stops it with `gamescopectl shutdown` on the
@@ -497,3 +496,26 @@ different places. The server streams only blocks in the view cone of the
 reported look direction, so a view facing away from the pose the client
 reported sees nothing. Both are avoidable once the sequence lives in a
 script instead of in a shell history.
+
+Three more:
+
+- **Absolute positions.** `GOANNA_VIEW` positions without a leading `@`
+  are offsets from wherever the player happens to be, which drifts between
+  runs. Use absolute ones (`@x,y,z`) for an A/B.
+- **The camera follows the player.** Setting the camera from a `run`
+  snippet (`cam.look_at`, `cam.rotation`) does nothing visible:
+  `main._process` rebuilds the camera basis from the player's pose every
+  frame, so the snippet's pose is gone before the next draw. Use `pose`,
+  `look` or `goanna_view`, or set `main.pitch` and `main.yaw`, which
+  `_process` honours, and read `cam.global_transform.basis` back after a
+  frame if a measurement depends on where the camera points.
+- **A fresh profile.** Launch with `XDG_DATA_HOME` set to a scratch
+  directory (`goanna_session action=start` takes an `env`) and Godot puts
+  `user://` under it: no `goanna.cfg`, no store, every value the code's
+  default, and the player's own settings untouched. Do not reuse that
+  profile across renderers. One first saved under lavapipe picked the Low
+  profile (parallax and SDFGI off) and kept it, and three GPU look reviews
+  were judged on frames with the features under review switched off.
+  Record the profile name and the values that matter with every frame; the
+  render service does this for you (`docs/agent-interfaces.md`, "The traps
+  it handles").

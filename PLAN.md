@@ -668,9 +668,10 @@ minutes after the tag, so the whole run sits in this section.
   a control port already in use, and stops gamescope, which outlives its
   child and ignores SIGTERM, by PID when the client exits or when asked.
   `tools/goanna-mcp` runs any number of these as instances, and every reply
-  names the instance and port. The rules are in `docs/agent-interfaces.md`
-  and `CLAUDE.md`. Verified against a Luanti 5.17.0 Flatpak server on a
-  fresh Mineclonia world with Godot 4.5.1, through the MCP server: two
+  names the instance and port. The rules are in `docs/agent-interfaces.md`,
+  "Rules for test clients". Verified against a Luanti 5.17.0 Flatpak
+  server on a fresh Mineclonia world with Godot 4.5.1, through the MCP
+  server: two
   Goanna instances at once on control ports 30851 and 30852, a third start
   on 30851 refused; the creative inventory opened with `key`, read with
   `ui_tree`, a tab pressed by element name and another by its tooltip text
@@ -689,9 +690,10 @@ minutes after the tag, so the whole run sits in this section.
   logged Xid 51 and Xid 154 and refused every new Vulkan device with
   `NV_ERR_RESET_REQUIRED` until a reboot. That came within a minute of two
   headless gamescope sessions starting, this work's first probe and another
-  agent's, after a single headless run at 17:21 had been fine; the cause is
-  not known, so two GPU instances at once is an open risk to verify after
-  the reboot, not a result. The vanilla client (the same Flatpak, 800 by
+  agent's, after a single headless run at 17:21 had been fine. (Since
+  settled, after three more driver failures: one GPU client at a time,
+  through the tools; see `docs/agent-interfaces.md`, "The GPU".) The
+  vanilla client (the same Flatpak, 800 by
   450, software) joined and was photographed in game from its own window on
   the nested X display with ffmpeg's `x11grab`; gamescope's screenshot of it
   showed the loading screens and then only black, so `x11` is the default
