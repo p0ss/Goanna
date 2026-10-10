@@ -13,8 +13,13 @@
 // every frame. Godot calls _render_callback on its rendering thread, which
 // builds and uses every RID here. They are freed at NOTIFICATION_PREDELETE,
 // when the last reference goes, by which time no Compositor holds the
-// effect. The world state is the one thing both threads touch
-// while the effect is live, so it alone has a lock. Main type:
+// effect. Two things are touched by both threads while the effect is live,
+// and each has a lock: the world state, and what report() prints of the
+// compile (each pass's error and shader, m_gpu_ready, m_dead), which the
+// render thread writes in ensureGpu. Whether the rendering thread is the
+// main thread depends on Godot's thread model; when it is not, the lock is
+// what keeps report() from reading a pass's error string while it is
+// assigned. Main type:
 // GoannaIrisEffect.
 #pragma once
 
@@ -118,8 +123,12 @@ private:
     bool m_labpbr = false;
     bool m_bridge_colour = true;
 
-    // GPU state, render thread only. report() reads m_gpu_ready and m_dead
-    // from the main thread without a lock, for printing only.
+    // GPU state, render thread only, except that report() reads m_gpu_ready,
+    // m_dead and each pass's error and shader from the main thread. Those
+    // are written only in ensureGpu, under m_report_mutex, and report()
+    // takes it too. freeGpu clears them at NOTIFICATION_PREDELETE, when
+    // nothing can call report().
+    mutable std::mutex m_report_mutex;
     bool m_gpu_ready = false;
     bool m_dead = false;
     godot::RID m_ubo;

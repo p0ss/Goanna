@@ -226,6 +226,7 @@ String GoannaIrisEffect::pack_name() const {
 }
 
 Dictionary GoannaIrisEffect::report() const {
+    std::lock_guard<std::mutex> lock(m_report_mutex);
     Dictionary d;
     d["pack"] = pack_name();
     d["load_error"] = String::utf8(m_load_error.c_str());
@@ -280,6 +281,9 @@ void GoannaIrisEffect::set_dump_dir(const String &dir) {
 bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
     if (m_gpu_ready)
         return true;
+    // Held while the passes compile, which is the only time the render
+    // thread writes what report() reads.
+    std::lock_guard<std::mutex> lock(m_report_mutex);
     std::string err;
     m_blit_shader = compileGlsl(rd, kBlitVertex, kBlitFragment, "goanna_iris_blit", err);
     if (!m_blit_shader.is_valid()) {
