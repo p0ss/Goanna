@@ -338,8 +338,8 @@ Fill in the parts in angle brackets; keep the rest.
     /var/home/poss/Documents/Code/Godot/goanna. Read tools/pbr_author/README.md
     and tools/pbr_author/lib.py first: conventions, helpers, targets, the
     packing call and the rules. Read <two or three worked example scripts>.
-    Follow CLAUDE.md text rules (Australian English, never an em dash, plain
-    comments).
+    Follow the AGENTS.md text rules (Australian English, never an em dash,
+    plain comments).
 
     Every script declares GAME = "<game>" at module level and passes it to
     lib.load_source and lib.class_of, and passes art_texels=src.shape[0] to
@@ -352,9 +352,10 @@ Fill in the parts in angle brackets; keep the rest.
     what is flat; what glows; what is metal or gem.>
 
     For each, write tools/pbr_author/<stem>.py with the lib helpers
-    (lib.segments, lib.warp_labels for natural surfaces only, never np.kron,
-    never roll the art, lib.region_edges, lib.distance_to_edge, lib.fbm,
-    lib.white_noise, lib.blur, lib.band for anything nearly flat, lib.pack,
+    (lib.segments, a nearest upscale on the texel grid with np.kron or
+    lib.upscale and not lib.warp_labels, never roll the art,
+    lib.region_edges, lib.distance_to_edge, lib.fbm, lib.white_noise,
+    lib.blur, lib.band for anything nearly flat, lib.pack,
     lib.check, lib.preview). Use lib.class_of(stem, GAME) unless the art is
     plainly something else, and say so. Albedo is lib.upscale(src[..., :3]),
     or lib.upscale(src) with alpha for a cut-out.

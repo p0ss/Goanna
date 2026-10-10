@@ -609,12 +609,16 @@ python3 tools/pbr_author/default_cobble.py /tmp/authored
 
 - **Start from the art.** The 16 px source is the design: it says where the
   stones are, where the planks meet, what is light and what is dark. Use
-  `lib.segments` to find its regions, `lib.warp_labels` to bring the label
-  map up to size with rounded, irregular silhouettes (never `np.kron`: the
-  first stony sets used it and every dome carried the pixel grid), and
-  `lib.region_edges` and `lib.distance_to_edge` to turn joints into grooves
-  and regions into domes. Do not invent a different layout; a player
-  recognises the block by its art and the relief has to sit on it.
+  `lib.segments` to find its regions, bring the label map up to size on
+  the texel grid with a nearest upscale (`np.kron`, or `lib.upscale`) so
+  each texel stays a crisp plateau, and use `lib.region_edges` and
+  `lib.distance_to_edge` to turn joints into grooves. Do not invent a
+  different layout; a player recognises the block by its art and the
+  relief has to sit on it. This rule once said "never `np.kron`" and used
+  `lib.warp_labels` for rounded, irregular silhouettes and domes. The owner
+  rejected that look on 2026-09-25, for plants as well as blocks on
+  2026-10-02: the target is the art's own texel grid extruded crisply, as
+  in "Current: the texel extrusion rule" above.
 - **Take the class from `lib.class_of(stem)`.** It is read back from the
   bake, and it decides the smoothness level, the scattering byte, the tilt
   target and the parallax depth in the shader.
