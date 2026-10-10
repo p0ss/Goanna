@@ -555,10 +555,10 @@ dofile(core.get_modpath(core.get_current_modname()) .. "/damage.lua")(
 dofile(core.get_modpath(core.get_current_modname()) .. "/dig_progress.lua")(
 		conf_bool("goanna_dig_progress", false))
 -- The director: a game master run by a language model the operator connects
--- (docs/director.md). Off unless goanna_director is true. It talks to its
--- model over HTTP only, never over this mod's channel. request_http_api only
--- works here, in the main scope at load time, and the table it returns stays
--- in a local handed to the director: as a global, any mod could make
+-- (docs/agents/director.md). Off unless goanna_director is true. It talks to
+-- its model over HTTP only, never over this mod's channel. request_http_api
+-- only works here, in the main scope at load time, and the table it returns
+-- stays in a local handed to the director: as a global, any mod could make
 -- requests with the operator's grant.
 if conf_bool("goanna_director", false) then
 	local director_http = core.request_http_api and core.request_http_api()
