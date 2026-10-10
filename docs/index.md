@@ -23,7 +23,8 @@ here if you want to play.
 the optional capabilities of the Goanna server mod, and set up an AI game
 master.
 
-**[Develop](develop/index.md).** Build Goanna from source, run its tests and
+**[Develop](develop/index.md).** Build Goanna from source, read how its
+[architecture](develop/architecture.md) fits together, run its tests and
 benchmarks, follow the house style, and carry Luanti code across the right
 way.
 
