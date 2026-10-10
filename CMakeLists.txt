@@ -314,6 +314,11 @@ foreach(_source IN LISTS _goanna_test_sources)
     endif()
 endforeach()
 
+# Arguments a test needs under check, as <test>_ARGS. The radial form
+# reference moved to tools/test/dig-review with the tools regrouping; the
+# binary's own default still names tools/dig-review.
+set(goanna_radial_form_test_ARGS tools/test/dig-review/reference_v3.json)
+
 set(_goanna_check_commands)
 foreach(_test IN LISTS GOANNA_NATIVE_TESTS)
     if(NOT TARGET ${_test})
@@ -321,7 +326,7 @@ foreach(_test IN LISTS GOANNA_NATIVE_TESTS)
     endif()
     list(APPEND _goanna_check_commands
         COMMAND ${CMAKE_COMMAND} -E echo "== ${_test}"
-        COMMAND $<TARGET_FILE:${_test}>)
+        COMMAND $<TARGET_FILE:${_test}> ${${_test}_ARGS})
 endforeach()
 # Run from the repository root, where the tests have always been run from,
 # since some of them read Luanti's files by relative path. The first failing
