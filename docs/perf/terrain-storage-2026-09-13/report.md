@@ -13,7 +13,7 @@ the terrain-diffusion provider. The world is a disposable copy of
 1600 by 900 output, approximately 110 degree FOV, noon and clear weather.
 The server grants 4096 nodes of summary reach.
 
-`tools/terrain-storage-flight.py` records a ridge route from
+`tools/bench/terrain-storage-flight.py` records a ridge route from
 `(-4000, 572, -4000)` through `(-4000, 654, -5000)` to
 `(-4000, 693, -5500)`, then returns and holds for 30 seconds. Coordinates
 are in Godot space. Each moving leg lasts 40 seconds. A server-side probe

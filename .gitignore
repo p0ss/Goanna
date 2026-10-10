@@ -14,8 +14,8 @@ project/bin/
 # Screenshot scratch. Images used in documentation live in docs/.
 project/shots/
 
-# tools/pbr_bake.py output. Generated, large, and regenerable; deploy it to a
-# world with tools/pbr_deploy.py rather than committing it.
+# tools/pbr/pbr_bake.py output. Generated, large, and regenerable; deploy it to a
+# world with tools/pbr/pbr_deploy.py rather than committing it.
 baked/
 
 # The Material Maker benchmark (docs/material-calibration.md): library

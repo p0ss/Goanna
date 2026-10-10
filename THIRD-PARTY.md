@@ -59,10 +59,10 @@ server.
 The Linux release carries a Luanti server, in `Goanna/luanti-server/`, which
 Get ready to play copies into Goanna's own data folder on a computer with no
 Luanti. It is upstream Luanti, built unmodified from the pinned `luanti/`
-submodule by `tools/build-luanti-server.sh`; Goanna changes none of it. Its
-folder carries Luanti's `LICENSE.txt`, the LGPL text, LuaJIT's copyright
-notice and a `NOTICE.txt` naming the exact commits it was built from, so
-its source can be had from this repository's submodule or from upstream.
+submodule by `tools/release/build-luanti-server.sh`; Goanna changes none of it.
+Its folder carries Luanti's `LICENSE.txt`, the LGPL text, LuaJIT's copyright
+notice and a `NOTICE.txt` naming the exact commits it was built from, so its
+source can be had from this repository's submodule or from upstream.
 
 | Component | Source | Linkage | Licence |
 | --- | --- | --- | --- |

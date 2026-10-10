@@ -38,7 +38,7 @@ Build the extension before the server check:
 
 ```sh
 cmake --build build -j 2
-python3 tools/test-portals.py --game /path/to/mineclonia \
+python3 tools/test/test-portals.py --game /path/to/mineclonia \
     --server /path/to/luantiserver
 ```
 

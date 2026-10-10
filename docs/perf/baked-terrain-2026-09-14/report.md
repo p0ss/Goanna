@@ -116,5 +116,5 @@ passes, including generated launch settings. The final client started
 without script parse errors and completed the live flight and captures.
 
 Repository style and diff checks pass. The reusable capture script is
-`tools/terrain-baked-review.py`; the bounded protocol and publication
+`tools/bench/terrain-baked-review.py`; the bounded protocol and publication
 details are recorded in the implementation contract.

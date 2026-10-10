@@ -41,7 +41,7 @@ What it settled, patch means in sRGB, the sun at 1.0:
   glint is 130 against 151. Stone, dirt, sand and gravel are lower still.
   Uniform sheen on terrain is not where the plastic look comes from.
 - **Roughness variation at those levels is invisible in the sun.** With
-  `tools/pbr_spec_variance.py` spreading the eight core dielectrics from a
+  `tools/pbr/pbr_spec_variance.py` spreading the eight core dielectrics from a
   standard deviation of 0.01 to 0.04 up to 0.04 to 0.10, no patch moved by
   more than one count at noon or afternoon, top or front. The spread only
   matters where the lobe is narrow: wet surfaces (`goanna_wetness` pulls
@@ -119,12 +119,12 @@ reads as moulded plastic. A correct BSDF on a surface with no structure.
 Three sets of the same twelve stems were put on the close-up:
 
 - the bake as it is, at gain 2.86;
-- the bake lifted (`tools/pbr_relief_normalise.py`, new): tangent slope
+- the bake lifted (`tools/pbr/pbr_relief_normalise.py`, new): tangent slope
   scaled to a class target tilt, occlusion recomputed from the height
   channel stretched to full range. Stone went 12.6 to 31.1 degrees and its
   occlusion floor from 0.81 to 0.03. It looks like the bake, deeper: the
   same embossed texel edges, more of them;
-- authored (`tools/pbr_author/`, new): one script per stem builds a
+- authored (`tools/pbr/pbr_author/`, new): one script per stem builds a
   height field and a smoothness field from the game's 16 px art, deciding
   what the surface is (which texels are one stone, where the mortar runs,
   what the grain does inside a plank), and `lib.py` derives the normal,
@@ -205,8 +205,8 @@ authored sets look better under every setting for no measurable cost, so
 the authoring was scaled out: eight subagents in parallel, one material
 family each (soils, sands and sandstone, natural rock, masonry, logs,
 planks, leaves, and obsidian, bedrock and lapis), forty one more stems on
-top of the first nine, every script in `tools/pbr_author/` and every set
-judged on the close-up ramp before install. `tools/pbr_author/build_pack.py`
+top of the first nine, every script in `tools/pbr/pbr_author/` and every set
+judged on the close-up ramp before install. `tools/pbr/pbr_author/build_pack.py`
 rebuilds all of them from the scripts and installs into
 `pbr_packs/mineclonia/textures`, appending an attribution note.
 
@@ -264,7 +264,7 @@ and iron doors, trapdoors, ladder, rails, torch), the colour families
 module and a one line script per stem), and the stone variants with the
 glowing blocks (cracked, mossy and carved stone brick, carved and smooth
 sandstone, glowstone, pumpkins). About a hundred and twenty stems, all in
-`tools/pbr_author/`, `build_pack.py` skipping the family modules.
+`tools/pbr/pbr_author/`, `build_pack.py` skipping the family modules.
 
 Three things the packer and the ramp learnt from it:
 
@@ -336,12 +336,12 @@ a waffle and was banded. The standalone pack is
 
 A pack assembled from free Material Maker materials owes nothing to the
 bake or the authoring, so what it shows is the renderer. Fifty two
-materials from the Material Maker site were exported at 256 px with `tools/mm_export.py`, which runs the flatpak's
-runner headless with `tools/mm_export.gd` in place of the start scene
+materials from the Material Maker site were exported at 256 px with `tools/pbr/mm_export.py`, which runs the flatpak's
+runner headless with `tools/pbr/mm_export.gd` in place of the start scene
 because 1.7's own `--export-material` never opens the directory it tests.
 Fifty six sets came out (a few files hold two materials); seven were
 blank because their graphs no longer compile in 1.7, and two hung or had
-no Godot target. `tools/pbr_from_mm.py` packs a set into the client's
+no Godot target. `tools/pbr/pbr_from_mm.py` packs a set into the client's
 pair, reading which of occlusion, roughness and metal the material file
 actually binds, since a graph with no metallic input still writes a
 white blue channel. Twenty seven sets dressed Mineclonia's main blocks
@@ -438,7 +438,7 @@ them a judgement about the surface:
   now, the way an ore is packed as stone with its veins as metal.
 
 After, the Mineclonia authored set passes the gate with no failures (it
-had 11), and `tools/check-pbr-height.py` passes. Kythen's authored set
+had 11), and `tools/pbr/check-pbr-height.py` passes. Kythen's authored set
 goes from 88 failing stems to 44; what is left is scripts that pack a
 different class from the one the classification review records (sand,
 gravel or snow scripts for stems reviewed as soil, metal for stone), which

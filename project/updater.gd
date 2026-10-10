@@ -6,7 +6,7 @@
 #
 # A release carries the zip for each platform, a manifest naming each zip's
 # size and SHA-256, and the manifest's signature, made with the maintainer's
-# private key by tools/sign-release.sh. This checks the signature against the
+# private key by tools/release/sign-release.sh. This checks the signature against the
 # public key built into Goanna (res://update_key.pub.pem) before it trusts
 # anything in the manifest, and the zip against the manifest before it
 # unpacks anything. So an update installs only if the maintainer signed it,
@@ -15,7 +15,7 @@
 # manifest cannot roll a player back.
 #
 # Only a packaged release updates: the package writes Goanna/version.json
-# (tools/package-release.sh), and a source checkout has none. The update
+# (tools/release/package-release.sh), and a source checkout has none. The update
 # replaces the package's files in place, the running program and library
 # included, by renaming each old file aside and moving the new one in, which
 # both Linux and Windows allow while they run. The renamed files are deleted

@@ -34,7 +34,7 @@ moved from 398 m in a rain shadow to a coast at 6 m with fresh water nearby.
 
 ## Licence gate for community art
 
-Every baked source now passes `tools/check-pbr-licenses.py`. A package whose
+Every baked source now passes `tools/pbr/check-pbr-licenses.py`. A package whose
 notice covers all its media passes on that notice; a package with a mixed
 notice is qualified only by the exact licence recorded against each selected
 file at intake, and fails if that mapping is missing, if any file carries no
@@ -189,8 +189,8 @@ hash and the unpacking, and no further.
 There are no PBR companion maps for Asuna. It renders with the server's own
 textures. A bake exists but has not been packaged, audited or published.
 
-`tools/check-pbr-quality.py` reports strong wrap seams for review rather than
-failing them, and High Basin has water standing above its bank on about a
+`tools/pbr/check-pbr-quality.py` reports strong wrap seams for review rather
+than failing them, and High Basin has water standing above its bank on about a
 tenth of its water perimeter, which steep terrain makes more likely.
 
 ## Still alpha

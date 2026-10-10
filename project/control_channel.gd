@@ -9,7 +9,7 @@
 # launch: set one of the hundred odd GOANNA_* variables, connect, wait a
 # fixed number of seconds, save a PNG, quit. That makes each experiment slow
 # and it makes the timing a guess, which is how a photograph of the sky gets
-# reported as a render with the feature switched off. tools/shotcheck.py
+# reported as a render with the feature switched off. tools/dev/shotcheck.py
 # opens with four mistakes of exactly that shape. Here the client stays up,
 # the waits are on conditions rather than on the clock, and the answer comes
 # back as data instead of a picture to squint at.

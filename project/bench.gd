@@ -5,7 +5,7 @@
 # sample, the load stamps, and the scripted route that carries the camera
 # through the world at a fixed speed.
 #
-# Why per frame. The one second GOANNA_PERF line and tools/far-baseline.py
+# Why per frame. The one second GOANNA_PERF line and tools/bench/far-baseline.py
 # both read Engine.get_frames_per_second(), which is a smoothed average. A
 # 1% low, a frame time distribution and a hitch count cannot be recovered
 # from it. This node records every frame into arrays sized once when the run
@@ -19,13 +19,13 @@
 # elapsed time.
 #
 # Driven from the control channel (project/control_channel.gd, the "bench"
-# and "route" commands) and by tools/goanna-bench.py, which turns a plan of
+# and "route" commands) and by tools/bench/goanna-bench.py, which turns a plan of
 # setting variants into runs and a report. See docs/benchmark.md.
 extends Node
 
 # Recorded against each frame so a phase can be summarised on its own. The
 # order is the byte written to the CSV; do not renumber without changing
-# tools/goanna-bench.py, which reads the names back.
+# tools/bench/goanna-bench.py, which reads the names back.
 const PHASES := ["idle", "load", "steady", "move_early", "move_full"]
 
 # Frames to make room for. At 60fps this is well over an hour; at 600fps,
@@ -52,14 +52,14 @@ const ZERO_KEYS := ["mesh_queued", "mesh_running", "mesh_ready",
 # volumetric fog and the raymarched cloud are still accumulating. A settle
 # test that only reads counters calls that finished, and the sample is then
 # of a scene that still looks wrong. So the caller can also require the
-# frame itself to stop changing; tools/goanna-bench.py drives that through
+# frame itself to stop changing; tools/bench/goanna-bench.py drives that through
 # repeated captures, since only it can compare two images.
 #
 # blocks_queued only has to hold still. At the benchmark vista it parks at
 # 227 and never drains: the client is asking for blocks this server will not
 # send (its max_block_send_distance caps what a request can reach), and the
 # ask is repeated rather than retired. Nothing about the scene is changing,
-# so requiring zero here waits for ever. tools/far-baseline.py requires zero
+# so requiring zero here waits for ever. tools/bench/far-baseline.py requires zero
 # for this key and would hang in the same place.
 const STABLE_KEYS := ["blocks_queued"]
 
@@ -444,7 +444,7 @@ func _at(sorted: PackedFloat32Array, fraction: float) -> float:
 	return sorted[clampi(i, 0, sorted.size() - 1)]
 
 # frames.csv is the million cells nobody reads; samples.jsonl is the once a
-# second counter record in the shape tools/far-baseline.py already writes;
+# second counter record in the shape tools/bench/far-baseline.py already writes;
 # summary.json is what the report is built from.
 func _write(dir: String) -> String:
 	if DirAccess.make_dir_recursive_absolute(dir) != OK \

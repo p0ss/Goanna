@@ -90,7 +90,7 @@ empty, corrupted/truncated records, size limits, queue bounds, queued
 replacement, shutdown, summary persistence and cold index lookup.
 `goanna_lod_test` checks the existing terrain topology independently.
 
-`tools/terrain-storage-flight.py` records the disposable `tdl_showcase`
+`tools/bench/terrain-storage-flight.py` records the disposable `tdl_showcase`
 ridge route. Run it, restart the client with the same profile, then run it
 again to verify disk reuse across sessions. Its screenshots are diagnostic
 views; neither waiting nor a cache hit proves complete horizon coverage.

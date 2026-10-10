@@ -30,7 +30,7 @@ world nobody has seen. `steady` and `move_full` share the settled one.
 
 ## Why per frame
 
-`GOANNA_PERF=1` and `tools/far-baseline.py` both sample once a second and
+`GOANNA_PERF=1` and `tools/bench/far-baseline.py` both sample once a second and
 read `Engine.get_frames_per_second()`, which is a smoothed average. A 1% low,
 a frame time distribution and a hitch count cannot be recovered from it.
 
@@ -48,20 +48,20 @@ written to `samples.jsonl` and correlated by elapsed time.
 The client needs a display, a server, and `project/bin` built.
 
 ```sh
-tools/goanna-bench.py tools/bench_plans/graphics.json /tmp/bench-graphics
+tools/bench/goanna-bench.py tools/bench/bench_plans/graphics.json /tmp/bench-graphics
 ```
 
-A plan names the scene and the variants. `tools/bench_plans/graphics.json`
+A plan names the scene and the variants. `tools/bench/bench_plans/graphics.json`
 moves one graphics setting at a time and measures the steady state.
-`tools/bench_plans/profiles.json` and `tools/bench_plans/profiles-night.json`
-measure the shipped profiles themselves, and between them they are one
-answer in two halves. Both are steady state live sweeps: the first at the
-vista by day, where the tiers differ on how much world is drawn, the second
-in the village after dark, where they differ on how many lamps cast shadows.
-Neither is complete on its own, because a scene that cannot exercise a
-setting reports it as free.
+`tools/bench/bench_plans/profiles.json` and
+`tools/bench/bench_plans/profiles-night.json` measure the shipped profiles
+themselves, and between them they are one answer in two halves. Both are steady
+state live sweeps: the first at the vista by day, where the tiers differ on how
+much world is drawn, the second in the village after dark, where they differ on
+how many lamps cast shadows. Neither is complete on its own, because a scene
+that cannot exercise a setting reports it as free.
 
-`tools/bench_plans/profiles-move.json` is the third: it flies a long one
+`tools/bench/bench_plans/profiles-move.json` is the third: it flies a long one
 way route out of everything the client started with, which is the only one
 of the three that asks what a bigger view costs while it arrives rather than
 once it has. It sets no `GOANNA_STORE` on purpose, so every run gets its own
@@ -78,7 +78,7 @@ twenty-five minutes and reported the old tiers under the new names, with a
 healthy noise floor and nothing anywhere to say the numbers were of
 something else. If a report disagrees with a measurement you took by hand,
 diff the plan's `set` blocks against `PROFILES` before believing either.
-`tools/check-bench-plans.py` compares every plan against `PROFILES` and
+`tools/bench/check-bench-plans.py` compares every plan against `PROFILES` and
 exits non-zero on drift; run it before believing a profile report. Having
 the harness generate the variants outright would end the class of mistake
 and is still worth doing.

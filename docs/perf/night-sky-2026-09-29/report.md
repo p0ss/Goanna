@@ -76,7 +76,7 @@ has not had a new live-server run or GPU performance measurement.
 
 The [relief comparison](relief.html) replaces the angular mosaic with a
 shallow heightfield. The reference is the flat texel plateaus, height
-steps and narrow chamfers described in `tools/pbr_author/extrude.py` and
+steps and narrow chamfers described in `tools/pbr/pbr_author/extrude.py` and
 rendered through the height/normal channels of the node materials.
 
 The sky's height comes from the same procedural light and dust that form

@@ -5,10 +5,10 @@
 On 2026-09-25 the owner rejected the scripted look on review (high
 definition grain and domed stones, out of place in a blocky world) and
 chose crisp extrusion of the art's own texels instead. Mineclonia's 228
-authored stems are now built by `tools/pbr_author/extrude.py` from
-`tools/pbr_author/stems/mineclonia.txt`, with per stem specs in
-`tools/pbr_author/specs/mineclonia/` where one shaded material is wrong.
-`tools/pbr_author/README.md` explains the rule and the specs. A fleet for
+authored stems are now built by `tools/pbr/pbr_author/extrude.py` from
+`tools/pbr/pbr_author/stems/mineclonia.txt`, with per stem specs in
+`tools/pbr/pbr_author/specs/mineclonia/` where one shaded material is wrong.
+`tools/pbr/pbr_author/README.md` explains the rule and the specs. A fleet for
 a new game now writes specs, not scripts: an agent per material family
 reads each stem's palette map and preview, writes a spec where the rule
 fails, and checks each with `extrude.check`. No GPU for the agents; the
@@ -16,9 +16,9 @@ session running them renders the ramp one client at a time.
 
 ## Mob skins
 
-Mob skins are model atlases and are built by `tools/pbr_author/atlas.py`
-from `tools/pbr_author/stems/mineclonia.mobs.txt`, with specs in the same
-directory as the blocks' (`tools/pbr_author/README.md`, "Mob skins").
+Mob skins are model atlases and are built by `tools/pbr/pbr_author/atlas.py`
+from `tools/pbr/pbr_author/stems/mineclonia.mobs.txt`, with specs in the same
+directory as the blocks' (`tools/pbr/pbr_author/README.md`, "Mob skins").
 A skin's pack set is its `_n` and `_s` only, never an albedo: the client
 draws the game's own art, at its own size, which server mods colour, crop
 and combine by coordinates. The iron golem, its three crack overlays and the bare villager were the
@@ -56,7 +56,7 @@ should look softer and slightly rounded, with some subtle texel
 extrusion. A first pass (a span of 0.08, a 0.2 texel blur, a dome leaning
 8 degrees) was invisible in the previews, and the owner asked for softer,
 smoother, rounded edges in place of the box bevel. Skin is now `"mode":
-"soft"` (`tools/pbr_author/README.md`, "Faces"): lighter texels higher
+"soft"` (`tools/pbr/pbr_author/README.md`, "Faces"): lighter texels higher
 over 0.08 of the range with rounded steps, a dome over each piece, the
 face rolling off over its outer 2.5 texels to every box edge instead of
 the bevel, the pores nearly gone and a little more sheen on the raised
@@ -83,7 +83,7 @@ weave trousers, leather with stitching inside every edge, each hair lock
 a rounded bundle with a few soft strand grooves and a sheen band across
 it, near nothing on skin, one small soft rise on each flat iris for a
 catch light), in the normal and smoothness only. It has been judged only
-on `tools/pbr_author/preview_figure.py`'s offline figure, not in game.
+on `tools/pbr/pbr_author/preview_figure.py`'s offline figure, not in game.
 
 Second round, from the owner's review of the first: parallel straight
 strands at one spacing on a flat lock read as wood planks; sunk seam
@@ -193,7 +193,7 @@ monsters follow the same look with their own materials:
 - `knit`, `coarse`, `linen`, `leather`: clothes (a zombie's shirt, a
   villager's robe), as on the player.
 
-`python3 tools/pbr_author/micro.py <sheet.png> 8` draws every kind at a
+`python3 tools/pbr/pbr_author/micro.py <sheet.png> 8` draws every kind at a
 mob's map density; each kind's parameters are in its docstring in
 `micro.py`. The animal kinds are sized for 8 map pixels to a texel:
 nothing in them repeats in under about 2 pixels. Keep it that way when
@@ -244,14 +244,14 @@ have not been brought under these rules.
 
 ### What a family agent writes
 
-Write only `tools/pbr_author/specs/mineclonia/<stem>.json`. Do not edit
+Write only `tools/pbr/pbr_author/specs/mineclonia/<stem>.json`. Do not edit
 `stems/mineclonia.mobs.txt` or `stems/mineclonia.classes.json`: three
 families run at once and those files are shared. Put `"class"` in the
 spec, build and check without the list by naming the model, and report
 the lines for the merging session to add:
 
 ```sh
-cd tools/pbr_author
+cd tools/pbr/pbr_author
 python3 atlas.py x mobs_mc_cow --faces --model mobs_mc_cow.b3d
 python3 atlas.py <out> mobs_mc_cow --model mobs_mc_cow.b3d --preview <out>/flat
 python3 preview_mob.py mobs_mc_cow.b3d <out> <out>/view mobs_mc_cow.png blank.png
@@ -277,7 +277,7 @@ The procedure below is the one Kythen's scripts were made with.
 
 How to give a Luanti game hand authored material maps with a fleet of
 agents, the way Mineclonia got its 177 sets on 2026-09-15 and 16. This is
-the operating procedure; `tools/pbr_author/README.md` is the brief the
+the operating procedure; `tools/pbr/pbr_author/README.md` is the brief the
 authoring agents read, and `docs/material-calibration.md` is the record of
 what was measured and why the rules are what they are. Read all three
 before running a fleet for a new game.
@@ -290,7 +290,7 @@ none, see "Mob skins"), a `_n` map
 (tangent normal, occlusion, height) and a `_s` map (smoothness, F0 or
 metal, scattering, emission), the LabPBR layout `docs/materials.md`
 describes. The client reads them by name from a pack directory or from
-server media. A script per stem in `tools/pbr_author/` builds a height
+server media. A script per stem in `tools/pbr/pbr_author/` builds a height
 field and a smoothness field from the art and `lib.py` derives the rest, so
 every set is reproducible from its script and the game's art alone.
 
@@ -302,7 +302,7 @@ which the mortar, and puts real structure there.
 
 ## Before the fleet
 
-1. **Add the game to `lib.GAMES`** in `tools/pbr_author/lib.py`: where its
+1. **Add the game to `lib.GAMES`** in `tools/pbr/pbr_author/lib.py`: where its
    art is (a game root, indexed recursively), which pack of `_s` files the
    class can be read back from (a bake, if one exists; `class_of` falls back
    to the stem's name without one), and where the shipped pack lives.
@@ -335,8 +335,8 @@ which the mortar, and puts real structure there.
 Fill in the parts in angle brackets; keep the rest.
 
     You are authoring hand made LabPBR material maps for <game> textures in
-    /var/home/poss/Documents/Code/Godot/goanna. Read tools/pbr_author/README.md
-    and tools/pbr_author/lib.py first: conventions, helpers, targets, the
+    /var/home/poss/Documents/Code/Godot/goanna. Read tools/pbr/pbr_author/README.md
+    and tools/pbr/pbr_author/lib.py first: conventions, helpers, targets, the
     packing call and the rules. Read <two or three worked example scripts>.
     Follow the AGENTS.md text rules (Australian English, never an em dash,
     plain comments).
@@ -351,7 +351,7 @@ Fill in the parts in angle brackets; keep the rest.
     its art should be read: which texels are joints, beds, blades, rivets;
     what is flat; what glows; what is metal or gem.>
 
-    For each, write tools/pbr_author/<stem>.py with the lib helpers
+    For each, write tools/pbr/pbr_author/<stem>.py with the lib helpers
     (lib.segments, a nearest upscale on the texel grid with np.kron or
     lib.upscale and not lib.warp_labels, never roll the art,
     lib.region_edges, lib.distance_to_edge, lib.fbm, lib.white_noise,
@@ -403,8 +403,8 @@ For each batch that reports:
 
 ## Install
 
-    python3 tools/pbr_author/build_pack.py --game <game> --check
-    python3 tools/pbr_author/build_pack.py --game <game> --install
+    python3 tools/pbr/pbr_author/build_pack.py --game <game> --check
+    python3 tools/pbr/pbr_author/build_pack.py --game <game> --install
 
 The first rebuilds every set from its script and prints the checks; the
 second installs into the game's shipped pack (`lib.GAMES`) and appends an

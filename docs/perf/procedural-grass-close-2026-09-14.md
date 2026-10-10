@@ -47,9 +47,9 @@ camera paths or terrain transitions have been exhaustively tested.
 Reproduce against a saved pre-change shader:
 
 ```sh
-python3 tools/grass-review/run.py --keep --grass saved
-python3 tools/grass-review/close.py current --modes off unbent natural bent
-python3 tools/grass-review/compare.py /path/to/reference.gdshader
+python3 tools/test/grass-review/run.py --keep --grass saved
+python3 tools/test/grass-review/close.py current --modes off unbent natural bent
+python3 tools/test/grass-review/compare.py /path/to/reference.gdshader
 ```
 
 The comparison restores the shader from the workspace afterward. It captures

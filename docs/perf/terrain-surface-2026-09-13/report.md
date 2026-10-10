@@ -15,7 +15,7 @@ isolated client profile. Output is 1600 by 900, with approximately 110
 degree diagonal FOV, noon and clear weather. Server summary reach is
 4096 nodes.
 
-`tools/terrain-storage-flight.py` repeats the previous ridge route: 40
+`tools/bench/terrain-storage-flight.py` repeats the previous ridge route: 40
 seconds out, 40 seconds back, then a 30 second hold. The comparison is the
 [previous storage warm run](../terrain-storage-2026-09-13/report.md).
 Camera route and lighting match, but server coverage and cache state
@@ -62,7 +62,7 @@ between the coarse ground and actual voxel terrain remain visible.
 
 ## Near/far handoff exercise
 
-`tools/terrain-surface-descent.py` moves vertically at eight nodes per
+`tools/bench/terrain-surface-descent.py` moves vertically at eight nodes per
 second from `(-4000, 572, -4000)` to height 465 and back, with pitch -35
 and yaw 180. Each leg records 15 seconds; the lower view has an additional
 ten second hold. PNG encoding occurs outside the timing recordings.

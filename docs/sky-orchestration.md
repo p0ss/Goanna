@@ -160,7 +160,7 @@ connecting lines. They rotate in the same celestial frame as the band.
 `constellation_strength` defaults to 1; zero restores the random field.
 
 The band uses a shallow heightfield derived from its own light and dust.
-Like the material recipe in `tools/pbr_author/extrude.py`, neighbouring
+Like the material recipe in `tools/pbr/pbr_author/extrude.py`, neighbouring
 texels merge into flat plateaus with narrow chamfers at exposed steps.
 The sky shader intersects their tops and sides and shades those normals.
 This replaces the rejected angular mosaic, which looked like fish scales.

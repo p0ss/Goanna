@@ -747,12 +747,12 @@ minutes after the tag, so the whole run sits in this section.
   does not run at all, so a client's guess cannot overwrite a game's
   validated answer; local dig prediction is untouched. Verified:
   `goanna_radial_form_test`, rewritten against
-  `tools/dig-review/reference_v3.json`, a copy of Kythen's own generator
+  `tools/test/dig-review/reference_v3.json`, a copy of Kythen's own generator
   output, passes 7083 checks matching centroid, present position, delta,
   crater, connected occupancy cell for cell, stage and the encoded wire bytes
   byte for byte, and `check_kythen.py` re-runs that generator against a live
   Kythen checkout to show whether the copy or the port has drifted. The hex
-  fault was found in `tools/dig-review`'s own live dig screenshots, where a
+  fault was found in `tools/test/dig-review`'s own live dig screenshots, where a
   punched cube showed no visible carve under `goanna_shared_dig_damage` and
   carved correctly after the fix. Not verified: which server, game and Godot
   version that was, a game claiming the authority key, and any run with a
@@ -764,7 +764,7 @@ minutes after the tag, so the whole run sits in this section.
   The asset epoch the catalogue pointed at had never been published.
   `assets-2026.09.1` sat as an untagged draft, so every bundle URL in
   `asset_bundles/catalogue.json` answered 404 and no client could install
-  anything. `tools/publish-assets.sh` creates the release with `--draft`
+  anything. `tools/release/publish-assets.sh` creates the release with `--draft`
   and prints a reminder to publish it by hand, which is the step that was
   missed on 2026-09-13. Everything is now in `assets-2026.09.2`, published,
   and all five URLs answer 200.
@@ -782,17 +782,17 @@ minutes after the tag, so the whole run sits in this section.
   The shipped pack was a stale bake. `CLASS_HEIGHT_DEPTH` and the height
   encoding landed 2026-09-09; 839 of the pack's 846 baked stems were
   written in August and overran an envelope that did not exist then. Nobody
-  knew because `tools/check-pbr-quality.py` measured every authored map by
+  knew because `tools/pbr/check-pbr-quality.py` measured every authored map by
   the bake's convention too, and reported 1016 of 1023 failures, which read
   as noise. The gate now reads a `goanna_pipeline=authored` PNG chunk that
-  `tools/pbr_author/lib.py` writes, and measures an authored height field by
+  `tools/pbr/pbr_author/lib.py` writes, and measures an authored height field by
   its own rule; baked corpora report identically before and after. The
   re-bake itself was a recompose: every generation from the 2026-08-20
   ComfyUI queue survived on Pockets, so 1021 stems cost minutes rather than
   the seven hours a fresh bake would. Terrain and billboard both report 0
   failed.
 
-  Three smaller faults on the way. `tools/pbr_author/lib.py` never
+  Three smaller faults on the way. `tools/pbr/pbr_author/lib.py` never
   neutralised a cut-out's transparent texels where the bake does, so 20
   Mineclonia and 32 Kythen sprites carried authored fields in texels the
   art does not draw. 57 Kythen scripts that delegate to a family module
@@ -882,9 +882,9 @@ minutes after the tag, so the whole run sits in this section.
   `docs/building.md` and listed in `docs/launch-target.md`.
   `cmake --build build --target check` builds every native test and then
   runs it; built fresh here, all 11 pass. `tests/asset_bundle_install.gd`
-  installs an archive `tools/pbr_bundle.py` built, with prefix stems, into
+  installs an archive `tools/pbr/pbr_bundle.py` built, with prefix stems, into
   an empty store through the updater's own call; it fails against the old
-  `keys() != keys()` comparison. `tools/check-pbr-height.py` runs in
+  `keys() != keys()` comparison. `tools/pbr/check-pbr-height.py` runs in
   `pbr_bundle.py build` and `verify` and in the quality gate: it passes
   `pbr_packs/mineclonia/textures` and Mineclonia pack 1.1.0 (median span
   255) and fails Mineclonia 1.0.0 (77), Kythen billboard 1.0.0 (41), Kythen
@@ -892,7 +892,7 @@ minutes after the tag, so the whole run sits in this section.
   (205.5) and `pbr_packs/minetest_game/textures` (205). The last two were
   not on the list of known flattened sets; both carry spans of 141, 108 and
   41, which are stone, wood and leaves depths times 255.
-  `tools/check-asset-catalogue.py --live` found all five catalogued URLs
+  `tools/release/check-asset-catalogue.py --live` found all five catalogued URLs
   answering 200 at the catalogued size.
 
   The install test also found that `AssetStore.install_archive` left its
@@ -942,7 +942,7 @@ minutes after the tag, so the whole run sits in this section.
   skins (farm animals, undead, creeper, spiders, enderman, iron golem and
   its cracks, every villager layer and badge, the wandering trader, the
   default player's parts) get hand authored `_n` and `_s` maps built by
-  `tools/pbr_author/atlas.py`, installed as maps only (f2038b00). The
+  `tools/pbr/pbr_author/atlas.py`, installed as maps only (f2038b00). The
   client gained what they needed: a UV frame for entity normal maps,
   overlay stacks composited layer by layer, inward vertex normals
   replaced, node light on every entity mesh, double sided players through
@@ -971,7 +971,7 @@ one heading, ending at the v0.8.0-alpha tag.
 - The community PBR bake was lost and rebuilt, 2026-09-09. The staging root
   had been `/tmp`, which is tmpfs on this box, so the reboot of 2026-09-07
   took the extracted sources, every composed map and the log of a run that
-  was most of the way through. `tools/pbr_stage_sources.py` now rebuilds the
+  was most of the way through. `tools/pbr/pbr_stage_sources.py` now rebuilds the
   sources from `pbr_packs/COMMUNITY_LOCK.json`, refusing any archive whose
   hash does not match the lock the licence audit was written against, and
   the overnight queue works from `~/.local/share/goanna-pbr-audit`.
@@ -1038,12 +1038,12 @@ one heading, ending at the v0.8.0-alpha tag.
   pre-release, so there is no second catalogue to diverge and an asset epoch
   cannot become the repository's latest release. Building no longer writes a
   catalogue, since its default wrote a relative URL that only resolved in the
-  arrangement being removed, and `tools/check-asset-catalogue.py` refuses to
-  publish a release the catalogue does not name. That last failure had
-  already happened: the tracked catalogue listed one bundle while four were
-  built. **Not yet observed**: no client has downloaded a bundle from a
-  served catalogue. What is checked is local, that an archive installs under
-  its recorded hash and is refused under the superseded one.
+  arrangement being removed, and `tools/release/check-asset-catalogue.py`
+  refuses to publish a release the catalogue does not name. That last failure
+  had already happened: the tracked catalogue listed one bundle while four were
+  built. **Not yet observed**: no client has downloaded a bundle from a served
+  catalogue. What is checked is local, that an archive installs under its
+  recorded hash and is refused under the superseded one.
 
 - Published art no longer names the baking machine, 2026-09-13. Every bundle
   ships an `ATTRIBUTION.md` whose first paragraph gave the absolute path the
@@ -1064,7 +1064,7 @@ one heading, ending at the v0.8.0-alpha tag.
   and `project/water_ramp.tscn` (water over sand at five depths beside dry
   sand). Findings in `docs/material-calibration.md`: the pack's terrain
   shows almost no specular in daylight, spreading its roughness maps
-  (`tools/pbr_spec_variance.py`, new) moves nothing by more than a count in
+  (`tools/pbr/pbr_spec_variance.py`, new) moves nothing by more than a count in
   the sun, a dielectric loses the sun glint above smoothness 230, and no
   surface can show a mirror because nothing but the sky is there to
   reflect. What did measure wrong was the water: the bed seen through it
@@ -1080,7 +1080,7 @@ one heading, ending at the v0.8.0-alpha tag.
 
 - Authored PBR pack, 2026-09-15 to 16. The plastic look turned out to be
   structure, not specular: the bake embosses the pixel grid (median texel
-  tilt six degrees, occlusion never under 0.81). `tools/pbr_author/` now
+  tilt six degrees, occlusion never under 0.81). `tools/pbr/pbr_author/` now
   holds a script per stem that builds height and smoothness fields from
   the 16 px art, about a hundred and eighty stems across three fleets of
   Sonnet subagents (surfaces, ores, furniture, doors and cut-outs, four
@@ -1358,7 +1358,7 @@ an RTX 3090, unless marked otherwise.
   tiers are therefore not claimed: they need a plan that hands every run an
   identical pre-warmed store, which the harness cannot yet do.
 - Material Maker materials as a renderer benchmark (2026-09-18): the
-  flatpak's own export is broken, so `tools/mm_export.py` runs it headless
+  flatpak's own export is broken, so `tools/pbr/mm_export.py` runs it headless
   with a replacement start script and exported 56 sets from the site's
   free materials; 27 dress Mineclonia's main blocks as the `mineclonia_mm`
   pack. They render cleanly, and showed that the parallax depth table is

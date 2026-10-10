@@ -682,7 +682,7 @@ already used, carried per array layer in a `lod_avg_colour` uniform set only
 on LOD materials (`GoannaClient::materialFor`) so the near mesh's shader,
 which is the same compiled resource, never engages it. Water at a tier stops
 waving (there is nothing at 16 node cells for a per node ripple to be) and
-gets the same colour blend. `tools/shotcheck.py --far-band` measures the
+gets the same colour blend. `tools/dev/shotcheck.py --far-band` measures the
 result: Laplacian energy in a horizon shot's far band, low for a flat
 blended surface, high for an aliased one.
 
@@ -708,7 +708,7 @@ unresolved name is honestly ugly instead of silently absent.
 
 Cost, measured on this machine (Luanti 5.16.1 flatpak, Godot 4.5.1) against
 a fresh local Mineclonia world at the default 1024 node grant, through
-`tools/test-launch-target.sh`: two minutes after joining, `far_remote` was
+`tools/test/test-launch-target.sh`: two minutes after joining, `far_remote` was
 6656 blocks across 159 regions and 359 surfaces, 847 draw calls total, the
 worst `poll_blocks` call 0.43 ms, and 137 blocks still at full detail near
 the player. `docs/requirements.md`'s draw call budget is not threatened by
@@ -995,7 +995,7 @@ one of the six runs passed the harness thresholds, before and after: the
 check was never failing, which is why the vertex bytes rather than the frames
 are what found this.
 
-`tools/test-launch-target.sh` itself, unmodified, on a fresh profile and a
+`tools/test/test-launch-target.sh` itself, unmodified, on a fresh profile and a
 fresh world: passes. Two earlier attempts failed, both on the close shot's
 `normal map response` (detail 3.72 and 3.24 against a floor of 5.0), and
 neither is this change: the harness poses that shot 1.2 nodes above the
@@ -1089,8 +1089,8 @@ a temporary counter added for the measurement and removed afterward: over
 a fifteen second window from a fresh connection, the unmodified code
 started a fade on every one of 68 newly created regions; with the fix, 46
 of 85 started a fade, the remaining 39 popping under haze instead. The
-existing pop metric (`tools/shotcheck.py --launch-target`, run through
-`tools/test-launch-target.sh`) still reads 0.0 across eleven frame pairs
+existing pop metric (`tools/dev/shotcheck.py --launch-target`, run through
+`tools/test/test-launch-target.sh`) still reads 0.0 across eleven frame pairs
 on this machine, unchanged from before this landed. That is expected
 rather than evidence either way: the metric watches one fixed camera cone
 (`docs/launch-target.md` R4's own finding), this fix specifically removes
@@ -1140,7 +1140,7 @@ Measured on a merged far tier quad, camera posed away from the player so
 the panel stayed LOD rather than streaming live, close and at an oblique
 angle (a stress case chosen to show the defect, not the ordinary horizon
 shot 2c above was judged against): with no size based flattening at all,
-`tools/shotcheck.py --far-band` on the shot read 29.65 to 30.92 across
+`tools/dev/shotcheck.py --far-band` on the shot read 29.65 to 30.92 across
 three separate readings, comfortably above the 9.0 the harness wants; with
 the size test engaged, sharing the distance thresholds and touching
 colour only, it read 22.53 in the same session against the same
@@ -1662,7 +1662,7 @@ same thing deterministically and is the evidence to trust.) That is why it reads
 worlds rather than as one world at two brightnesses, and why no per tier
 constant could have fixed it.
 
-**`tools/shotcheck.py --launch-target` at time 0.5, 0.25 and 0.0**, same
+**`tools/dev/shotcheck.py --launch-target` at time 0.5, 0.25 and 0.0**, same
 world, same viewpoint, one client, the shader reloaded between the two
 sets, on the Mineclonia world `r1tod1` at a 1024 node grant with 87000 to
 94000 far cells, Luanti 5.16.1 flatpak, Godot 4.5.1:
@@ -2209,7 +2209,7 @@ result:
   are read off numbers rather than impressions, and an occlusion case: a pit,
   an overhang and a cave mouth, with the brute force hemisphere integral
   printed beside what the cone trace produced.
-- `tools/shotcheck.py` for viewpoint repeatability, which matters more here
+- `tools/dev/shotcheck.py` for viewpoint repeatability, which matters more here
   than anywhere else, because a vista shot before terrain streams in is a
   photograph of fog.
 - A per tier readout, so rung 3 cannot regress rung 2 silently: `render_stats`

@@ -692,7 +692,7 @@ TOOLS = [
 
 
 def shotcheck(path):
-    script = REPO / "tools" / "shotcheck.py"
+    script = REPO / "tools" / "dev" / "shotcheck.py"
     if not script.exists():
         return None
     try:

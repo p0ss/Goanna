@@ -32,10 +32,10 @@ did not.
 From anywhere, with a Luanti server already listening:
 
 ```sh
-tools/test-shaderpack.sh
+tools/test/test-shaderpack.sh
 ```
 
-The script finds Godot the same way `tools/test-formspec.sh` does (`godot`
+The script finds Godot the same way `tools/test/test-formspec.sh` does (`godot`
 or `godot4` on `PATH`, or `GODOT_BIN=/path/to/godot`), launches Goanna with
 `GOANNA_SHADERPACK` pointing at the proof pack and `GOANNA_SHOT` set, waits
 for the screenshot `a.png` that `main.gd` saves about eight seconds in, then
@@ -46,11 +46,11 @@ the player (default `shaderproof`, no password). `GOANNA_TOD` and
 run directory; `GOANNA_SHADERPACK_TEST_DIR` names that directory, and a
 directory named this way is kept on success too.
 
-The image check is `tools/shaderpack_check.py`, which can also be run on its
-own against any PNG:
+The image check is `tools/test/shaderpack_check.py`, which can also be run on
+its own against any PNG:
 
 ```sh
-tools/shaderpack_check.py --json /path/to/a.png
+tools/test/shaderpack_check.py --json /path/to/a.png
 ```
 
 It prints one `PASS` or `FAIL` line per check and exits non zero if any

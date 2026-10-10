@@ -34,7 +34,7 @@ extends Node3D
 # face, since gold and steel at the same luma are not confused), and the
 # fraction of the frame below the horizon that clips, which
 # is the "clipping outside the sky" figure. CHART_OUT=/path.json writes all
-# of it; PROBE_OUT=/dir saves one PNG per capture. tools/chart_summary.py
+# of it; PROBE_OUT=/dir saves one PNG per capture. tools/bench/chart_summary.py
 # reduces the JSON to the step 3 pass or fail lines.
 #
 # Knobs, the same names as main.gd where main.gd has them: GOANNA_SUN,
@@ -51,7 +51,7 @@ extends Node3D
 # horizon's, desaturated, weighted by day, as main.gd sets it.
 #
 # What this chart settled, 2026-08-21, Godot 4.5.1, RTX 3090, Vulkan
-# Forward+ (tools/chart_summary.py prints the pass or fail lines): the old
+# Forward+ (tools/bench/chart_summary.py prints the pass or fail lines): the old
 # recipe scored 7 of 15, with tops at 1.87 times albedo, snow flat white,
 # walls at 0.28 of the top and night pitch black. Sun 1.0, ACES white 4.0
 # and exposure 0.5 fix the tops and the clipping; the sky radiance controls

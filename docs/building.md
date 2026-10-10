@@ -352,7 +352,7 @@ features.
 | `GOANNA_TEXTURE_MAP=<csv>` | A game_texture,pack_path CSV (`project/texture_maps/`), the same as the settings entry: lets a Minecraft resource pack dress the game, and gives the classifier its block column. |
 | `GOANNA_DEBUG_PBR=1` | Print the classifier's counts and, per array texture, how many layers are authored, classed or inferred, and how many are left neutral. |
 | `GOANNA_PERF=1` | Print one telemetry line a second: frame time, mesh and upload cost, draw calls, objects, video memory, and the far tier counts. |
-| `GOANNA_BENCH=1` | Build the per frame recorder (`project/bench.gd`), which the control channel's `bench` and `route` commands drive and `tools/goanna-bench.py` runs plans against. Turns vsync and the frame cap off, and stamps the time to connected, to playable and to settled from process start. See `docs/benchmark.md`. |
+| `GOANNA_BENCH=1` | Build the per frame recorder (`project/bench.gd`), which the control channel's `bench` and `route` commands drive and `tools/bench/goanna-bench.py` runs plans against. Turns vsync and the frame cap off, and stamps the time to connected, to playable and to settled from process start. See `docs/benchmark.md`. |
 | `GOANNA_LOD=<blocks>` | Draw blocks beyond this many mapblocks as coarse tiers (`docs/far-rendering.md`); the same as the detail distance slider. `GOANNA_LOD_CELL=<nodes>` sets the first tier's cell size, a power of two from 2 to 16. |
 | `GOANNA_STORE=<dir>`, `GOANNA_NO_STORE=1` | Relocate or turn off the local block store (`docs/far-rendering.md` rung 5), which otherwise lives under `user://goanna_store`, one directory per server. `GOANNA_STORE_CAP_MB` sets its cap (512). `GOANNA_FAR_DISTANCE=<nodes>` caps how far stored blocks are drawn when the server grants far rendering. |
 | `GOANNA_DEBUG_LOD=1` | Print every far tier region build: tier, cell, members, faces, quads and the surfaces it produced. |
@@ -401,7 +401,7 @@ directory also receives `lighting_walk.json`, recording the positions and
 lighting settings used. Analyse adjacent changes with:
 
 ```sh
-tools/shotcheck.py --walk-series \
+tools/dev/shotcheck.py --walk-series \
   /tmp/goanna-lighting/lighting_walk_*.png
 ```
 
@@ -417,7 +417,7 @@ the local Luanti parser registry as well as Godot-side layout and interaction
 fixtures:
 
 ```sh
-tools/test-formspec.sh
+tools/test/test-formspec.sh
 ```
 
 See [formspec conformance](formspec-conformance.md) for classifications,
@@ -455,7 +455,7 @@ godot --headless --path project --script res://tests/asset_bundle_install.gd
 
 Writes a few small textures, including `mcl_bamboo_bamboo` beside
 `mcl_bamboo_bamboo_plank` (a stem that is a prefix of another, which is what
-broke `AssetStore.install_archive`), packs them with `tools/pbr_bundle.py
+broke `AssetStore.install_archive`), packs them with `tools/pbr/pbr_bundle.py
 build`, and installs the archive into an empty store with the call
 `asset_updater.gd` makes on a finished download. It checks the composed
 `profiles/<game>/textures` file by file, and that nothing is left staged in
@@ -464,34 +464,34 @@ the store. It needs `python3` with Pillow on `PATH`.
 **Height maps that fill the byte.**
 
 ```sh
-python3 tools/check-pbr-height.py pbr_packs/mineclonia/textures dist/assets/*.zip
+python3 tools/pbr/check-pbr-height.py pbr_packs/mineclonia/textures dist/assets/*.zip
 ```
 
 Fails a pack whose baked `_n` maps have a median alpha span under 224 of
 255. The shader applies each material's depth itself, so a bake that scaled
 the byte by it applied it twice; the per map quality gate could not see
-that. `tools/pbr_bundle.py build` and `verify` run it, and so does
-`tools/check-pbr-quality.py`, so it also runs inside
-`tools/publish-assets.sh`. Authored maps (PNG text chunk
+that. `tools/pbr/pbr_bundle.py build` and `verify` run it, and so does
+`tools/pbr/check-pbr-quality.py`, so it also runs inside
+`tools/release/publish-assets.sh`. Authored maps (PNG text chunk
 `goanna_pipeline=authored`) are reported separately and never fail it.
 
 **Published URLs answer.** After publishing an asset epoch:
 
 ```sh
-python3 tools/check-asset-catalogue.py --live
+python3 tools/release/check-asset-catalogue.py --live
 ```
 
 Sends a HEAD request to every URL in `asset_bundles/catalogue.json`,
 following redirects, and fails on anything but a 200 whose size matches the
-catalogue. `tools/publish-assets.sh` prints this command, with the one that
-publishes the draft, as its last output. Commit the catalogue only after
-it passes.
+catalogue. `tools/release/publish-assets.sh` prints this command, with the one
+that publishes the draft, as its last output. Commit the catalogue only after it
+passes.
 
 **Sign the release, or no client updates to it.** After the GitHub release
 for a tag exists with both zips on it:
 
 ```sh
-tools/sign-release.sh v0.11.0-alpha
+tools/release/sign-release.sh v0.11.0-alpha
 ```
 
 Writes `dist/manifest.json` (each zip's size and SHA-256) and

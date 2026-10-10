@@ -52,7 +52,7 @@ reproduced the severe slowdown, establishing that the queue loop was not
 the whole problem. No quality distances or graphics settings were reduced.
 
 Native `goanna_lod_test` and `goanna_surface_test` passed. The companion
-`tools/forest-review/profile.py` exercises moving through the near/LOD
+`tools/test/forest-review/profile.py` exercises moving through the near/LOD
 boundary and holding still, recording per-frame timings and sampling the
 512-candidate and 16-request limits. Compressed raw frame and counter records
 and their summaries accompany this report.

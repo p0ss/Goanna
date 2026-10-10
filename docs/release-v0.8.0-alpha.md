@@ -13,7 +13,7 @@ block being mined is carved instead of cracked.
   set per material class. On the ramp, one material filling a 1600 by 900
   frame on an RTX 3090 costs under a millisecond. Its cost across a whole
   scene in play is not measured.
-- **The authored Mineclonia pack.** 177 stems built by `tools/pbr_author/`
+- **The authored Mineclonia pack.** 177 stems built by `tools/pbr/pbr_author/`
   from the game's own 16 px art replace the bake in the shipped pack. Ores
   are metal, gems reflect, redstone and the lit blocks glow. Judged on the
   close-up ramp under sun and lamp and in the maintainer's own play. No

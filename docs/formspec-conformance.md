@@ -3,7 +3,7 @@
 Goanna has an executable formspec conformance suite. It guards two related
 boundaries:
 
-- `tools/check-formspec-coverage.py` extracts Luanti's parser registry and
+- `tools/test/check-formspec-coverage.py` extracts Luanti's parser registry and
   requires every upstream element to be classified in
   `project/tests/formspec_coverage.json`.
 - `project/tests/formspec_conformance.gd` builds representative forms in
@@ -13,13 +13,13 @@ boundaries:
 Run both layers from the repository root:
 
 ```sh
-tools/test-formspec.sh
+tools/test/test-formspec.sh
 ```
 
 Set `GODOT_BIN` when Godot is not on `PATH`:
 
 ```sh
-GODOT_BIN=/path/to/godot tools/test-formspec.sh
+GODOT_BIN=/path/to/godot tools/test/test-formspec.sh
 ```
 
 The suite can also produce a rendered fixture for visual comparison. This
@@ -28,7 +28,7 @@ a dummy renderer with no viewport texture. The directory must be an absolute
 path:
 
 ```sh
-GOANNA_FORMSPEC_SHOTS=/tmp/goanna-formspec tools/test-formspec.sh
+GOANNA_FORMSPEC_SHOTS=/tmp/goanna-formspec tools/test/test-formspec.sh
 ```
 
 ## Current state

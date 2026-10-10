@@ -19,7 +19,7 @@ from that and all three are bad.
 The loop is slow. A shader tweak, a lighting value or a material strength is
 seconds of thought and half a minute of relaunch, so few get tried.
 
-The timing is a guess. `tools/shotcheck.py` opens by listing four
+The timing is a guess. `tools/dev/shotcheck.py` opens by listing four
 conclusions drawn from frames captured before the world had arrived: an
 inverted normal map, a jungle canopy measured as snow, an autojump verified
 against a swimming character, and rain checked against a clear sky. A wait
@@ -465,7 +465,7 @@ minutes.
 
 `shot` needs a real display. Godot's own `--headless` driver has only a
 dummy renderer, so there is no viewport texture to save, the same
-restriction `tools/test-formspec.sh` works around. Headless gamescope is a
+restriction `tools/test/test-formspec.sh` works around. Headless gamescope is a
 real display as far as Godot is concerned, so under the launcher `shot`
 works. The UI commands work under Godot's `--headless` too, which is useful
 when there is no GPU at all, though its window is 64 by 64 until a `run`

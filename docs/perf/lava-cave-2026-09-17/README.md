@@ -53,13 +53,13 @@ surface over 0.6 nodes; interior relief remains up to 0.14 nodes high.
 
 ## Reproduction
 
-Install `tools/lava-review/cave.lua` as a worldmod in a **disposable**
+Install `tools/test/lava-review/cave.lua` as a worldmod in a **disposable**
 Minetest Game world. It replaces the two room volumes on the first join
 after each server start. Run the server on port 30580 and connect a client
 with control port 30880, then run:
 
 ```sh
-python3 tools/lava-review/cave_capture.py after
+python3 tools/test/lava-review/cave_capture.py after
 ```
 
 The capture tool's `--gain`, `--lift` and `--glow-gain` flags allow temporary

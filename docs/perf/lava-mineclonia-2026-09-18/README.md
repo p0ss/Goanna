@@ -41,11 +41,11 @@ flattening error. The captured clients have no shader or mesh errors.
 ## Reproduction
 
 Use the disposable Mineclonia cave on server port 30581, with the fixture
-from `tools/lava-review/cave.lua` adapted to `mcl_core:stone`,
+from `tools/test/lava-review/cave.lua` adapted to `mcl_core:stone`,
 `mcl_torches:torch` and `mcl_core:lava_source`. Raise the source to Y=6.
 
 ```sh
-python3 tools/lava-review/run_mineclonia.py stylised baked/stylised-lava/textures
+python3 tools/test/lava-review/run_mineclonia.py stylised baked/stylised-lava/textures
 ```
 
 The runner starts its own client on control port 30882 and closes it after

@@ -390,7 +390,7 @@ sent digging or punching packets for items with `on_use`. It now sends
 Holding the button does not repeat the callback. Switching from digging to
 such an item cancels the dig and waits for a fresh press before using it.
 
-`tools/test-item-use.py --dorfcraft /path/to/DorfCraft` runs a disposable
+`tools/test/test-item-use.py --dorfcraft /path/to/DorfCraft` runs a disposable
 Mineclonia world through the installed Luanti Flatpak and Godot's dummy
 renderer. Its fixture wraps the real callbacks to count packet delivery;
 `project/tests/item_use.gd` drives `step_interact`, rather than opening the
@@ -413,7 +413,7 @@ server-side voxel writes can replace a block without those packets. A
 changed replacement now invalidates all six loaded face neighbours, just
 as the first arrival does. Identical resends still skip mesh invalidation.
 
-`tools/test-block-updates.py` runs a Mineclonia fixture which removes a
+`tools/test/test-block-updates.py` runs a Mineclonia fixture which removes a
 sealed dark room above a mapblock boundary through VoxelManip. Under Godot
 4.5.1's dummy renderer, Luanti 5.17.0 and Mineclonia 38561, the old client
 kept zero floor vertices after the cut; the rebuilt client produced 64.

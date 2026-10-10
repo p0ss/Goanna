@@ -5,7 +5,7 @@ playtest, was built on 1 October 2026 and has been tested by a script, not
 yet by a model or by players: [Phase 1 as built](#phase-1-as-built) says
 what exists and what the test showed. Game rulesets were built on 6 October
 2026 and are in [Rulesets as built](#rulesets-as-built). The throwaway probe in
-`tools/director-probe/` checked the engine and framework calls the design
+`tools/test/director-probe/` checked the engine and framework calls the design
 depends on, and [What was verified](#what-was-verified) at the end says what
 ran, on which server and game, and what did not. [Decisions](#decisions)
 records what the maintainer has settled since, including the scope of the
@@ -1297,8 +1297,8 @@ goanna_server_mod/director/
     http.lua        the HTTP transport
     adapters/mcl_mobs.lua   Mineclonia's mcl_mobs and mcl_armor
 tools/goanna-director-mcp             the MCP service and HTTP endpoint
-tools/test-director-logic.lua         unit tests for logic.lua (LuaJIT)
-tools/test-director.py                the end to end test
+tools/test/test-director-logic.lua         unit tests for logic.lua (LuaJIT)
+tools/test/test-director.py                the end to end test
 ```
 
 The layout differs from the proposal in [Server half](#server-half): pacing
@@ -1504,7 +1504,7 @@ about 12 nodes to within its range.
 
 ### What the first test showed
 
-`tools/test-director.py` on 1 October 2026: the Luanti 5.17.0 Flatpak
+`tools/test/test-director.py` on 1 October 2026: the Luanti 5.17.0 Flatpak
 server, Mineclonia release 38561, mapgen v7, a fresh world; two Goanna
 clients (Godot 4.5.1 stable, the client library built from the main
 checkout at 01:18 that day) running headless in gamescope with software
@@ -1544,7 +1544,7 @@ over stdio JSON-RPC by the script, as a model would. 61 checks passed:
   `/director log` answered in game. The audit log held every intent, and the
   server log had no director warnings or errors.
 
-`tools/test-director-logic.lua` covers the ring, budgets, rate limits,
+`tools/test/test-director-logic.lua` covers the ring, budgets, rate limits,
 pacing cycle, composition, gear score, memory caps and text cleaning.
 
 Seen in passing: a fresh player in that world sometimes took damage at
@@ -1597,7 +1597,7 @@ through `tools/goanna-director-cli`): 46 checks, none failed.
   `adapters/mcl_structures.lua` are Mineclonia's. `init.lua` now picks one
   adapter per kind (`mobs`, `items`, `structures`). The pure parts (search,
   item value, schematic parsing, build order) are in `logic.lua` with unit
-  tests in `tools/test-director-logic.lua`.
+  tests in `tools/test/test-director-logic.lua`.
 - **Catalogue.** All three adapters matched. 3,184 nodes, 512 items, 207
   tools, 81 creatures, 203 other entities, 39 enchantments, 57 structures
   and 219 mods; a repeated question came from the MCP service's cache.
@@ -1969,7 +1969,7 @@ work.
 
 ### What was tested
 
-`tools/test-director.py --ruleset` on 6 October 2026: the Luanti 5.17.0
+`tools/test/test-director.py --ruleset` on 6 October 2026: the Luanti 5.17.0
 Flatpak server (`org.luanti.luanti`), Mineclonia release 38561, mapgen v7,
 a fresh scratch world with a probe mod written by the test into its
 `worldmods`; the file transport; one Goanna client (Godot 4.5.1 stable,
@@ -2008,16 +2008,16 @@ JSON-RPC by the script. 44 checks passed:
   record, and the server log had no director warnings or errors beyond the
   two deliberate refusals.
 
-With no ruleset registered, the Phase 1 test (`tools/test-director.py`, same
-server and game) first ran with software rendered clients and passed its
-first 36 checks before it was stopped on request, to keep clients in
-gamescope off a machine where another session held the GPU. It was then run
-whole with `--dummy`, which starts each player as Godot `--headless` (the
-dummy renderer, no gamescope, no Vulkan device), on 6 October 2026: all 62
-checks passed, including the kill, the opt out, the service restart and
-stop. One earlier `--dummy` run failed only the kill check, with alice's
-blows not landing on the villager at 2.1 nodes; the next run killed it, so
-that check is sensitive to aim, not to the renderer.
+With no ruleset registered, the Phase 1 test (`tools/test/test-director.py`,
+same server and game) first ran with software rendered clients and passed its
+first 36 checks before it was stopped on request, to keep clients in gamescope
+off a machine where another session held the GPU. It was then run whole with
+`--dummy`, which starts each player as Godot `--headless` (the dummy renderer,
+no gamescope, no Vulkan device), on 6 October 2026: all 62 checks passed,
+including the kill, the opt out, the service restart and stop. One earlier
+`--dummy` run failed only the kill check, with alice's blows not landing on the
+villager at 2.1 nodes; the next run killed it, so that check is sensitive to
+aim, not to the renderer.
 
 Not tried: a paced intent that had to wait in the queue (the player was in
 a build up throughout, so only the path that applies at once ran); `stale`
@@ -2063,8 +2063,8 @@ or Kythen themselves, neither of which has a ruleset yet.
 
 Everything below ran on 19 September 2026 against the Luanti 5.17.0 Flatpak
 (`org.luanti.luanti`, server only, no client) with the probe in
-`tools/director-probe/`, each on a fresh world on port 30561, stopped by the
-probe itself (`core.request_shutdown`) and checked gone by PID. No client
+`tools/test/director-probe/`, each on a fresh world on port 30561, stopped by
+the probe itself (`core.request_shutdown`) and checked gone by PID. No client
 connected, so no player existed. The GPU was in a faulted state, which is why no
 client was tried.
 
@@ -2110,10 +2110,10 @@ player's own `minetest.conf` is left alone:
 ```sh
 W=~/.var/app/org.luanti.luanti/.minetest/worlds/director_probe_example
 mkdir -p "$W/worldmods"
-cp -r tools/director-probe "$W/worldmods/director_probe"
+cp -r tools/test/director-probe "$W/worldmods/director_probe"
 printf 'mg_name = v7\nsecure.http_mods = director_probe\n' > "$W/probe.conf"
 printf 'director_probe_url = http://127.0.0.1:30591\n' >> "$W/probe.conf"
-python3 tools/director-probe/http_sink.py 30591 /tmp/sink.log &
+python3 tools/test/director-probe/http_sink.py 30591 /tmp/sink.log &
 flatpak run --command=luanti org.luanti.luanti --server --gameid mineclonia \
     --world "$W" --port 30561 --config "$W/probe.conf" --logfile "$W/server.log"
 ```

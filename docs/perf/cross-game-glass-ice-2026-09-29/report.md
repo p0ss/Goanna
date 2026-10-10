@@ -51,4 +51,4 @@ adds this report. Shaders were the same working tree for both.
 - VoxeLibre was not rendered. Its glass and ice take the same paths as
   Mineclonia's by their definitions, which were read from a dump, not
   from a frame.
-- `tools/pbr_bake.py` classifies nodes separately and was not changed.
+- `tools/pbr/pbr_bake.py` classifies nodes separately and was not changed.

@@ -105,10 +105,10 @@ wire rejection, unknown coverage, partial and out-of-order refinement,
 horizontal/vertical geometry and coverage footprints. The existing LOD,
 horizon and storage tests remain applicable.
 
-`luajit tools/test-surface-server.lua` checks grants, request limits, duplicate
-collapse, revision invalidation and memory/disk cache reuse. The local
+`luajit tools/test/test-surface-server.lua` checks grants, request limits,
+duplicate collapse, revision invalidation and memory/disk cache reuse. The local
 launcher rendering test checks the generated server configuration.
 
 The [live report](perf/baked-terrain-2026-09-14/report.md) records Asuna
-loading, flight timings and screenshots. `tools/terrain-baked-review.py`
+loading, flight timings and screenshots. `tools/bench/terrain-baked-review.py`
 repeats the fixed-camera load and flight captures on that disposable fixture.

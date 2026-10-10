@@ -95,14 +95,14 @@ LOOK_POSES = {
 
 
 def load_bench():
-    spec = importlib.util.spec_from_file_location("goanna_bench", REPO / "tools" / "goanna-bench.py")
+    spec = importlib.util.spec_from_file_location("goanna_bench", REPO / "tools" / "bench" / "goanna-bench.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
 
 def profiles():
-    spec = importlib.util.spec_from_file_location("cbp", REPO / "tools" / "check-bench-plans.py")
+    spec = importlib.util.spec_from_file_location("cbp", REPO / "tools" / "bench" / "check-bench-plans.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod.shipped_profiles()

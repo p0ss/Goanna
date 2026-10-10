@@ -50,11 +50,11 @@ GPL-3.0 media is accepted, for texture packs only. Goanna's code is
 LGPL-2.1-or-later and the packs are separate works shipped beside it, each
 under its own source's terms as noted in its `ATTRIBUTION.md`, so a GPL
 texture makes only the maps derived from it GPL-3.0. Their source, in the
-GPL's sense, is the spec each was authored from under `tools/pbr_author/`,
+GPL's sense, is the spec each was authored from under `tools/pbr/pbr_author/`,
 and the pack's attribution says where that is. AGPL media is still
 rejected. A package's software licence never qualifies its media: that takes
 a notice about the media. `pbr_packs/MEDIA_POLICY.json`
-is the machine-readable allow/deny list and `tools/check-pbr-licenses.py`
+is the machine-readable allow/deny list and `tools/pbr/check-pbr-licenses.py`
 enforces it against both the source lock and reviewed per-file ledgers.
 
 Where the package-level notice is mixed, the summary string in
@@ -95,19 +95,19 @@ The current audit groups are:
 | X Farming | per-file mapping recorded | Release 38796's LICENSE.txt credits every texture; 331 world textures are recorded, all CC BY-SA 4.0 or 3.0, two built on Farmer's Delight art under MIT. |
 | More Trees | archive-wide media terms found | Release 38501's LICENSE puts all media under CC BY-SA 4.0 and names the author of each file. |
 | Goblins | per-file mapping recorded | Release 32959's README names the skins, models and mushrooms CC BY-SA 3.0 (the king from the SummerFields pack); molten gold, lightning and unnamed icons are excluded. |
-| VoxeLibre | per-file mapping recorded | Release 38585's `LEGAL.md` is mixed and mods carry their own notices. `tools/pbr_audit_voxelibre.py` records the most specific notice for each of the 902 authored stems in `pbr_packs/manifests/voxelibre-pack-v1.sources.json`. 38 are GPL-3.0: `mcl_fences` places its textures under GPLv3 and `mcl_flowers` has an unscoped GPLv3 line, read as covering them. Mineclonia's copies of both notices say WTFPL. |
+| VoxeLibre | per-file mapping recorded | Release 38585's `LEGAL.md` is mixed and mods carry their own notices. `tools/pbr/pbr_audit_voxelibre.py` records the most specific notice for each of the 902 authored stems in `pbr_packs/manifests/voxelibre-pack-v1.sources.json`. 38 are GPL-3.0: `mcl_fences` places its textures under GPLv3 and `mcl_flowers` has an unscoped GPLv3 line, read as covering them. Mineclonia's copies of both notices say WTFPL. |
 | Asuna | excluded | Its own LICENSE opens "this game as a whole is released under GPLv3", because it aggregates GPL works. ContentDB's CC BY-SA 4.0 label is the corroborating metadata that cannot stand in for that. It does enumerate every included work with its licence file, so a work may still be admitted through its own upstream package. |
 | Minetest Game | archive-wide plus per-mod attribution | Release 38214 is pinned; its LGPL code is irrelevant to the separately CC BY-SA 3.0 media. Its terrain tranche contains 87 solid-node surfaces. |
 | Less Dirt | per-file mapping recorded | Release 13232 carries per-family CC BY-SA notices, so the archive-wide string is a summary. Its 42 selected files are each recorded CC BY-SA 3.0 at intake. |
 
 ## Automated acceptance gate
 
-Run `tools/check-pbr-quality.py` against every completed tranche before copying
-anything into `pbr_packs/`. It rejects malformed pairs, normal fields outside
-the tangent hemisphere, directional bias, unbounded or flat height, excessive
-smoothness for the material class, dark diffuse-authored art incorrectly made
-metallic, broken transparent regions and excessive generated-albedo colour
-drift. Strong wrap seams are reported for review.
+Run `tools/pbr/check-pbr-quality.py` against every completed tranche before
+copying anything into `pbr_packs/`. It rejects malformed pairs, normal fields
+outside the tangent hemisphere, directional bias, unbounded or flat height,
+excessive smoothness for the material class, dark diffuse-authored art
+incorrectly made metallic, broken transparent regions and excessive
+generated-albedo colour drift. Strong wrap seams are reported for review.
 
 The gate is intentionally followed by visual review:
 
@@ -119,7 +119,7 @@ The gate is intentionally followed by visual review:
 - reject, reclassify or rebake individual failures rather than weakening a
   threshold to make a batch pass.
 
-`tools/test-pbr-quality.py` exercises the failure cases with synthetic maps.
+`tools/pbr/test-pbr-quality.py` exercises the failure cases with synthetic maps.
 The current pre-review manifests contain 808 community terrain candidates,
 453 billboard/item/plant candidates, 139 creature candidates and 87 Minetest
 Game terrain candidates. The original 33-image pilot was withdrawn after the
@@ -129,18 +129,18 @@ to grandfather into a release.
 
 ## Running a bake
 
-The sources a bake reads are not in the repository. `tools/pbr_stage_sources.py`
-rebuilds them from `pbr_packs/COMMUNITY_LOCK.json`, downloading each pinned
-ContentDB release, checking it against the hash the lock records and extracting
-it below a staging root. A hash that does not match is reported and skipped
-rather than baked, because the licence audit above is written against the
-archive the lock names.
+The sources a bake reads are not in the repository.
+`tools/pbr/pbr_stage_sources.py` rebuilds them from
+`pbr_packs/COMMUNITY_LOCK.json`, downloading each pinned ContentDB release,
+checking it against the hash the lock records and extracting it below a staging
+root. A hash that does not match is reported and skipped rather than baked,
+because the licence audit above is written against the archive the lock names.
 
-`tools/run-pbr-overnight.sh` stages every package the queued tranches need and
-then bakes them. Its staging root defaults to `~/.local/share/goanna-pbr-audit`
-and can be moved with `GOANNA_AUDIT_ROOT`. It must not be put on `/tmp`: that
-is tmpfs on the development box, and a reboot on 2026-09-07 took a night's
-composed maps with it.
+`tools/pbr/run-pbr-overnight.sh` stages every package the queued tranches need
+and then bakes them. Its staging root defaults to
+`~/.local/share/goanna-pbr-audit` and can be moved with `GOANNA_AUDIT_ROOT`. It
+must not be put on `/tmp`: that is tmpfs on the development box, and a reboot on
+2026-09-07 took a night's composed maps with it.
 
 The generation itself survived that reboot, because ComfyUI writes every image
 it produces to its own output directory on ordinary disk. `pbr_bake.py

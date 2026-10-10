@@ -89,7 +89,7 @@ environment shown above, and wait until the player has reached the intended
 surface spawn. Then run:
 
 ```sh
-tools/far-baseline.py /tmp/goanna-far-baseline --port 30800 \
+tools/bench/far-baseline.py /tmp/goanna-far-baseline --port 30800 \
     --build-label "$(git rev-parse --short HEAD)"
 ```
 

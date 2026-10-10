@@ -102,23 +102,26 @@ refresh: having an old block in memory does not make it current server data.
   coverage and synthetic-ground versus actual-world handoff.
 - `build/goanna_lod_test`: projected-size voxel tiers, compact one-node ground,
   tree outlines and mixed-resolution face culling.
-- `luajit tools/test-fine-server.lua`: actual voxel runs, light/colour preservation,
-  unavailable versus empty replies, grant bounds and edit invalidation.
-- `luajit tools/test-forest-preview.lua`: placement/rotation parity on a flat
-  world, biome exclusion, asymmetric schematic outlines and 1/2/4 reductions.
-- `luajit tools/test-tdl-columns.lua`: 2,304 point-sampled roots agree with batched
-  mapgen across dry, shore and channel cases. An optional previous mapgen file
-  also compares the complete generated node arrays; the extraction passed this
-  comparison against the pre-change implementation.
-- `luajit tools/test-surface-server.lua`: grants, versions, bounded cooperative
-  work, cold/warm caching and backward compatibility.
+- `luajit tools/test/test-fine-server.lua`: actual voxel runs, light/colour
+  preservation, unavailable versus empty replies, grant bounds and edit
+  invalidation.
+- `luajit tools/test/test-forest-preview.lua`: placement/rotation parity on a
+  flat world, biome exclusion, asymmetric schematic outlines and 1/2/4
+  reductions.
+- `luajit tools/test/test-tdl-columns.lua`: 2,304 point-sampled roots agree with
+  batched mapgen across dry, shore and channel cases. An optional previous
+  mapgen file also compares the complete generated node arrays; the extraction
+  passed this comparison against the pre-change implementation.
+- `luajit tools/test/test-surface-server.lua`: grants, versions, bounded
+  cooperative work, cold/warm caching and backward compatibility.
 - `res://tests/local_server_terrain_diffusion.gd`: deployment includes every TDL
   and Goanna Lua module.
 
-`tools/forest-review/run.py` creates an isolated Mineclonia world from an existing
-bake. It records loading stats and screenshots without visiting the user's world.
-The September 15 review used a cherry grove, seed 1234, a 1,024-node horizon and
-1280×720 on an RTX 3090, without PBR. One complete 545-tile run reported about
-156 fps. This is a spot measurement, not a general performance guarantee. The
-cache-migration run replaced 500 old summary areas with revision-tagged entries
-and retained detailed distant crowns without the bare ground-only ring.
+`tools/test/forest-review/run.py` creates an isolated Mineclonia world from an
+existing bake. It records loading stats and screenshots without visiting the
+user's world. The September 15 review used a cherry grove, seed 1234, a
+1,024-node horizon and 1280×720 on an RTX 3090, without PBR. One complete
+545-tile run reported about 156 fps. This is a spot measurement, not a general
+performance guarantee. The cache-migration run replaced 500 old summary areas
+with revision-tagged entries and retained detailed distant crowns without the
+bare ground-only ring.

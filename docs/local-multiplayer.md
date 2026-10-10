@@ -195,7 +195,7 @@ The server test creates disposable data under `/tmp`, binds only loopback,
 starts Godot with `--headless`, and stops its own server in a `finally` block:
 
 ```sh
-python3 tools/test-local-play.py --godot /path/to/godot \
+python3 tools/test/test-local-play.py --godot /path/to/godot \
   --server /path/to/luanti --players 4
 ```
 
@@ -206,7 +206,7 @@ remain untested on the GPU.
 
 ## Benchmark harness
 
-`tools/bench-local-play.py` runs 1, 2, 4 and 6 players, then repeats the
+`tools/bench/bench-local-play.py` runs 1, 2, 4 and 6 players, then repeats the
 single-player control. It uses one Godot process at a time, through the
 headless gamescope launcher, with a fixed 1920 by 1080 total resolution and
 the Low profile by default (`--profile` selects another tier). The first
@@ -217,7 +217,7 @@ Supply the existing Mineclonia test world and game paths:
 
 ```sh
 tools/goanna-headless gpu-free
-python3 tools/bench-local-play.py \
+python3 tools/bench/bench-local-play.py \
   --world /path/to/test_world --game /path/to/mineclonia \
   --output /tmp/local-benchmark
 ```

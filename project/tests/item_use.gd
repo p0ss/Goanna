@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Real primary-button packets; run through tools/test-item-use.py.
+# Real primary-button packets; run through tools/test/test-item-use.py.
 extends SceneTree
 var client: GoannaClient
 var messages = ""

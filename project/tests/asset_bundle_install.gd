@@ -7,12 +7,12 @@ extends SceneTree
 # order, and threw away every archive whose stems included one that is a
 # prefix of another. Mineclonia's pack has several, so a fresh profile
 # fetched 95 MB and kept nothing, and no test noticed because none had ever
-# installed an archive tools/pbr_bundle.py made. tests/asset_store.gd builds
+# installed an archive tools/pbr/pbr_bundle.py made. tests/asset_store.gd builds
 # its archives by hand with ZIPPacker, which proves the store agrees with
 # itself; this proves it agrees with the tool that makes what we publish.
 #
 # The fixture is a few 4 by 4 textures written here and packed by
-#   python3 tools/pbr_bundle.py build ...
+#   python3 tools/pbr/pbr_bundle.py build ...
 # so nothing binary is committed and the archive's layout, ledger order and
 # manifest are whatever the bundler produces today. It needs python3 with
 # Pillow on PATH, as the bundler does.
@@ -65,7 +65,7 @@ func _run() -> String:
 			expected[name] = FileAccess.get_sha256(path)
 
 	var archive := _scratch.path_join("%s-%s.zip" % [BUNDLE_ID, VERSION])
-	var tools := ProjectSettings.globalize_path("res://").path_join("../tools").simplify_path()
+	var tools := ProjectSettings.globalize_path("res://").path_join("../tools/pbr").simplify_path()
 	var output := []
 	var status := OS.execute("python3", [tools.path_join("pbr_bundle.py"), "build",
 		"--textures", sources, "--id", BUNDLE_ID, "--version", VERSION,
@@ -74,7 +74,7 @@ func _run() -> String:
 		"--source-sha256", "0".repeat(64), "--pipeline-version", "1",
 		"--output", archive], output, true)
 	if status != 0 or not FileAccess.file_exists(archive):
-		return "tools/pbr_bundle.py build failed (%d): %s" % [status, "".join(output)]
+		return "tools/pbr/pbr_bundle.py build failed (%d): %s" % [status, "".join(output)]
 
 	# A fresh profile: the store root the client resolves through
 	# AssetStore.root(), pointed at an empty directory. install_archive is

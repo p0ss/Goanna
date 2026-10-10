@@ -140,7 +140,7 @@ const LUANTI_WINDOWS := {
 }
 const _EXECUTABLE_NAMES := ["luantiserver", "minetestserver", "luanti", "minetest"]
 # The Luanti server the Linux release carries, in a folder of this name beside
-# the Goanna program (tools/build-luanti-server.sh, package-release.sh).
+# the Goanna program (tools/release/build-luanti-server.sh, package-release.sh).
 # Upstream publishes no Linux build, so without it a Linux player with no
 # Flatpak had no way to start a world without a package manager and a
 # password.

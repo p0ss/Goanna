@@ -84,7 +84,7 @@ var server_deadline := 0.0
 var showcase_launch := false
 # The graphics benchmark's world and one of its own camera poses, so the menu
 # backdrop and the calibration scene cannot drift apart: see
-# tools/bench_plans/graphics.json, whose "close" scene is this position and
+# tools/bench/bench_plans/graphics.json, whose "close" scene is this position and
 # aim, and whose "structures" entry is what put the village there.
 # SHOWCASE_YAW is that scene's aim converted to main.gd's convention
 # (main.gd:1209, yaw = atan2(-d.x, -d.z) in degrees).
@@ -100,7 +100,7 @@ const SHOWCASE_WORLD := "test_world"
 const SHOWCASE_POS := Vector3(-100, 30.6, 340)
 const SHOWCASE_YAW := -116.6
 # The stills behind the menu, one chosen at random on each launch. Taken by
-# tools/menu-background.sh, which says where each is and why it is framed with
+# tools/dev/menu-background.sh, which says where each is and why it is framed with
 # its subject to one side: the panel covers the middle of the screen.
 const BACKGROUNDS := [
 	"res://menu_backgrounds/headland.jpg",
@@ -138,7 +138,7 @@ func _ready() -> void:
 	# explicit opt-out for low-power or offline launches.
 	# The menu's backdrop is a still now (see _build_frame), so the live
 	# showcase is off unless it is asked for with GOANNA_SHOWCASE_LIVE. The
-	# stills are taken by tools/menu-background.sh, which drives a headless
+	# stills are taken by tools/dev/menu-background.sh, which drives a headless
 	# client through the control channel rather than this path.
 	showcase_launch = OS.get_environment("GOANNA_SHOWCASE_LIVE") != "" \
 			and OS.get_environment("GOANNA_NO_SHOWCASE") == "" \
@@ -292,7 +292,7 @@ func _background_texture() -> Texture2D:
 
 func _build_frame() -> void:
 	# A still, one of BACKGROUNDS, captured at full settings by
-	# tools/menu-background.sh, rather than a live session behind the menu.
+	# tools/dev/menu-background.sh, rather than a live session behind the menu.
 	#
 	# The live backdrop could not be all three of the things it was for. It
 	# booted a Luanti server and streamed a world, so it was never quick; it
@@ -371,7 +371,7 @@ func _start_showcase() -> void:
 		return
 	server = LocalServer.new()
 	# The world the graphics benchmark calibrates against
-	# (tools/bench_plans/graphics.json), rather than a scene kept only for this
+	# (tools/bench/bench_plans/graphics.json), rather than a scene kept only for this
 	# backdrop: that plan is run often enough to notice when the village stops
 	# looking right, which a menu backdrop nobody measures is not.
 	#

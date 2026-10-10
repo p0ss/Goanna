@@ -1,7 +1,7 @@
 # PBR classification reviews
 
 These versioned files are the reviewed material intent consumed by
-`tools/pbr_bake.py --classification-review`. They sit between mechanical
+`tools/pbr/pbr_bake.py --classification-review`. They sit between mechanical
 texture discovery and generative baking so filename guesses are not the final
 authority for composite or ambiguous art.
 
@@ -21,7 +21,7 @@ Large homogeneous families may instead use an ordered `rules` array with
 shell-style `match` patterns and an `entries` object for exact exceptions.
 Later matching rules refine earlier ones; exact entries always win.
 
-A file drafted by `tools/pbr_review_from_defs.py` from a game's own
+A file drafted by `tools/pbr/pbr_review_from_defs.py` from a game's own
 definition dump also carries a `derivation` object saying where the classes
 and the bands came from, how many records got a material, and any notes
 about the game's art that the dump cannot state for itself. Such a record

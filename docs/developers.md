@@ -94,10 +94,10 @@ godot --headless --path project --script res://tests/local_server_discovery.gd
 
 The Luanti server the Linux release carries is built in a container from
 the pinned `luanti/` submodule, into `dist/luanti-server/`, which
-`tools/package-release.sh linux` requires:
+`tools/release/package-release.sh linux` requires:
 
 ```sh
-tools/build-luanti-server.sh
+tools/release/build-luanti-server.sh
 ```
 
 Get ready to play from nothing (no Luanti, no Flatpak) to a server
@@ -105,7 +105,7 @@ listening on a new Mineclonia world is checked in clean Ubuntu, Debian,
 Fedora and Arch containers, with network access for the game download:
 
 ```sh
-GODOT_BIN=/path/to/godot tools/test-fresh-install.sh
+GODOT_BIN=/path/to/godot tools/test/test-fresh-install.sh
 ```
 
 On a machine whose default podman storage is broken, set `PODMAN` to the
@@ -132,7 +132,7 @@ godot --headless --path project --script res://tests/asset_store_install.gd
 ```
 
 That needs a published bundle to hand. With nothing to hand, a small bundle
-built by `tools/pbr_bundle.py` from textures the test writes, with stems
+built by `tools/pbr/pbr_bundle.py` from textures the test writes, with stems
 that are prefixes of one another, is installed into an empty store the way
 a downloaded one is, and the composed textures directory is checked file by
 file. It needs `python3` with Pillow:

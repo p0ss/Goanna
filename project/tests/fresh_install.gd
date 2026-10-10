@@ -7,7 +7,7 @@
 # and check its hash, unpack it, then start a world the way Start Game does
 # and wait for the server to listen. It downloads the real game (about 29 MB)
 # and runs a real server, so it is meant for a clean container, which
-# tools/test-fresh-install.sh provides, not a developer's machine.
+# tools/test/test-fresh-install.sh provides, not a developer's machine.
 extends SceneTree
 
 const LocalServer := preload("res://local_server.gd")

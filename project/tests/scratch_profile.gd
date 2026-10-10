@@ -6,7 +6,7 @@
 # file holding one or two test settings: the maintainer's settings were
 # lost and material updates left off without anyone choosing it (found
 # 2026-10-05). They now run only with XDG_DATA_HOME pointed at a scratch
-# folder, as tools/test-local-play.py and the benchmarks already do:
+# folder, as tools/test/test-local-play.py and the benchmarks already do:
 #
 #     XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/<test>.gd
 extends RefCounted

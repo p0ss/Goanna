@@ -48,9 +48,9 @@ Each release candidate should include:
    binary, and `res://tests/asset_bundle_install.gd` among the Godot ones.
 2. A clean build from a fresh checkout with submodules.
 3. Every asset bundle the release relies on passing
-   `tools/pbr_bundle.py verify`, which includes the height fill check
-   (`tools/check-pbr-height.py`).
-4. After an asset epoch is published, `tools/check-asset-catalogue.py
+   `tools/pbr/pbr_bundle.py verify`, which includes the height fill check
+   (`tools/pbr/check-pbr-height.py`).
+4. After an asset epoch is published, `tools/release/check-asset-catalogue.py
    --live` reporting a 200 of the catalogued size for every URL.
 5. A short performance capture in an open landscape, a forest, a cave and an
    underwater scene.

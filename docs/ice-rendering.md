@@ -107,16 +107,16 @@ sample measured median frame time of 5.5 ms with transmission disabled and
 7.8 ms enabled. The extra 800x450 viewport measured about 2.2 ms GPU time.
 These are fixture measurements, not a frame-rate guarantee for landscapes.
 
-The disposable server fixture and capture script are in `tools/ice-review`.
+The disposable server fixture and capture script are in `tools/test/ice-review`.
 Copy that directory into a test world's `worldmods/goanna_ice_review`, start
 Mineclonia and connect a client with `GOANNA_CONTROL=30862`. The fixture
 command requires the server privilege and replaces its pool coordinates;
 use a disposable world. Then run:
 
 ```sh
-python3 tools/ice-review/capture.py before --create-fixture
+python3 tools/test/ice-review/capture.py before --create-fixture
 # Rebuild and relaunch the changed client against the same test world.
-python3 tools/ice-review/capture.py after
+python3 tools/test/ice-review/capture.py after
 ```
 
 The fixture occupies x/z=-17..17 and y=72..89. Baseline and revised clients

@@ -5,11 +5,11 @@ report of worse performance during regular play. This is a current-build
 diagnostic, **not a before/after regression measurement**. Earlier stationary
 FPS spot checks did not validate movement or the cost after exploring.
 
-Fixture: `tools/forest-review/run.py`, `/tmp/goanna-forest-review4`, Mineclonia
-TDL seed 1234, Godot 4.5.1 debug, RTX 3090, 1280×720, PBR disabled by the
-harness, view range 6, far distance 1024, time 0.4. The world and client cache
-were already partly warm; surface tiles were still arriving. These settings
-do not establish performance in the user's regular play configuration.
+Fixture: `tools/test/forest-review/run.py`, `/tmp/goanna-forest-review4`,
+Mineclonia TDL seed 1234, Godot 4.5.1 debug, RTX 3090, 1280×720, PBR disabled by
+the harness, view range 6, far distance 1024, time 0.4. The world and client
+cache were already partly warm; surface tiles were still arriving. These
+settings do not establish performance in the user's regular play configuration.
 
 Attached the existing `project/bench.gd` recorder through the control channel;
 it disables vsync and enables GPU timestamps. Recorded a fly route at 20

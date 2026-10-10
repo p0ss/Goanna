@@ -98,14 +98,14 @@ meshes split at world X=16, then compares the raised silhouette with zero
 height. Zero shoreline coverage must also match the flat surface's geometry
 and normals. Captures go to `/tmp/goanna-lava-continuity`.
 
-`tools/lava-review/capture.py` captures an isolated live server fixture,
+`tools/test/lava-review/capture.py` captures an isolated live server fixture,
 including lava lamps on/off with the camera light unchanged. It restores
 animation and lamp energy even on failure. Its default control port is
 30879; use this only with the disposable test client.
 
 The [sealed cave review](perf/lava-cave-2026-09-17/README.md) compares a
 spreading source with a torch, and records the brightness on exposed floor
-tiles beyond the flow. `tools/lava-review/cave.lua` builds its disposable
+tiles beyond the flow. `tools/test/lava-review/cave.lua` builds its disposable
 world fixture; `cave_capture.py` captures the two rooms on control port 30880.
 
 The [waterfall review](perf/lava-fall-2026-09-18/README.md) checks camera

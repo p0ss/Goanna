@@ -2,7 +2,7 @@
 
 Which of the pack's 1021 stems a Mineclonia player actually looks at, and
 the order the next authoring fleet should take the 844 that are still
-baked. Measured 25 September 2026 with `tools/pbr_census/` (the method and
+baked. Measured 25 September 2026 with `tools/pbr/pbr_census/` (the method and
 how to rerun it are in its README). Files beside this one:
 
 - `mineclonia-2026-09.json`: every stem with its rank, score, exposure,

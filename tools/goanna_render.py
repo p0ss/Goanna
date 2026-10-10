@@ -362,7 +362,7 @@ def resolve_build(path):
     lib = project / "bin" / "libgoanna.linux.template_debug.x86_64.so"
     if not lib.exists():
         raise RenderError("%s has no built extension (%s); build it first "
-                          "(tools/build-goanna-extension.sh)" % (root, lib))
+                          "(tools/release/build-goanna-extension.sh)" % (root, lib))
     # An empty luanti/ submodule leaves blank.png missing, and players then
     # draw yellow: refuse rather than photograph that.
     if not (root / "luanti" / "textures" / "base" / "pack" / "blank.png").exists():
@@ -408,7 +408,7 @@ def git_state(root):
 
 def tier_tables(root):
     """PROFILES out of the build's own graphics_profiles.gd, as
-    tools/check-bench-plans.py reads it."""
+    tools/bench/check-bench-plans.py reads it."""
     text = (root / "project" / "graphics_profiles.gd").read_text()
     start = text.index("const PROFILES")
     end = text.index("const ORDER", start) if "const ORDER" in text[start:] else len(text)

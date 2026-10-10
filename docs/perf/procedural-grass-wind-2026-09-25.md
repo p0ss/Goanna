@@ -58,10 +58,10 @@ recorded under `build/grass-review/sept25-features` and `sept25-water`.
 Reproduce the live checks:
 
 ```sh
-python3 tools/grass-review/run.py --keep
-python3 tools/grass-review/close.py revised --modes off unbent natural bent
-python3 tools/grass-review/features.py
-python3 tools/grass-review/water.py --port 30867
+python3 tools/test/grass-review/run.py --keep
+python3 tools/test/grass-review/close.py revised --modes off unbent natural bent
+python3 tools/test/grass-review/features.py
+python3 tools/test/grass-review/water.py --port 30867
 ```
 
 For a headless fixture, use `run.py --headless` and `--no-shots` on the feature

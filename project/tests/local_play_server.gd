@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Run by tools/test-local-play.py against its disposable Luanti server.
+# Run by tools/test/test-local-play.py against its disposable Luanti server.
 extends SceneTree
 
 const Shell := preload("res://local_play.gd")

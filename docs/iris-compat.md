@@ -18,7 +18,7 @@ Forward+ on Vulkan (NVIDIA), the proof pack in
 `project/tests/shaderpacks/proof/` renders: a `composite` writing two
 targets through `/* DRAWBUFFERS:12 */`, and a `final` reading them back
 through the ping pong, plus `depthtex0`, `noisetex` and live uniforms. The
-check is `tools/test-shaderpack.sh`; see `docs/shaderpack-testing.md`.
+check is `tools/test/test-shaderpack.sh`; see `docs/shaderpack-testing.md`.
 
 What that proves: GLSL 120 dialect packs translate and compile through
 `shader_compile_spirv_from_source`; `colortex` targets live in the scene

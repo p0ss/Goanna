@@ -49,7 +49,7 @@ and no package manager.
   nothing from the system. Goanna copies it into its own data folder, where
   its worlds are kept. On Windows it downloads the official Luanti zip, as
   Install Luanti does below. Run from a source checkout on Linux, it uses
-  `dist/luanti-server/` after `tools/build-luanti-server.sh`, or else
+  `dist/luanti-server/` after `tools/release/build-luanti-server.sh`, or else
   Flathub.
 - **The game.** When the Luanti has no games, it downloads Mineclonia
   0.123.1 from ContentDB (29 MB), the release Goanna's materials are made
@@ -58,7 +58,7 @@ and no package manager.
 
 It then opens Start Game with a new world ready. Checked from nothing to a
 running world in clean Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 and Arch
-containers (`tools/test-fresh-install.sh`), and through the menu on Bazzite
+containers (`tools/test/test-fresh-install.sh`), and through the menu on Bazzite
 with a GPU. The server needs glibc 2.35 or newer, so Ubuntu 22.04, Debian 12
 or anything later. macOS has no Goanna release yet, so it is not covered.
 

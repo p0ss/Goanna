@@ -310,7 +310,8 @@ sharing also removes demonstrated preparation or upload work.
 1. Extend the local harness to select profiles and explicit baseline
    settings; it currently fixes Low. Export effective per-view settings,
    global renderer quality, AA, actual resolution, actual far grant and
-   active effects. Run `tools/check-bench-plans.py` before a profile sweep.
+   active effects. Run `tools/bench/check-bench-plans.py` before a profile
+   sweep.
 2. Run Low, Medium, High and current Ultra first at one and four players,
    fixed 1920 by 1080 total output. Keep grass explicitly off for this
    comparison, then measure it separately. Repeat Low controls throughout

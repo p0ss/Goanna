@@ -27,7 +27,7 @@ precedence. The isolated review launcher can test ordinary settings behaviour
 without the environment default:
 
 ```sh
-python3 tools/grass-review/run.py --keep --grass saved
+python3 tools/test/grass-review/run.py --keep --grass saved
 ```
 
 The prototype uses world-positioned blades on grass-bearing top textures of
@@ -56,16 +56,16 @@ The live feature regression checks first-person interaction, body visibility,
 movement and rain-driven wind:
 
 ```sh
-python3 tools/grass-review/features.py --port 30867
+python3 tools/test/grass-review/features.py --port 30867
 ```
 
 An isolated pool regression captures above-water and underwater views and checks
 the actual grass geometry while flooding, draining, toggling, and entering LOD:
 
 ```sh
-python3 tools/grass-review/run.py --keep --scratch /tmp/goanna-grass-water \
+python3 tools/test/grass-review/run.py --keep --scratch /tmp/goanna-grass-water \
   --port 30868 --server-port 30569 --out build/grass-review/water
-python3 tools/grass-review/water.py --port 30868 --out build/grass-review/water
+python3 tools/test/grass-review/water.py --port 30868 --out build/grass-review/water
 ```
 
 The toggle regression checks default-off behaviour in both menu and client,

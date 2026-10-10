@@ -25,7 +25,7 @@ unstated load order.
 Build and verify a release with:
 
 ```sh
-python3 tools/pbr_bundle.py build \
+python3 tools/pbr/pbr_bundle.py build \
   --textures baked/minetest-game-terrain \
   --quality baked/minetest-game-terrain-quality.json \
   --attribution pbr_packs/minetest_game/ATTRIBUTION.md \
@@ -34,8 +34,8 @@ python3 tools/pbr_bundle.py build \
   --source-package Luanti/minetest_game --source-release 38214 \
   --source-sha256 5b364f... --pipeline-version 1 \
   --output dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip
-python3 tools/pbr_bundle.py verify dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip
-python3 tools/pbr_bundle.py install \
+python3 tools/pbr/pbr_bundle.py verify dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip
+python3 tools/pbr/pbr_bundle.py install \
   dist/assets/org.goanna.minetest-game.terrain-1.0.0.zip \
   --root "$XDG_DATA_HOME/Goanna/content/goanna-assets"
 ```
@@ -45,7 +45,7 @@ the file clients read, so it is written by pointing it at wherever the
 archives are published rather than by hand:
 
 ```sh
-python3 tools/pbr_bundle.py catalogue dist/assets/*.zip \
+python3 tools/pbr/pbr_bundle.py catalogue dist/assets/*.zip \
   --output asset_bundles/catalogue.json \
   --base-url https://github.com/p0ss/Goanna/releases/download/assets-2026.09.1
 ```
@@ -55,7 +55,7 @@ and it leaves rows alone for bundles it was not given, so an epoch that
 changes two bundles re-points two rows and every other bundle keeps pointing
 at the release it was published in. An unchanged bundle is never re-uploaded.
 
-A local or CI install can use `tools/pbr_bundle.py`; downloaded archives use
+A local or CI install can use `tools/pbr/pbr_bundle.py`; downloaded archives use
 the same checks in `project/asset_store.gd`.
 
 The player archive embeds a stable core bundle under `assets/`. Goanna installs
@@ -86,7 +86,7 @@ ambiguous per-file licences never enter a release merely because a package is
 popular.
 
 `build` and `verify` also refuse a pack whose baked height maps do not fill
-the height byte (`tools/check-pbr-height.py`): a median alpha span under 224
+the height byte (`tools/pbr/check-pbr-height.py`): a median alpha span under 224
 of 255 across the `_n` maps not marked `goanna_pipeline=authored`. The shader
 applies each material's depth at draw time, so a bake that scaled the byte by
 that depth applied it twice. Mineclonia pack 1.0.0 went out that way, median
@@ -94,13 +94,13 @@ span 77, and the per map quality gate reported nothing.
 
 GitHub distribution groups changed individual bundles into a periodic draft
 release rather than making one release per mod. Run
-`tools/publish-assets.sh p0ss/Goanna assets-YYYY.MM.N`; inspect the draft and
-publish it as immutable. A draft's URLs answer 404, and on 2026-09-13 an
-epoch was left as one for a week, so the script ends by printing the command
+`tools/release/publish-assets.sh p0ss/Goanna assets-YYYY.MM.N`; inspect the
+draft and publish it as immutable. A draft's URLs answer 404, and on 2026-09-13
+an epoch was left as one for a week, so the script ends by printing the command
 that publishes it and the check to run afterwards:
 
 ```sh
-python3 tools/check-asset-catalogue.py --live
+python3 tools/release/check-asset-catalogue.py --live
 ```
 
 That sends a HEAD request to every URL in the catalogue, following
@@ -132,7 +132,7 @@ refuses an archive whose SHA-256 does not match before reading anything out
 of it.
 
 Nothing else checks that the catalogue and a release agree, and the failure
-is silent, so `tools/check-asset-catalogue.py` gates the upload. It fails an
-archive the catalogue does not name, a catalogued URL that points at a
-different tag from the one being published, a catalogued URL left relative,
-and a size or hash that disagrees with the file on disk.
+is silent, so `tools/release/check-asset-catalogue.py` gates the upload. It
+fails an archive the catalogue does not name, a catalogued URL that points at a
+different tag from the one being published, a catalogued URL left relative, and
+a size or hash that disagrees with the file on disk.

@@ -205,7 +205,7 @@ See-through ice takes the ice shader by the `ice` group, or when a blended
 or fake liquid block names ice in its node name or footstep, which is how
 Asuna's two `thin_ice` nodes say it. The node classifier now puts `ice` in
 a name ahead of the footstep, because Kythen gives its ice
-`kythen_hard_footstep`, which classed it as stone. `tools/pbr_bake.py` has
+`kythen_hard_footstep`, which classed it as stone. `tools/pbr/pbr_bake.py` has
 its own classifier and was not changed.
 
 Rendered checks are in `perf/cross-game-glass-ice-2026-09-29/`.
@@ -590,7 +590,7 @@ The maps for it are simpler: the shader replaces the fine strand normals,
 so the hair's `_n` carries only its locks, each a flat plateau at its
 level with a one pixel chamfer, the dark gap texels sunk, and an
 occlusion with contact darkness under every lock step and in the gaps
-(`"lock_occlusion"`, `"gap_occlusion"`, see `tools/pbr_author/README.md`).
+(`"lock_occlusion"`, `"gap_occlusion"`, see `tools/pbr/pbr_author/README.md`).
 The first round's locks were rounded by a gaussian over every step and
 read as melted. The earlier specs stay reachable as variants:
 `GOANNA_PBR_VARIANT=old` builds the authored strand maps from before the
@@ -774,7 +774,7 @@ pixel part, not seen in a frame). The composed companion follows
 the albedo exactly, crop and all, so it cannot hide this; the fix is to
 ship only the `_n` and `_s` of a texture that is used as a `[combine`
 part, as the skins already do
-(`tools/pbr_author/stems/<game>.maps_only.txt`). It was seen in a frame on
+(`tools/pbr/pbr_author/stems/<game>.maps_only.txt`). It was seen in a frame on
 2026-10-05: the review pack shipped `mcl_tridents_trident_entity.png` at
 256 pixels, the held trident's five texel cut took art column 2 of it,
 opaque from end to end, and the trident drew as a solid pale slab, in
@@ -1023,7 +1023,7 @@ companions alike.
   skins the measure moved by 0.005 node at the median and 0.026 at the
   90th percentile (gold armour 0.09 to 0.02, the dolphin 0 to 0.10); a
   correction from the tile measure did not restore it, because a skin is
-  measured inside its faces. A pack built at 128 (`tools/pbr_author`)
+  measured inside its faces. A pack built at 128 (`tools/pbr/pbr_author`)
   keeps it much closer: 0.0014 at the median, 0.012 at the 90th.
 - The cap does nothing without a pack over it: a server's own 16 pixel
   art is 1 pixel to a texel. Raising the setting cannot bring back what
@@ -1311,8 +1311,8 @@ So the lineage runs back to a Minecraft resource pack, under a copyleft
 Creative Commons licence with a share-alike term and an attribution
 requirement.
 
-Everything `tools/pbr_bake.py` writes is a derivative of that art rather than
-new art: stage one is a deliberately low denoise pass conditioned on the
+Everything `tools/pbr/pbr_bake.py` writes is a derivative of that art rather
+than new art: stage one is a deliberately low denoise pass conditioned on the
 source so the output stays the same texture, and the normal and spec maps are
 derived from that output. The licence and the attribution travel with them.
 
@@ -1338,11 +1338,11 @@ those files before redistributing a bake.
 
 ## Tooling
 
-`tools/pbr_pack.py` composes LabPBR companions for a Luanti game from a
+`tools/pbr/pbr_pack.py` composes LabPBR companions for a Luanti game from a
 Minecraft pack, in either the built form or the PixelGraph source form, and
 scales them to each target texture's own size. Mappings live in
-`tools/pbr_maps/<pack>-<game>.csv` as `pack_block,game_texture` rows, because
-coverage and block naming differ per pack and per game.
+`tools/pbr/pbr_maps/<pack>-<game>.csv` as `pack_block,game_texture` rows,
+because coverage and block naming differ per pack and per game.
 
 Run with `--suggest` to get candidate rows. Review them. The suggester matches
 on name, and a wrong pair silently dresses one block in another block's

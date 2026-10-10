@@ -137,7 +137,7 @@ a substantial reduction in resident memory or draw calls.
 - [Source metadata](source-metadata.json): before and after binary/source
   hashes, working-tree status and the harness diagnostic change.
 - Native build passed. Rebuilt mesh-pool, LOD and LOD-storage tests passed.
-- `python3 tools/test-local-bench.py` passed all three tests, including
+- `python3 tools/bench/test-local-bench.py` passed all three tests, including
   checks for each pending queue and the post-drain quiet window.
 - All four rendered clients passed script, shader and shutdown log checks.
 - `tools/check-style.sh`, `git diff --check` and Python compilation passed.

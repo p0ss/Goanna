@@ -2,7 +2,7 @@
 -- The director's bookkeeping, with no engine calls in it.
 --
 -- Everything here takes the time as an argument and touches nothing but its
--- own tables, so tools/test-director-logic.lua runs it under a plain LuaJIT
+-- own tables, so tools/test/test-director-logic.lua runs it under a plain LuaJIT
 -- with no server. The engine facing modules (events.lua, intents.lua and the
 -- rest) keep the state these functions work on and supply the clock.
 

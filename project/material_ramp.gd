@@ -222,7 +222,7 @@ func _packed(dir: String, stem: String) -> ShaderMaterial:
 	# The material class decides the parallax depth (goanna_class_depth in
 	# the include), so a cube left at class 0 marches sand at four times
 	# the depth the world gives it. Read the class back out of the _s
-	# bytes the way tools/pbr_spec_variance.py does; the world's own
+	# bytes the way tools/pbr/pbr_spec_variance.py does; the world's own
 	# classifier works from node groups and lands on the same classes.
 	if spc != null:
 		var classes := PackedInt32Array()

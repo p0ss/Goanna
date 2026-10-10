@@ -39,9 +39,9 @@ from the moving geometry.
 - Saturated-red GPU fixture: zero seam error, zero shoreline flattening
   error, 4,660 raised silhouette pixels.
 
-The live test is `tools/lava-review/fall_capture.py`, using disposable control
-port 30881. `GOANNA_LAVA_RED_TEST=1` enables the saturated-red control texture
-for `project/tests/lava_continuity.gd`. Run
+The live test is `tools/test/lava-review/fall_capture.py`, using disposable
+control port 30881. `GOANNA_LAVA_RED_TEST=1` enables the saturated-red control
+texture for `project/tests/lava_continuity.gd`. Run
 `project/tests/lava_coupling.gd` for the height-versus-emission check.
 
 Large camera moves, changes to liquid occupancy and exhaustion of the
