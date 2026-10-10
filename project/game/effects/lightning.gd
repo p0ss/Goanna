@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Draws a lightning strike from the server's bolt spawner: the bolt, a short
+## light at the strike point, and a flash strength for the sky. Instanced by
+## game/effects/particles.gd, which hands it bolts it recognises with
+## is_bolt; game/main.gd uses the static is_flash_sky on the server's sky.
+## Checked by tests/weather.gd.
 #
 # Lightning, drawn from the server's strike. Luanti has no lightning in the
 # protocol any more than it has rain: Mineclonia's mcl_lightning sends, per

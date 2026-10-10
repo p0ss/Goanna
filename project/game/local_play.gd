@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The split screen shell: one player_slot.gd per local player, laid out in a
+## grid, with window input routed to the slot that owns each device. The root
+## of local_play.tscn, which menu/menu.gd changes to when more than one local
+## player is set up; it takes the roster and any server it started from
+## game/local_launch.gd, and stops that server when the last player leaves.
+## docs/systems/local-multiplayer.md has the whole picture.
 extends Control
 
 const Launch := preload("res://game/local_launch.gd")
@@ -12,6 +18,8 @@ var owned_server: RefCounted
 var _next_slot := 0
 var _menu_gamepad: Node
 var _closing := false
+# Tests set these before _ready: a stand-in game scene for every slot, and
+# no roster read from local_launch.gd, so they can add players themselves.
 var game_factory := Callable()
 var automatic_launch := true
 var capture_mouse := true
@@ -22,6 +30,8 @@ func _ready() -> void:
 	capture_mouse = capture_mouse and DisplayServer.get_name() != "headless" \
 		and OS.get_environment("GOANNA_NO_POINTER_CAPTURE") in ["", "0"] \
 		and OS.get_environment("GOANNA_CONTROL").is_empty()
+	# Each slot has its own gamepad.gd reading only its device; the autoload
+	# would read every controller at once, so it sleeps until the menu returns.
 	_menu_gamepad = get_node_or_null("/root/Gamepad")
 	if _menu_gamepad != null:
 		_menu_gamepad.reset_input()
@@ -48,6 +58,9 @@ func _ready() -> void:
 			options["device"] = -2
 		add_player(options)
 
+## Adds a slot for options ({name, device, password?}) and lays the screen
+## out again. Returns the slot, or null if the roster would no longer pass
+## local_launch.gd's validate.
 func add_player(options: Dictionary) -> Node:
 	var roster := slots.map(func(slot: Node) -> Dictionary: return slot.options)
 	roster.append(options)
@@ -68,6 +81,8 @@ func add_player(options: Dictionary) -> Node:
 	_layout_players()
 	return slot
 
+## Disconnects that player and frees their slot; the last one out returns
+## to the menu. Reached from the game's Disconnect through player_slot.leave.
 func remove_player(slot: Node) -> void:
 	if not slots.has(slot):
 		return
@@ -84,6 +99,9 @@ func remove_player(slot: Node) -> void:
 		_layout_players()
 		update_pointer_capture()
 
+## The screen rectangle of each of count players in area. Two players split
+## side by side, or one above the other with split "horizontal"; more fill the
+## smallest square grid that holds them.
 static func rectangles(count: int, area: Vector2, split := "grid") -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	if count <= 0:
@@ -107,6 +125,9 @@ func _layout_players() -> void:
 		slots[i].position = rects[i].position
 		slots[i].size = rects[i].size
 
+# The players share the machine: mesh workers and the per frame block upload
+# budget are divided between them, and each player's own sounds are turned
+# down so several at once are no louder than one.
 func _budget_players() -> void:
 	var count := maxi(1, slots.size())
 	var workers := maxi(1, mini(8, OS.get_processor_count() - 2) / count)
@@ -118,6 +139,10 @@ func _budget_players() -> void:
 			if slot.game.ui != null and slot.game.ui.audio != null:
 				slot.game.ui.audio.local_mix_gain = 1.0 / sqrt(float(count))
 
+# Every event lands on the window first. A controller event goes to the slot
+# holding that device, and Start on an unclaimed controller claims the first
+# waiting slot. Keyboard and mouse go to the slot on device -1, with the mouse
+# position moved into that slot's own coordinates.
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
 		for slot in slots:
@@ -159,6 +184,8 @@ func _notification(what: int) -> void:
 		for slot in slots:
 			slot.release_controls()
 
+## Captures the OS pointer only while the keyboard player's game wants it.
+## Called by slots when their game's capture changes.
 func update_pointer_capture() -> void:
 	if not capture_mouse:
 		return

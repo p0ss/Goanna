@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The graphics presets (Lowest to Ultra) as tables of settings keys, and the
+## helpers that pick one for the hardware, name the preset a set of values
+## matches, and stage a live change. Static only. Preloaded by game/main.gd,
+## ui/game_ui.gd (the settings panel, which applies them) and menu/menu.gd
+## (the local play profile). Checked by tests/graphics_profiles.gd.
 #
 # Complete quality presets: the same controlled keys in every tier.
 # Appearance, accessibility, controls and worker scheduling stay independent.

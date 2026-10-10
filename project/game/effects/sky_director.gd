@@ -1,4 +1,8 @@
-# Goanna: the shared authorities behind the sky, the fog and the clouds.
+## The shared authorities behind the sky, the fog and the clouds: the sun's
+## transmitted beam colour and strength, and the day, night and twilight
+## bands, each taken against the horizon a layer actually sees. Static only.
+## Preloaded by game/main.gd, whose _apply_sky calls it every frame, and by
+## studies/dawn_sweep.gd.
 #
 # Before this class, every lighting band in _apply_sky was a ramp over the
 # raw astronomical sun elevation with its own hand tuned constants, each
@@ -29,7 +33,7 @@
 #
 # No class_name on purpose: consumers preload this script, because global
 # class registration needs an editor import pass and the offline fixtures
-# run scenes straight from the command line.
+# run scenes straight from the command line (project/README.md, Conventions).
 extends RefCounted
 
 # The colour of the transmitted sun as it crosses the horizon: white high

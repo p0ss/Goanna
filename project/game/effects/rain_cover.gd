@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The rain cover map: how high the shelter is over each node column round
+## the player, as a texture the weather shaders read (goanna_rain_cover).
+## Made and stepped by game/effects/weather.gd, one per player, with the
+## GoannaClient as its source. Checked by tests/weather.gd.
 #
 # A top down map of what shelters the ground from rain around the player:
 # for each node column, the top face of the highest node that would stop a

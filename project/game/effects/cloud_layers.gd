@@ -1,8 +1,15 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Shared world-space bounds for sky clouds and nearby participating media.
+## Shared world-space bounds for sky clouds and nearby participating media:
+## the three cloud decks the sky shader, the cloud shadows and the near mist
+## all agree on. Static only. Preloaded by game/main.gd, which hands the
+## result to the shaders as the cloud_layers global, and by the sky studies.
 extends RefCounted
 
 
+# height, thickness and coverage are the server's cloud parameters
+# (set_clouds); storm is 0 to 1; ground is the regional terrain height; style
+# is the player's cloud style (0 block, 1 rounded block, 2 volume); count is
+# how many decks the settings allow.
 # Each entry is (base, depth, coverage, optical density multiplier).
 # No camera height: flying can pass through and above every layer. The
 # regional ground reference is held while terrain queries have no answer.

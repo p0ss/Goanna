@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Wakes and ripples on the water round the player and the animals in it,
+## and the splashes they throw (splashes.gd). Made by game/effects/
+## particles.gd, which sets client; main.gd calls strike() for a blow at the
+## water, and the control channel reads debug_state(). Reads the client's map
+## and entity_list on the main thread. Checked by tests/wake.gd and
+## tests/ripples.gd.
 #
 # Wake ripples: rings on the water round the player and the animals moving
 # through it. Each body whose height spans the water surface drops points
@@ -315,6 +321,8 @@ static func spacing_for(speed: float) -> float:
 	return maxf(MIN_SPACING, speed * SPACING_TIME)
 
 
+# Puts a ring at pos, born at wake clock time birth, into the ring buffer,
+# over the oldest once all MAX_POINTS are in use.
 func add_point(pos: Vector3, birth: float, strength: float) -> void:
 	var v := Vector4(pos.x, pos.z, birth, strength)
 	if points.size() < MAX_POINTS:

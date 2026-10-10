@@ -1,9 +1,16 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## What ice shows through it: a half resolution copy of the view with the ice
+## left out, which the ice shader samples as goanna_ice_background, plus the
+## shared fracture and cloud noise volumes inside the ice. game/main.gd makes
+## one per game scene and calls initialise; it renders only while some ice
+## (the C++ puts it in the "goanna_ice" group) is in the view frustum.
 extends Node
 
 # An opaque ice surface can sample this view without entering the sorted
 # transparent pass. Water then sees ice in its own colour/depth buffers.
+# The render layer bit the client puts ice on (ICE_LAYER in
+# src/goanna_client.cpp).
 const ICE_LAYER := 4
 var source_camera: Camera3D
 var source_environment: Environment
@@ -17,6 +24,7 @@ var fracture_texture: NoiseTexture3D
 var cloud_texture: NoiseTexture3D
 var transmission_enabled := true
 
+## The render_ice_transmission switch, from main.gd's render features.
 func set_transmission_enabled(enabled: bool) -> void:
 	transmission_enabled = enabled
 	check_time = 0.0
@@ -62,6 +70,8 @@ func initialise(view_camera: Camera3D, environment: Environment, game_client: No
 	background.handle_input_locally = false
 	add_child(background)
 	camera = Camera3D.new()
+	# Neither the ice itself nor the light shaft quad (main.gd's layer 8),
+	# which is a screen effect of the main view.
 	camera.cull_mask = source_camera.cull_mask & ~(ICE_LAYER | 8)
 	background.add_child(camera)
 	camera.current = true
@@ -75,6 +85,9 @@ func _process(delta: float) -> void:
 	if not transmission_enabled or not is_instance_valid(source_camera):
 		return
 	check_time -= delta
+	# The second render is the cost, so look for visible ice five times a
+	# second and render nothing at all while there is none. solid_ice (the
+	# graphics setting) draws ice opaque and needs no copy.
 	if check_time <= 0.0:
 		check_time = 0.2
 		visible_ice = false

@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Planning controls, independent of the isolated terrain renderer.
+## The overseer camera's planning controls: tool families, the draft and its
+## submit and discard, the plans list and the map navigation buttons. Made by
+## game/overseer.gd when the view opens, with view set to that overseer; the
+## buttons call back into it. Independent of the isolated terrain renderer.
 extends RefCounted
 
 var view: Node
@@ -63,6 +66,7 @@ func box(parent: Node) -> PanelContainer:
 	parent.add_child(result)
 	return result
 
+## Builds every panel under host, the overseer's root Control.
 func build(host: Node) -> void:
 	view = host
 	view.root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -259,6 +263,7 @@ func refresh_tools() -> void:
 		if t.get("disabled", false): b.text += " (unavailable)"
 	view._update_materials(view.material_catalog)
 
+## Takes the tools and limits the server granted, from its hello or a pong.
 func update_capabilities(value: Dictionary) -> void:
 	if value == capabilities: return
 	capabilities = value
@@ -297,6 +302,7 @@ func refresh() -> void:
 	if is_plans: view.build_material.hide()
 	if is_plans and not plans.get_selected_items().is_empty(): select_plan(plans.get_selected_items()[0])
 
+## Takes the server's answer to a "plans" request.
 func update_plans(value: Array) -> void:
 	if records == value: return
 	records = value

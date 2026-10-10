@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The render pass switches: one on or off key per pass, with its default.
+## Preloaded by game/main.gd (which applies them), ui/game_ui.gd (the
+## settings that show them), bench/local_bench.gd and two tests. The keys
+## are saved in goanna.cfg and set by each graphics profile; see
+## docs/systems/graphics-tiers.md.
 extends RefCounted
 
 # Independent pass gates. Strength/quality settings remain unchanged so live
@@ -31,7 +36,9 @@ const DEFAULTS := {
 	"render_fire_shimmer": true,
 }
 
-# Float globals are isolated by each player RenderScope.
+# The switches a shader reads itself, as the global shader parameter each
+# one sets (1.0 on, 0.0 off). Float globals are isolated by each player
+# RenderScope.
 const SHADER_FLAGS := {
 	"render_water_waves": "goanna_render_water_waves",
 	"render_water_reflections": "goanna_render_water_reflections",

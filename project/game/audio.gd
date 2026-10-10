@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Every sound the client plays: the server's, and the local ones Luanti's own
+## client makes for the player. Made by ui/game_ui.gd, which sets client and
+## listener and calls step_local each frame with main.gd's last movement.
+## Drains GoannaClient.take_sounds and take_stopped_sounds on the main thread.
+## Tested by tests/client_sounds.gd.
 #
 # Sound. Two sources feed it:
 #   - the server, through PLAY_SOUND / STOP_SOUND / FADE_SOUND, which covers
@@ -127,6 +132,11 @@ func _stream_for(sound_name: String) -> AudioStream:
 
 # --- playback ----------------------------------------------------------------
 
+## Plays a sound by Luanti name (no extension). pos is a world position in
+## Godot axes, or null for one heard at the listener. server_id lets the
+## server stop it later; kind says what the client made it for ("" for the
+## server's); object_id makes it follow that object. Emits played even when
+## muted, and drops the sound when every voice is busy.
 func play(sound_name: String, gain: float, pitch: float, loop: bool,
 		pos, server_id: int = 0, kind := "", object_id := 0) -> void:
 	if sound_name == "":
@@ -260,6 +270,8 @@ func _player_step(move: Dictionary) -> void:
 		below = 0.05 if bool(move.get("on_ground", false)) else 0.5
 	_play_node_sound(client.node_name_at(feet - Vector3(0, below, 0)), "footstep", 1.0)
 
+## The dug sound of a node. Not called at present: the session queues dig
+## sounds through take_sounds instead.
 func node_dug(node_name: String) -> void:
 	_play_node_sound(node_name, "dug", 1.0)
 

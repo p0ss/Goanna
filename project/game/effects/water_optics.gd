@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The optics of the water round the eye (clear, lake, river or swamp), read
+## from the bed and the water nodes a player can see, and published to the
+## water shader as goanna_water_absorption and goanna_water_tint. game/main.gd
+## makes one per game scene, sets client, and takes current and eye_depth for
+## the underwater fog (murk, murk_hue). Checked by tests/water_optics.gd.
 #
 # What the water round the eye is like, one description for both sides of
 # its surface. docs/systems/water-optics.md has the whole picture.

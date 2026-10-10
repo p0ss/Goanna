@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Draws the droplets, spray and crowns a body throws up out of the water.
+## Made by game/effects/wake.gd, which decides when a body splashes and calls
+## burst, spray and crown; never reads the client itself. Checked by
+## tests/ripples.gd.
 #
 # Splashes: the droplets a body throws up out of the water, beside the waves
 # the ripple patch draws. docs/systems/weather.md, "Splashes", has the whole picture.
@@ -231,6 +235,8 @@ func tick(delta: float) -> void:
 			_sprays.erase(key)
 
 
+# How many bursts, sprays and crowns are live, for wake.gd's state report
+# to the control channel and the tests.
 func counts() -> Dictionary:
 	return {"bursts": _bursts.size(), "sprays": _sprays.size(), "crowns": _crowns.size()}
 

@@ -1,14 +1,23 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The Appearance tab's colour grade: how much daytime contrast curve to apply
+## for a sun elevation, and the 1D correction texture that carries it. One
+## instance per game scene, made by game/main.gd, which feeds correction() to
+## the Environment's adjustment_color_correction. Checked by tests/look_grade.gd.
 extends RefCounted
 
 # The established twilight recipe owns -0.42..0.32 solar elevation.
 # Noon gets less flat fill and mild contrast. Night has no correction LUT;
 # its original black level and separation between light sources are retained.
+# Returns (daylight, deep night) weights, each 0 to 1 scaled by the player's
+# strength: x drives the daytime curve, y lets main.gd hold back its night
+# corrections.
 static func weights(elevation: float, strength: float) -> Vector2:
 	return Vector2(smoothstep(0.32, 0.75, elevation),
 			smoothstep(-0.42, -0.72, elevation)) * clampf(strength, 0.0, 1.0)
 
+# A gentle S curve about mid grey that leaves 0 and 1 where they are, so the
+# grade adds contrast without clipping or lifting black.
 static func curve(x: float, daylight: float) -> float:
 	var daylight_shape := 0.18 * x * (1.0 - x) * (2.0 * x - 1.0)
 	return x + daylight * daylight_shape

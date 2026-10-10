@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The server's particles and spawners, the dig chips, and the parent of the
+## weather, lightning and wake nodes. Made by ui/game_ui.gd and added under
+## the game scene; joins the "goanna_particles" group, through which main.gd
+## and others find it (game/player_context.gd). Each frame it drains
+## GoannaClient.take_particle_spawners, take_deleted_spawners, take_particles
+## and take_dug_nodes. Checked by tests/weather.gd.
 #
 # Particles. The server drives these: a spawner describes a box of positions
 # with velocity, acceleration, size and lifetime ranges plus a texture, and

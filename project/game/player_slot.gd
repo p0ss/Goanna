@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## One local player's share of the split screen: a SubViewport with its own
+## World3D, holding a game/main.tscn and a gamepad.gd for that player's
+## device. Made by game/local_play.gd, never by a scene. main.gd sees it as
+## player_slot and asks it for keys, the slot index and pointer capture.
+## Events arrive through route_input, not from Godot directly.
 extends Control
 
 const Gamepad := preload("res://input/gamepad.gd")
@@ -66,10 +71,14 @@ func _resize_view() -> void:
 	if viewport != null:
 		viewport.size = Vector2i(maxi(2, roundi(size.x)), maxi(2, roundi(size.y)))
 
+## Applies the shell's share of mesh workers and poll budget to this
+## player's GoannaClient. main.gd calls it when it makes the client.
 func configure_client(client: Node) -> void:
 	client.set_mesh_threads(mesh_threads)
 	client.set_poll_budget_ms(poll_budget_ms)
 
+## Gives this slot a device (-1 keyboard and mouse, -2 none, else a joypad
+## id), dropping any held input so nothing stays pressed across the change.
 func set_device(device: int) -> void:
 	keys.clear()
 	device_id = device
@@ -85,9 +94,13 @@ func set_device(device: int) -> void:
 	if waiting != null:
 		waiting.visible = device == -2
 
+## Whether a key is held for this player. main.gd asks this instead of
+## Input.is_key_pressed, which is window wide and would let the keyboard
+## move a player who is on a controller.
 func key_pressed(key: Key) -> bool:
 	return device_id == -1 and bool(keys.get(key, false))
 
+## Delivers an event the shell has decided is this player's.
 func route_input(event: InputEvent) -> void:
 	# Godot permits one GUI focus owner across a window's subviewports.
 	# Restore this player's selection before handling their next event.
@@ -126,6 +139,8 @@ func update_pointer_capture() -> void:
 	if is_instance_valid(shell):
 		shell.update_pointer_capture()
 
+## Removes this player from the split screen, deferred so it is safe from
+## inside the player's own interface (game_ui.gd's Disconnect).
 func leave() -> void:
 	shell.remove_player.call_deferred(self)
 

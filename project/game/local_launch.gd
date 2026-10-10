@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The split screen roster and server, handed from the menu to the local play
+## shell. menu/menu.gd fills the static fields and changes scene;
+## game/local_play.gd reads them once in _ready and clears them. Never
+## instanced: everything is static. docs/systems/local-multiplayer.md has
+## the whole picture.
 extends RefCounted
 
 # A handoff, consumed once by the shell. Passwords never enter goanna.cfg.
@@ -8,6 +13,10 @@ static var server: RefCounted
 static var layout := "grid"
 static var graphics_profile := "low"
 
+## Checks a roster of {name, device, password?} dictionaries before any slot
+## is made. Returns "" when it is usable, else the message to show the player.
+## Device -1 is the keyboard and mouse, -2 a slot still waiting for a
+## controller (any number may wait), 0 and up a joypad id.
 static func validate(roster: Array) -> String:
 	if roster.is_empty():
 		return "Add at least one player."
@@ -30,6 +39,9 @@ static func validate(roster: Array) -> String:
 		devices[device] = true
 	return ""
 
+## The roster GOANNA_LOCAL_PLAY asks for, for test and developer launches:
+## either a player count (the first on the keyboard, the rest on connected
+## controllers or waiting) or a JSON array of player dictionaries.
 static func from_environment() -> Array:
 	var value := OS.get_environment("GOANNA_LOCAL_PLAY")
 	if value.is_valid_int():

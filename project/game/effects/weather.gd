@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Shader weather: rain, snow, hail and blowing dust drawn round the eye from
+## the server's weather spawners, the storm field, and the rain cover map
+## (rain_cover.gd) the ground shaders also read. Made by game/effects/
+## particles.gd, which hands it the spawners it recognises; main.gd reads
+## storm_severity, whiteout and dust_haze for the sky and fog. Checked by
+## tests/weather.gd.
 #
 # Rain and snow drawn by shader instead of by the server's particle spawners.
 # Luanti has no weather in the protocol: a game that rains attaches particle
@@ -188,6 +194,8 @@ func _ready() -> void:
 	_dust_material.set_shader_parameter("tint", Vector3(DUST_TINT.r, DUST_TINT.g, DUST_TINT.b))
 	_dust_material.set_shader_parameter("max_amount", MAX_INTENSITY)
 	_dust_material.set_shader_parameter("near_instances", int(DUST_NEAR * MAX_INTENSITY))
+	# This player's copy of the shader, renamed to read this player's
+	# globals under split screen; the tests' stand in client has none.
 	if client != null and client.has_method("load_view_shader"):
 		var shader: Shader = client.load_view_shader("res://shaders/precipitation.gdshader")
 		_rain_material.shader = shader
@@ -625,9 +633,6 @@ func clear() -> void:
 	_spawners.clear()
 
 
-# kind, rate (spawned a second) and fall speed, from a spawner definition.
-# Luanti's amount is a rate for an endless spawner and a total over `time`
-# for a timed one.
 # Whether a weather texture's name says snow. The specific words first:
 # Snowdrift's rain is snowdrift_raindrop.png, which says snow only because
 # the mod is called that.
@@ -651,6 +656,9 @@ static func kind_of(tex_name: String) -> String:
 	return "snow" if is_snow_name(n) else "rain"
 
 
+# kind, rate (spawned a second) and fall speed, from a spawner definition.
+# Luanti's amount is a rate for an endless spawner and a total over `time`
+# for a timed one.
 static func describe(ev: Dictionary, tex_name: String) -> Dictionary:
 	var amount := float(ev.get("amount", 0))
 	var time := float(ev.get("time", 0.0))

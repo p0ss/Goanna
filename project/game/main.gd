@@ -1,3 +1,18 @@
+## The game scene: owns the GoannaClient for one connection, drives it from
+## _process every frame, and builds the camera, lights, sky and fog round it.
+## Instanced as game/main.tscn by menu/menu.gd (_go_to_game, and the menu's
+## showcase backdrop), or once per player by game/player_slot.gd in split screen.
+## Main thread only. Connection details and test hooks come from GOANNA_*
+## variables (docs/develop/building.md, "Automated runs").
+#
+# docs/develop/architecture.md, "The game scene", is the map: what _process
+# calls in what order, and which nodes read their own queues from the client.
+# The file runs, top to bottom: state and tuning values, with the measurements
+# behind them; _ready, which builds everything in code (main.tscn is a bare
+# Node3D); pointer capture, the camera modes and input; the connection screen;
+# _process; the GOANNA_*TEST hooks, teleports and screenshot runs; the per
+# frame environment, water murk and render feature switches; and _apply_sky,
+# which turns the server's sky packets into Godot's sun, sky, fog and grade.
 extends Node3D
 
 const PlayerContext := preload("res://game/player_context.gd")
@@ -36,9 +51,15 @@ var grass_previous_screen_aa := Viewport.SCREEN_SPACE_AA_DISABLED
 # Set before entering the tree by local_play.gd. No process-wide identity
 # changes are needed to create or remove a player.
 var player_slot: Node
+## Host, port, name and password for this slot, set by player_slot.gd; each
+## key present wins over the GOANNA_* variable of the same meaning.
 var connection_options: Dictionary = {}
+## False to build the scene without connecting, which the headless tests use
+## to check settings and render switches with no server.
 var connect_automatically := true
 
+# A split screen slot reads its own player's keys (player_slot.gd); a single
+# player reads Godot's Input directly.
 func _key_pressed(key: Key) -> bool:
 	return player_slot.key_pressed(key) if player_slot != null else Input.is_key_pressed(key)
 
@@ -367,6 +388,9 @@ const VISUAL_TESTS := {
 	},
 }
 
+## Turns the procedural grass on or off, from the settings panel (game_ui.gd)
+## and the render switches. It owns the viewport's antialiasing while grass
+## wants it, and puts back what was there before when it lets go.
 func set_procedural_grass(on: bool) -> void:
 	var viewport := get_viewport()
 	var want_aa: bool = on and render_features["render_grass_aa"] and grass_antialiasing > 0.0
@@ -385,6 +409,10 @@ func set_procedural_grass(on: bool) -> void:
 	_apply_grass_quality()
 	client.set_procedural_grass(on)
 
+# The grass settings travel as metadata on the client node: the extension
+# (src/goanna_grass.cpp) reads goanna_grass_parameters when it builds the grass
+# material and hangs the material back on the client as goanna_grass_material,
+# which is updated here directly once it exists.
 func _apply_grass_quality() -> void:
 	if client == null:
 		return
@@ -411,6 +439,12 @@ func _exit_tree() -> void:
 		get_viewport().msaa_3d = grass_previous_msaa
 		get_viewport().screen_space_aa = grass_previous_screen_aa
 
+# Builds the whole scene in code, in an order that matters: saved settings
+# and GOANNA_* overrides first, so the client, the environment and the
+# lights are made with them; the GoannaClient before the interface, which is
+# handed it; the texture pack, texture map and block store before
+# connect_to, because the session asks for textures as soon as it starts;
+# and the development interfaces last.
 func _ready() -> void:
 	# Put this client first in line for the kernel's OOM killer, so that
 	# Alt+SysRq+F kills the game, and only the game, when a GPU hang has taken
@@ -434,6 +468,10 @@ func _ready() -> void:
 	gamepad = player_slot.gamepad if player_slot != null else get_node_or_null("/root/Gamepad")
 	if gamepad != null and not showcase_mode:
 		gamepad.play_owner = gamepad_owns_play
+	# --- saved settings, then GOANNA_* overrides, then saved again ---
+	# The lighting levels are read from the environment first and from
+	# goanna.cfg after, so a value the player saved beats a variable; a
+	# variable only seeds what has never been saved.
 	var cfg := ConfigFile.new()
 	if cfg.load("user://goanna.cfg") == OK:
 		for key in RenderFeatures.DEFAULTS:
@@ -467,7 +505,12 @@ func _ready() -> void:
 		for k in ["sun", "ambient", "sdfgi", "sdfgi_cell", "ssao", "white", "exposure", "fill", "shafts"]:
 			if cfg.has_section_key("settings", "light_" + k):
 				set("light_" + k, float(cfg.get_value("settings", "light_" + k)))
+	# --- the client and the interface ---
 	client = GoannaClient.new()
+	# Split screen: each slot's client gets its own copies of the shaders and
+	# of the shader globals (load_view_shader, set_view_shader_parameter), so
+	# one player's sky or water state does not reach another's view. Must come
+	# before any material is made.
 	if player_slot != null:
 		client.enable_render_scope()
 	if OS.get_environment("GOANNA_SHADOW_LAMPS") != "":
@@ -508,6 +551,7 @@ func _ready() -> void:
 	print(client.hello())
 	print(client.luanti_version())
 
+	# --- camera, sun, moon and bounce ---
 	cam = Camera3D.new()
 	cam.fov = 70
 	cam.far = 1000
@@ -578,6 +622,7 @@ func _ready() -> void:
 	bounce.light_color = Color(0.62, 0.55, 0.44)
 	add_child(bounce)
 
+	# --- environment: sky, tonemap, GI, fog, and the effect nodes ---
 	env = WorldEnvironment.new()
 	var e := Environment.new()
 	var sky := Sky.new()
@@ -760,6 +805,7 @@ func _ready() -> void:
 				client.set_material_strength(kv[0].strip_edges(), float(kv[1]))
 				print("material strength ", kv[0].strip_edges(), " = ", float(kv[1]))
 
+	# --- connecting: address, texture pack, texture map, block store ---
 	var host := OS.get_environment("GOANNA_HOST")
 	if host == "":
 		host = "127.0.0.1"
@@ -896,6 +942,11 @@ func _ready() -> void:
 		asset_updater.free()
 	if OS.get_environment("GOANNA_TOD") != "":
 		client.set_time_of_day_override(float(OS.get_environment("GOANNA_TOD")))
+	# --- development interfaces, for the first slot only ---
+	# Each is loaded by path after a ResourceLoader.exists check rather than
+	# preloaded: the release export leaves the control channel out
+	# (export_presets.cfg), and a preload of a missing script would stop this
+	# one parsing.
 	# GOANNA_CONTROL=<port>: open the loopback command channel, so the client
 	# can be driven and questioned while it runs instead of being relaunched
 	# for each question. Development only; see docs/agents/control-channel.md.
@@ -940,9 +991,10 @@ func _ready() -> void:
 	if OS.get_environment("GOANNA_SHOT") == "" and not showcase_mode:
 		set_pointer_captured(true)
 
-# Whether mouse input steers the game rather than the UI. Normally that is the
-# OS pointer being captured. In test mode it is the recorded capture, and only
-# for input the control channel pushed in (see test_mode).
+## Whether mouse input steers the game rather than the UI. Normally that is the
+## OS pointer being captured. In test mode it is the recorded capture, and only
+## for input the control channel pushed in (see test_mode). In split screen it
+## is the slot's own recorded capture.
 func pointer_captured(event: InputEvent = null) -> bool:
 	if player_slot != null:
 		return _virtual_capture
@@ -950,17 +1002,18 @@ func pointer_captured(event: InputEvent = null) -> bool:
 		return _virtual_capture and (event == null or event.device == CONTROL_DEVICE)
 	return Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 
-# Whether a controller should steer the game rather than a cursor: the same
-# test as for the mouse, so a window, chat or a released pointer hands the
-# controller to the menus exactly when it hands them the mouse.
+## Whether a controller should steer the game rather than a cursor: the same
+## test as for the mouse, so a window, chat or a released pointer hands the
+## controller to the menus exactly when it hands them the mouse. Handed to the
+## Gamepad autoload as its play_owner in _ready.
 func gamepad_owns_play() -> bool:
 	# The connecting screen is a menu: its buttons take A, not jump.
 	if connect_overlay != null:
 		return false
 	return pointer_captured() and not (ui != null and ui.blocks_input())
 
-# Take the pointer for play, or give it back. Every capture in the game goes
-# through here (game_ui.gd included), so test mode is kept in one place.
+## Take the pointer for play, or give it back. Every capture in the game goes
+## through here (game_ui.gd included), so test mode is kept in one place.
 func set_pointer_captured(on: bool) -> void:
 	if player_slot != null:
 		_virtual_capture = on
@@ -988,14 +1041,6 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 	# (both oscillate around the eye, so it reads as a gait, not a tiptoe)
 	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (sin(_bob_phase * 2.0) * amp * 0.5)
 
-# Looking down with your own body drawn, the head tips forward over it
-# rather than turning in place. The camera sat at the eye and pitched about
-# it, so looking down put the lens where the chin had been and showed the
-# inside of the neck, the head being shrunk rather than removed
-# (docs/systems/first-person-body.md). Leaning forward as the gaze drops, and a
-# little down, puts the eye out in front of the chest, where it would be
-# over a real body, so looking down shows the front of the body and the
-# feet. Nothing changes looking level or up, or with the body hidden.
 # Third person, the vanilla client's F7 cycle: first person, behind the
 # player, in front of it looking back. Holding Alt turns the camera around
 # the player instead of turning the player, and Alt with the wheel brings it
@@ -1075,6 +1120,14 @@ func _place_third_person(head: Vector3) -> void:
 	crosshair_hidden = camera_mode == CAMERA_FRONT \
 			or absf(orbit_yaw) > 0.5 or absf(orbit_pitch) > 0.5
 
+# Looking down with your own body drawn, the head tips forward over it
+# rather than turning in place. The camera sat at the eye and pitched about
+# it, so looking down put the lens where the chin had been and showed the
+# inside of the neck, the head being shrunk rather than removed
+# (docs/systems/first-person-body.md). Leaning forward as the gaze drops, and a
+# little down, puts the eye out in front of the chest, where it would be
+# over a real body, so looking down shows the front of the body and the
+# feet. Nothing changes looking level or up, or with the body hidden.
 const BODY_LEAN_FORWARD := 0.45   # nodes, looking straight down
 const BODY_LEAN_DOWN := -0.06     # negative lifts the eye
 func _body_lean() -> Vector3:
@@ -1088,7 +1141,7 @@ func _body_lean() -> Vector3:
 func _unhandled_input(event: InputEvent) -> void:
 	if overseer != null and overseer.active:
 		return
-	# Same reason as the movement keys above: while a benchmark run is
+	# Same reason as the movement keys in _process: while a benchmark run is
 	# recording, nothing outside the run may turn the camera. Escape is in
 	# here too, because it toggles mouse capture and capture is what makes
 	# mouse motion turn the view at all.
@@ -1410,6 +1463,9 @@ func _apply_hardware_defaults() -> void:
 		cores, RenderingServer.get_video_adapter_name(),
 		"discrete" if discrete else "shared", hardware_profile])
 
+# With profile_frame_work on (bench/local_bench.gd turns it on), _process
+# times each stage of the frame: the last frame's cost and the worst since
+# take_work_worst was last called.
 func _work_mark(stage: String, start: int) -> int:
 	var now := Time.get_ticks_usec()
 	var elapsed := now - start
@@ -1417,12 +1473,23 @@ func _work_mark(stage: String, start: int) -> int:
 	frame_work_worst_usec[stage] = maxi(elapsed, int(frame_work_worst_usec.get(stage, 0)))
 	return now
 
+## Returns the worst time per frame stage, in microseconds, since the last
+## call, and starts a new interval. Used by bench/local_bench.gd.
 func take_work_worst() -> Dictionary:
 	var result := frame_work_worst_usec.duplicate()
 	frame_work_worst_usec.clear()
 	return result
 
+# The frame, in the order docs/develop/architecture.md gives: node animation,
+# the sky, the connection status, then movement (step_player and
+# step_interact when walking, set_player_pose for the free camera), then the
+# client's own upkeep (poll_blocks, prune_blocks, update_lights, update_motes,
+# update_lod, sync_entities), the environment and the wield arm, and last the
+# once a second status line and the GOANNA_* screenshot and smoke runs. Sound,
+# particles and the interface read their own queues from the client in their
+# own nodes.
 func _process(delta: float) -> void:
+	# The overseer camera (overseer.gd) waits for the client and the camera.
 	if overseer == null and client != null and cam != null:
 		overseer = preload("res://game/overseer.gd").new()
 		overseer.main = self
@@ -1475,6 +1542,11 @@ func _process(delta: float) -> void:
 		atmosphere_ground_set = true
 		placed = true
 		print("camera placed at ", cam.position)
+	# --- walking: Luanti's own movement and pointing, through the client ---
+	# Every input source (keyboard, controller, player agent, benchmark route
+	# and the test hooks) folds into one keys dictionary and one set of dig
+	# and place flags, so all of them meet the same gates and the same
+	# server checks.
 	if placed and not fly_mode and not showcase_mode:
 		var keys := {
 			"up": _key_pressed(KEY_W), "down": _key_pressed(KEY_S),
@@ -1629,6 +1701,7 @@ func _process(delta: float) -> void:
 		place_pressed = false
 		agent_place_pressed = false
 		_update_selection_box()
+	# --- the free camera (F, local servers only; see _unhandled_input) ---
 	elif placed and not showcase_mode:
 		# The free camera's own position is the eye. Where the third person
 		# placement moved the camera last frame, take the eye back; anything
@@ -1678,6 +1751,7 @@ func _process(delta: float) -> void:
 			_place_third_person(_fly_eye)
 			_fly_cam_placed = cam.position
 	if profile_frame_work: work_clock = _work_mark("input_and_simulation", work_clock)
+	# --- the client's upkeep: meshes, lights, far tiers, entities ---
 	client.poll_blocks(24)
 	if profile_frame_work: work_clock = _work_mark("poll_blocks", work_clock)
 	# Bounded residency: keep a margin beyond what we ask the server for, so
@@ -1707,6 +1781,7 @@ func _process(delta: float) -> void:
 	if profile_frame_work: work_clock = _work_mark("environment", work_clock)
 	_update_wield(delta)
 	if profile_frame_work: work_clock = _work_mark("wield", work_clock)
+	# --- once a second: diagnostics and the console status line ---
 	if t - last_print >= 1.0:
 		last_print = t
 		# GOANNA_DUMPTEX="dir=name1,name2": save generated textures (including
@@ -1827,6 +1902,7 @@ func _process(delta: float) -> void:
 		print("[%5.1fs] %s | %s | media %d/%d | blocks recv %d meshed %d | mats %d | res %d | lights %d%s" % [
 			t, s.get("state"), s.get("message"), s.get("media_received", 0), s.get("media_announced", 0),
 			s.get("blocks_received", 0), s.get("blocks_meshed", 0), s.get("materials", 0), s.get("resident_blocks", 0), s.get("node_lights", 0), extra])
+	# --- scripted runs: chat, screenshots and smoke tests, each of which quits ---
 	# GOANNA_CHAT="cmd": send one chat line a few seconds in, so a server side
 	# test fixture can be triggered from a headless run.
 	if OS.get_environment("GOANNA_CHAT") != "" and not _chat_sent and t > 3.0:
@@ -1873,9 +1949,15 @@ func _process(delta: float) -> void:
 		_work_mark("other", work_clock)
 		_work_mark("main_total", frame_start)
 
-# GOANNA_MANTLETEST=1: build a one-block step in front (needs give/place), walk
-# into it, and report whether the player rose a block. Simpler: teleport to a
-# known ledge on devtest and walk into it.
+# Test hooks. Each GOANNA_*TEST variable below scripts the player through one
+# behaviour against a live server (usually devtest), prints what happened and
+# quits; _test_hooks runs whichever is set, once a frame, from _process's
+# walking branch. The control channel and the player agent
+# (docs/agents/agent-interfaces.md) drive a running client without a
+# variable and a relaunch per question.
+
+# GOANNA_MANTLETEST=1: place a one-node step in front from the devtest hotbar,
+# walk into it, and report whether the player rose a node.
 var _mantle_y0 := 0.0
 var _mantle_done := false
 func _mantle_test(keys: Dictionary) -> bool:
@@ -2053,6 +2135,9 @@ func _autojump_test(keys: Dictionary) -> bool:
 		get_tree().quit()
 	return true
 
+# Runs the one test hook that is set. A hook may change keys, pitch, yaw,
+# test_dig and test_plc_pressed for this frame; returning early leaves the
+# rest unrun.
 func _test_hooks(keys: Dictionary) -> void:
 	if _autojump_test(keys):
 		return
@@ -2189,8 +2274,10 @@ func _teleport() -> bool:
 	return await teleport_to(Vector3(float(t[0]), float(t[1]), float(t[2])))
 
 
-# The teleport itself, also driven by the control channel. Coordinates are
-# Godot space; the server is told the same place with z negated.
+## The teleport itself, also driven by the control channel, the benchmark and
+## the player agent test. Coordinates are Godot space; the server is told the
+## same place with z negated. A coroutine: await it. Needs the teleport
+## privilege, and returns false if the server never moved the player.
 func teleport_to(want: Vector3) -> bool:
 	client.send_chat("/teleport %.1f,%.1f,%.1f" % [want.x, want.y, -want.z])
 	for i in 600:
@@ -2212,6 +2299,9 @@ func teleport_to(want: Vector3) -> bool:
 # exactly like a render with the feature under test turned off. Wall-clock
 # quiet time matters here: at several hundred frames a second, a frame count
 # settles long before the server has sent anything.
+## Waits until nothing has been meshed and no baked surface has been in
+## flight for two seconds (at least three, at most 30); await it. Used before
+## a capture by the shot runs and the control channel.
 func wait_for_streaming() -> void:
 	var t0 := Time.get_ticks_msec()
 	var last_change := t0
@@ -2332,6 +2422,10 @@ func _fixture_shots(dir: String, name: String) -> bool:
 	return true
 
 
+# GOANNA_SHOT=<dir>: the screenshot run, eight seconds in. A named fixture
+# (GOANNA_VISUAL_TEST), else aimed shots of entities (GOANNA_AIM_ENTITY), else
+# the three fixed views round the spawn or the ones GOANNA_VIEW gives. The
+# caller quits when it returns.
 func _shots(dir: String) -> void:
 	fly_mode = true
 	if ui:
@@ -2472,10 +2566,9 @@ func _shots(dir: String) -> void:
 	client.set_player_pose(base, 0, 0)
 
 
-# Per-frame environment extras: the cave head-light follows the camera, and
-# the fog switches to a dense underwater tint while the eye is submerged.
-# Mining uses the session contact clock; place and object punches retain
-# their independent gesture. The renderer poses the body's actual wield arm.
+# The wield arm's swing. Mining uses the session contact clock; place and
+# object punches retain their independent gesture. The renderer poses the
+# body's actual wield arm.
 func _update_wield(delta: float) -> void:
 	if bool(pointed.get("mining_swing", false)):
 		swing_t = 1.0
@@ -2487,6 +2580,9 @@ func _update_wield(delta: float) -> void:
 		swing_t = 0.0
 	client.set_arm_swing(sin(swing_t * PI))
 
+# Per-frame environment extras: the carried light follows the camera, the
+# clouds scroll, the local atmosphere and the horizon bake are fed, and the
+# fog switches to the water's murk while the eye is submerged.
 func _update_environment_extras() -> void:
 	if headlight and render_features["render_carried_light"]:
 		headlight.global_position = cam.global_position
@@ -2604,12 +2700,6 @@ func _update_environment_extras() -> void:
 		# Restore the surface fog from the current sky state.
 		_apply_sky()
 
-# Map Luanti's sky/lighting state onto Godot's sun, sky and fog. Colours and the
-# day/dawn/night scheme are the server's (or Luanti's defaults); the blend by
-# sun elevation approximates Sky::update in the vanilla client.
-# Read a tuning override from the environment, falling back to the default.
-# Push the lighting levels onto the environment. The sun follows on the next
-# frame through _apply_sky, which reads light_sun directly.
 # Exact CPU counterpart of atmosphere_volume.gdshader's local cloud field.
 # The sky cloud march already knows its own per-ray transmittance, but the
 # additive shaft pass runs later with fog disabled; this gives that pass the
@@ -2757,10 +2847,11 @@ func _strike_water() -> void:
 # sky stands in for it.
 var _dry_sky_state := {}
 
-# `st` with that sky taken out when the head is in water (`head_wet`);
-# `kept` holds the last ordinary sky, and is updated from `st` whenever it
-# is one. (`camera_wet` is no longer consulted: the camera under the water
-# wants the real sky through the surface as much as one above it.)
+## `st` with that sky taken out when the head is in water (`head_wet`);
+## `kept` holds the last ordinary sky, and is updated from `st` whenever it
+## is one. (`camera_wet` is no longer consulted: the camera under the water
+## wants the real sky through the surface as much as one above it.) Static so
+## tests/water_optics.gd can check it with no scene.
 static func dry_sky(st: Dictionary, kept: Dictionary, head_wet: bool, camera_wet: bool) -> Dictionary:
 	var sky: Dictionary = st["sky"]
 	var one_colour := str(sky.get("type", "")) == "regular" and not bool(sky.get("clouds", true))
@@ -2836,8 +2927,10 @@ func _underwater_volume_enabled() -> bool:
 func _atmosphere_enabled() -> bool:
 	return render_features["render_atmosphere"] and atmosphere_quality > 0.01
 
-# apply false records the switch for a batch that calls apply_lighting itself
-# once it is complete (game_ui.gd's staged preset change).
+## Turns one render pass switch (a key of render_features.gd's DEFAULTS) on
+## or off; false for an unknown key. apply false records the switch for a
+## batch that calls apply_lighting itself once it is complete (game_ui.gd's
+## staged preset change).
 func set_render_feature(key: String, enabled: bool, apply := true) -> bool:
 	if not RenderFeatures.DEFAULTS.has(key):
 		return false
@@ -2881,6 +2974,9 @@ func _apply_cloud_feature() -> void:
 	sky_mat.set_shader_parameter("cloud_style", clampi(int(cloud_style), 0, 2))
 	sky_mat.set_shader_parameter("cloud_quality", clampi(int(cloud_quality), 0, 2))
 
+# Puts every render_features switch onto the node, light, environment or
+# shader flag it gates (game/render_features.gd lists them). Safe to call
+# before _ready has built everything; each part checks it exists.
 func _apply_render_features() -> void:
 	_apply_cloud_feature()
 	if headlight != null:
@@ -2939,7 +3035,10 @@ func _update_cloud_shadows() -> void:
 			Vector4(0.0009 / CloudLayers.horizontal_scale(layer),
 			deck.x + deck.y * 0.5, sun_par.x, sun_par.y))
 
-# Cheap actual-state telemetry for feature comparisons. No terrain traversal.
+## Cheap actual-state telemetry for feature comparisons. No terrain traversal.
+## "requested" is what the switches ask for, "active" what is really drawing,
+## which differ when a strength of 0 or the water turns a pass off. Read by
+## bench/local_bench.gd and tests/render_features.gd.
 func render_feature_state() -> Dictionary:
 	var result := {"requested": render_features.duplicate(), "underwater": underwater}
 	if env == null or env.environment == null:
@@ -2968,6 +3067,10 @@ func render_feature_state() -> Dictionary:
 	result["sky_cloud_coverage"] = sky_mat.get_shader_parameter("cloud_coverage")
 	return result
 
+## Push the lighting levels and render switches onto the environment, after
+## game_ui.gd's settings panel or a preset has changed the light_* values. The
+## sun, exposure and sky fill follow through _apply_sky, which reads them
+## directly.
 func apply_lighting() -> void:
 	_apply_render_features()
 	if env == null or env.environment == null:
@@ -3019,6 +3122,7 @@ func _apply_screen_space() -> void:
 	RenderingServer.directional_shadow_atlas_set_size(
 			sizes[int(clampf(shadow_detail, 0.0, 2.0))], false)
 
+# Read a tuning override from the environment, falling back to the default.
 func _envf(name: String, dflt: float) -> float:
 	var v := OS.get_environment(name)
 	return float(v) if v != "" else dflt
@@ -3141,6 +3245,14 @@ func _aim_light(light: DirectionalLight3D, dir: Vector3, aimed: Vector3) -> Vect
 	return d
 
 
+# Map Luanti's sky and lighting state onto Godot's sun, moon, sky, fog and
+# grade, every frame. Colours and the day, dawn and night scheme are the
+# server's (or Luanti's defaults); the blend by sun elevation approximates
+# Sky::update in the vanilla client. The bands and beams each layer is lit by
+# come from sky_director.gd (docs/systems/sky-orchestration.md). The sections,
+# marked "# ---", are the lights, the sky colours, the weather and clouds,
+# the fog, the ambient and grade, the light shafts, and the shader pack's
+# world state.
 func _apply_sky() -> void:
 	var st: Dictionary = client.sky_state()
 	if st.is_empty() or not st.has("sun_direction"):
@@ -3433,6 +3545,7 @@ func _apply_sky() -> void:
 	client.set_view_shader_parameter("goanna_ground_fill",
 			Vector3(gfill.r * minf(gw.r, 1.4), gfill.g * minf(gw.g, 1.4),
 					gfill.b * minf(gw.b, 1.4)))
+	# --- weather, wet ground, settled snow, bounce and clouds ---
 	# Cloud shadow strength: by day only, and by how much cloud there is to
 	# cast one. 0.35 of the light at full coverage, soft, never black.
 	#
@@ -3992,12 +4105,15 @@ func _set_sky_disc(tex_param: String, flag_param: String, tex_name: String) -> v
 # How many hotbar slots the server is showing. Luanti selects over
 # Player::getMaxHotbarItemcount(), not a fixed eight: Mineclonia and
 # MineClone2 both use nine, so hard coding eight left their last slot drawn
-# but unreachable, and nothing in it could be wielded or placed.
+# but unreachable, and nothing in it could be wielded or placed. The player
+# agent reads it too.
 func _hotbar_count() -> int:
 	if not client.has_method("hud_state"):
 		return 8
 	return clampi(int(client.hud_state().get("hotbar_itemcount", 8)), 1, 32)
 
+# Select a hotbar slot, counted from 0. Every route to the wield index goes
+# through here: wheel, number keys, controller and the player agent.
 func _set_wield(i: int) -> void:
 	wield = i
 	client.set_wield_index(i)
@@ -4013,7 +4129,8 @@ func _gamepad_look(delta: float) -> void:
 
 # Luanti's drop key (Game::dropSelectedItem): the wielded stack, or one item
 # of it while sneaking, as the same inventory action the vanilla client
-# sends. Only the controller calls this; the keyboard has no drop key yet.
+# sends. The controller and the player agent (player_agent_channel.gd) call
+# this; the keyboard has no drop key yet.
 func _drop_wielded(single: bool) -> void:
 	if client.has_method("inventory_action"):
 		client.inventory_action("Drop %d current_player main %d" % [1 if single else 0, wield])
