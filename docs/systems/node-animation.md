@@ -43,9 +43,9 @@ Cube-like tiles that `nodes_array.gdshader` can draw (back face culled, not
 waving, not a liquid, not alpha blended: `arrayPathTile` in
 `src/goanna_textures.h`) are the common case, and upstream keeps animated
 tiles out of its own arrays because it swaps their textures. Goanna does not
-patch that. Once the node visuals are filled, on the session thread and
-before anything is meshed with them,
-`GoannaTextureSource::buildNodeAnimations` collects every animated
+patch that. Once the node visuals are filled, on the main thread in
+`GoannaSession::prepareContentIfReady` and before anything is meshed with
+them, `GoannaTextureSource::buildNodeAnimations` collects every animated
 `TileLayer` and packs the frames of these tiles into Goanna's own animation
 arrays: each tile's frames as consecutive layers, grouped by frame size and
 by whether any frame has alpha, at most 256 layers to an array. The first

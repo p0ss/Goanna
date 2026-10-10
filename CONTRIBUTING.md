@@ -91,9 +91,14 @@ naming, comment wording. It is upstream's file.
   headers. Do not add `using namespace godot;` to a header.
 - A file starts with a comment saying what it is for. `src/goanna_map.h` and
   `src/goanna_textures.h` are the pattern.
-- The session thread and Godot's main thread are separate. Anything crossing
-  between them goes through the existing mutexes in `GoannaSession`. Do not
-  touch Godot objects from the session thread.
+- The session thread, Godot's main thread and the worker threads are
+  separate. Session state crosses to the main thread through the mutexes in
+  `GoannaSession` (the map under `mapLock()`, the rest through queues with
+  their own locks). Work for the workers crosses through their own queues
+  and mutexes: `MeshPool` for mesh jobs, `LodStorage` for prepared terrain
+  and the horizon bake in `GoannaClient`. Do not touch Godot objects from
+  any thread but the main one. The threads, and what each lock guards, are
+  in [the architecture page](docs/develop/architecture.md#threads-and-the-handoff).
 
 **GDScript** in `project/` follows the official GDScript style guide: tabs,
 `snake_case`, typed variables where practical.
