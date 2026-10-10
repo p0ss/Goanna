@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// Per vertex light and occlusion from the map (goanna_light.h): the field is
+// built on the main thread under the map lock and sampled on a mesh worker.
 
 #include "goanna_light.h"
 

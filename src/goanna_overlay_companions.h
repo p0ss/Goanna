@@ -34,6 +34,11 @@
 // "screwdriver.png^[transformFX", an entity for a banner's [mask cut pole
 // and cloth. Anything else (a frame cut, a crack, [fill, [inventorycube) is
 // not read, and the caller keeps its single image lookup.
+//
+// Pure functions with no state and no Godot, so any thread may call them;
+// in the client they run on the main thread, from GoannaTextureSource and
+// EntityRenderer, with the image lookups passed in as callbacks.
+// goanna_overlay_companions_test checks them. Main types: OverlayLayer.
 
 #include <cstdint>
 #include <functional>

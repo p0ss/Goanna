@@ -7,6 +7,11 @@
 // (TOCLIENT_SET_SKY/SET_SUN/SET_MOON/SET_STARS/CLOUD_PARAMS/SET_LIGHTING/
 // OVERRIDE_DAY_NIGHT_RATIO/TIME_OF_DAY), decoded with Luanti's own structs.
 // Goanna maps this onto Godot's Environment; nothing here renders.
+//
+// Threads: the session thread writes its SkyState as the packets arrive,
+// under GoannaSession's m_sky_mutex, and the main thread reads a copy taken
+// under the same lock (GoannaSession::skyState), which GoannaClient::sky_state
+// hands to main.gd. The functions below are pure. Main types: SkyState.
 
 #include "irrlichttypes_bloated.h"
 #include "lighting.h"
@@ -14,6 +19,8 @@
 
 namespace goanna {
 
+// Everything the server has said about the sky, plain values with no
+// Godot. Crosses threads only by copy (see the top of this file).
 struct SkyState {
     // time of day 0..1 (0.5 = noon), advanced locally by time_speed
     float time_of_day = 0.5f;

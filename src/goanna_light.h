@@ -17,6 +17,12 @@
 // the cone tracer below are deliberately parameterised on cell size, because
 // the far tiers in docs/systems/far-rendering.md trace the same shapes against a
 // coarser field and there should be one tracer, not two.
+//
+// Threads: BlockLightField::build reads the map, so it runs on the main
+// thread under the session's mapLock() (GoannaClient::nearSubmit, and
+// EntityRenderer for a wall plate's light). The finished field is a plain copy
+// with no tie to the map, so a NearBlockJob carries it to a mesh worker and
+// samples it there. Main types: VertexLight, BlockLightField.
 
 #include <cstdint>
 #include <vector>
@@ -41,6 +47,8 @@ struct VertexLight {
 // The light and occupancy of one mapblock's 3x3x3 neighbourhood, built once
 // per meshing pass and then sampled per vertex. Positions passed in are Luanti
 // node coordinates, absolute, not Godot space: the caller mirrors z.
+// build() needs the map lock; once built the field is independent of the
+// map and may be moved to, and sampled on, any one thread.
 class BlockLightField {
 public:
     // Caller holds session.mapLock(). Returns false if the centre block is

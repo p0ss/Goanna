@@ -12,6 +12,23 @@
 //   texture-modifier DSL, verbatim), with Godot decoding media bytes.
 // - GoannaShaderSource: assigns ids per (material type, base material) so
 //   TileLayer.shader_id maps onto Godot material variants.
+//
+// One of each per GoannaSession, which owns them. Threads: the main thread
+// fills the texture source in GoannaSession::prepareContentIfReady (media,
+// packs, node visuals, animation arrays, the material table) and later in
+// loadPushedMedia, and it is the only thread that makes Godot textures
+// (godotTexture, godotArray and the rest). The near mesh workers mesh from a
+// MeshMakeData copy and are meant to leave it alone; a block being dug would
+// ask it for the crack overlay, so that block is meshed inline instead
+// (goanna_mesher.h). One exception, not yet guarded: a stored carve's crack
+// (GOANNA_PERSISTENT_CRACK) still makes MapBlockMesh ask for
+// crack_anylength.png by name on the worker. The far mesh workers call it,
+// from tileFor in goanna_lod.cpp, for ids, names, average colours and
+// nodeAnimation; those calls are serialised against each other by
+// LodTileCache::mutex but not against the main thread, so they are only
+// safe while nothing on the main thread adds a texture at the same moment.
+// The node animation table is the one piece built for lock free reading
+// from workers; see buildNodeAnimations.
 
 #include <atomic>
 #include <map>
@@ -94,6 +111,10 @@ struct NodeAnimation {
     u16 base_layer = 0;
 };
 
+// A texture as the transplanted code sees it: an id, a CPU image (or a stack
+// of them for an array), and the Godot textures made from it on demand.
+// Owned by GoannaTextureSource, alive as long as the session. The CPU side is
+// read freely; every Godot side getter (godot*) is main thread only.
 class GoannaTexture final : public video::ITexture {
 public:
     GoannaTexture(const std::string &name, video::IImage *image, u32 id);
@@ -246,6 +267,10 @@ private:
     float m_companion_strength = -1.0f;
 };
 
+// The session's texture source: every image name the server or a pack
+// supplies, Luanti's modifier language run over them, texture ids for the
+// mesher, and the LabPBR companions. The thread rules are at the top of
+// this file.
 class GoannaTextureSource final : public IWritableTextureSource {
 public:
     GoannaTextureSource();
@@ -375,7 +400,8 @@ public:
             bool *supported);
 
     // Animated node tiles (docs/systems/node-animation.md). Built once node visuals
-    // are filled, on the thread that filled them, before anything is meshed
+    // are filled, on the thread that filled them (the main thread, in
+    // GoannaSession::prepareContentIfReady), before anything is meshed
     // with them: collects every animated TileLayer and packs the frames of
     // the tiles the array shader can draw (arrayPathTile) into animation
     // arrays, each tile's frames consecutive, grouped by frame size and by
@@ -406,9 +432,11 @@ public:
     void setNodeAnimationEnabled(bool on) { m_node_anim_enabled.store(on); }
     bool nodeAnimationEnabled() const { return m_node_anim_enabled.load(); }
 
-    // The classifier's table (docs/design/pbr-plan.md step 2), owned by the session,
-    // read when an array's companion layers are synthesised for textures a
-    // pack does not cover. Setting it drops every cached companion array.
+    // The per node classifier's table (goanna_materials.h), owned by the
+    // session, read when an array's companion layers are synthesised for
+    // textures a pack does not cover. Setting it drops every cached
+    // companion array. Set on the main thread in
+    // GoannaSession::prepareContentIfReady.
     void setMaterialTable(const MaterialTable *table);
     const MaterialTable *materialTable() const { return m_material_table; }
     // Strength of the relief inferred from a texture's own brightness for
@@ -424,6 +452,10 @@ private:
     // it is within it. Records its art first if it is the first image of
     // that name (art), and marks it pending when its art is not known yet.
     video::IImage *capImage(const std::string &name, video::IImage *img, bool art);
+    // Set by setTextureSize from GoannaClient on the main thread, read by
+    // capImage and nodeLayerScale as images are inserted and grouped, also
+    // on the main thread. Atomic only so that a read from elsewhere could
+    // never see a torn value; nothing relies on ordering through them.
     std::atomic<u32> m_texel_cap{0};
     std::atomic<u32> m_texture_size{0};
     std::map<std::string, core::dimension2du> m_art_dims;
@@ -464,10 +496,21 @@ private:
     // Every table ever built stays alive with the source, so a reader holding
     // a pointer from an earlier build cannot have it freed underneath it.
     std::vector<std::unique_ptr<NodeAnimationTable>> m_node_anim_tables;
+    // The current table: stored with release by buildNodeAnimations on the
+    // main thread once the table is complete, loaded with acquire by
+    // nodeAnimation on the main thread and on far mesh workers (tileFor).
     std::atomic<const NodeAnimationTable *> m_node_anim{nullptr};
+    // Set from GoannaClient::set_node_animation_enabled on the main thread,
+    // read wherever nodeAnimation is. A relaxed flag: a worker that reads
+    // the old value builds one mesh with the old setting, and the setter
+    // rebuilds the meshes anyway.
     std::atomic<bool> m_node_anim_enabled{true};
 };
 
+// Hands node_visuals a shader id for each (material type, base material)
+// and remembers what each id meant, so GoannaClient::keyForIrr can choose a
+// Godot material from a mesh buffer. Filled mainly while node visuals are
+// filled in GoannaSession::prepareContentIfReady, on the main thread.
 class GoannaShaderSource final : public IWritableShaderSource {
 public:
     GoannaShaderSource();

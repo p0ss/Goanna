@@ -1,5 +1,7 @@
-// Isolate the existing shader interface without duplicating shader files.
 // SPDX-License-Identifier: LGPL-2.1-or-later
+//
+// Isolate the existing shader interface without duplicating shader files
+// (goanna_render_scope.h). Main thread.
 #include "goanna_render_scope.h"
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>

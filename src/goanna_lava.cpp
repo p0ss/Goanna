@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+//
+// The lava surface and material calibration (goanna_lava.h). Main thread.
 #include "goanna_lava.h"
 #include "goanna_session.h"
 #include "mapblock.h"

@@ -4,6 +4,11 @@
 
 // Which tiles and sprites are flames, and the measure of a flame's own art
 // that flame.gdshader ramps its colour along. docs/systems/fire-material.md.
+//
+// Main thread: GoannaClient picks out flame tiles once content is prepared
+// and makes their materials, and EntityRenderer does the same for burning
+// entity sprites. The tests (goanna_flame_test) call the pure parts with no
+// engine. Main types: FlameRamp.
 #include <string>
 #include <vector>
 

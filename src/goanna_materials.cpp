@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// The per node classifier's tables and rules (goanna_materials.h). Pure
+// functions of the node definitions and the texture map file, called on the
+// main thread when a session's content is prepared.
 
 #include "goanna_materials.h"
 

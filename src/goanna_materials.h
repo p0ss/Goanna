@@ -3,8 +3,8 @@
 
 #pragma once
 
-// The per node classifier, docs/design/pbr-plan.md step 2: one table with two
-// columns, built once from the node definitions the server sent.
+// The per node classifier (docs/design/pbr-plan.md, "Design"): one table
+// with two columns, built once from the node definitions the server sent.
 //
 // Column one is a material class, from what Luanti already says about a
 // node: its footstep sound first, then its groups, then its drawtype, and
@@ -21,6 +21,13 @@
 // map alone cannot give it: in Mineclonia more than half the textures are
 // shared between nodes, so it takes the nodedef to say which block a tile
 // belongs to, and that read is this one.
+//
+// Threads: buildMaterialTable runs once per session on the main thread, in
+// GoannaSession::prepareContentIfReady, before the first block is meshed.
+// After that the MaterialTable is never changed, so the main thread, the
+// mesh workers (far region and surface jobs carry a pointer to it) and the
+// texture source all read it without a lock. The rest is pure functions.
+// Main types: MaterialClass, ClassSpec, MaterialTable.
 
 #include <cstdint>
 #include <map>
@@ -67,6 +74,9 @@ const char *className(MaterialClass c);
 // modifier, or empty when the tile is a generator with no file behind it.
 std::string tileBaseName(const std::string &tile);
 
+// The classifier's output for one session, owned by GoannaSession and handed
+// out as GoannaSession::materialTable(). Written once, then only read (the
+// top of this file says by whom).
 struct MaterialTable {
     std::vector<uint8_t> node_class;  // by content id; MaterialClass
     std::vector<uint16_t> node_block; // by content id; index into block_names, 0 none

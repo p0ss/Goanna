@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// The texture resolution cap's arithmetic (goanna_texture_size.h): pure
+// functions on RGBA8 buffers, called on the main thread.
 
 #include "goanna_texture_size.h"
 

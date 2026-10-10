@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// Reading overlay stacks and compositing their LabPBR companions
+// (goanna_overlay_companions.h). No state and no Godot; the client calls it
+// on the main thread.
 
 #include "goanna_overlay_companions.h"
 

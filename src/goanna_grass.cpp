@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+//
+// Procedural grass (goanna_grass.h). Main thread: it works on Godot meshes
+// and materials.
 #include "goanna_grass.h"
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/shader_material.hpp>

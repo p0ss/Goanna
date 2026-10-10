@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// The ripple field's wave step and its GDScript wrapper (goanna_ripples.h).
+// Main thread.
 
 #include "goanna_ripples.h"
 

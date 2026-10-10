@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
+//
+// Which tiles are flames, and the measured colour ramp of their art
+// (goanna_flame.h). Main thread.
 #include "goanna_flame.h"
 
 #include "IImage.h"

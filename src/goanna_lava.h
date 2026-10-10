@@ -2,6 +2,10 @@
 #pragma once
 
 // Prepare a continuous lava surface from Luanti's independently mapped faces.
+// docs/systems/lava-material.md has the design. Both functions run on the
+// main thread: prepareLavaSurface from GoannaClient::poll_blocks and
+// overseer_mesh as a near block's arrays are published, under the map lock,
+// and configureLavaMaterial where the lava ShaderMaterial is made.
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 

@@ -8,6 +8,9 @@
 // This file mixes Goanna original code with functions copied from Luanti
 // 5.17.0: the palette loader from client/texturesource.cpp, and getShader
 // adapted from client/shader.cpp. Each is marked at its definition.
+//
+// Threads are as goanna_textures.h says: the main thread, with a few lookups
+// from far mesh workers through goanna_lod.cpp's tileFor.
 
 #include "goanna_textures.h"
 #include "goanna_texture_size.h"
@@ -362,9 +365,10 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
             }
         }
         if (img.is_null()) {
-            // Nothing authored for this layer. docs/design/pbr-plan.md step 2: the
-            // layer is derived rather than left neutral, so authored data is
-            // an override on top of something that covers everything.
+            // Nothing authored for this layer. The layer is derived rather
+            // than left neutral (docs/design/pbr-plan.md, "Design"), so
+            // authored data is an override on top of something that covers
+            // everything.
             if (is_normal) {
                 // Relief from the texture's own brightness, the same
                 // inference the auto bump slider applies on the single image
@@ -474,9 +478,10 @@ Ref<Texture2DArray> GoannaTexture::godotArraySuffixed(GoannaTextureSource &src, 
         }
     }
     if (getenv("GOANNA_DEBUG_PBR")) {
-        // The coverage number docs/design/pbr-plan.md step 2 wants: how many layers
-        // are authored, how many the classifier or the inference dressed,
-        // and how many are left neutral.
+        // Material coverage, the number the per node classifier is judged
+        // by (docs/design/pbr-plan.md, "Design"): how many layers are
+        // authored, how many the classifier or the inference dressed, and
+        // how many are left neutral.
         const int n = (int)m_layer_names.size();
         UtilityFunctions::print("pbr coverage ", suffix, " authored ", authored, "/", n,
                 is_normal ? " inferred " : " classed ", is_normal ? inferred : classed, "/", n,

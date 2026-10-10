@@ -12,7 +12,9 @@
 // with maps at 16 to a texel brought to 512 by 256 at 128.
 //
 // Pure arithmetic on RGBA8 buffers, so goanna_texture_size_test checks it
-// without the engine. GoannaTextureSource applies it (goanna_textures.cpp).
+// without the engine. GoannaTextureSource applies it (goanna_textures.cpp),
+// on the main thread, as images are inserted. No state, so no thread rules
+// of its own. Main types: MapKind.
 
 #include <cstdint>
 #include <string>

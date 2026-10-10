@@ -16,6 +16,8 @@
 // Presentation only: the bodies are positions the client already draws.
 // RippleField is plain C++ with no Godot in it, for goanna_ripples_test;
 // GoannaRipples wraps it for GDScript and uploads the heights as a texture.
+// Main thread only: project/game/effects/wake.gd makes one and steps it
+// each frame. Main types: RippleBody, RippleField, GoannaRipples.
 #pragma once
 
 #include <cstdint>
@@ -55,6 +57,9 @@ struct RippleBody {
     float radius = 0.3f;
 };
 
+// The surface heights and their velocities on a square grid round the eye,
+// stepped as a damped wave equation. Plain C++ with no lock: its owner, a
+// GoannaRipples or the test, uses it from one thread.
 class RippleField {
 public:
     // Cells a node along each side. Eight puts a wavelength of about a node,
