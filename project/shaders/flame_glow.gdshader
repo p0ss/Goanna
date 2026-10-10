@@ -22,7 +22,7 @@ varying vec4 cell;
 varying vec3 world_pos;
 
 void vertex() {
-	cell = cell_rect ? CUSTOM0 : vec4(0.0, 0.0, 1.0, 1.0);
+	cell = cell_rect ? vec4(CUSTOM0.xy, CUSTOM0.zw - CUSTOM0.xy) : vec4(0.0, 0.0, 1.0, 1.0);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -46,6 +46,12 @@ void fragment() {
 
 	// Where the blurred art reaches past the sharp art.
 	float halo = textureLod(albedo_tex, frame_uv, 1.6).a;
+	// On a sprite sheet that coarse read also reaches the next frame up,
+	// whose base is solid flame: without this the top of every frame
+	// glowed as a flat box (seen 2026-10-10 on a burning zombie). The
+	// halo fades out over the five texels at the cell's top and bottom.
+	if (cell_rect)
+		halo *= smoothstep(1.0, 5.0, min(local.y, 1.0 - local.y) * float(dim.y));
 	float glow = max(halo - coverage, 0.0) * halo_strength * flame_energy * flicker;
 	if (glow < 0.002)
 		discard;

@@ -21,9 +21,11 @@ uniform vec2 heat_range = vec2(0.05, 0.6);
 uniform vec3 core_colour = vec3(1.0, 0.85, 0.45);
 uniform vec3 tip_colour = vec3(0.6, 0.12, 0.02);
 uniform float flame_energy = 1.2;
-// An entity sprite sheet: CUSTOM0 holds the cell's rectangle in UV, so
-// heights and texel reads stay inside the frame shown. Node tiles are one
-// frame per texture and leave this off.
+// An entity sprite sheet: CUSTOM0 holds the cell's rectangle in UV, its
+// corners min then max as the entity shader reads it (goanna_upright_sprite.h),
+// so heights and texel reads stay inside the frame shown. Each pass turns it
+// into origin and size. Node tiles are one frame per texture and leave this
+// off.
 uniform bool cell_rect = false;
 // The upright sprite's two quads are culled from behind, as upstream draws
 // them; a firelike or mesh flame is drawn from both sides.
