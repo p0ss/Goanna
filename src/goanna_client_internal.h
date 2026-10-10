@@ -8,7 +8,7 @@
 // they use, the timing helpers behind render_stats' numbers (ms_since, ema),
 // the node surface format flags and the render layers, and the declarations
 // of node_tangents (defined in goanna_client_near.cpp) and toColor (defined in
-// goanna_client.cpp). Do not include it from another header; it is not part of
+// goanna_client_light.cpp). Do not include it from another header; it is not part of
 // GoannaClient's surface.
 //
 // Threads: the helpers hold no state, so any thread may call them.
@@ -103,7 +103,7 @@ namespace goanna {
 godot::PackedFloat32Array node_tangents(const godot::PackedVector3Array &verts,
         const godot::PackedVector3Array &norms, const godot::PackedVector2Array &uvs,
         const godot::PackedInt32Array &indices);
-// Defined in goanna_client.cpp.
+// Defined in goanna_client_light.cpp.
 godot::Color toColor(const video::SColor &c);
 
 } // namespace goanna
