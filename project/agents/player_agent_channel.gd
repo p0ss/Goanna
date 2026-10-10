@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The player agent channel: a token guarded loopback socket through which an
+## external program observes one player and acts as that player, with nothing
+## a person at the keyboard lacks. game/main.gd adds it in _ready when
+## GOANNA_PLAYER_AGENT is set (first split screen slot only), sets main, and
+## calls merge_controls each frame. tools/goanna-player speaks to it;
+## tests/player_agent_boundary.gd checks it stays apart from control_channel.gd.
 #
 # The player agent interface (docs/agents/agent-interfaces.md, section 2): an
 # external program observes one connected player and acts as that player,
@@ -89,7 +95,7 @@ const FRAME_WIDTH_MAX := 1280
 # say nothing the observation does not, and would crowd out the rest.
 const QUIET_KINDS := ["step", "jump", "dig", "form"]
 
-var main: Node
+var main: Node						# game/main.gd, set before add_child
 var _server := TCPServer.new()
 var _connections: Array = []
 var _port := 0
@@ -223,6 +229,8 @@ func _accept(connection: Dictionary, line: String) -> void:
 		_:
 			_act(connection, reply, command, args)
 
+# Compared in constant time, so the reply's timing says nothing about how
+# much of a guessed token was right.
 func _token_matches(given: String) -> bool:
 	if _token == "" or given.length() != _token.length():
 		return false
@@ -813,6 +821,11 @@ func _act(connection: Dictionary, reply: Dictionary, kind: String, args: Diction
 	_send(connection, reply)
 
 # Why an action cannot be tried at all, or {} when it can.
+#
+# Every action names the observation it was decided on (based_on), and is
+# refused as stale when what that observation showed under the crosshair or
+# in the form has changed since. An agent thinks for seconds between
+# observing and acting; without this it digs whatever has wandered into view.
 func _check(kind: String, args: Dictionary) -> Dictionary:
 	var now := Time.get_ticks_msec()
 	while not _action_times.is_empty() and now - int(_action_times[0]) > 1000:
@@ -1045,6 +1058,8 @@ func _drop_holds(id: int) -> void:
 		if _held[name] == id:
 			_held.erase(name)
 
+## Adds the movement controls this channel holds to main.gd's keys
+## dictionary, the same one the keyboard fills, ahead of step_player.
 func merge_controls(keys: Dictionary) -> void:
 	for name in _held:
 		keys[CONTROLS[name]] = true

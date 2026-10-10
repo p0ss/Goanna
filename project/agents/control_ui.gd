@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The control channel's ui_tree, ui_click, ui_hover, ui_type, ui_scroll and
+## key commands: reads the open form or menu and pushes input events into it.
+## Loaded by agents/control_channel.gd in its _ready, which sets main and tree
+## and awaits each command here. Reads ui/game_ui.gd's window state and
+## ui/formspec.gd's describe() and signals.
 #
 # The control channel's UI commands (docs/agents/control-channel.md): read the open
 # form or menu, and click, hover, type, scroll and press keys in it, without
@@ -22,7 +27,7 @@
 # Reading goes through formspec.gd's describe(), which only reads.
 extends RefCounted
 
-var main: Node
+var main: Node						# game/main.gd, set by control_channel.gd
 var tree: SceneTree
 
 # The pointer as this driver last left it, for relative motion.
@@ -51,9 +56,9 @@ static func _err(what: String) -> Dictionary:
 
 # --- reading -----------------------------------------------------------------
 
-# What is open and what is in it: the form's named elements, its inventory
-# slots and labels, or the controls of a Goanna menu, each with a rectangle in
-# viewport pixels that ui_click accepts back as x and y.
+## What is open and what is in it: the form's named elements, its inventory
+## slots and labels, or the controls of a Goanna menu, each with a rectangle in
+## viewport pixels that ui_click accepts back as x and y.
 func ui_tree(a: Dictionary) -> Variant:
 	var ui = main.ui
 	if ui == null:
@@ -442,8 +447,9 @@ func _wait_ms(ms: int, frames := 3) -> void:
 		await tree.process_frame
 		n += 1
 
-# What the form told the server, and which slots it acted on, while `body`
-# ran: listened to on formspec.gd's own signals, the ones game_ui sends from.
+# What the form told the server, and which slots it acted on, between _watch
+# and _unwatch: listened to on formspec.gd's own signals, the ones game_ui
+# sends from, so a reply reports what a click actually sent.
 func _watch() -> Dictionary:
 	var seen := {"fields": [], "slots": []}
 	var form = main.ui.form
@@ -486,6 +492,9 @@ func _hit() -> String:
 
 # --- actions -----------------------------------------------------------------
 
+## Moves the pointer onto a target (see _find), waits two frames so the GUI
+## sees the hover a real pointer would give, then presses and releases.
+## Replies with what was under the pointer and what the form sent.
 func ui_click(a: Dictionary) -> Variant:
 	var where := _find(a)
 	if where.has("__error"):
@@ -507,6 +516,7 @@ func ui_click(a: Dictionary) -> Variant:
 	_unwatch(seen, out)
 	return out
 
+## Rests the pointer on a target and returns the tooltip it brings up.
 func ui_hover(a: Dictionary) -> Variant:
 	var where := _find(a)
 	if where.has("__error"):
@@ -531,10 +541,10 @@ func ui_hover(a: Dictionary) -> Variant:
 		out["tooltip"] = {"text": c.tooltip_text} if c != null and c.tooltip_text != "" else null
 	return out
 
-# Click into a field (name, or x and y) so it takes the focus as it would for
-# a player, then type text a key at a time. clear empties it first with
-# Ctrl+A and Backspace; enter presses Enter afterwards, which is how a
-# formspec field submits.
+## Click into a field (name, or x and y) so it takes the focus as it would for
+## a player, then type text a key at a time. clear empties it first with
+## Ctrl+A and Backspace; enter presses Enter afterwards, which is how a
+## formspec field submits.
 func ui_type(a: Dictionary) -> Variant:
 	var out := {}
 	var target := {}
@@ -598,6 +608,7 @@ func ui_type(a: Dictionary) -> Variant:
 		_unwatch(seen, out)
 	return out
 
+## Turns the wheel over a target: amount notches, negative is up.
 func ui_scroll(a: Dictionary) -> Variant:
 	var where := _find(a)
 	if where.has("__error"):
@@ -625,9 +636,9 @@ func ui_scroll(a: Dictionary) -> Variant:
 		out["scrollbars"] = bars
 	return out
 
-# A key or a game action: press, release, or both (tap, the default), with
-# hold_ms between them for a held movement key. dig and place are mouse
-# buttons at the centre of the screen, which is where a captured pointer is.
+## A key or a game action: press, release, or both (tap, the default), with
+## hold_ms between them for a held movement key. dig and place are mouse
+## buttons at the centre of the screen, which is where a captured pointer is.
 func key(a: Dictionary) -> Variant:
 	var name := String(a.get("key", a.get("name", "")))
 	if name == "":

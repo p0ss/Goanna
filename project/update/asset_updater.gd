@@ -1,19 +1,29 @@
 # SPDX-License-Identifier: MIT
+## Fetches the material bundles (docs/develop/asset-bundles.md) from the
+## catalogue named in res://bootstrap_assets.json, and installs them through
+## update/asset_store.gd. Made in three roles, set before it is added: by
+## game/main.gd for a session, matching the server's announced media
+## (reads GoannaClient.status and announced_media_names each frame); by
+## menu/menu.gd to upgrade what is installed, and for Start Game's world.
 extends Node
 
 const AssetStore := preload("res://update/asset_store.gd")
 const CFG_PATH := "user://goanna.cfg"
 
+## One bundle downloaded, verified and installed into the store.
 signal bundle_installed(bundle_id: String)
-# Once a session: nothing more is coming for this connection. The catalogue
-# could not be had or the updates are off, or the server's media asked for
-# nothing new, or every bundle it asked for has been fetched or has failed.
-# main.gd holds the join until then (or until the player skips).
+## Once a session: nothing more is coming for this connection. The catalogue
+## could not be had or the updates are off, or the server's media asked for
+## nothing new, or every bundle it asked for has been fetched or has failed.
+## main.gd holds the join until then (or until the player skips).
+##
+## Emitted once per instance, deferred when it settles at once.
 signal settled()
 
 # Seconds the catalogue may take before the join stops waiting for it.
 const CATALOGUE_TIMEOUT_S := 15.0
 
+# The session's GoannaClient, for the session role only.
 var client: Node
 # "host:port" of the server this session joined, set by main.gd. Empty for a
 # run that has no server to remember a game for.
@@ -58,6 +68,7 @@ var for_game := ""
 # read and every player starts 0.13.0 with updates on.
 const SETTING := "material_updates"
 
+## Whether the player has material updates on (settings/material_updates).
 static func updates_on(path := CFG_PATH) -> bool:
 	var cfg := ConfigFile.new()
 	cfg.load(path)
@@ -90,14 +101,18 @@ func _settle() -> void:
 func is_settled() -> bool:
 	return _settled
 
-# How far the downloads this session started have got: which bundle of how
-# many, and its bytes so far and in all (-1 until the server says).
+## How far the downloads this session started have got: which bundle of how
+## many, and its bytes so far and in all (-1 until the server says).
 func progress() -> Dictionary:
 	if _http == null or _current.is_empty():
 		return {}
 	return {"bundle": _total - _queue.size(), "count": _total,
 		"bytes": _http.get_downloaded_bytes(), "size": _http.get_body_size()}
 
+## Installs the bundles a release carries in its assets/ folder (listed in
+## res://bootstrap_assets.json), so a packaged client has materials before
+## its first download. Called on every start by menu.gd and main.gd; an
+## installed version is a no op in AssetStore.install_archive.
 static func install_bootstrap() -> void:
 	var bootstrap = JSON.parse_string(FileAccess.get_file_as_string("res://bootstrap_assets.json"))
 	if bootstrap is not Dictionary:
@@ -149,9 +164,6 @@ func _process(_delta: float) -> void:
 		_settle()
 	_download_next()
 
-# The one game every matched bundle is for, or "" when they name none or
-# disagree. The protocol never tells a client the server's game, so this is
-# the only evidence a remote join has: the bundles its media asked for.
 # The newest version of each bundle. The catalogue keeps older versions for
 # the clients that pinned them, and both matched, so a join fetched Minetest
 # Game's terrain 1.1.0 and then 2.0.0 over it.
@@ -173,6 +185,7 @@ static func _version_after(a: String, b: String) -> bool:
 			return p > q
 	return false
 
+# Every game all the bundles name, in the first bundle's order.
 static func common_games(bundles: Array) -> Array:
 	var common: Array = []
 	var first := true
@@ -217,6 +230,9 @@ static func one_game(matched: Array, names: Dictionary, ambiguous: Dictionary) -
 		return winners.all(func(g: String) -> bool: return str(g) in b.get("games", []).map(func(x) -> String: return str(x))))
 	return kept
 
+# The one game every matched bundle is for, or "" when they name none or
+# disagree. The protocol never tells a client the server's game, so this is
+# the only evidence a remote join has: the bundles its media asked for.
 static func game_of(bundles: Array) -> String:
 	var common := {}
 	var first := true
@@ -242,6 +258,8 @@ static func _server_key(address: String) -> String:
 		key += c if (c >= "a" and c <= "z") or (c >= "0" and c <= "9") else "_"
 	return key
 
+## Records the game a server ran, under [server_games] in goanna.cfg.
+## Called here on a session's match and by menu.gd from the server list.
 static func remember_game(address: String, game: String, path := CFG_PATH) -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(path)
@@ -250,6 +268,7 @@ static func remember_game(address: String, game: String, path := CFG_PATH) -> vo
 	cfg.set_value("server_games", _server_key(address), game)
 	cfg.save(path)
 
+## The game remember_game last recorded for this address, or "".
 static func remembered_game(address: String, path := CFG_PATH) -> String:
 	var cfg := ConfigFile.new()
 	cfg.load(path)
@@ -399,6 +418,8 @@ func _download_next() -> void:
 func _on_bundle(result: int, code: int, _headers: PackedStringArray,
 		_body: PackedByteArray) -> void:
 	var target := str(_current.get("target", ""))
+	# A failure is only a warning: nothing is half installed (the store stages
+	# and renames), and the next session asks for the bundle again.
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 		var error := AssetStore.install_archive(target, str(_current.sha256))
 		if error != "":

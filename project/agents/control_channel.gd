@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## The developer control channel: a loopback socket taking one JSON command a
+## line, so a running client can be driven and questioned without relaunching
+## it (docs/agents/control-channel.md). game/main.gd adds it in _ready when
+## GOANNA_CONTROL is set, setting main first; tools/goanna-control and
+## tools/goanna-mcp talk to it. Runs on the main thread and reads main.gd's
+## state directly. export_presets.cfg leaves it out of a release.
 #
-# A loopback command channel, so a running client can be driven and
-# questioned without relaunching it. Off unless GOANNA_CONTROL is set, and
-# bound to 127.0.0.1 so nothing off this machine can reach it.
+# Off unless GOANNA_CONTROL is set, and bound to 127.0.0.1 so nothing off this
+# machine can reach it.
 #
 # Why it exists. Every question asked of the client used to cost a process
 # launch: set one of the hundred odd GOANNA_* variables, connect, wait a
@@ -24,8 +29,8 @@
 #
 # The trap it introduces, and the answer to it. Tuning a value in a live
 # process and reporting it as working is not the same as the committed code
-# doing it, and CLAUDE.md forbids the second claim on the strength of the
-# first. So the value of every setting is recorded before the first command
+# doing it, and AGENTS.md (rule 3) forbids the second claim on the strength
+# of the first. So the value of every setting is recorded before the first command
 # lands, "deviations" reports what has moved since, and every shot reply and
 # sidecar carries that list. A reading is only a result once it has been
 # reproduced from a clean launch with nothing deviating.
@@ -84,7 +89,8 @@ var _tod := -1.0					# our own copy: the client does not read it back
 var _reloaded := []					# shaders hot loaded since launch, a deviation
 var _port := 0
 var _ui: RefCounted				# control_ui.gd, the ui_* and key commands
-# The test overlay's state, read by ui/game_ui.gd. `label` says what this
+# The test overlay's state, read by ui/game_ui.gd (it finds this node by the
+# goanna_control group). `label` says what this
 # session is for, set with the label command or GOANNA_TEST_LABEL at launch;
 # the rest is kept by _run so a watcher can tell a hung client from a waiting
 # agent without attaching anything.
@@ -223,14 +229,15 @@ func _send(conn: Dictionary, msg: Dictionary) -> void:
 	if peer.get_status() == StreamPeerTCP.STATUS_CONNECTED:
 		peer.put_data((json_line(msg) + "\n").to_utf8_buffer())
 
-# One reply as strict JSON. Godot's JSON.stringify escapes only \b, \f, \n,
-# \r and \t, and passes the other control characters through raw, which
-# JSON forbids inside a string. Luanti's coloured text carries them: a
-# nametag or infotext with core.colorize is "\u001b(c@#ff0000)...", and an
-# entity list holding one could not be parsed by tools/goanna-control
-# ("Invalid control character"). JSON.stringify has already escaped every
-# control character outside a string, and there are none in its structure,
-# so each one left is inside a string and becomes \u00XX.
+## One reply as strict JSON, one line. tests/control_json.gd checks it.
+## Godot's JSON.stringify escapes only \b, \f, \n,
+## \r and \t, and passes the other control characters through raw, which
+## JSON forbids inside a string. Luanti's coloured text carries them: a
+## nametag or infotext with core.colorize is "\u001b(c@#ff0000)...", and an
+## entity list holding one could not be parsed by tools/goanna-control
+## ("Invalid control character"). JSON.stringify has already escaped every
+## control character outside a string, and there are none in its structure,
+## so each one left is inside a string and becomes \u00XX.
 static func json_line(msg) -> String:
 	var text := JSON.stringify(msg)
 	# From 1: char(0) is the empty string, which every string contains.
@@ -240,6 +247,8 @@ static func json_line(msg) -> String:
 			text = text.replace(c, "\\u%04x" % code)
 	return text
 
+# Every handler returns either a value or this; _run turns "__error" into
+# {"ok": false} so a handler never has to build the reply envelope.
 static func _err(what: String) -> Dictionary:
 	return {"__error": what}
 
@@ -251,6 +260,7 @@ func _client() -> Node:
 func _dispatch(cmd: String, a: Dictionary) -> Variant:
 	if main == null or not is_instance_valid(main):
 		return _err("no main node")
+	# Before the command runs, so the first "set" is itself a deviation.
 	_ensure_baseline()
 	match cmd:
 		"help":
@@ -284,6 +294,8 @@ func _dispatch(cmd: String, a: Dictionary) -> Variant:
 		"inspect":
 			return _inspect(a)
 		"tp":
+			# Positions here are Godot space (Luanti's z negated); main.gd's
+			# teleport_to sends the /teleport and converts.
 			var want = _vec3(a)
 			if want == null:
 				return _err("tp wants x, y, z (or pos: [x, y, z])")
@@ -583,6 +595,8 @@ func _set_setting(a: Dictionary) -> Variant:
 		return _err("no UI, settings are applied through it")
 	if not a.has("value"):
 		return _err("set wants a value")
+	# Every mat_<channel> key reaches the client's material strengths
+	# (game_ui._apply_setting), whether or not the panel lists it.
 	var known := key.begins_with("mat_")
 	for entry in main.ui.SETTINGS:
 		if String(entry[1]) == key:
@@ -642,6 +656,9 @@ func _shot(a: Dictionary) -> Variant:
 	var path := String(a.get("path", ""))
 	if path == "":
 		return _err("shot wants a path")
+	# Under --headless the dummy renderer draws nothing to read back. A
+	# rendered test client runs in headless gamescope instead, which is a
+	# real display as far as Godot can tell.
 	if DisplayServer.get_name() == "headless":
 		return _err("headless has no viewport texture to save; run with a display")
 	if bool(a.get("settle", true)):
@@ -653,6 +670,8 @@ func _shot(a: Dictionary) -> Variant:
 	# A shot that keeps the UI, because a form or a tooltip is the subject,
 	# still leaves the test overlay out: it is for a person watching.
 	remove_from_group("goanna_control")
+	# A few frames with block polling forced, so meshes the settle saw
+	# arrive are on screen, then the frame after the last draw is read.
 	for i in maxi(0, int(a.get("warm", 8))):
 		_client().poll_blocks(64)
 		await get_tree().process_frame
@@ -834,6 +853,8 @@ static func _coerce(args: Array) -> Array:
 			out.append(v)
 	return out
 
+# Godot values to what JSON can carry: vectors and colours become arrays,
+# objects their string, and raw bytes only their length.
 static func _plain(v: Variant) -> Variant:
 	if v is Dictionary:
 		var out := {}

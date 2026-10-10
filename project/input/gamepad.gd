@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# Game controller input, loaded as the Gamepad autoload so the main menu, the
-# game and every form get the same handling.
+## Game controller input: the stick and buttons in play, and a cursor of its
+## own outside it. Loaded as the Gamepad autoload (project.godot) so the main
+## menu, the game and every form get the same handling; split screen gives
+## each player another instance with local_input set (game/player_slot.gd).
+## tests/gamepad.gd checks it with synthetic joypad events.
 #
 # In play, main.gd asks this for the stick and button state each frame and
 # folds it into the same keys dictionary, look angles and dig and place flags
@@ -102,13 +104,14 @@ const HOLD_KEYS := {"goanna_talk": KEY_T}
 const UI_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_ui_back": KEY_ESCAPE,
 	"goanna_inventory": KEY_I}
 
-# Settings, from goanna.cfg and the settings panel.
 # A local player consumes only events forwarded into their viewport. Global
 # Input state still serves the single-player game and the main menu.
 var local_input := false
 var device_id := -1
 var _strengths := {}
 
+## Forgets every held stick, button and pending edge, for a slot whose
+## controller changed or whose game restarted.
 func reset_input() -> void:
 	_leave_pointer()
 	_strengths.clear()
@@ -135,13 +138,14 @@ func _push_event(event: InputEvent) -> void:
 	else:
 		Input.parse_input_event(event)
 
+# Settings, from goanna.cfg and the settings panel.
 var enabled := true
 var look_speed := DEFAULT_LOOK_SPEED
 var invert_y := false
 var deadzone := DEFAULT_DEADZONE
 
-# Returns true while the game, rather than a menu, has the controls. main.gd
-# sets it; with no game running (the main menu) the controller is a cursor.
+## Returns true while the game, rather than a menu, has the controls. main.gd
+## sets it; with no game running (the main menu) the controller is a cursor.
 var play_owner := Callable()
 
 # Sticks after the deadzone, x right and y down, from -1 to 1.
@@ -237,12 +241,13 @@ static func label(control: String, device: String, family: String) -> String:
 	var names: Dictionary = LABELS.get(control, {})
 	return str(names.get("keyboard" if device == "keyboard" else family, control))
 
-# The name of a control on what the player is using now.
+## The name of a control on what the player is using now, for prompts:
+## "back", "confirm", "menu" or "talk" (see LABELS).
 func prompt(control: String) -> String:
 	return label(control, last_device, controller_family)
 
-# Read at startup, and again by the main menu when its settings screen saves,
-# since the menu has no game panel to apply them live.
+## Read at startup, and again by the main menu when its settings screen saves,
+## since the menu has no game panel to apply them live.
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) != OK:
@@ -347,10 +352,10 @@ func held(action: String) -> bool:
 
 # --- what main.gd reads in play ----------------------------------------------
 
-# Fold the controller into main.gd's keys dictionary. A key held on the
-# keyboard stays a full press; a stick adds its analogue amount only where
-# no key is down, which is upstream's rule that keys take priority
-# (PlayerControl::setMovementFromKeys).
+## Fold the controller into main.gd's keys dictionary. A key held on the
+## keyboard stays a full press; a stick adds its analogue amount only where
+## no key is down, which is upstream's rule that keys take priority
+## (PlayerControl::setMovementFromKeys).
 func merge_keys(keys: Dictionary) -> void:
 	if not enabled:
 		return
@@ -363,6 +368,7 @@ func merge_keys(keys: Dictionary) -> void:
 		if held(pair[1]):
 			keys[pair[0]] = true
 
+## Degrees to add to main.gd's yaw and pitch this frame from the right stick.
 func look_step(delta: float, fov_deg: float) -> Vector2:
 	if not enabled:
 		return Vector2.ZERO
@@ -374,8 +380,8 @@ func dig_held() -> bool:
 func place_held() -> bool:
 	return held("goanna_place")
 
-# How many of an edge happened since the last take: "hotbar" is a signed
-# step count, "drop" and "place" are presses.
+## How many of an edge happened since the last take: "hotbar" is a signed
+## step count, "drop" and "place" are presses.
 func take(what: String) -> int:
 	var n: int = _pending.get(what, 0)
 	_pending[what] = 0
@@ -386,6 +392,8 @@ func take(what: String) -> int:
 func _process(delta: float) -> void:
 	step(delta)
 
+## One frame of controller state. _process calls it; tests/gamepad.gd calls
+## it directly with its own delta.
 func step(delta: float) -> void:
 	_clock += delta
 	if not enabled:

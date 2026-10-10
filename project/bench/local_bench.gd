@@ -1,8 +1,15 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-# Development-only recorder, installed through the control channel.
+## The benchmark recorder for split screen local play: bench.gd's per frame
+## recorder stretched over every player's game scene, with each viewport's
+## CPU and GPU render time and a camera that travels out from a fixed centre.
+## Development only: tools/bench/bench-local-play.py builds it through the
+## control channel's eval and drives it there (configure_scene, prepare,
+## set_feature_variant, snapshot), and tests/graphics_profiles.gd loads it.
 extends "res://bench/bench.gd"
 
+# The game scenes (main.gd) being measured, set by the harness before this is
+# added: one per local player slot.
 var games: Array = []
 var views: Array = []
 var scene := {}
@@ -24,6 +31,8 @@ func _ready() -> void:
 	for view in views:
 		RenderingServer.viewport_set_measure_render_time(view.get_viewport_rid(), true)
 
+# The "move_full" phase measures with every camera travelling, so the far
+# field and streaming are under load rather than settled.
 func start(args: Dictionary) -> Dictionary:
 	if args.get("phase", "") == "move_full":
 		start_travel()
@@ -73,6 +82,8 @@ func _hold_pose() -> void:
 	if moving:
 		_hold = false
 
+## One entry per player: status, render stats, pass switches, frame work,
+## settings and camera. The harness reads it before and after each case.
 func snapshot() -> Array:
 	var result := []
 	for game in games:
@@ -124,6 +135,9 @@ func scene_evidence() -> Array:
 
 var feature_baselines: Array = []
 
+## Turns off the named render feature switches (game/render_features.gd) in
+## every game and restores the rest to the baseline configure_scene recorded.
+## False, and nothing changed, if a name is not a known switch.
 func set_feature_variant(disabled: Array) -> bool:
 	var defaults: Dictionary = preload("res://game/render_features.gd").DEFAULTS
 	for key in disabled:
@@ -139,6 +153,9 @@ func set_feature_variant(disabled: Array) -> bool:
 			game.get_viewport().screen_space_aa = int(scene.screen_aa)
 	return true
 
+## Applies one scene from tools/bench/local-feature-scenes.json and the
+## settings of the case under test. Budgets the scene gives for the whole
+## process (poll budget, mesh workers) are shared out between the players.
 func configure_scene(config: Dictionary, settings: Dictionary) -> void:
 	scene = config
 	feature_baselines.clear()
@@ -163,6 +180,11 @@ func configure_scene(config: Dictionary, settings: Dictionary) -> void:
 			var particles = preload("res://game/player_context.gd").find(game, "goanna_particles")
 			particles.inject_test_spawner("rain")
 
+## Places every player round the benchmark centre at (-72, 64, 378) in
+## Godot's axes (Luanti's z is negated), where tools/bench/
+## local-feature-fixture.lua builds its test scene, each facing in
+## on it, or with spread facing outward from a wider ring. Awaits each
+## teleport; false if one is refused.
 func prepare(spread := false) -> bool:
 	moving = false
 	origins.clear()

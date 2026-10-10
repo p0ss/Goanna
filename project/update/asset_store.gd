@@ -1,10 +1,21 @@
 # SPDX-License-Identifier: MIT
-# Versioned, independently installed Goanna asset bundles.
+## The on-disk store of Goanna's material bundles: verifies and installs a
+## downloaded archive, and composes each game's profile, the one textures
+## directory the renderer and local_server.gd read. Static functions only,
+## reached by preload from update/asset_updater.gd (which downloads),
+## net/local_server.gd, game/main.gd and the asset tests.
+## docs/develop/asset-bundles.md has the formats.
+#
+# Versioned, independently installed Goanna asset bundles. The layout under
+# root(): <bundle id>/<version>/ holds an unpacked bundle, never changed once
+# installed, and profiles/<game>/textures holds the composed copy.
 extends RefCounted
 
 const SCHEMA := "org.goanna.asset-bundle/v1"
 const CATALOGUE_SCHEMA := "org.goanna.asset-catalogue/v1"
 
+## The catalogue JSON as a Dictionary, or {} if its schema is wrong or any
+## bundle lacks an id, a version or a full SHA-256.
 static func parse_catalogue(text: String) -> Dictionary:
 	var value = JSON.parse_string(text)
 	if value is not Dictionary or value.get("schema", "") != CATALOGUE_SCHEMA \
@@ -17,6 +28,8 @@ static func parse_catalogue(text: String) -> Dictionary:
 			return {}
 	return value
 
+## Where the store lives: GOANNA_ASSET_ROOT if set (the tests point it at a
+## scratch directory), else user://content/goanna-assets.
 static func root() -> String:
 	var override := OS.get_environment("GOANNA_ASSET_ROOT")
 	return override if override != "" else ProjectSettings.globalize_path("user://content/goanna-assets")
@@ -52,6 +65,8 @@ static func _version_key(version: String) -> Array:
 		result.append(int(part) if part.is_valid_int() else 0)
 	return result
 
+# Compares dotted versions numerically, ignoring build metadata after "+";
+# the plain string comparison only breaks a numeric tie.
 static func _newer(a: String, b: String) -> bool:
 	var ak := _version_key(a)
 	var bk := _version_key(b)
@@ -98,6 +113,7 @@ static func beside_project(name: String) -> String:
 		return OS.get_executable_path().get_base_dir().path_join("..").path_join(name).simplify_path()
 	return ProjectSettings.globalize_path("res://..").path_join(name).simplify_path()
 
+## The composed textures directory for a game, or "" if none is installed.
 static func profile_texture_path(game: String, store_root := "") -> String:
 	var base: String = store_root if store_root != "" else root()
 	var path := base.path_join("profiles").path_join(game).path_join("textures")
@@ -111,6 +127,11 @@ static func _copy_file(source: String, destination: String) -> bool:
 	output.store_buffer(input.get_buffer(input.get_length()))
 	return true
 
+## Checks the archive against the catalogue's hash, unpacks it into a
+## staging directory, checks every file against the manifest's ledger, then
+## renames it into place and rebuilds the profiles of the games it supports.
+## Returns "" on success (an already installed version also counts) or a
+## message fit to show the player.
 static func install_archive(archive_path: String, expected_sha256: String,
 		store_root := "") -> String:
 	if expected_sha256.length() != 64 \
@@ -145,6 +166,8 @@ static func _remove_tree(path: String) -> void:
 	DirAccess.remove_absolute(path)
 
 static func _install_staged(zip: ZIPReader, staging: String, base: String) -> String:
+	# Refuse any entry that would land outside the staging directory, and any
+	# that is not already in its simplest form, before writing a byte.
 	for entry in zip.get_files():
 		var clean := entry.replace("\\", "/").simplify_path()
 		if clean == "." or clean.begins_with("../") or clean.begins_with("/") \
@@ -195,6 +218,7 @@ static func _install_staged(zip: ZIPReader, staging: String, base: String) -> St
 			or normals.size() != int(manifest.get("texture_pairs", -1)):
 		return "The asset bundle has incomplete normal/material pairs."
 	var destination := base.path_join(str(manifest.id)).path_join(str(manifest.version))
+	# Installed versions are immutable, so the same version again is a no op.
 	if DirAccess.dir_exists_absolute(destination):
 		return ""
 	DirAccess.make_dir_recursive_absolute(destination.get_base_dir())

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-#
-# The benchmark recorder: per frame frame times, a once a second counter
-# sample, the load stamps, and the scripted route that carries the camera
-# through the world at a fixed speed.
+## The benchmark recorder: per frame frame times, a once a second counter
+## sample, the load stamps, and the scripted route that carries the camera
+## through the world at a fixed speed. game/main.gd builds it in _ready when
+## GOANNA_BENCH is set, and only then; the control channel's "bench" and
+## "route" commands drive it. main.gd asks owns_input and route_step each
+## frame. bench/local_bench.gd extends it for split screen.
 #
 # Why per frame. The one second GOANNA_PERF line and tools/bench/far-baseline.py
 # both read Engine.get_frames_per_second(), which is a smoothed average. A
@@ -165,8 +167,8 @@ func _process(_delta: float) -> void:
 	_watch_load()
 	_sample_counters()
 
-# True while the client should ignore its keyboard and mouse. main.gd asks
-# this before reading either.
+## True while the client should ignore its keyboard and mouse. main.gd asks
+## this before reading either.
 func owns_input() -> bool:
 	return recording or route_active()
 
@@ -281,6 +283,9 @@ func _sample_counters() -> void:
 
 # --- the run -----------------------------------------------------------------
 
+## Starts a run: "label", "phase" (one of PHASES) and "capacity" in frames.
+## The control channel's "bench start" passes its arguments through; every
+## reply here is the channel's JSON, with "__error" for a refusal.
 func start(a: Dictionary) -> Dictionary:
 	_cap = maxi(1000, int(a.get("capacity", DEFAULT_CAPACITY)))
 	_t.resize(_cap)
@@ -305,6 +310,7 @@ func start(a: Dictionary) -> Dictionary:
 	recording = true
 	return {"recording": true, "capacity": _cap, "label": label, "phase": phase}
 
+## Switches the running record to another phase, so each is summarised apart.
 func mark(a: Dictionary) -> Dictionary:
 	var want := str(a.get("phase", "steady"))
 	var at := PHASES.find(want)
@@ -315,6 +321,8 @@ func mark(a: Dictionary) -> Dictionary:
 	_hold_pose()
 	return {"phase": phase, "frames": _n}
 
+## Ends the run and returns its summary; with "dir", also writes frames.csv,
+## samples.jsonl and summary.json there.
 func stop(a: Dictionary) -> Dictionary:
 	if not recording:
 		return {"__error": "no run is recording"}
@@ -328,9 +336,9 @@ func stop(a: Dictionary) -> Dictionary:
 		out["dir"] = dir
 	return out
 
-# Everything the run measured, per phase, in the terms the report uses. A
-# driver is free to recompute these from frames.csv; they are here so a run
-# without a Python driver attached still answers the question.
+## Everything the run measured, per phase, in the terms the report uses. A
+## driver is free to recompute these from frames.csv; they are here so a run
+## without a Python driver attached still answers the question.
 func summary(_a: Dictionary) -> Dictionary:
 	var out := {"label": label, "frames": _n, "overflowed": overflowed,
 		"stamps": stamps, "disturbed_m": disturbed_m,
@@ -477,9 +485,11 @@ func _write(dir: String) -> String:
 
 # --- the route ---------------------------------------------------------------
 
-# points are absolute world positions. speed is nodes a second: Luanti walks
-# at about 4.3 and sprints at about 5.6, and the fly path takes whatever it
-# is given so a streaming ceiling can be searched for.
+## points are absolute world positions (or offsets from the camera with
+## "relative"). speed is nodes a second: Luanti walks at about 4.3 and
+## sprints at about 5.6, and the fly path takes whatever it is given so a
+## streaming ceiling can be searched for. "walk" goes through the real player
+## physics by way of walk_keys; "fly" sets the camera from route_step.
 func route_start(a: Dictionary) -> Dictionary:
 	var raw: Array = a.get("points", [])
 	if raw.size() < 2:
@@ -531,8 +541,8 @@ func route_stop() -> Dictionary:
 func route_active() -> bool:
 	return route_mode != "" and _points.size() >= 2
 
-# Where the camera should be after delta seconds of travel. main.gd's fly
-# branch assigns this in place of reading the keyboard.
+## Where the camera should be after delta seconds of travel. main.gd's fly
+## branch assigns this in place of reading the keyboard.
 func route_step(delta: float) -> Dictionary:
 	var total: float = _legs[_legs.size() - 1]
 	var step := route_speed * delta
@@ -561,8 +571,8 @@ func route_step(delta: float) -> Dictionary:
 			route_pitch = rad_to_deg(asin(clampf(d.y, -1.0, 1.0)))
 	return {"position": pos, "pitch": route_pitch, "yaw": route_yaw}
 
-# Synthetic movement keys for the walking path, which goes through the real
-# player physics in client.step_player rather than moving the camera.
+## Synthetic movement keys for the walking path, which goes through the real
+## player physics in client.step_player rather than moving the camera.
 func walk_keys() -> Dictionary:
 	var total: float = _legs[_legs.size() - 1]
 	var here: Vector3 = main.cam.position

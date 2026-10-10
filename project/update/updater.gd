@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
+## Goanna's own signed self update: checks GitHub's releases, verifies the
+## signed manifest and the zip, and swaps the new files into the package.
+## Made by menu/menu.gd, which shows the offer when state_changed reports
+## "available"; tests/updater.gd drives it against a local key and API.
+## A source checkout has no version.json, so it never checks.
 #
 # Updates Goanna itself from its GitHub releases, so a fix does not mean every
 # player going back to GitHub to download the client again.
@@ -23,6 +28,7 @@
 # folder, not the package, and are not touched.
 extends Node
 
+## state or message changed; read both from this node.
 signal state_changed
 
 const LocalServer := preload("res://net/local_server.gd")
@@ -43,10 +49,12 @@ var _http: HTTPRequest
 var _api_url := RELEASES_API
 
 
-# The running package's version, or "" for a source checkout.
+# The folder holding the running program and version.json. Its parent is
+# what an update replaces files under.
 static func package_dir() -> String:
 	return OS.get_executable_path().get_base_dir()
 
+## The running package's version, or "" for a source checkout.
 static func installed_version() -> String:
 	var path := package_dir().path_join("version.json")
 	if not FileAccess.file_exists(path):
@@ -70,6 +78,7 @@ static func parse_version(tag: String) -> Array:
 		out.append(int(p))
 	return out
 
+## Whether release tag a is newer than b; false if either is not a version.
 static func newer(a: String, b: String) -> bool:
 	var x := parse_version(a)
 	var y := parse_version(b)
@@ -86,7 +95,7 @@ static func sha256_bytes(data: PackedByteArray) -> PackedByteArray:
 	ctx.update(data)
 	return ctx.finish()
 
-# Whether `signature` is the maintainer's signature of `manifest`.
+## Whether `signature` is the maintainer's signature of `manifest`.
 static func signature_valid(manifest: PackedByteArray, signature: PackedByteArray,
 		key_pem: String) -> bool:
 	var key := CryptoKey.new()
@@ -111,7 +120,9 @@ func _ready() -> void:
 	add_child(_http)
 
 
-# Ask GitHub for the newest release, unless asked recently or turned off.
+## Ask GitHub for the newest release, unless asked recently or turned off.
+## The newest signed release newer than this one wins; a release whose
+## signature fails stops the search rather than falling back to an older one.
 func check(force := false) -> void:
 	if current_version == "" or state in ["checking", "downloading", "installing", "installed"]:
 		return
@@ -158,8 +169,8 @@ func check(force := false) -> void:
 	_set_state("none", "Goanna %s is up to date." % current_version)
 
 
-# Download, check and install the available update. Restarts into it unless
-# `restart` is false.
+## Download, check and install the available update. Restarts into it unless
+## `restart` is false.
 func install(restart := true) -> void:
 	if state != "available":
 		return
@@ -201,9 +212,9 @@ func install(restart := true) -> void:
 		get_tree().quit()
 
 
-# Moves every file under `source` into the same place under `root`, renaming
-# any file already there aside first. All or nothing: a failure part way puts
-# back every file it had replaced. Returns "" or an error for the player.
+## Moves every file under `source` into the same place under `root`, renaming
+## any file already there aside first. All or nothing: a failure part way puts
+## back every file it had replaced. Returns "" or an error for the player.
 static func swap_in(source: String, root: String) -> String:
 	var files: Array = []
 	_list_files(source, "", files)
@@ -272,6 +283,7 @@ func _get_json(url: String) -> Variant:
 	return JSON.parse_string(body.get_string_from_utf8()) if not body.is_empty() else null
 
 func _get_bytes(url: String) -> PackedByteArray:
+	# One HTTPRequest serves every call, and it refuses a request while busy.
 	if _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		_http.cancel_request()
 	if _http.request(url, ["Accept: application/vnd.github+json", "User-Agent: Goanna"]) != OK:
