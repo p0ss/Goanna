@@ -2,7 +2,7 @@
 """Check Goanna's v3 damage port against a live Kythen checkout.
 
 `goanna_radial_form_test` is pinned to `tools/test/dig-review/reference_v3.json`,
-a copy of what Kythen's own `tools/test/dig-review/generate_reference.lua`
+a copy of what Kythen's own `tools/dig-review/generate_reference.lua`
 produces from `mods/kythen/core/radial_form.lua`. That copy is GENERATED and
 committed so the test needs no Kythen checkout to run; this script is the
 other half, for when one is available: it re-runs the real generator against
@@ -32,7 +32,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('kythen', type=Path, help='path to a Kythen checkout (read only)')
-    ap.add_argument('--generator', default='tools/test/dig-review/generate_reference.lua',
+    ap.add_argument('--generator', default='tools/dig-review/generate_reference.lua',
             help='Kythen-relative path to the reference generator')
     ap.add_argument('--committed', default='tools/test/dig-review/reference_v3.json',
             help='Goanna-relative path to the committed reference copy')
