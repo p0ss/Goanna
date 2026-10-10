@@ -159,6 +159,9 @@ var _storm_noise := FastNoiseLite.new()
 var _storm_drift := Vector2.ZERO
 var _storm_time := 0.0
 var _severity := 0.5
+# 0 to 1 pins where in a storm cell the viewer stands, for a test or a
+# screenshot; below 0 (the default) the field decides.
+var storm_override := -1.0
 var _eye := Vector3.ZERO
 var _shader_text := {}       # path -> source, for ground_trace
 
@@ -834,7 +837,8 @@ func _update_severity(delta: float) -> void:
 	_storm_time += delta
 	_storm_drift += _wind * STORM_DRIFT * delta
 	var thunder := float(targets()["rain"]) > 1.3
-	var target := storm_severity_at(Vector2(_eye.x, _eye.z), _storm_time, _storm_drift, thunder)
+	var target := storm_override if storm_override >= 0.0 \
+			else storm_severity_at(Vector2(_eye.x, _eye.z), _storm_time, _storm_drift, thunder)
 	_severity = lerpf(_severity, target, 1.0 - exp(-delta / STORM_EASE_SECONDS))
 
 
