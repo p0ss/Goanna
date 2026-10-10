@@ -100,9 +100,6 @@ def run(label, carve):
                XDG_DATA_HOME=str(scratch / f'profile-{label}'),
                XDG_CONFIG_HOME=str(scratch / f'config-{label}'))
     time.sleep(6)
-    # The dig runs on the client's own clock from its start, so the wait is
-    # counted from here, not from when the launcher returns.
-    launched = time.monotonic()
     try:
         client = headless.Instance(headless.start_goanna(
             ROOT, port=args.server_port, name=f'digreview{label}', width=1280,
@@ -112,7 +109,12 @@ def run(label, carve):
         server.terminate()
         server.wait(timeout=10)
         raise
-    client.wait(timeout=max(0.0, args.seconds - (time.monotonic() - launched)))
+    # The dig runs on the client's own clock, which starts when Godot does.
+    # The launcher spends several seconds on its GPU checks and gamescope
+    # before that (about 9 s on the RTX 3090), so the wait is counted from
+    # when it returns, once the control channel answers; counted from before
+    # the launch, it stopped the client mid dig.
+    client.wait(timeout=args.seconds)
     shutil.copyfile(client.log, out / f'godot-{label}.log')
     for proc in (client, server):
         proc.terminate()
