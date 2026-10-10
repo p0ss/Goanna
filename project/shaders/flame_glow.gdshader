@@ -12,16 +12,21 @@
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
+// The same texture as flame.gdshader's, set alike, but filtered linearly so
+// a coarser mip reads as a blur of the art's alpha.
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_disable;
 
 #include "res://shaders/flame_common.gdshaderinc"
 
+// The halo's brightness against the flame's. Default only.
 uniform float halo_strength = 0.3;
 
 varying vec4 cell;
 varying vec3 world_pos;
 
 void vertex() {
+	// The frame's rectangle as origin and size in UV; the whole texture
+	// when there is no sheet.
 	cell = cell_rect ? vec4(CUSTOM0.xy, CUSTOM0.zw - CUSTOM0.xy) : vec4(0.0, 0.0, 1.0, 1.0);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
@@ -44,7 +49,8 @@ void fragment() {
 	vec3 keep = flame_underwater(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD, false);
 	vec3 core_hue = core_colour / flame_max3(core_colour);
 
-	// Where the blurred art reaches past the sharp art.
+	// Where the blurred art reaches past the sharp art. Mip 1.6 spreads the
+	// alpha about three texels, which is the halo's width.
 	float halo = textureLod(albedo_tex, frame_uv, 1.6).a;
 	// On a sprite sheet that coarse read also reaches the next frame up,
 	// whose base is solid flame: without this the top of every frame

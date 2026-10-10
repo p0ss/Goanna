@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // An opaque aperture onto eight virtual star planes. Depth remains at the
 // real sheet: neither parallax nor dark pixels expose geometry underneath.
+// Drawn on mcl_portals:portal_end, see portal_common.gdshaderinc and
+// docs/systems/portal-materials.md.
 shader_type spatial;
 render_mode unshaded, cull_back, depth_draw_opaque;
 
 #include "res://shaders/portal_common.gdshaderinc"
 
+// The portal tile's art, set by GoannaClient; only its alpha is used, to
+// cut the sheet's outline.
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
+// How far behind the sheet the star planes lie, in nodes for the deepest
+// scale. Default only in play; portal_study.gd sweeps it.
 uniform float parallax_depth : hint_range(0.0, 6.0) = 2.8;
 
 void fragment() {
@@ -19,12 +25,16 @@ void fragment() {
 	// Ray/plane intersections, the same tangent-space displacement as the
 	// relief march. A bounded grazing slope avoids an unstable horizon.
 	vec2 ray = vec2(dot(eye, u), dot(eye, v)) / max(abs(dot(eye, portal_normal)), 0.18);
+	// 2 pi / 60: one turn per wrap of the 60 second clock.
 	float phase = portal_time() * 0.104719755;
 	vec3 space = vec3(0.001, 0.004, 0.008);
 	for (int i = 0; i < 8; i++) {
 		float layer = float(i);
+		// Planes spaced quadratically, so the near ones separate clearly
+		// and the far ones crowd into a deep field.
 		float depth = (0.12 + layer * layer * 0.065) * parallax_depth;
 		vec2 plane = p - ray * depth;
+		// The golden angle, so no two planes' star grids line up.
 		float angle = layer * 2.399963;
 		mat2 rotation = mat2(vec2(cos(angle), sin(angle)), vec2(-sin(angle), cos(angle)));
 		vec2 field = rotation * plane * (3.5 + layer * 1.65) + vec2(layer * 37.1);

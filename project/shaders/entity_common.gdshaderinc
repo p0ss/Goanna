@@ -1,6 +1,17 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
-// Shared PBR decoding and lighting for entity surface variants.
+// Shared PBR decoding and lighting for entity surface variants: mob skins,
+// players, held and dropped items, armour and wall plates. Included by
+// entity.gdshader and its variants (entity_scissor, entity_double_sided,
+// entity_double_sided_scissor, entity_diamond, entity_diamond_double_sided),
+// which differ only in render_mode and the GOANNA_ALPHA_SCISSOR,
+// GOANNA_DOUBLE_SIDED and GOANNA_DIAMOND_TRANSMISSION defines.
+// EntityRenderer::materialForMeshTexture (src/goanna_entities.cpp) picks the
+// variant and sets the uniforms below; docs/systems/materials.md, "Mob,
+// player and item companions", describes the maps.
+
+// The surface's art: the entity texture, or for a composed node tile its
+// full resolution companion. Set by EntityRenderer::materialForMeshTexture.
 uniform sampler2D albedo : source_color, filter_nearest_mipmap, repeat_enable;
 // LabPBR companions, when a resource pack ships them (see docs): _n carries
 // the tangent normal in RG with ambient occlusion in B, _s carries perceptual
@@ -17,10 +28,14 @@ uniform sampler2D normal_tex : hint_default_black, filter_nearest_mipmap, repeat
 // values that decode as a dielectric with SPECULAR at its maximum, a shiny
 // rim half a companion texel wide round every plate.
 uniform sampler2D spec_tex : hint_default_black, filter_nearest_mipmap, repeat_enable;
+// Whether normal_tex and spec_tex hold a companion; set beside them by
+// EntityRenderer::materialForMeshTexture.
 uniform bool has_normal = false;
 uniform bool has_spec = false;
 // Per channel strengths, matching nodes_array_common.gdshaderinc; see its
-// comment for why a pack's channels routinely need scaling down.
+// comment for why a pack's channels routinely need scaling down. Each is
+// the settings slider of the same name (kMatStrengthDefaults in
+// src/goanna_client.cpp), passed on by EntityRenderer::setChannel.
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float ao_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float roughness_strength : hint_range(0.0, 1.0) = 1.0;
@@ -40,8 +55,12 @@ instance uniform vec2 node_light = vec2(0.0, 1.0);
 // Item meshes (a held tool, a dropped item) carry the item's colour in
 // their vertices, Luanti's wield mesh baking it there: a dyed piece of
 // leather, a tinted grass block. Mob meshes carry none.
+// Set true by EntityRenderer for item meshes only.
 uniform bool vertex_tint = false;
+// The warm block light fill's weight, as emission. Default only in play; the
+// offline studies (material_field.gd, diamond_study.gd) zero it.
 uniform float block_fill : hint_range(0.0, 2.0) = 0.6;
+// How far node_light.y (sky light) scales ambient, the "sky_light" channel.
 uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
 // Goanna: what this surface is made of, from the classifier
 // (src/goanna_materials.h, MaterialClass), and that class's material
@@ -50,9 +69,14 @@ uniform float sky_light_strength : hint_range(0.0, 1.0) = 1.0;
 // arrive here directly. Used only where the pack ships no authored _s, which
 // for Mineclonia's items is always.
 uniform int mat_class = 0;
-// A gem code, mode | kind << 2; see diamond.gdshaderinc.
+// A gem code, mode | kind << 2; see diamond.gdshaderinc. 0 for anything not
+// a gem; gemTextureCode in goanna_entities.cpp reads it from the texture.
 uniform int diamond_mode = 0;
+// The art's size in texels for the gem bevel: 64 by 32 for a wearable armour
+// atlas, 16 by 16 for an item tile.
 uniform vec2 diamond_texels = vec2(16.0);
+// The class's constants (classSpec in src/goanna_materials.h): perceptual
+// smoothness, F0, 1 for a metal, and subsurface share.
 uniform float class_smoothness : hint_range(0.0, 1.0) = 0.0;
 uniform float class_f0 : hint_range(0.0, 1.0) = 0.04;
 uniform float class_metal : hint_range(0.0, 1.0) = 0.0;
@@ -82,6 +106,9 @@ uniform sampler2D lift_tex : hint_default_black, filter_nearest, repeat_enable;
 uniform bool has_lift_tex = false;
 uniform vec2 art_texels = vec2(64.0, 32.0);
 uniform float parallax_strength : hint_range(0.0, 1.0) = 1.0;
+// Defaults only in play (the material studies set them): a multiplier on
+// the depth, the eye distance in metres where the march has faded out (it
+// starts fading at half of it), and how dark the self shadow may go.
 uniform float parallax_depth : hint_range(0.0, 4.0) = 1.0;
 uniform float parallax_range : hint_range(0.0, 256.0) = 40.0;
 uniform float parallax_shadow_strength : hint_range(0.0, 1.0) = 0.85;
@@ -113,7 +140,10 @@ instance uniform float wall_plate = 0.0;
 // never moves on screen, and at a node from the eye it is a millimetre.
 uniform float wall_plate_bias : hint_range(0.0, 0.01) = 0.001;
 varying vec3 v_wall_light;
-// The node shaders' balance of the same terms (nodes_array_common.gdshaderinc).
+// The node shaders' balance of the same terms (nodes_array_common.gdshaderinc),
+// the material strength channels of those names. Read on wall plates only.
+// goanna_ground_fill and goanna_lamp_reach are the globals main.gd and
+// GoannaClient::update_lights set for the node shaders.
 uniform float vertex_ao_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float vertex_ao_light_strength : hint_range(0.0, 1.0) = 0.3;
 uniform float sky_fill_strength : hint_range(0.0, 2.0) = 1.0;
@@ -137,6 +167,10 @@ uniform float hair_strength : hint_range(0.0, 1.0) = 0.0;
 // "hair_shader" material strength times GOANNA_HAIR_SHADER.
 uniform float hair_shader_strength : hint_range(0.0, 1.0) = 0.0;
 
+// Every entity variant takes the gem, hair and micro shadow parts of
+// light(); these are not tier switches. What the tiers move are the
+// strengths: mat_micro_shadow, mat_parallax, mat_parallax_short and
+// mat_hair_shader in project/graphics_profiles.gd.
 #define GOANNA_DIAMOND
 #define GOANNA_HAIR
 #define GOANNA_MICRO_SHADOW

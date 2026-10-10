@@ -12,9 +12,18 @@
 //
 // The halo and the heat shimmer are flame_glow.gdshader, this material's
 // next pass, which adds rather than blends.
+//
+// Loaded by GoannaClient (src/goanna_client.cpp) for flame node tiles and by
+// EntityRenderer::flameSpriteMaterial (src/goanna_entities.cpp) for a
+// burning entity; the uniforms it shares with the other passes are in
+// flame_common.gdshaderinc.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
 
+// The tile's current animation frame, or an entity's whole sprite sheet:
+// set on all three passes by GoannaClient::flameMaterial or
+// EntityRenderer::flameSpriteMaterial, and moved to the frame the clock
+// names by showAnimationFrame.
 uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_disable;
 
 #include "res://shaders/flame_common.gdshaderinc"
@@ -23,11 +32,15 @@ varying vec4 cell;
 varying vec3 world_pos;
 
 void vertex() {
+	// The frame's rectangle as origin and size in UV; the whole texture
+	// when there is no sheet.
 	cell = cell_rect ? vec4(CUSTOM0.xy, CUSTOM0.zw - CUSTOM0.xy) : vec4(0.0, 0.0, 1.0, 1.0);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
+	// The frame in whole texels of the base level, for the per texel
+	// coverage reads in flame_common.gdshaderinc.
 	ivec2 size = textureSize(albedo_tex, 0);
 	ivec2 origin = ivec2(cell.xy * vec2(size) + 0.5);
 	ivec2 dim = max(ivec2(cell.zw * vec2(size) + 0.5), ivec2(1));
@@ -39,6 +52,7 @@ void fragment() {
 	// After the reads that take derivatives, which need the whole quad.
 	if (coverage < 0.004 || (single_sided && !FRONT_FACING))
 		discard;
+	// Height up the frame: UV's V runs down the image.
 	float h = clamp(1.0 - local.y, 0.0, 1.0);
 	float flicker = flame_flicker(h, flame_phase(world_pos));
 	float heat = clamp(flame_heat(art.rgb, h) + (flicker - 1.0) * 0.6, 0.0, 1.0);

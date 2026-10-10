@@ -2,15 +2,21 @@
 //
 // Weather the client does not draw by shader (pollen, and all of it with
 // shader weather off) is drawn as particles, and Goanna's particles do not
-// collide, so it fell through every roof. particles.gd draws such a
+// collide, so it fell through every roof. ui/particles.gd draws such a
 // spawner with this in place of its StandardMaterial3D: the same billboard,
 // kept scale, sprite sheet animation and blend (the variant's render_mode,
 // written ahead of this include), and one more test, nothing under the
 // rain cover map's roof. It does what BaseMaterial3D generates for these
 // particles and nothing else: no lighting, no particle rotation.
+// Included by particle_covered_add, _mix and _sub, one per blend mode.
 
 #include "res://shaders/weather_common.gdshaderinc"
 
+// Each is copied from the spawner's StandardMaterial3D by ui/particles.gd
+// (_covered): its
+// texture and colour, BILLBOARD_FIXED_Y or not, the sprite sheet's frames
+// across and down and whether it loops, and its alpha scissor threshold
+// (0 is no scissor, which keeps the blend).
 uniform sampler2D albedo_tex : source_color, filter_nearest;
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform bool fixed_y = false;
@@ -42,6 +48,8 @@ void vertex() {
 	float h = float(anim_h_frames);
 	float v = float(anim_v_frames);
 	float total = h * v;
+	// INSTANCE_CUSTOM.z is the particle's animation phase, 0 to 1 over its
+	// life, as Godot's particle process material writes it.
 	float frame = floor(INSTANCE_CUSTOM.z * total);
 	frame = anim_loop ? mod(frame, total) : clamp(frame, 0.0, total - 1.0);
 	UV /= vec2(h, v);

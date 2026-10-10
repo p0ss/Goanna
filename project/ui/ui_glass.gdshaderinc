@@ -26,6 +26,11 @@
 // share one material: r is the corner radius over 64 pixels, g how opaque
 // the tint is (0 is the ordinary panel, 1 hides the world entirely), b the
 // strength of the drop shadow, and a the surface's overall opacity.
+//
+// Every uniform below is left at its default: the materials are shared and
+// nothing sets them. glass_surface.gd's MARGIN and glass_style.gd's
+// GLASS_CEILING and GLASS_SHEEN copy `margin`, `ceiling` and `sheen`, so a
+// change here wants the same change there.
 
 #ifdef GLASS_FROST
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
@@ -54,11 +59,15 @@ uniform float rim_bottom = 0.16;
 // refraction_reach pixels.
 uniform float refraction = 8.0;
 uniform float refraction_reach = 16.0;
+// The drop shadow's darkest alpha, and how many pixels below the surface
+// it falls.
 uniform float shadow_alpha = 0.36;
 uniform float shadow_drop = 6.0;
 // Without frost: how much of the world shows through the tint, unblurred.
 uniform float clear_opacity = 0.74;
 
+// Signed distance in pixels from p to a rounded rectangle centred on the
+// origin: negative inside, the usual box distance with the corners eased.
 float sd_round_rect(vec2 p, vec2 half_size, float r) {
 	vec2 q = abs(p) - half_size + r;
 	return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
@@ -78,6 +87,8 @@ vec2 round_rect_normal(vec2 p, vec2 half_size, float r) {
 	return n * vec2(p.x < 0.0 ? -1.0 : 1.0, p.y < 0.0 ? -1.0 : 1.0);
 }
 
+// The sRGB transfer functions: the canvas works in sRGB, the frost's mixing
+// and the luminance ceiling in linear light.
 vec3 to_linear(vec3 c) {
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
 }
@@ -133,11 +144,15 @@ void fragment() {
 		float inside = -d;
 		vec2 n = round_rect_normal(p, half_size, radius);
 #ifdef GLASS_FROST
+		// The bend is strongest at the edge and falls off as a square, so
+		// the rim reads as a thick lens and the middle stays still.
 		float bend = refraction * pow(1.0 - clamp(inside / refraction_reach, 0.0, 1.0), 2.0);
 		vec2 uv = SCREEN_UV - n * bend * SCREEN_PIXEL_SIZE;
 		vec3 world = to_linear(frost(uv, SCREEN_PIXEL_SIZE));
 		world = max(mix(vec3(luminance(world)), world, saturation), vec3(0.0));
 		vec3 g = mix(world, to_linear(tint), mix(tint_mix, 1.0, opaque));
+		// Reinhard's curve scaled to the ceiling: a dark world passes nearly
+		// unchanged, and luminance approaches `ceiling` but never reaches it.
 		g /= 1.0 + luminance(g) / ceiling;
 #else
 		vec3 g = to_linear(tint);
@@ -151,6 +166,8 @@ void fragment() {
 		glass_alpha = max(glass_alpha, rim);
 		glass = to_srgb(g);
 	}
+	// The glass over its own shadow, composed premultiplied and returned
+	// straight, so one rectangle draws both.
 	float front = body * glass_alpha;
 	float alpha = front + shade * (1.0 - front);
 	vec3 rgb = alpha > 0.0 ? glass * front / alpha : vec3(0.0);

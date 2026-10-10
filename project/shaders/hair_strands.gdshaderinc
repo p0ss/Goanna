@@ -30,7 +30,13 @@
 // - The shadow under a lock: where the texel toward the root is hair
 //   standing higher, a ragged shadow falls from that edge.
 // - Per strand jitter of the highlight's shift, so the band breaks up.
+//
+// Included by entity_common.gdshaderinc only, which calls
+// goanna_hair_strands when hair_shader_strength (the "hair_shader" material
+// strength, mat_hair_shader in graphics_profiles.gd, on from Medium up) is
+// above 0.
 
+// The look's knobs. Nothing sets them: these defaults are the judged look.
 // Strands across one art texel.
 uniform float hair_strand_density : hint_range(2.0, 24.0) = 10.0;
 // How far the strands' brightness swings, and how dark their gaps are.

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
-// The flame material, shared by flame.gdshader (the flame itself) and
-// flame_glow.gdshader (its halo and heat shimmer, a second pass).
-// docs/systems/fire-material.md.
+// The flame material, shared by flame.gdshader (the flame itself),
+// flame_glow.gdshader (its halo, a second pass) and flame_shimmer.gdshader
+// (the heat shimmer, a third). GoannaClient::flameMaterial
+// (src/goanna_client.cpp) builds the three for a node tile and
+// EntityRenderer::flameSpriteMaterial (src/goanna_entities.cpp) for a
+// burning entity's sprite. docs/systems/fire-material.md.
 //
 // The game's own animated art is the flame. GoannaClient swaps albedo_tex
 // to the frame a vanilla client shows (showAnimationFrame), and an
@@ -17,21 +20,26 @@
 // The art's own ramp (goanna_flame.cpp, measureFlameRamp), linear colour:
 // the luminance range heat is spread over, and the mean colour of its
 // brightest and darkest texels. Soul fire's art is cyan, so its ramp is.
+// All four are set on every pass by configureFlameMaterial (goanna_flame.cpp).
 uniform vec2 heat_range = vec2(0.05, 0.6);
 uniform vec3 core_colour = vec3(1.0, 0.85, 0.45);
 uniform vec3 tip_colour = vec3(0.6, 0.12, 0.02);
+// A brightness multiplier, 0.8 to 1.2 by the node's light level (0 to 14).
 uniform float flame_energy = 1.2;
 // An entity sprite sheet: CUSTOM0 holds the cell's rectangle in UV, its
 // corners min then max as the entity shader reads it (goanna_upright_sprite.h),
 // so heights and texel reads stay inside the frame shown. Each pass turns it
 // into origin and size. Node tiles are one frame per texture and leave this
-// off.
+// off; EntityRenderer::flameSpriteMaterial turns it on.
 uniform bool cell_rect = false;
 // The upright sprite's two quads are culled from behind, as upstream draws
-// them; a firelike or mesh flame is drawn from both sides.
+// them; a firelike or mesh flame is drawn from both sides. Set from the
+// tile's backface culling by GoannaClient::flameMaterial, and on for every
+// entity sprite.
 uniform bool single_sided = false;
 
-// The node animation clock, seconds in [0, 60) (step_node_animation). The
+// The node animation clock, seconds in [0, 60), set by
+// GoannaClient::step_node_animation (src/goanna_client.cpp). The
 // flicker frequencies are whole cycles a minute, so it does not jump when
 // the clock wraps, and pinning the clock for a capture pins the flicker.
 global uniform float goanna_node_anim_time;
@@ -46,6 +54,7 @@ float flame_max3(vec3 c) {
 // in step.
 float flame_phase(vec3 world) {
 	vec3 node = floor(world + vec3(0.5));
+	// The common sine hash: cheap, and only needs to differ between nodes.
 	return fract(sin(dot(node, vec3(12.9898, 78.233, 37.719))) * 43758.5453) * FLAME_TAU;
 }
 
@@ -94,6 +103,7 @@ float flame_coverage(vec2 local, ivec2 origin, ivec2 dim, float mip_alpha, float
 // How hot a texel reads: its own brightness against the art's range,
 // cooling towards the top of the frame.
 float flame_heat(vec3 art, float h) {
+	// Rec. 709 luminance, the same weights measureFlameRamp uses.
 	float lum = dot(art, vec3(0.2126, 0.7152, 0.0722));
 	float heat = clamp((lum - heat_range.x) / max(heat_range.y - heat_range.x, 1e-3), 0.0, 1.0);
 	return clamp(heat * 1.1 - 0.3 * h + 0.12, 0.0, 1.0);

@@ -31,17 +31,25 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // 7 is this pass's own mark; nothing else in Goanna uses the stencil.
 stencil_mode read, write, compare_not_equal, 7;
 
+// The same texture as flame.gdshader's, set alike; read only at coarse
+// mips, to find where the flame is.
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_disable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 
 #include "res://shaders/flame_common.gdshaderinc"
 
+// The render feature switch render_fire_shimmer, 0 or 1, set by
+// project/render_features.gd from the graphics profile (on from Medium up).
 global uniform float goanna_render_fire_shimmer;
 
 // How far the quads are stretched up for the shimmer above the flame, in
 // nodes. Only for node flames whose frame spans one node (firelike); 0
-// keeps the geometry as the game made it.
+// keeps the geometry as the game made it. GoannaClient::flameMaterial sets
+// 0.6 for a firelike tile.
 uniform float shimmer_rise = 0.0;
+// Defaults only: the bend's size in screen UV (doubled, then divided by the
+// distance in metres, so it holds still in the world), and the distance
+// where the shimmer has faded out, starting at half of it.
 uniform float shimmer_strength = 0.0045;
 uniform float shimmer_range = 24.0;
 
@@ -49,6 +57,8 @@ varying vec4 cell;
 varying vec3 world_pos;
 
 void vertex() {
+	// The frame's rectangle as origin and size in UV; the whole texture
+	// when there is no sheet.
 	cell = cell_rect ? vec4(CUSTOM0.xy, CUSTOM0.zw - CUSTOM0.xy) : vec4(0.0, 0.0, 1.0, 1.0);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	if (goanna_render_fire_shimmer < 0.5) {
@@ -85,6 +95,8 @@ void fragment() {
 	w *= 1.0 - body * 0.8;
 	if (w <= 0.002)
 		discard;
+	// Two waves rising through the world at whole cycles a minute, as the
+	// flicker runs, so a pinned clock pins the shimmer too.
 	float t = goanna_node_anim_time;
 	float ph = flame_phase(world_pos);
 	vec2 wave = vec2(

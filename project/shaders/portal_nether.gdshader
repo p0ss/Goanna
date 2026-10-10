@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Translucent Nether membrane. Only the already visible opaque frame is
 // refracted; a depth check rejects foreground silhouettes at the offset.
+// Drawn on mcl_portals:portal, see portal_common.gdshaderinc and
+// docs/systems/portal-materials.md.
 shader_type spatial;
 render_mode unshaded, blend_mix, cull_back, depth_draw_never;
 
 #include "res://shaders/portal_common.gdshaderinc"
 
+// The portal tile's current animation frame, set by GoannaClient: its alpha
+// is the sheet's opacity, and a little of its colour tints the field.
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+// How far the warp bends the scene behind, in screen UV. Default only.
 uniform float refraction : hint_range(0.0, 0.05) = 0.014;
+// The lamp occlusion grid (lamp_occlusion.gdshaderinc), set by
+// GoannaClient::updateLampOcclusion while the lamp_occlusion switch is on.
+// Read here only to find frame cubes the mesh's edge bits missed.
 global uniform sampler3D goanna_lamp_occlusion_grid : filter_nearest, repeat_disable;
 global uniform vec4 goanna_lamp_occlusion_box;
 
+// Whether the grid holds a full opaque cube at p; false outside the grid
+// or with the switch off.
 bool portal_solid(vec3 p) {
 	float edge = goanna_lamp_occlusion_box.w;
 	ivec3 cell = ivec3(floor(p - goanna_lamp_occlusion_box.xyz));
@@ -45,6 +55,8 @@ void fragment() {
 	vec2 orbit = vec2(cos(phase * 3.0), sin(phase * 3.0));
 	vec2 warp = vec2(portal_noise(p * 0.8 + orbit),
 		portal_noise(p * 0.8 - orbit + vec2(13.7))) - 0.5;
+	// Domain warping: the field is read at a point the noise has pushed
+	// about, which turns straight bands into the swirling veil.
 	vec2 q = p + warp * 1.4;
 	float veil = portal_noise(q * 2.4 + orbit * 0.6);
 	float ribbon = pow(0.5 + 0.5 * sin(q.y * 5.0 + q.x * 2.0

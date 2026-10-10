@@ -1,15 +1,25 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // World-anchored portal coordinates. Adjacent node faces share the field,
 // including across mapblocks and regional batches; UV is only for artwork.
+// Included by portal_nether.gdshader and portal_end.gdshader, which
+// GoannaClient (src/goanna_client.cpp) puts on Mineclonia's portal faces;
+// docs/systems/portal-materials.md.
 #include "res://shaders/underwater.gdshaderinc"
 
+// The node animation clock, seconds in [0, 60), set by
+// GoannaClient::step_node_animation.
 global uniform float goanna_node_anim_time;
+// A fixed clock for offline captures (project/portal_study.gd); below 0,
+// the default in play, the shared clock runs.
 uniform float preview_time = -1.0;
 varying vec3 portal_world;
 varying vec3 portal_normal;
 varying flat float portal_edges;
 
 void vertex() {
+	// Four bits, which in-plane sides of this face touch a full cube of the
+	// frame (+u, -u, +v, -v), set by the mesher in GoannaClient because
+	// UV2.x is spare on a single image tile; docs/systems/mesh-attributes.md.
 	portal_edges = UV2.x;
 	portal_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	portal_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
@@ -32,12 +42,14 @@ void portal_axes(vec3 n, out vec3 u, out vec3 v) {
 	}
 }
 
+// Dave Hoskins' hash without sine: two values in [0, 1) per 2D point.
 vec2 portal_hash(vec2 p) {
 	vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
 	q += dot(q, q.yzx + 33.33);
 	return fract((q.xx + q.yz) * q.zy);
 }
 
+// Smooth value noise, 0 to 1, from the hash above.
 float portal_noise(vec2 p) {
 	vec2 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);

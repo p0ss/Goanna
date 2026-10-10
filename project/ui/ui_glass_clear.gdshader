@@ -4,6 +4,7 @@
 // Dark glass that does not read the screen, for surfaces that are up for the
 // whole game (the hotbar): the frosted look's shape, rim and shadow over a
 // translucent tint, at no cost beyond drawing it. See ui_glass.gdshaderinc.
+// Shared by every pane glass_surface.gd draws with blur off.
 shader_type canvas_item;
 
 #include "res://ui/ui_glass.gdshaderinc"

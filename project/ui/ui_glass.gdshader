@@ -3,6 +3,7 @@
 //
 // Frosted dark glass, which reads and blurs the screen behind it. The whole
 // of the shader is in ui_glass.gdshaderinc.
+// Shared by every pane glass_surface.gd draws with blur on.
 shader_type canvas_item;
 
 #define GLASS_FROST
