@@ -87,7 +87,7 @@ func run() -> void:
 	view._receive(layer)
 	check(not view.snapshot.is_empty() and not view.mesh_queue.is_empty(), "authorised layer queues the world mesher")
 	view._build_next_mesh()
-	check(client.meshed.size() == 1 and client.meshed[0].cells == [1, 2, 0], "world mesher receives observations, including explicit unknowns")
+	check(client.meshed.size() >= 1 and client.meshed[0].cells == [1, 2, 0], "world mesher receives observations, including explicit unknowns")
 	check(client.entity_layer.cells == [1, 2, 0], "live entities use the same observation boundary")
 	var bad := layer.duplicate(true)
 	bad.floors[2] = 2
@@ -153,13 +153,42 @@ func run() -> void:
 	check(view.revision == 2, "unpadded Luanti chunks reassemble UTF-8 out of order")
 	view._receive({"v": 1, "t": "part", "id": 11, "i": 1, "n": 36, "data": ""})
 	check(not view.parts.has(11), "oversized chunk count rejected")
+	# A level sent ahead for the same request is kept, never drawn early.
+	var ahead := layer.duplicate(true)
+	ahead.y = 1
+	ahead.rev = 3
+	ahead.states = [2, 2, 0]
+	ahead.below = [{"cells": [2, 0, 0], "states": [2, 0, 4]}]
+	view._receive(ahead)
+	check(view.level == 0 and view.snapshot.y == 0 and view.layer_cache.has(1), "neighbouring level is kept without being drawn")
+	var stale := ahead.duplicate(true)
+	stale.seq = view.sequence - 1
+	stale.y = 2
+	view._receive(stale)
+	check(not view.layer_cache.has(2), "a level sent for an earlier request is not kept")
+	view.change_level(1)
+	check(view.level == 1 and not view.snapshot.is_empty() and view.snapshot.y == 1, "stepping to a kept level draws it at once")
+	check(view.snapshot.states == [1, 1, 0] and view.snapshot.below[0].states == [1, 0, 4]
+		and view.status.text.contains("Remembered"), "a kept level is shown as memory until confirmed")
+	check(client.entity_layer.states == [1, 1, 0], "a kept level shows no live entities")
+	var fresh := ahead.duplicate(true)
+	fresh.seq = view.sequence
+	fresh.rev = 4
+	view._receive(fresh)
+	check(view.snapshot.states == [2, 2, 0] and view.revision == 4, "the fresh observation replaces the kept level")
 	view.change_level(-1)
-	check(view.level == -1 and view.snapshot.is_empty() and view.geometry.get_child_count() == 0, "level change clears geometry before request")
+	check(view.level == 0 and not view.snapshot.is_empty() and view.snapshot.y == 0, "returning to the previous level draws it from the cache")
+	var moved := view.requested.duplicate()
+	view.centre.x += 40.0
+	view._request_view()
+	check(view.requested != moved and view.snapshot.is_empty() and view.layer_cache.is_empty(), "a new rectangle drops every kept level")
+	view.change_level(-1)
+	check(view.level == -1 and view.snapshot.is_empty() and view.visible_meshes() == 0, "level change clears geometry before request")
 	view._receive(layer)
 	check(view.snapshot.is_empty(), "delayed previous level cannot reappear")
-	var empty := {"v": 1, "t": "layer", "seq": view.sequence, "rev": 2, "y": -1, "empty": true}
+	var empty := {"v": 1, "t": "layer", "seq": view.sequence, "rev": 5, "y": -1, "empty": true}
 	view._receive(empty)
-	check(view.geometry.get_child_count() == 0, "empty or unserved layer clears geometry")
+	check(view.visible_meshes() == 0, "empty or unserved layer clears geometry")
 	view._close()
 	check(main.cam.cull_mask == 1048575 and main.captured, "leaving restores ordinary view and pointer")
 	view._open()

@@ -59,13 +59,15 @@ func run() -> void:
 		check(view.snapshot.get("y", -100) == 0, "camera opens at the body's level")
 		check(not client.overseer_channel("dorfcraft:o:" + "0".repeat(32)), "native bridge refuses a channel without a HUD grant")
 		view.change_level(-1)
-		check(view.snapshot.is_empty(), "changing level immediately hides old geometry")
+		# A level the server already sent may be drawn at once, as memory.
+		check(view.snapshot.is_empty() or (view.snapshot.get("y", -100) == -1
+			and not view.snapshot.get("states", []).has(2)), "changing level immediately hides old geometry")
 		phase = "lower layer"
 		check(await until(func() -> bool: return view.snapshot.get("y", -100) == -1), "server supplies the selected lower level")
 		view.change_level(-100)
 		phase = "outside claim"
 		check(await until(func() -> bool: return view.snapshot.get("empty", false)), "level outside claim has an explicit empty reply")
-		check(view.geometry.get_child_count() == 0, "out-of-bounds view contains no terrain")
+		check(view.visible_meshes() == 0, "out-of-bounds view contains no terrain")
 		view.change_level(101)
 		phase = "return to level zero"
 		await until(func() -> bool: return view.snapshot.get("y", -100) == 0)

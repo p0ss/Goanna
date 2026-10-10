@@ -16,9 +16,18 @@ from the server (empty sender) and queued under the server-options mutex.
 Relayed player messages never supply geometry. The session thread never
 touches Godot objects.
 
-`project/game/overseer.gd` sends an explicit ready message after joining. It
+`project/game/overseer.gd` sends an explicit ready message after joining,
+asking the server to send neighbouring levels ahead (`prefetch`). It
 opens the camera from the server's hello, requests bounded rectangles,
-reassembles bounded chunks and submits planning requests. Server removal
+reassembles bounded chunks and submits planning requests.
+
+It keeps up to eight layers the server sent for the current rectangle, by
+level, each with its meshes in a hidden node. Stepping to a kept level
+shows it at once while the fresh layer is requested. Until that arrives
+every cell is demoted to remembered, so no live actor shows from the kept
+copy. A new rectangle, an empty or stale layer, or closing the view drops
+them all. A layer for another level is kept only if it answers the current
+request's sequence. Server removal
 of the HUD grant, bye, Escape and connection timeout all close the view.
 
 ## Drawing and input
@@ -44,8 +53,8 @@ Crossed plantlike sprites
 become horizontal cards with the same texture, tint and world material,
 limited to one cell; mesh plants keep their original geometry.
 
-Changed mapblocks are rebuilt one per frame. Unchanged meshes survive the
-one-second observation refresh. Live worker dig/build events update those
+Changed mapblocks are rebuilt within about 4 ms a frame, at least one
+each frame. Unchanged meshes survive the one-second observation refresh. Live worker dig/build events update those
 observations, so completed work appears without reopening the camera.
 
 `EntityRenderer` routes its existing scene nodes into the isolated world.

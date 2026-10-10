@@ -82,7 +82,7 @@ func run() -> void:
 	client.send_chat("/overseer")
 	phase = "world camera"
 	check(await until(func() -> bool: return view.session_ready and not view.snapshot.is_empty()), "native camera receives world observations")
-	check(await until(func() -> bool: return view.geometry.get_child_count() > 0), "world meshes appear in the isolated viewport")
+	check(await until(func() -> bool: return view.visible_meshes() > 0), "world meshes appear in the isolated viewport")
 	view.tool = "wall"
 	view._update_materials(view.material_catalog)
 	check(view.build_materials.size() > 0, "fortress stock supplies build material choices")

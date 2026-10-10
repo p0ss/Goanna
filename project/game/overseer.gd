@@ -75,6 +75,13 @@ var mesh_queue: Array[Vector3i] = []
 var mesh_nodes: Dictionary = {}
 var mesh_stamps: Dictionary = {}
 var wanted_stamps: Dictionary = {}
+# Layers the server sent for this rectangle, by level, with their meshes in
+# a hidden node each. Stepping to one draws it at once while a fresh
+# observation is requested; nothing here outlives the session.
+const CACHED_LEVELS := 8
+var layer_cache: Dictionary = {}
+var level_meshes: Dictionary = {}
+var meshed_level := 0
 
 func _ready() -> void:
 	layer = 150
@@ -125,7 +132,7 @@ func tick(delta: float) -> void:
 	var now := _now()
 	if now - last_ping > (3.0 if session_ready else 0.5):
 		last_ping = now
-		_send({"t": "ping" if session_ready else "ready"})
+		_send({"t": "ping"} if session_ready else {"t": "ready", "prefetch": true})
 	if now - last_receive > 12.0:
 		leave()
 		return
@@ -255,9 +262,11 @@ func _clear_layer() -> void:
 		memory_material.set_shader_parameter("has_memory", false)
 	snapshot = {}
 	mesh_queue.clear()
-	mesh_nodes.clear()
-	mesh_stamps.clear()
+	mesh_nodes = {}
+	mesh_stamps = {}
 	wanted_stamps.clear()
+	layer_cache.clear()
+	level_meshes.clear()
 	if active and is_instance_valid(actors):
 		client.overseer_entities(actors, {})
 	if is_instance_valid(concealment):
@@ -327,8 +336,15 @@ func _receive(msg: Dictionary) -> void:
 	elif type == "layer" and session_ready:
 		if msg.get("palette") == null: msg.palette = []
 		if msg.get("orders") == null: msg.orders = []
+		var y := int(msg.get("y", -32000))
+		if y != level:
+			# A neighbouring level sent ahead of need, for this same request.
+			if valid_layer(msg, sequence, y, requested, claim):
+				_remember(y, msg)
+			return
 		if not valid_layer(msg, sequence, level, requested, claim) or int(msg.get("rev", -1)) <= revision:
 			return
+		_remember(level, msg)
 		_update_materials(msg.get("materials", []))
 		revision = int(msg.rev)
 		layer_received = _now()
@@ -519,11 +535,69 @@ func _request_view() -> void:
 	var half_z := mini(31, int(ceil(extent * 0.5)) + 1)
 	requested = {"x0": int(floor(centre.x)) - half_x, "x1": int(floor(centre.x)) + half_x,
 		"z0": int(floor(centre.y)) - half_z, "z1": int(floor(centre.y)) + half_z}
-	# Clear before asking. No previous level or rectangle survives a request.
-	_clear_layer()
+	# Clear before asking. Only a layer the server sent for this level and
+	# rectangle survives, and only as memory until the fresh one arrives.
+	var kept: Dictionary = layer_cache.get(level, {})
+	if kept.is_empty() or kept.rect != requested:
+		_clear_layer()
+	else:
+		_forget_other_rects()
+		snapshot = _as_memory(kept.layer)
+		layer_received = _now()
+		_draw_layer()
 	parts.clear()
 	_send({"t": "view", "seq": sequence, "y": level, "rect": requested})
-	status.text = "Level %d | Waiting for server" % level
+	status.text = "Level %d | %s" % [level, "Waiting for server" if snapshot.is_empty() else "Remembered, refreshing"]
+
+func _remember(y: int, msg: Dictionary) -> void:
+	_forget_other_rects()
+	layer_cache[y] = {"rect": requested.duplicate(), "layer": msg}
+	while layer_cache.size() > CACHED_LEVELS:
+		var far := y
+		for other in layer_cache:
+			if absi(other - level) > absi(far - level): far = other
+		layer_cache.erase(far)
+		if level_meshes.has(far):
+			level_meshes[far].node.queue_free()
+			level_meshes.erase(far)
+
+func _forget_other_rects() -> void:
+	for y in layer_cache.keys():
+		if layer_cache[y].rect != requested:
+			layer_cache.erase(y)
+
+# A cached layer shows remembered terrain only. Nothing in it is currently
+# visible, so it shows no live entities until the server confirms sight.
+static func _as_memory(msg: Dictionary) -> Dictionary:
+	var out := msg.duplicate(true)
+	for slice in [out] + out.get("below", []):
+		var states: Array = slice.get("states", [])
+		for i in states.size():
+			if int(states[i]) == 2: states[i] = 1
+	if out.get("states", []).is_empty() and out.has("cells"):
+		out.states = []
+		for c in out.cells: out.states.append(1 if int(c) > 0 else 0)
+	return out
+
+# Meshes are kept per level; switching level shows that level's node.
+func _show_level_meshes() -> void:
+	if not level_meshes.has(level):
+		var node := Node3D.new()
+		geometry.add_child(node)
+		level_meshes[level] = {"node": node, "nodes": {}, "stamps": {}}
+	for y in level_meshes:
+		level_meshes[y].node.visible = y == level
+	meshed_level = level
+	mesh_nodes = level_meshes[level].nodes
+	mesh_stamps = level_meshes[level].stamps
+	mesh_queue.clear()
+	wanted_stamps.clear()
+
+func visible_meshes() -> int:
+	var count := 0
+	for y in level_meshes:
+		if level_meshes[y].node.visible: count += level_meshes[y].node.get_child_count()
+	return count
 
 func change_level(step: int) -> void:
 	if not session_ready:
@@ -587,23 +661,28 @@ func _sync_lighting() -> void:
 	depth_material.albedo_color = tint
 
 func _build_next_mesh() -> void:
-	if mesh_queue.is_empty() or snapshot.is_empty():
-		return
-	var block: Vector3i = mesh_queue.pop_front()
-	var mesh: ArrayMesh = client.overseer_mesh(snapshot, block)
-	if mesh_nodes.has(block):
-		var old: Node3D = mesh_nodes[block]
-		geometry.remove_child(old)
-		old.queue_free()
-		mesh_nodes.erase(block)
-	if mesh != null and mesh.get_surface_count() > 0:
-		var instance := MeshInstance3D.new()
-		instance.mesh = mesh
-		geometry.add_child(instance)
-		mesh_nodes[block] = instance
-	mesh_stamps[block] = wanted_stamps.get(block, 0)
+	# Several blocks a frame, within about 4 ms, at least one.
+	var started := Time.get_ticks_usec()
+	while not mesh_queue.is_empty() and not snapshot.is_empty() and level_meshes.has(meshed_level):
+		var parent: Node3D = level_meshes[meshed_level].node
+		var block: Vector3i = mesh_queue.pop_front()
+		var mesh: ArrayMesh = client.overseer_mesh(snapshot, block)
+		if mesh_nodes.has(block):
+			var old: Node3D = mesh_nodes[block]
+			parent.remove_child(old)
+			old.queue_free()
+			mesh_nodes.erase(block)
+		if mesh != null and mesh.get_surface_count() > 0:
+			var instance := MeshInstance3D.new()
+			instance.mesh = mesh
+			parent.add_child(instance)
+			mesh_nodes[block] = instance
+		mesh_stamps[block] = wanted_stamps.get(block, 0)
+		if Time.get_ticks_usec() - started > 4000:
+			break
 
 func _queue_geometry() -> void:
+	_show_level_meshes()
 	var r: Dictionary = snapshot.rect
 	var width := int(r.x1 - r.x0 + 1)
 	var palette_stamp := hash(snapshot.palette)
@@ -721,7 +800,10 @@ func _draw_layer() -> void:
 	_clear_children(overlay)
 	if snapshot.get("empty", false):
 		memory_material.set_shader_parameter("has_memory", false)
-		_clear_children(geometry)
+		_show_level_meshes()
+		_clear_children(level_meshes[level].node)
+		level_meshes[level].nodes.clear()
+		level_meshes[level].stamps.clear()
 		_clear_children(concealment)
 		mesh_queue.clear()
 		client.overseer_entities(actors, {})
