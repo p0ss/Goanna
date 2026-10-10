@@ -22,8 +22,16 @@
 //   the file is compacted, which happens when dead exceeds live.
 // The cap evicts whole region files, oldest written first.
 //
-// Thread safe: writes come from the session thread, reads from the main
-// thread, under one mutex. Everything here is plain C stdio on purpose.
+// Threads: every method that reads or writes takes m_mutex, so any thread
+// may call it (the small accessors below say where they do not). Three do.
+// The session thread writes each block as it arrives
+// (GoannaSession::onBlockData). The main thread writes edited blocks back
+// when they are pruned or the session stops (saveBlockToStore), and asks
+// for masks with the try methods, which never wait. The LodStorage worker
+// reads payloads and primes region indices through the callbacks
+// GoannaClient::lodStartStorage gives it, so the disk reads a far region
+// needs happen off the main thread. Everything here is plain C stdio on
+// purpose.
 
 #include <cstdint>
 #include <cstdio>
@@ -36,6 +44,8 @@
 
 namespace goanna {
 
+// One server's block store. Owned by GoannaSession, opened in start() and
+// closed in stop(); see the opening comment for which threads call it.
 class BlockStore {
 public:
     static constexpr int kRegionBlocks = 16; // blocks per axis per file
@@ -65,6 +75,8 @@ public:
     static v3s16 regionOf(v3s16 bp);
     static int slotOf(v3s16 bp);
 
+    // bytes() and blocksKnown() read their counters without the lock. They
+    // are statistics for render_stats, and a figure one put behind is fine.
     uint64_t bytes() const { return m_bytes; }
     size_t regions() const { return m_regions.size(); }
     // Blocks in the region files whose indices have been read; a lower
@@ -93,6 +105,11 @@ private:
     void evictToCap();
     std::string pathFor(v3s16 region) const;
 
+    // Guards everything below it: the open directory, the region table with
+    // each region's FILE and index, and the byte and block counts. Held for
+    // the whole of a disk read or write, which is why the main thread's per
+    // frame lookups use the try methods. Its writes on prune and stop wait
+    // for the lock like anyone else's.
     std::mutex m_mutex;
     std::string m_dir;
     uint64_t m_cap = 0;

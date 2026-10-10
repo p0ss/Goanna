@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
+// The clock of a dig: MiningCycle splits a tool's dig time into whole
+// swings, and says when each blow lands, so the hand animation, the carve
+// damage, the punch sound and the chips all keep one time. Plain state with
+// no Godot and no locks; GoannaSession owns one and steps it from
+// stepInteract on the main thread, under mapLock(). Tested by
+// goanna_mining_cycle_test.cpp.
 #pragma once
 #include <algorithm>
 #include <cmath>

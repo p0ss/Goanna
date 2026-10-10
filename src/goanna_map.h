@@ -5,6 +5,11 @@
 
 // Goanna's world container: Luanti's own Map, with sectors created on
 // demand as blocks arrive (what ClientMap does, minus the scene node).
+//
+// Threads: GoannaMap has no lock of its own. GoannaSession owns it, and
+// every use is under GoannaSession::mapLock(): the session thread adds and
+// replaces blocks as packets arrive, and the main thread reads them for
+// meshing and movement and drops distant ones (pruneDistantBlocks).
 
 #include "map.h"
 #include "mapsector.h"

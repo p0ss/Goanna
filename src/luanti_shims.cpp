@@ -6,7 +6,9 @@
 // 5.17.0, 2026-09. Small pieces of Luanti that live in server-only
 // translation units but are referenced by the shared core Goanna links.
 // Copied so that file, which drags in the server environment and scripting,
-// need not be compiled.
+// need not be compiled. The code below keeps Luanti's style and is not
+// restyled; it has no state and no thread of its own. Today it holds
+// InventoryLocation::deSerialize alone.
 
 #include <sstream>
 

@@ -10,6 +10,10 @@
 // Loading a model and transcribing both take long enough to stall a frame,
 // so each runs on a thread of its own and GDScript polls for the result.
 // One job at a time: a request while one is running is refused.
+//
+// Threads: every bound method runs on Godot's main thread. The job runs on
+// m_worker, which is joined before the next job starts and in the
+// destructor. Main type: GoannaSpeechInput, a RefCounted GDScript makes.
 #pragma once
 
 #include <atomic>
@@ -60,9 +64,20 @@ protected:
 private:
     void join();
 
+    // The loaded model. Set by the load job under m_mutex, then used by
+    // transcribe() and its job without the lock: m_busy keeps a second job
+    // from starting, so only one thread uses it at a time.
     whisper_context *m_ctx = nullptr;
     std::thread m_worker;
+    // True from the moment a job is accepted until its worker finishes.
+    // Set on the main thread, cleared by the worker; the main thread reads
+    // it to refuse a second job.
     std::atomic<bool> m_busy{false};
+    // Guards m_state, m_result and m_has_result: the worker writes the
+    // outcome, and the main thread reads it through state() and
+    // take_result(). The worker fills m_result, a Godot Dictionary, under
+    // this lock; it is a value type and the main thread only copies it out
+    // under the same lock.
     mutable std::mutex m_mutex;
     std::string m_state = "empty";
     godot::Dictionary m_result;

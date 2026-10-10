@@ -3,6 +3,17 @@
 
 #pragma once
 
+// Flags and switches shared between Goanna and the transplanted meshing code
+// (src/transplant/client/mapblock_mesh.cpp, content_mapblock.cpp): bits
+// Goanna borrows in Irrlicht's tile and vertex fields, and the globals the
+// transplanted code reads to light, bevel and carve the way Goanna wants.
+//
+// Threads: the plain globals are set on the main thread (GoannaClient's
+// constructor from GOANNA_* variables, and set_bevel) and read by the
+// mesh workers without a lock. A change applies to meshes built after it,
+// which is why set_bevel re-meshes. The thread_local ones are set by the
+// thread that is meshing, for its own build only.
+
 #include <cstdint>
 
 // Carry light-source ownership through tile batching, then in Irrlicht's

@@ -3,7 +3,14 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 //
 // A Luanti client session, built on Luanti's own network layer, node and
-// item definition managers and MapBlock code.
+// item definition managers and MapBlock code: GoannaSession.
+//
+// Threads: threadMain and every handle/on... packet handler run on the
+// session thread. prepareContentIfReady, loadPushedMedia, stepPlayer,
+// stepInteract, stepObjects, the take methods and the send methods called
+// from GoannaClient run on Godot's main thread. Which mutex each piece of
+// shared state sits under is stated at its declaration in
+// goanna_session.h.
 //
 // Parts derive from Luanti 5.17.0, restructured rather than copied whole:
 // the packet handlers follow Client::handleCommand_* in
@@ -2313,10 +2320,11 @@ bool GoannaSession::prepareContentIfReady() {
         for (auto &kv : min_light)
             if (kv.second > 0)
                 m_emissive_by_texture[kv.first] = kv.second;
-        // The per node classifier, docs/design/pbr-plan.md step 2: material class
-        // and Minecraft block per node, voted down to per texture, and handed
-        // to the texture source so the array companions it synthesises for
-        // textures no pack covers carry the class rather than nothing.
+        // The per node classifier (goanna_materials.h; docs/design/pbr-plan.md,
+        // "Design"): material class and Minecraft block per node, voted down to
+        // per texture, and handed to the texture source so the array
+        // companions it synthesises for textures no pack covers carry the
+        // class rather than nothing.
         buildMaterialTable(m_nodedef, readTextureMap(m_texture_map), m_material_table);
         m_tsrc->setMaterialTable(&m_material_table);
         // Freeze the prepared node layout before avatars and item icons

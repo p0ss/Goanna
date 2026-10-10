@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// GoannaSpeechInput: voice typing through whisper.cpp, with the processor
+// check that keeps it from running where ggml cannot. The jobs run on one
+// worker thread at a time; goanna_speech_input.h states what each member
+// is guarded by.
+
 #include "goanna_speech_input.h"
 
 #include <algorithm>

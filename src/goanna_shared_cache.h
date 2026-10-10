@@ -1,5 +1,21 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
 // Bounded immutable results shared only by callers with matching inputs.
+//
+// SharedCache is a byte budgeted LRU keyed by a string that must name every
+// input the result depends on: two callers share a value only when their
+// keys match exactly. Its users are the far LOD chains (sharedLodChain in
+// goanna_lod_storage.cpp, built on the LodStorage worker) and, in
+// goanna_client.cpp, the near geometry and uploaded meshes that every
+// GoannaClient in the process shares, which is what lets several local
+// players on one server build a block once.
+//
+// Threads: any. m_mutex guards the entries, the LRU order and the flights
+// (builds in progress). get() builds outside the lock, and a second caller
+// for the same key waits on that flight's condition variable instead of
+// building again. Values are shared_ptr<const T>, so eviction never frees
+// a value a caller still holds. Tests: goanna_shared_cache_test.cpp.
 #pragma once
 #include <condition_variable>
 #include <exception>

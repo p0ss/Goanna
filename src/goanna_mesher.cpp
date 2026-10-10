@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// Near block meshing through Luanti's MapBlockMesh: the gather half (main
+// thread, under mapLock()), the mesh half (any thread) and the inline path
+// that does both. goanna_mesher.h says which caller runs which, and why the
+// block with a dig crack is meshed inline.
+
 #include "goanna_mesher.h"
 
 #include "goanna_radial_form.h"

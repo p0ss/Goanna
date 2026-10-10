@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 the Goanna contributors
+
+// The dig clock's contract: for a range of tool times, the blows and the
+// carve they drive come out the same at 15, 60 and 240 frames a second,
+// a dig completes neither before the server's tool time nor a swing after
+// it, a stalled frame catches up its blows, and the first motion is the
+// downstroke. Single threaded, no Godot.
+
 #include "goanna_mining_cycle.h"
 #include "goanna_radial_form.h"
 #include <cstdio>

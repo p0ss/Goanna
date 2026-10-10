@@ -6,7 +6,13 @@
 // Image creation/decoding hooks used by the transplanted imagesource.cpp in
 // place of Irrlicht's video driver. Images are Irrlicht's CPU-only CImage
 // (irr/src/CImage.cpp), so the texture-modifier DSL runs verbatim; decoding
-// of PNG/JPG/TGA/BMP bytes is done by Godot.
+// of PNG/JPG/TGA/BMP bytes is done by Godot. Defined in goanna_textures.cpp.
+//
+// Threads: these run on whichever thread the texture source runs the
+// modifier language on; goanna_textures.h states those rules. The Godot
+// Image a decode uses is made and released inside the call and never
+// shared. Media decoding is the reason content preparation runs on the
+// main thread (GoannaSession::prepareContentIfReady).
 
 #include <string>
 

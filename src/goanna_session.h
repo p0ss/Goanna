@@ -2,12 +2,30 @@
 // Copyright (C) 2026 the Goanna contributors
 
 #pragma once
-#include "goanna_radial_form.h"
 
 // A Luanti client session, built on Luanti's own network layer, node/item
 // definition managers and MapBlock code. No Irrlicht, no rendering: it
 // connects, authenticates, receives definitions and mapblocks, and keeps
 // them for Goanna's Godot side to mesh and draw.
+//
+// Threads: GoannaSession owns one thread of its own, the session thread
+// (threadMain), which receives and handles every packet and sends the
+// position and block acknowledgements. Everything else here is called from
+// Godot's main thread, through GoannaClient: preparing content, stepping
+// the player and objects, digging, draining the queues, and sending chat,
+// inventory actions and interactions. The two meet only through the mutexes
+// and atomics declared at the bottom of the class, each of which says what
+// it guards and who writes and reads it. Nothing here touches a Godot object
+// from the session thread. docs/develop/architecture.md, "Threads and the
+// handoff", draws the whole picture.
+//
+// Main types: GoannaSession; SessionState, the handshake's progress;
+// SessionStats, its snapshot for the status overlay; and the plain event
+// structs (ChatLine, SoundEvent, NodeDugEvent, ParticleSpawnerEvent,
+// ParticleEvent, ShownFormspec) that cross from the session to the main
+// thread.
+
+#include "goanna_radial_form.h"
 
 #include <atomic>
 #include <chrono>
@@ -52,6 +70,8 @@ struct SRPUser;
 
 namespace goanna {
 
+// Where the connection has got to. Written by the session thread under
+// m_stats_mutex, read through stats().
 enum class SessionState {
     Idle,
     Connecting,   // UDP handshake in progress
@@ -67,6 +87,8 @@ enum class SessionState {
 
 const char *session_state_name(SessionState s);
 
+// The session's progress and counters, copied out whole under
+// m_stats_mutex by stats(), so a reader holds no lock while it looks.
 struct SessionStats {
     SessionState state = SessionState::Idle;
     std::string message;
@@ -83,6 +105,12 @@ struct SessionStats {
     uint64_t map_seed = 0;
 };
 
+// One connection to one server, from handshake to disconnect. It is the
+// IGameDef that Luanti's node, item, MapBlock and inventory code expects,
+// so that code works against it unchanged, and the con::PeerHandler for
+// its connection. GoannaClient owns it and makes a new one per connection
+// (connect_to). Public methods run on the main thread; those marked "caller
+// holds mapLock()" touch state the session thread also changes.
 class GoannaSession final : public IGameDef, public con::PeerHandler {
 public:
     CarveStore &carves() { return m_carves; }
@@ -93,7 +121,7 @@ public:
     // before any session starts.
     static void setSharePath(const std::string &path);
 
-    // Non-blocking: spins up the receive thread.
+    // Non-blocking: opens the block store and starts the session thread.
     void start(const std::string &host, uint16_t port, const std::string &player_name,
             const std::string &password);
 
@@ -109,8 +137,9 @@ public:
     void setContentHold(bool on) { m_content_hold = on; }
     bool contentHeld() const { return m_content_hold; }
     GoannaTextureSource *tsrc() { return m_tsrc.get(); }
-    // The classifier's table, docs/design/pbr-plan.md step 2: built when content is
-    // prepared, empty before. Read only from then on.
+    // The per node material classifier's table (goanna_materials.h, and
+    // docs/design/pbr-plan.md, "Design"): built on the main thread when
+    // content is prepared, empty before. Read only from then on.
     const MaterialTable &materialTable() const { return m_material_table; }
     // A CSV of game_texture,pack_path, letting an unmodified Minecraft
     // resource pack dress a Luanti game whose textures are named nothing like
@@ -127,7 +156,10 @@ public:
     GoannaShaderSource &shsrc() { return m_shsrc; }
     // How much world to ask the server to stream, in mapblocks (16 nodes
     // each), and the camera FOV we report. Vanilla derives both from the
-    // client's own settings; servers cap the range themselves.
+    // client's own settings; servers cap the range themselves. Plain fields,
+    // set by the main thread (at connect and from the view settings) and
+    // read without a lock by the session thread as it writes each position
+    // packet: a stale value costs one packet's worth of the old range.
     int wantedRange = 12;
     float cameraFov = 70.0f;
     // Interaction options, set from the UI, read in stepInteract.
@@ -143,7 +175,8 @@ public:
 
     SessionStats stats() const;
 
-    // Snapshot of block positions received since the last call (consumed).
+    // Snapshot of block positions received or changed since the last call
+    // (consumed). Takes mapLock() itself.
     std::vector<v3s16> takeNewBlocks();
     // Bounded residency: drop blocks further than `radius` mapblocks from
     // the player and tell the server we no longer hold them, so it will
@@ -205,7 +238,7 @@ public:
     GoannaMap &map() { return *m_map; }
 
     // Sky/lighting as last sent by the server, with time of day advanced
-    // locally. Thread-safe copy.
+    // locally. A copy taken under m_sky_mutex.
     SkyState skyState() const;
     // Client-side override of the time of day (0..1), or <0 for none. Testing aid.
     void setTimeOfDayOverride(float tod) { m_tod_override = tod; }
@@ -401,7 +434,8 @@ public:
     void setPlayerKeys(u32 keypress_bits);
 
     // Media (textures, models, sounds) received from the server, by name.
-    // Returns nullptr if unknown/not yet received. Thread-safe copy.
+    // Copies the bytes into `out` under m_media_mutex; false if unknown or
+    // not yet received. Main thread, directly and through ModelCache.
     bool getMedia(const std::string &name, std::string &out) const;
     bool mediaComplete() const;
 
@@ -424,6 +458,10 @@ public:
     void deletingPeer(con::IPeer *peer, bool timeout) override;
 
 private:
+    // The session thread's loop: connect, handle packets, send READY once
+    // the main thread has prepared content, then send the position and the
+    // block acknowledgements on their intervals. Runs until stop() clears
+    // m_running.
     void threadMain();
     void handle(NetworkPacket &pkt);
     void send(NetworkPacket &pkt, bool reliable = true);
@@ -517,18 +555,38 @@ private:
     std::set<v3s16> m_store_pending; // received block being written outside mapLock()
     void saveBlockToStore(MapBlock *b); // caller holds mapLock()
 
+    // Luanti's connection. Made by the session thread in threadMain; the
+    // main thread also sends through it (chat, interactions, inventory),
+    // which is safe because Connection::Send only queues for Luanti's own
+    // send thread.
     std::unique_ptr<con::IConnection> m_con;
     std::thread m_thread;
+    // Set by start() and cleared by stop() on the main thread; the session
+    // thread polls it each loop and clears it itself on a fatal error.
     std::atomic<bool> m_running{false};
 
+    // Guards m_stats. The session thread writes it as the handshake and the
+    // blocks progress; stats() copies it out on either thread.
     mutable std::mutex m_stats_mutex;
     SessionStats m_stats;
 
+    // Guards m_sky and m_time_of_day_at. The session thread writes them from
+    // the sky, time and lighting packets; skyState() reads them on the main
+    // thread. m_tod_override is a plain float the main thread sets for tests.
     mutable std::mutex m_sky_mutex;
     SkyState m_sky;
     float m_tod_override = -1.0f;
     std::chrono::steady_clock::time_point m_time_of_day_at;
 
+    // mapLock(). The one lock over the world: the map and its blocks, the
+    // local player, the active objects, the interaction state, the
+    // inventories, and the block bookkeeping (m_new_blocks,
+    // m_block_revisions, m_block_digests, m_preready_blocks, m_ack_blocks,
+    // m_store_dirty, m_store_pending, m_object_steps). The session thread
+    // takes it to apply block, node, object and inventory packets; the main
+    // thread takes it to gather blocks for meshing, step the player and
+    // objects, dig, and read inventories. Kept short on both sides: the
+    // session writes to the store and sends packets outside it.
     std::mutex m_map_mutex;
     std::unique_ptr<GoannaMap> m_map;
     std::unique_ptr<LocalPlayer> m_player;
@@ -546,6 +604,8 @@ private:
     u16 m_wield_index = 0;
     int m_crack_animation_length = -1;
 
+    // Mod channel replies, under m_server_opts_mutex: written by the session
+    // thread in onModChannelMsg, drained by the main thread's take methods.
     std::string m_overseer_channel; // under m_server_opts_mutex
     std::vector<std::string> m_overseer_messages;
     std::vector<std::string> m_surfaces;
@@ -555,7 +615,15 @@ private:
     // against a server without the mod, which is the ordinary case and renders
     // exactly as before: the mod grants, it never takes away.
     std::map<std::string, std::string> m_server_opts;
+    // Guards m_server_opts and the mod channel queues above it. Written by
+    // the session thread, read and drained on the main thread.
     mutable std::mutex m_server_opts_mutex;
+    // hudLock(). Guards chat, the HUD elements, flags and hotbar, the
+    // inventory formspec, the prepend and the shown formspec queue. The
+    // session thread writes them from packets; stepInteract, on the main
+    // thread, also queues a node's own formspec. The main thread reads and
+    // drains. m_hud_version is bumped under it and read without it, as a
+    // change counter.
     mutable std::mutex m_hud_mutex;
     std::vector<ChatLine> m_chat;
     std::map<u32, HudElement> m_hud;
@@ -563,9 +631,14 @@ private:
     u32 m_hud_version = 0;
     s32 m_hotbar_itemcount = 8;
     std::string m_hotbar_image, m_hotbar_selected_image;
+    // Written by the session thread from the HP and breath packets, and by
+    // fall damage in stepPlayer on the main thread; read by the HUD.
     std::atomic<u16> m_hp{20};
+    // Set by main.gd through GoannaClient, read by prepareContentIfReady.
     std::atomic<bool> m_content_hold{false};
     std::atomic<u16> m_breath{10};
+    // The inventories are under mapLock(). Their version counters are bumped
+    // under it and read without it, as change counters.
     std::unique_ptr<Inventory> m_inventory;
     u32 m_inventory_version = 0;
     std::map<std::string, std::unique_ptr<Inventory>> m_detached_inventories;
@@ -580,12 +653,21 @@ private:
     std::unique_ptr<ItemVisualsManager> m_item_visuals;
     std::unique_ptr<Client> m_mesh_client;
     std::map<u32, u8> m_emissive_by_texture;
+    // The content handoff, in order. The session thread sets m_content_ready
+    // when definitions and media are in (maybeReady). The main thread sees
+    // it in prepareContentIfReady, builds the visuals, sets
+    // m_content_prepared under mapLock() and then m_send_ready. The session
+    // thread sees that and sends CLIENT_READY. The visuals are built on the
+    // main thread because Godot decodes the media images
+    // (goanna_image_hooks.h).
     std::atomic<bool> m_content_ready{false};
     // Set once prepareContentIfReady has actually built the visuals. The
     // gap between content arriving and being prepared is long on large
     // games, and blocks meshed in it render as unknown nodes.
     std::atomic<bool> m_content_prepared{false};
     std::atomic<bool> m_send_ready{false};
+    // A MOVE_PLAYER from the server, under m_pose_mutex: written by the
+    // session thread, taken once by the main thread (takeServerMove).
     bool m_server_move_pending = false;
     v3f m_server_move_pos;
     float m_server_move_pitch = 0, m_server_move_yaw = 0;
@@ -616,7 +698,13 @@ private:
     std::vector<u32> m_deleted_spawners;
     std::vector<ParticleEvent> m_particles;
     std::vector<s32> m_stopped_sounds;
+    // Guards the sound, particle, spawner and dug node queues above. The
+    // session thread pushes what the server sent; the main thread pushes the
+    // sounds and bursts the client makes itself while digging and placing,
+    // and drains them all through the take methods.
     mutable std::mutex m_sound_mutex;
+    // Blocks to acknowledge, under mapLock(): pushed by onBlockData, swapped
+    // out and sent by threadMain, both on the session thread.
     std::vector<v3s16> m_ack_blocks;
 
     NodeDefManager *m_nodedef = nullptr;
@@ -635,6 +723,9 @@ private:
     // sends the client on with textures missing. Written under m_media_mutex.
     std::chrono::steady_clock::time_point m_media_last_arrival;
 
+    // Guards the media maps below and m_media_last_arrival. The session
+    // thread fills them as media arrives; the main thread reads the bytes
+    // (prepareContentIfReady, loadPushedMedia, getMedia).
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
     std::map<std::string, std::string> m_media;        // name -> bytes
@@ -645,12 +736,16 @@ private:
     std::vector<std::pair<std::string, PushedMedia>> m_media_pushed_arrived;
     std::string m_texture_map;                         // see setTextureMap
 
+    // Guards the pose and keys below and the server move above. The main
+    // thread writes the pose each frame (setPlayerPose, setPlayerKeys); the
+    // session thread reads it into TOSERVER_PLAYERPOS (writePlayerPosTo).
     std::mutex m_pose_mutex;
     v3f m_pose_pos = v3f(0, 0, 0);
     v3f m_pose_speed = v3f(0, 0, 0);
     float m_pose_pitch = 0, m_pose_yaw = 0;
     float m_pose_move_speed = 0, m_pose_move_dir = 0;
     u32 m_pose_keys = 0;
+    // Session thread only: set from AUTH_ACCEPT, read by threadMain.
     float m_recommended_send_interval = 0.1f;
 };
 

@@ -9,6 +9,12 @@
 // This is Goanna's stand-in with exactly that surface. It is deliberately a
 // global-namespace class named Client so the transplanted code compiles
 // against unmodified headers.
+//
+// Threads: one Client per GoannaSession (meshClient()), holding pointers
+// the session owns. Mesh workers call it concurrently through
+// MapBlockMesh, so it holds no mutable state of its own beyond the clock
+// below; whether a given call is safe off the main thread is the texture
+// source's rule, not this class's (goanna_mesher.h, the crack exception).
 
 #include <string>
 
@@ -42,7 +48,9 @@ public:
     IItemDefManager *idef() { return m_idef; }
     IItemDefManager *getItemDefManager() { return m_idef; }
     ItemVisualsManager *getItemVisualsManager() { return m_item_visuals; }
-    // Texture animation clock, advanced by the session's owner each frame.
+    // Texture animation clock, read by item_visuals_manager.cpp. Nothing in
+    // Goanna calls setAnimationTime, so it stays 0: node tiles animate in
+    // the shader instead (docs/systems/node-animation.md).
     float getAnimationTime() const { return m_animation_time; }
     void setAnimationTime(float t) { m_animation_time = t; }
 

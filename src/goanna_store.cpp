@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
+// BlockStore: the region files, their indices, compaction and the size
+// cap. The format and the thread rules are in goanna_store.h; every public
+// method that reads or writes takes m_mutex for its whole length.
+
 #include "goanna_store.h"
 
 #include <algorithm>

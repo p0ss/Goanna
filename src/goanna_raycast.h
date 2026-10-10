@@ -6,6 +6,9 @@
 // Pointed-thing raycast: Luanti's Environment::continueRaycast, transplanted
 // as a free function (src/transplant/environment_raycast.cpp) so Goanna can
 // point at nodes and objects without an Environment.
+//
+// Threads: called from GoannaSession::stepInteract on the main thread,
+// under mapLock(), because it walks the live map.
 
 #include <functional>
 #include <optional>
