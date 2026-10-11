@@ -291,6 +291,16 @@ func run() -> void:
 	view._receive({"v": 1, "t": "reply", "req": view.pending.req, "ok": false, "reason": "nothing to do"})
 	view.ui.select_plan(1)
 	check(not view.ui.act.visible and view.ui.cancel.text == "Cancel pending work", "plans keep Cancel without Act")
+	view.ui.update_plans([{"id": "o7", "kind": "dig", "title": "Excavation", "by": "alice", "state": "Proposed",
+		"total": 2, "done": 0, "reason": "Proposed for you by Ada, manager.", "can_cancel": true, "can_act": true,
+		"confirm": true, "pos": {"x": 0, "y": 0, "z": 0}}])
+	view.ui.plans.select(0);view.ui.select_plan(0)
+	check(view.ui.act.visible and view.ui.act.text == "Confirm" and view.ui.plans.get_item_text(0).begins_with("Proposed"),
+		"a proposed plan offers Confirm")
+	client.sent.clear()
+	view.ui.act_plan()
+	check(client.sent.back().get("t") == "act" and client.sent.back().get("id") == "o7", "Confirm asks the server")
+	view._receive({"v": 1, "t": "reply", "req": view.pending.req, "ok": true, "reason": "Confirmed."})
 	view.ui.choose_family("Select")
 	view._close()
 	check(main.cam.cull_mask == 1048575 and main.captured, "leaving restores ordinary view and pointer")

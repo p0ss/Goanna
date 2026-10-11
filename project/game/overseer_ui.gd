@@ -195,7 +195,7 @@ func build(host: Node) -> void:
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area, purple outline: a plan proposed for you. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -327,6 +327,9 @@ func update_plans(value: Array) -> void:
 	records = value
 	plans.clear()
 	for entry in records:
+		if entry.get("state") == "Proposed":
+			plans.add_item("Proposed  %s  for %s" % [entry.get("title", entry.kind), entry.get("by", "")])
+			continue
 		if entry.get("kind") == "page":
 			var times := " x%d" % int(entry.total) if int(entry.get("total", 1)) > 1 else ""
 			plans.add_item("%s  %s  %s%s" % [entry.get("title", "Note"), entry.get("by", ""), entry.state, times])
@@ -353,6 +356,9 @@ func select_plan(index: int) -> void:
 	locate.disabled = not entry.get("pos") is Dictionary
 	cancel.disabled = not entry.get("can_cancel", false)
 	act.visible = family == "Plans" and entry.get("can_act", false)
+	act.text = "Confirm" if entry.get("confirm", false) else "Act"
+	act.tooltip_text = "Let workers take up this proposed plan." if entry.get("confirm", false) \
+		else "Do what the office would do, where it can be done from afar."
 	act.disabled = not view.pending.is_empty() and view.pending.get("t") != "act"
 	if not view.pending.is_empty(): cancel.disabled = view.pending.get("t") != "cancel" or view.pending.get("id") != selected_id
 	cancel.text = "Retry cancellation" if not view.pending.is_empty() else "Drop" if is_page else "Cancel pending work"

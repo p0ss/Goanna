@@ -112,6 +112,10 @@ unseen danger page is a red line in the header that locates it and marks
 it seen; the Plans button counts unseen pages. Plans lists pages first,
 with Act and Drop, both answered by the server.
 
+Plans proposed for this player (by the director, through the manager)
+are listed as Proposed with Confirm and Drop, and their cells are
+outlined in purple until confirmed.
+
 Remembered columns are slightly desaturated (30 percent) and darkened
 (16 percent) by `shaders/overseer_memory.gdshader`. Order outlines share this
 column treatment. Blue-white transparent sheets accumulate at each open

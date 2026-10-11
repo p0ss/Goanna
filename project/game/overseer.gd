@@ -890,6 +890,7 @@ func _draw_layer() -> void:
 		if state == "done": colour = Color(0.2, 0.75, 0.4)
 		if state == "blocked": colour = Color(0.95, 0.2, 0.15)
 		if state == "in_progress": colour = Color(0.2, 0.7, 1.0)
+		if state == "proposed": colour = Color(0.75, 0.45, 0.95)
 		var horizontal: Array = []
 		var vertical: Array = []
 		for p in marked[state]:
