@@ -70,9 +70,11 @@ notes above about pool size and the culling box apply only with it off. See
 **Glow is read and not drawn.** Particles are drawn unshaded, so they are at
 full texture brightness everywhere: smoke in an unlit cave is as bright as
 smoke at noon. Glow sets a *minimum* light level, which only means something
-once particles take light from the world at all. That is the lighting rework
-in `pbr-plan.md`, not this file, and adding a light level here would have to
-be undone by it. It is carried so the day that lands it is one line.
+once particles take light from the world at all. Lighting particles is not
+yet planned anywhere: [the materials plan](../design/pbr-plan.md) covers
+terrain, and its remaining work has no particle item. Whatever lights them
+should take glow with it, and adding a light level here first would have to
+be undone. It is carried so the day that lands it is one line.
 
 Worth knowing that this was already wrong in a smaller way: single particles
 parsed `glow` and spawners did not, so a spawner's fire and torch sparks lost
