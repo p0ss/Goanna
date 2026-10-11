@@ -39,9 +39,9 @@ white wall.
 
 ### 3. Material and lighting coverage
 
-Finish the per-game material audit, validate more LabPBR packs, and bring the
-far shader closer to near-field lighting without increasing distant texture
-reads excessively. The working plan is [pbr-plan.md](pbr-plan.md).
+Finish the per-game material audit, tell apart nodes that share a texture,
+and validate more games and LabPBR packs. The far tiers already share the
+near shader. The working plan is [pbr-plan.md](pbr-plan.md#remaining-work).
 
 ### 4. Compatibility tail
 

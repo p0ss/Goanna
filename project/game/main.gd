@@ -154,8 +154,8 @@ var _virtual_capture := false
 # Lighting levels, seeded from GOANNA_SUN/AMBIENT/SDFGI/SSAO/WHITE/EXPOSURE/
 # SKY_FILL and then settable live from the Lighting settings tab. The values
 # are the recipe settled on project/studies/lighting_chart.tscn on 2026-08-21
-# (docs/design/pbr-plan.md step 3): sun 1.0 and white 4.0 with exposure 0.46 put a
-# sunlit stone top at 1.28 times its albedo and snow at 229 with no clipping,
+# (docs/design/pbr-plan.md, "Lighting and exposure"): sun 1.0 and white 4.0
+# with exposure 0.46 put a sunlit stone top at 1.28 times its albedo and snow at 229 with no clipping,
 # where 1.5, 1.5 and 1.0 had put stone at 1.87 times and snow flat white;
 # the sky fill lifts a wall at noon from 0.18 of the top to 0.38.
 var light_sun := 1.0
@@ -640,7 +640,9 @@ func _ready() -> void:
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# The exposure was decided on project/studies/lighting_chart.tscn, 2026-08-21,
-	# by the numbers in docs/design/pbr-plan.md step 3: it used to be too hot
+	# by the numbers in docs/design/pbr-plan.md, "Lighting and exposure" (the
+	# before and after are in docs/history/materials-log.md): it used to be
+	# too hot
 	# (sunlit stone of albedo 131 rendered at 207, snow and sea lanterns
 	# clipped to flat white with every texel gone), and the fix is sun 1.0,
 	# ACES white 4.0 and a base exposure of 0.46 (light_sun, light_white,

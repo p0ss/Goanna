@@ -96,7 +96,7 @@ global uniform vec3 goanna_sun_dir;
 //
 // How much each channel is allowed to do is a uniform rather than a constant,
 // because the balance is judged on lighting_chart.tscn and is expected to move
-// (docs/design/pbr-plan.md, "Current implementation": lighting defaults are
+// (docs/design/pbr-plan.md, "The material chart": lighting defaults are
 // judged on that chart, not on an uncontrolled world view). Each is a
 // material strength, set through GoannaClient::set_material_strength.
 //

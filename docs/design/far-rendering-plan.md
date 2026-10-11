@@ -244,10 +244,10 @@ tier is only how much is sampled:
 - **`_n`**, only in the near tiers. At sub-pixel texel size a normal map is
   noise, and it is the expensive one.
 
-This depends on `docs/design/pbr-plan.md` step 2, the per node material class.
-While 80 per cent of nodes carry a flat fallback `_s`, giving the far tiers
-the array shader changes almost nothing visible. The order in
-`docs/design/roadmap.md` has materials land first for this reason.
+This depends on the per node material class (`docs/design/pbr-plan.md`, "A
+material for every node"). While most nodes carried a flat fallback `_s`,
+giving the far tiers the array shader changed almost nothing visible, which
+is why materials land first in `docs/design/roadmap.md`'s order.
 
 Atmosphere is the other half of it, and is what actually sells a vista. The
 horizon in a Distant Horizons screenshot is haze reaching sky colour, not a
@@ -379,10 +379,10 @@ this avoids becoming a six month branch that never lands.
 2. **Far shading parity.** Done, 2026-08-21. The coarse tiers run the node array
    shader against the same `Texture2DArray` and its `_n` and `_s` companions, on
    the vertex layout in `docs/systems/mesh-attributes.md`, so there is no
-   distance at which the renderer changes. What it buys is bounded by
-   `pbr-plan.md` step 2 exactly as predicted: with most nodes on a flat fallback
-   `_s`, a far hillside is textured rather than flat coloured, and no more than
-   that yet.
+   distance at which the renderer changes. What it bought that day was bounded
+   by the material classes (`pbr-plan.md`, "A material for every node") exactly
+   as predicted: with most nodes then on a flat fallback `_s`, a far hillside
+   was textured rather than flat coloured, and no more than that.
 3. **Multi-tier LOD geometry**, still inside the server's view range. Done,
    2026-08-21: the derived chain, tiers by distance, greedy merging into per
    region meshes, the residency rule, and the far field occlusion term baked

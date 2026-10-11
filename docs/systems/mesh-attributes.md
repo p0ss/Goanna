@@ -3,11 +3,11 @@
 Every mesh Goanna builds from map data carries the same attributes, whether it
 came from Luanti's mesher at full detail or from Goanna's own LOD mesher several
 hundred nodes away. This file is that contract. It exists because two pieces of
-work depend on it and neither can wait for the other: `docs/design/pbr-plan.md`
-step 3 revives Luanti's baked light and adds near field ambient occlusion,
-`docs/systems/far-rendering.md` builds the LOD tiers, and
-`docs/design/iris-compat.md` rung 5 translates a pack's `gbuffers_terrain` into
-the shader that reads all of it. If the two meshers disagree, a shader pack
+work depend on it and neither can wait for the other: the lighting in
+`docs/design/pbr-plan.md` ("Lighting and exposure") reads Luanti's baked light
+and near field ambient occlusion, `docs/systems/far-rendering.md` builds the
+LOD tiers, and `docs/design/iris-compat.md` rung 5 translates a pack's
+`gbuffers_terrain` into the shader that reads all of it. If the two meshers disagree, a shader pack
 lights the near bubble and leaves the horizon flat, which is the failure
 `docs/design/roadmap.md` orders the work to avoid.
 
@@ -100,10 +100,10 @@ they mean.
   much of the sky reaches this vertex, before the time of day is applied.
   The shader scales the sky ambient by it, so an interior stops being lit by
   the sky through its own roof, and since 2026-08-21 also adds a flat fill
-  in the sky's colour scaled by it (`goanna_sky_fill`, `pbr-plan.md` step
-  3), which is what the vanilla client's own light is and what lifts a wall
-  under open sky that Godot's GI leaves near black. The other half of
-  `lmcoord`.
+  in the sky's colour scaled by it (`goanna_sky_fill`, `pbr-plan.md`,
+  "Lighting and exposure"), which is what the vanilla client's own light is
+  and what lifts a wall under open sky that Godot's GI leaves near black. The
+  other half of `lmcoord`.
 
   It is not sky alone. Luanti writes artificial light into both banks, so
   beside a torch or lava this channel is lit however deep underground, and
@@ -114,10 +114,12 @@ they mean.
   sky ambient and the sky fill above still take `g` as it stands.
 - **`CUSTOM0.b`, ambient occlusion.** 1.0 is unoccluded. Goanna's own hemisphere
   trace against node occupancy, described in `docs/systems/far-rendering.md`. It
-  multiplies into ambient and never into direct sun, which is what separates
-  occlusion from shadow. It replaces the corner darkening Luanti computes under
-  smooth lighting, which is why `m_smooth_lighting` stays off: that path would
-  bake its own occlusion into a channel we do not read.
+  multiplies into ambient and the sky fill in full, and into direct light only
+  as far as `vertex_ao_light` lets it (0.3, so corners still read under the
+  sun; see "Status, 2026-08-21" below). It replaces the corner darkening
+  Luanti computes under smooth lighting, which is why `m_smooth_lighting`
+  stays off: that path would bake its own occlusion into a channel we do not
+  read.
 - **`CUSTOM0.a`, freshness.** 255 on every vertex of a live block. The far tiers
   write 96 on faces of a block drawn from the local store rather than received
   this session (`docs/design/far-rendering-plan.md`, rung 5), and the shaders
@@ -138,10 +140,11 @@ added, and the sun still receives these meshes as shadow casters.
 
 `UV2.y` holds an integer, as a float, naming what kind of thing the surface is:
 0 for unclassified, and otherwise an index into a table Goanna keeps.
-`docs/design/pbr-plan.md` step 2 fills it from the same nodedef read that
-assigns a material class, and `docs/design/iris-compat.md` needs it to answer
-`mc_Entity.x`, which is how a shader pack knows that this surface is leaves and
-should wave, that one is water and should refract.
+The classifier in `docs/design/pbr-plan.md` ("A material for every node")
+fills it from the same nodedef read that assigns a material class, and
+`docs/design/iris-compat.md` needs it to answer `mc_Entity.x`, which is how a
+shader pack knows that this surface is leaves and should wave, that one is
+water and should refract.
 
 Zero is the correct failure. A node with no classification renders
 unremarkably rather than wrongly.
@@ -234,11 +237,11 @@ per cent of pixels and the frame mean not at all. The channels are not idle, and
 the same test proves it: allowing occlusion to touch direct light as well
 (`vertex_ao_light`) changes 44.5 per cent of pixels and halves their brightness.
 So occlusion reaches the shading correctly, and what is missing is something to
-occlude. Ambient is a negligible share of the current image, which is the
-balance `docs/design/pbr-plan.md` step 3 exists to rework, and it agrees with
-the earlier finding that SDFGI replaces environment ambient outright. The
-default was at first 0, occlusion multiplying ambient only because occlusion
-is not shadow. That lost to the picture on 2026-08-24: with the sun overhead
+occlude. Ambient was a negligible share of the image, which is the balance
+the lighting recipe (`docs/design/pbr-plan.md`, "Lighting and exposure") was
+reworked to change, and it agrees with the earlier finding that SDFGI
+replaces environment ambient outright. The default was at first 0, occlusion
+multiplying ambient only because occlusion is not shadow. That lost to the picture on 2026-08-24: with the sun overhead
 the corners vanished and the world read flat at noon, so occlusion now
 reaches direct light at 0.3 (`vertex_ao_light`). The shader took 0.3 that
 day, but the client's own table, which sets the uniform on every material,
@@ -287,5 +290,5 @@ how the cheap correct version gets lost.
   integral on shapes whose answer is known by inspection, and fails on an
   ordering inversion or an error over 0.12.
 - `project/studies/lighting_chart.tscn` is where the shader's treatment of these
-  channels is judged, per `docs/design/pbr-plan.md`, against printed numbers
-  rather than screenshots.
+  channels is judged, per `docs/design/pbr-plan.md` ("The material chart"),
+  against printed numbers rather than screenshots.

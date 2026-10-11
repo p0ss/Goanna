@@ -329,7 +329,8 @@ rather than a preference.
    This proved the approach in a day, which is why it sat first on this page and
    early in `docs/design/roadmap.md`'s order: its answer decides how much
    tonemap, bloom and reflection work is worth doing in `.gdshader` under
-   `docs/design/pbr-plan.md` step 3. The answer is: little, packs bring it.
+   `docs/design/pbr-plan.md`, "Lighting and exposure". The answer is: little,
+   packs bring it.
 2. **The uniform set.** Iris supplies a large, well documented set:
    `gbufferModelView`, `shadowLightPosition`, `frameTimeCounter`,
    `sunAngle`, `cameraPosition` and the rest. Goanna has all of these or can

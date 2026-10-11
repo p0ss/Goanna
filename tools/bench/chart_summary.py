@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-"""Reduce a lighting chart run to docs/design/pbr-plan.md step 3's pass or fail lines.
+"""Reduce a lighting chart run to pass or fail lines.
 
-    godot --path project studies/lighting_chart.tscn   (with CHART_OUT=chart.json)
-    tools/bench/chart_summary.py chart.json [other.json]
+    tools/goanna-headless fixture res://studies/lighting_chart.tscn --env CHART_OUT=/tmp/chart.json
+    tools/bench/chart_summary.py /tmp/chart.json [other.json]
 
 With two files, every figure is printed side by side, which is how a change
 to the environment or the shader is judged: as a number that moved, not as
 an impression of a screenshot.
 
-The thresholds are the ones written into step 3's "done when", made
-numeric here so they can be argued with in one place.
+The thresholds are what docs/design/pbr-plan.md, "Lighting and exposure",
+asks of the chart, made numeric here so they can be argued with in one
+place.
 """
 import json
 import sys
 
-# What step 3 asks for, as numbers.
+# What the lighting asks for, as numbers.
 SEPARABLE_GAP = 0.05     # sRGB distance between the two closest classes on the
                          # front face, over the stone top luma at that time,
                          # so a dim dawn is judged at its own exposure

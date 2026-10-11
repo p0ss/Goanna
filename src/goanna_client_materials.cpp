@@ -101,7 +101,7 @@ void GoannaClient::set_auto_bump(float strength) {
     if (m_entities)
         m_entities->setAutoBump(strength);
     // The array path infers the same relief for layers with no authored _n
-    // (docs/design/pbr-plan.md, "Current implementation"), and its
+    // (docs/design/pbr-plan.md, "A material for every node"), and its
     // companions are cached per texture.
     if (m_session && m_session->tsrc())
         m_session->tsrc()->setInferredReliefStrength(strength);

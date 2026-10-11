@@ -4,6 +4,33 @@ Investigations and measurements behind the material system, dated. The
 current behaviour is in [materials](../systems/materials.md); the earlier
 calibration work is in [material calibration](material-calibration.md).
 
+## The plan's four steps, 2026-08-21
+
+Until 2026-08-27 the materials plan (`docs/design/pbr-plan.md`) was an
+ordered list of four steps, and older comments and logs still cite them by
+number. What each was, and the section of the plan that now holds it:
+
+1. **A standalone pipeline scene**, now "The material chart". Done
+   2026-08-21: `lighting_chart.tscn` and `chart_summary.py`, a run taking
+   about five seconds.
+2. **A material for every node**, now "A material for every node". Done
+   2026-08-21: against Mineclonia, 3264 nodes, 2928 classed by footstep, 24
+   by group, 9 by drawtype, 90 by name and 213 unclassed (6.5 per cent,
+   mostly items, machines and decoration). In the jungle at noon, turning
+   the material channels off changed 0.3 per cent of the frame, because
+   stone at smoothness 0.12 under an overhead sun is matte, and leaves and
+   plants were not then on the array path.
+3. **Lighting and exposure**, now "Lighting and exposure". Done 2026-08-21
+   on the chart, Godot 4.5.1: the old recipe (sun 1.5, ACES white 1.5,
+   exposure 1.0) scored 7 of 15, with a sunlit stone top at 1.87 times its
+   albedo, snow clipped flat, walls at 0.28 of the top, a blue bay and a
+   black night. Sun 1.0, white 4.0, exposure 0.46, the radiance changes in
+   `sky.gdshader` and the sky fill scored 15 of 15 that day; walls at noon
+   went from 0.18 of the top to 0.38. The chart's thresholds are the step's
+   "done when", made numeric in `chart_summary.py`.
+4. **The audit**, a generated per node table with a rendered swatch. Not
+   done; it is the first item of the plan's "Remaining work".
+
 ## Occlusion has to reach the fill, 2026-08-30
 
 Reported as AO and corner darkening never visibly working, at any slider.

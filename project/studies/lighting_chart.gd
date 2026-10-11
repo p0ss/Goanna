@@ -4,9 +4,10 @@
 ## Run: tools/goanna-headless fixture res://studies/lighting_chart.tscn --env CHART_OUT=/tmp/chart.json
 extends Node3D
 
-# The material chart, docs/design/pbr-plan.md step 1: the lighting and material
-# instrument. No world, no server, a fixed camera and fixed lights. One row
-# per material class, one column per lighting condition, each cell a node
+# The material chart (docs/design/pbr-plan.md, "The material chart"): the
+# lighting and material instrument. No world, no server, a fixed camera and
+# fixed lights. One row per material class, one column per lighting
+# condition, each cell a node
 # sized cube wearing a baked LabPBR set through the shader the world uses
 # (nodes_array.gdshader, with the vertex layout of docs/systems/mesh-attributes.md),
 # and the number each cell rendered at printed beside what it should have
@@ -16,14 +17,15 @@ extends Node3D
 # Columns, per time of day:
 #   open   a cube in the open, sky light 255, occlusion 255
 #   bay    the same cube under a roof with a wall behind, real occluding
-#          geometry, which is the "roofed bay" docs/design/pbr-plan.md step 3 wants
-#          dark without the headlight. Its sky light byte is 0.7, not 1.0:
+#          geometry, the "roofed bay" that docs/design/pbr-plan.md,
+#          "Lighting and exposure", wants dark without the headlight. Its
+#          sky light byte is 0.7, not 1.0:
 #          Luanti's spread light under a roof a few nodes in is two or three
 #          levels below full sun, and that is what the fill would see there
 #   dark   the open cubes again, in a second capture at the same place with
 #          sky light 0 in CUSTOM0: what the shader does with Luanti's own
 #          "no sky here" on its own, with nothing else moved
-# Times of day are the four cases step 3 is judged on: noon, afternoon, dawn
+# Times of day are the four cases the lighting is judged on: noon, afternoon, dawn
 # (low warm sun) and night (moon), each driven through the same blend of
 # Mineclonia's sky values that main.gd's _apply_sky does, copied not re
 # derived, so a value tuned here transfers.
@@ -39,7 +41,8 @@ extends Node3D
 # fraction of the frame below the horizon that clips, which
 # is the "clipping outside the sky" figure. CHART_OUT=/path.json writes all
 # of it; PROBE_OUT=/dir saves one PNG per capture. tools/bench/chart_summary.py
-# reduces the JSON to the step 3 pass or fail lines.
+# reduces the JSON to the pass or fail lines of docs/design/pbr-plan.md,
+# "Lighting and exposure".
 #
 # Knobs, the same names as main.gd where main.gd has them: GOANNA_SUN,
 # GOANNA_AMBIENT, GOANNA_SDFGI, GOANNA_SSAO, GOANNA_WHITE, GOANNA_EXPOSURE,
@@ -80,7 +83,8 @@ extends Node3D
 # Run it as the header says, through tools/goanna-headless fixture.
 
 const MATERIALS := [
-	# label, baked stem. Twelve classes, the ones step 2's table names.
+	# label, baked stem. Twelve materials over the classifier's classes
+	# (docs/design/pbr-plan.md, "A material for every node").
 	["stone", "default_stone"],
 	["dirt", "default_dirt"],
 	["sand", "default_sand"],
@@ -504,7 +508,7 @@ func _patch(img: Image, world: Vector3, half: int) -> Dictionary:
 	}
 
 
-# How much of the frame below the horizon clips: the step 3 figure that
+# How much of the frame below the horizon clips: the lighting figure that
 # wants to stay in single figures, measured over everything that is not sky.
 func _frame_clip(time: String, img: Image) -> void:
 	var clip := 0
