@@ -2,14 +2,14 @@
 
 Every mesh Goanna builds from map data carries the same attributes, whether it
 came from Luanti's mesher at full detail or from Goanna's own LOD mesher several
-hundred nodes away. This file is that contract. It exists because two pieces of
-work depend on it and neither can wait for the other: the lighting in
+hundred nodes away. This file is that contract. It exists because three pieces
+of work depend on it and none can wait for the others: the lighting in
 `docs/design/pbr-plan.md` ("Lighting and exposure") reads Luanti's baked light
 and near field ambient occlusion, `docs/systems/far-rendering.md` builds the
 LOD tiers, and `docs/design/iris-compat.md` rung 5 translates a pack's
-`gbuffers_terrain` into the shader that reads all of it. If the two meshers disagree, a shader pack
-lights the near bubble and leaves the horizon flat, which is the failure
-`docs/design/roadmap.md` orders the work to avoid.
+`gbuffers_terrain` into the shader that reads all of it. If the two meshers
+disagree, a shader pack lights the near bubble and leaves the horizon flat,
+which is the failure `docs/design/roadmap.md` orders the work to avoid.
 
 Anything not on this list is not carried. Adding to it means changing both
 meshers, both node array shaders and the LOD material in the same commit.
@@ -122,10 +122,13 @@ they mean.
   read.
 - **`CUSTOM0.a`, freshness.** 255 on every vertex of a live block. The far tiers
   write 96 on faces of a block drawn from the local store rather than received
-  this session (`docs/design/far-rendering-plan.md`, rung 5), and the shaders
-  pull such surfaces toward grey by `stale_strength`, so remembered terrain
-  reads as remembered. Values between are unused so far; a second use (wetness
-  for weather) would take another byte rather than share this one.
+  this session (`docs/design/far-rendering-plan.md`, rung 5). The shaders can
+  pull such surfaces toward grey by `stale_strength` to show what is
+  remembered, but its default is 0 (`kMatStrengthDefaults` in
+  `src/goanna_client_materials.cpp`): near and far are meant to share one
+  colour and light path, so in play the channel is read and not shown. Values
+  between are unused so far; a second use (wetness for weather) would take
+  another byte rather than share this one.
 
 ## The block semantic ID
 
