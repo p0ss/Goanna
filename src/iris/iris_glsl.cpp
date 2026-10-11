@@ -421,10 +421,10 @@ void extractDecls(std::string &text, std::vector<Decl> &decls) {
 }
 
 int varyingSlots(const std::string &type, int array) {
+    // A matrix takes one location per column: matC and matCxR have C.
     int s = 1;
-    if (type == "mat4") s = 4;
-    else if (type == "mat3") s = 3;
-    else if (type == "mat2") s = 2;
+    if (type.size() >= 4 && type.compare(0, 3, "mat") == 0 && type[3] >= '2' && type[3] <= '4')
+        s = type[3] - '0';
     return s * std::max(1, array);
 }
 
@@ -496,6 +496,17 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         rename("sampler");
         if (version < 400)
             for (auto w : since400) rename(w);
+        // A GLSL 1.20 pack may define its own round() or tanh(), which 4.50
+        // then sees as a clashing overload of the builtin. Renamed only when
+        // the pack defines one, since otherwise the name is the builtin.
+        static const std::pair<const char *, int> builtins[] = {{"round", 130}, {"roundEven", 130},
+                {"trunc", 130}, {"sinh", 130}, {"cosh", 130}, {"tanh", 130}, {"asinh", 130}, {"acosh", 130},
+                {"atanh", 130}, {"isnan", 130}, {"isinf", 130}, {"fma", 400}};
+        for (auto &b : builtins) {
+            if (version >= b.second) continue;
+            std::regex def(std::string(R"(\b(?:float|vec[234]|int|bool)\s+)") + b.first + R"(\s*\([^;{]*\)\s*\{)");
+            if (std::regex_search(vs, def) || std::regex_search(fs, def)) rename(b.first);
+        }
         if (version < 430)
             for (auto w : since430) rename(w);
     }
@@ -523,6 +534,8 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
             {"texture2DRect", "texture"}, {"texture2D", "texture"}, {"textureCubeLod", "textureLod"},
             {"textureCube", "texture"}, {"texture3DLod", "textureLod"}, {"texture3D", "texture"},
             {"shadow2DLod", "goanna_shadow2DLod"}, {"shadow2D", "goanna_shadow2D"},
+            {"texelFetch2D", "texelFetch"}, {"texture2DLodARB", "textureLod"},
+            {"texture2DGradARB", "textureGrad"},
             {"gl_Fog", "goanna_Fog"},
             {"gl_ModelViewProjectionMatrixInverse", "goanna_mvp_inv"},
             {"gl_ModelViewProjectionMatrix", "goanna_mvp"},
@@ -664,11 +677,28 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         if (containsWord(vs, n) || containsWord(fs, n))
             out.samplers.push_back({n, unknownSamplers[n], nextUnknown++});
 
-    // ---- locations for varyings
+    // ---- locations for varyings, around any a pack located itself
+    std::set<int> packLocated;
+    {
+        static const std::regex vout(R"(layout\s*\([^)]*\blocation\s*=\s*(\d+)[^)]*\)[\w\s]*\bout\b)");
+        static const std::regex fin(R"(layout\s*\([^)]*\blocation\s*=\s*(\d+)[^)]*\)[\w\s]*\bin\b)");
+        for (auto it = std::sregex_iterator(vs.begin(), vs.end(), vout); it != std::sregex_iterator(); ++it)
+            packLocated.insert(std::atoi((*it)[1].str().c_str()));
+        for (auto it = std::sregex_iterator(fs.begin(), fs.end(), fin); it != std::sregex_iterator(); ++it)
+            packLocated.insert(std::atoi((*it)[1].str().c_str()));
+    }
     int loc = 0;
     for (auto &kv : varyings) {
+        int slots = varyingSlots(kv.second.type, kv.second.array);
+        for (;;) {
+            bool clash = false;
+            for (int k = loc; k < loc + slots; ++k)
+                if (packLocated.count(k)) clash = true;
+            if (!clash) break;
+            ++loc;
+        }
         kv.second.location = loc;
-        loc += varyingSlots(kv.second.type, kv.second.array);
+        loc += slots;
     }
 
     // ---- prelude
@@ -683,47 +713,55 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     for (auto f : kFormatNames)
         pre << "#define " << f << " 0\n";
     pre << o.extraDefines;
-    // The standard block, with every member the pack did not declare renamed
-    // out of its way: a pack is free to have a global of its own called
-    // fogDensity, and the block's member would collide with it.
-    std::set<std::string> declaredUniforms;
-    for (auto *decls : {&vdecl, &fdecl})
-        for (auto &d : *decls)
-            if (d.keyword == "uniform") declaredUniforms.insert(d.name);
-    auto stdName = [&](const std::string &n) {
-        return (n.rfind("goanna_", 0) == 0 || declaredUniforms.count(n)) ? n : "goanna_u_" + n;
-    };
-    pre << "layout(set = 1, binding = 0, std140) uniform GoannaIris {\n";
-    for (auto &m : standardLayout().members)
-        pre << "    " << utypeName(m.type) << " " << stdName(m.name) << ";\n";
-    pre << "};\n";
-    if (containsWord(vs, "goanna_Fog") || containsWord(fs, "goanna_Fog")) {
-        // gl_Fog, the fixed function fog state, from the fog uniforms.
-        pre << "struct goanna_FogParameters { vec4 color; float density; float start; float end; float scale; };\n"
-            << "goanna_FogParameters goanna_Fog = goanna_FogParameters(vec4(" << stdName("fogColor") << ", 1.0), "
-            << stdName("fogDensity") << ", " << stdName("fogStart") << ", " << stdName("fogEnd") << ", 1.0 / max("
-            << stdName("fogEnd") << " - " << stdName("fogStart") << ", 1e-4));\n";
-    }
-    if (containsWord(vs, "goanna_shadow2D") || containsWord(fs, "goanna_shadow2D") ||
-            containsWord(vs, "goanna_shadow2DLod") || containsWord(fs, "goanna_shadow2DLod")) {
-        // shadow2D returns a vec4 in the legacy dialect, from a shadow sampler
-        // or, when a pack declared a plain one, from a manual compare.
-        pre << "vec4 goanna_shadow2D(sampler2DShadow s, vec3 c) { return vec4(texture(s, c)); }\n"
-               "vec4 goanna_shadow2D(sampler2D s, vec3 c) { return vec4(step(c.z, texture(s, c.xy).r)); }\n"
-               "vec4 goanna_shadow2DLod(sampler2DShadow s, vec3 c, float l) { return vec4(textureLod(s, c, l)); }\n"
-               "vec4 goanna_shadow2DLod(sampler2D s, vec3 c, float l) {\n"
-               "    return vec4(step(c.z, textureLod(s, c.xy, l).r)); }\n";
-    }
-    if (!out.extra.members.empty())
-        pre << out.extra.declaration("GoannaIrisExtra", 1, 1);
     std::string samplerDecl;
     for (auto &s : out.samplers)
         samplerDecl += "layout(set = 0, binding = " + std::to_string(s.binding) + ") uniform " + s.type + " " + s.name + ";\n";
+    // The uniform blocks, per stage, with every member the stage did not
+    // declare renamed out of its way: a pack is free to have a global of its
+    // own called fogDensity, or a vertex global with the name of a uniform
+    // only its fragment stage reads. Renaming keeps the layout the same in
+    // both stages.
+    auto blocksFor = [&](const std::vector<Decl> &decls, const std::string &text) {
+        std::set<std::string> declared;
+        for (auto &d : decls)
+            if (d.keyword == "uniform") declared.insert(d.name);
+        auto name = [&](const std::string &n) {
+            return (n.rfind("goanna_", 0) == 0 || declared.count(n)) ? n : "goanna_u_" + n;
+        };
+        std::ostringstream b;
+        b << "layout(set = 1, binding = 0, std140) uniform GoannaIris {\n";
+        for (auto &m : standardLayout().members)
+            b << "    " << utypeName(m.type) << " " << name(m.name) << ";\n";
+        b << "};\n";
+        if (!out.extra.members.empty()) {
+            b << "layout(set = 1, binding = 1, std140) uniform GoannaIrisExtra {\n";
+            for (auto &m : out.extra.members)
+                b << "    " << utypeName(m.type) << " " << name(m.name) << ";\n";
+            b << "};\n";
+        }
+        if (containsWord(text, "goanna_Fog")) {
+            // gl_Fog, the fixed function fog state, from the fog uniforms.
+            b << "struct goanna_FogParameters { vec4 color; float density; float start; float end; float scale; };\n"
+              << "goanna_FogParameters goanna_Fog = goanna_FogParameters(vec4(" << name("fogColor") << ", 1.0), "
+              << name("fogDensity") << ", " << name("fogStart") << ", " << name("fogEnd") << ", 1.0 / max("
+              << name("fogEnd") << " - " << name("fogStart") << ", 1e-4));\n";
+        }
+        if (containsWord(text, "goanna_shadow2D") || containsWord(text, "goanna_shadow2DLod")) {
+            // shadow2D returns a vec4 in the legacy dialect, from a shadow
+            // sampler or, when a pack declared a plain one, a manual compare.
+            b << "vec4 goanna_shadow2D(sampler2DShadow s, vec3 c) { return vec4(texture(s, c)); }\n"
+                 "vec4 goanna_shadow2D(sampler2D s, vec3 c) { return vec4(step(c.z, texture(s, c.xy).r)); }\n"
+                 "vec4 goanna_shadow2DLod(sampler2DShadow s, vec3 c, float l) { return vec4(textureLod(s, c, l)); }\n"
+                 "vec4 goanna_shadow2DLod(sampler2D s, vec3 c, float l) {\n"
+                 "    return vec4(step(c.z, textureLod(s, c.xy, l).r)); }\n";
+        }
+        return b.str();
+    };
     std::string common = pre.str();
 
     // vertex stage
     std::ostringstream v;
-    v << common;
+    v << common << blocksFor(vdecl, vs);
     for (auto &s : out.samplers)
         if (containsWord(vs, s.name))
             v << "layout(set = 0, binding = " << s.binding << ") uniform " << s.type << " " << s.name << ";\n";
@@ -758,7 +796,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
 
     // fragment stage
     std::ostringstream f;
-    f << common;
+    f << common << blocksFor(fdecl, fs);
     for (auto &s : out.samplers)
         if (containsWord(fs, s.name))
             f << "layout(set = 0, binding = " << s.binding << ") uniform " << s.type << " " << s.name << ";\n";
