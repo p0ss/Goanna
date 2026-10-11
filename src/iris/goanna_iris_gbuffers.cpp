@@ -106,11 +106,21 @@ Ref<Shader> GoannaIrisGbuffers::shader(int surface) const {
 void GoannaIrisGbuffers::registerGlobal(const std::string &name, const std::string &type) {
     if (m_globals.count(name)) return;
     m_globals[name] = type;
-    RenderingServer *rs = RenderingServer::get_singleton();
-    StringName sn(name.c_str());
     // Another loaded pack, or an earlier load, may have made it already.
-    if (rs->global_shader_parameter_get_list().has(sn)) return;
-    rs->global_shader_parameter_add(sn, globalType(type), zeroOf(type));
+    // Kept here rather than asked of the RenderingServer, whose list of
+    // globals is an editor only call that logs an error in a game.
+    // Main thread only, like every caller.
+    static std::map<std::string, std::string> registered;
+    auto it = registered.find(name);
+    if (it != registered.end()) {
+        if (it->second != type)
+            UtilityFunctions::push_warning(String("Goanna Iris gbuffers: global ") + name.c_str() + " was " +
+                    it->second.c_str() + ", now wanted as " + type.c_str());
+        return;
+    }
+    registered[name] = type;
+    RenderingServer::get_singleton()->global_shader_parameter_add(StringName(name.c_str()), globalType(type),
+            zeroOf(type));
 }
 
 void GoannaIrisGbuffers::setGlobal(const char *name, const Variant &v) {
