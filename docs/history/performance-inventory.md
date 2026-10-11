@@ -13,6 +13,33 @@ and per-player terrain timing are now implemented in the working tree. See
 validation and the proposed terrain-sharing experiment. The tables below
 describe the audited baseline before those switches were added.
 
+**Status on 2026-10-11, checked against the code.** This inventory is kept
+as written, and the code wins where they differ. Since the audit:
+
+- Built: the true-off work gates it asks for (SSAO, glow, shafts,
+  volumetric fog, underwater volume, sun shadows, dynamic lights, water
+  reflections and waves, ice detail and transmission, grass AA and
+  more), as the `render_*` settings in
+  [render feature switches](../systems/render-feature-switches.md).
+- Built: a Lowest preset and five complete tiers, each setting every
+  controlled key (`project/game/graphics_profiles.gd`,
+  [graphics tiers](../systems/graphics-tiers.md)).
+- Built: cloud styles (`cloud_style`: block, fluffy rounded block and
+  volumetric clouds, with `render_sky_clouds` as the off switch), lamp
+  shadows budgeted apart from lamp admission (`shadow_lamps`,
+  `lamp_shadow_distance`), and grass density, distance, interaction and
+  AA controls.
+- Built: profile selection in the local play harness
+  (`tools/bench/bench-local-play.py --profile`), Lowest in the bench
+  plans, and `tools/bench/check-bench-plans.py`.
+- Still open: the per-frame `render_stats()` call in
+  `_update_environment_extras` (`project/game/main.gd`), a shared
+  terrain cache across local players (designed, not built, in
+  [render feature switches](../systems/render-feature-switches.md#terrain-sharing-the-next-architectural-experiment)),
+  a separate Majestic cloud style, a water path without refraction, and
+  per-machine calibration: `GraphicsProfiles.for_hardware` still picks
+  Medium for a discrete GPU and Low otherwise.
+
 The main distinction is between work per player, work per visible pixel,
 and work when new world data arrives. A smaller viewport reduces only some
 of those costs. Current Low leaves substantial rendering features enabled;

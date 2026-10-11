@@ -31,6 +31,7 @@ transplanted from `Client::handleCommand_*` in
 | node formspecs (`Game::nodePlacement`: a right-clicked node whose metadata has a `formspec` opens it client-side unless sneaking) / TOSERVER_NODEMETA_FIELDS | done | shown formspecs carry `context: "nodemeta:x,y,z"`; `send_nodemeta_fields(context, formname, fields)`; `step_interact(..., sneak)` |
 | textures for UI (item icons, HUD images) | via the texture-modifier DSL; item icons resolve an item's inventory_image, and a node item without one is its item mesh drawn as drawItemStack draws it (`src/goanna_item_icons.h`) | `texture(name) -> Texture2D`, `item_icon(item_name) -> Texture2D` |
 | INTERACT (dig start/stop/completed, place) / PLAYERITEM | done, raycast and dig timing from Luanti's own code | `step_interact(dt, dig, place, place_pressed)`, `set_wield_index(i)` |
+| MODCHANNEL_MSG / MODCHANNEL_SIGNAL (+TOSERVER_MODCHANNEL_JOIN, LEAVE, MSG) | done for Goanna's own channels only: `goanna:v1`, which the optional server mod (`goanna_server_mod/`) answers with its options, far summaries, surface tiles and fine blocks, and DorfCraft's overseer channel; only messages with an empty (server) sender are taken; a signal is ignored, since no reply already means no mod. There is no general mod channel API, as there are no client-side mods | `server_options()`, `overseer_channel(ch)`, `overseer_send(msg)`, `overseer_take()`; the far field (`set_far_distance(nodes)`) asks and reads on its own |
 
 NDT_MESH nodes go through the same loaders (`Client::getMesh` on the
 stand-in client), so `node_visuals` handles them as upstream does.
@@ -50,9 +51,12 @@ shared material. See [node animation](node-animation.md).
   first frame, and the animation strips of water and lava tiles, which their
   own shaders replace. A node being dug shows its first frame under the
   crack.
-- Batched particles and comprehensive testing of particle parameters; node
-  metadata display, minimap data, camera packets (FOV, CAMERA), mod channels,
-  client-side mods (SSCSM).
+- Comprehensive testing of particle parameters (the batch packet is read; see
+  the particle row above).
+- Packets dropped unread: FOV and CAMERA (server set field of view and camera
+  mode), EYE_OFFSET, MINIMAP_MODES (there is no minimap), UPDATE_PLAYER_LIST,
+  MOVE_PLAYER_REL, sudo mode (ACCEPT_SUDO_MODE, DENY_SUDO_MODE) and
+  CSM_RESTRICTION_FLAGS. Client-side mods (CSM, SSCSM) are not run.
 - Several formspec elements have deliberate fallbacks or remain missing.
   The exact, executable support matrix is maintained in
   [formspec conformance](../develop/formspec-conformance.md).

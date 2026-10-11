@@ -222,20 +222,38 @@ Flatpak, is in [hosting a world](../host/index.md#running-a-server-yourself).
 
 ### Point Goanna at it
 
-Run the project and the main menu (`project/menu/menu.gd`) opens. Start
-Game runs a local server as described above. Join Game is for a server
-already running: it lists the public servers, and below the list has fields
-for the server address, port, player name and password, which picking a
-listed server fills in. The menu remembers the address, port and name in
+Run the project and the main menu (`project/menu/menu.gd`) opens. Its
+buttons are Start Game, Join Game, Local players, Content, Settings, About
+and Quit. To join a server that is already running:
+
+1. Press **Join Game**. The top of the screen lists the public servers from
+   `https://servers.luanti.org/list`, busiest first, with Refresh list below
+   it. Picking a row fills in the address and port; double clicking it joins
+   at once. Without a network the list says so and the fields still work.
+2. Fill in **Server address** (`127.0.0.1` when empty), **Port** (`30000`
+   when empty), **Player name** (1 to 20 letters, digits, `_` or `-`) and
+   **Password**. On a server that allows registration, a new name is
+   registered with that password.
+3. Choose **Graphics**: PBR with the server's own materials (the default,
+   which also uses Goanna's installed materials for the server's game when
+   that game is known), Standard with no PBR, an installed Minetest Game or
+   Mineclonia material pack, or one of the texture packs in the Luanti data
+   directory.
+4. Press **Connect**, or Enter in any of the fields.
+
+The menu remembers the address, port, player name and graphics choice in
 Godot's user data directory (`user://goanna.cfg`, which on Linux is
-`~/.local/share/godot/app_userdata/Goanna/goanna.cfg`) and never the
-password.
+`~/.local/share/godot/app_userdata/Goanna/goanna.cfg`), and never the
+password. Start Game, the local server described above, has its own screen
+with World, Mods and Hosting tabs. Local players sets up experimental split
+screen, whose first player is the one named on Start Game or Join Game.
 
 The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or
-`GOANNA_NAME` and Goanna connects straight away; set `GOANNA_MENU=1` to get
-the menu anyway. Join Game then takes its port from `GOANNA_PORT` when that
-is set, and the rest from `goanna.cfg`. The variables are read in
+`GOANNA_NAME` (or one of the test modes, listed in `SKIP_VARS` at the top of
+`menu.gd`) and Goanna connects straight away; set `GOANNA_MENU=1` to get the
+menu anyway. Join Game then takes its port from `GOANNA_PORT` when that is
+set, and the rest from `goanna.cfg`. The variables are read in
 `project/game/main.gd`:
 
 | Variable | Default | Meaning |
@@ -262,11 +280,13 @@ GOANNA_NAME=goanna GOANNA_PASS=hunter2 \
 Or open `project/` in the Godot editor and press F5, having set the
 variables in your shell before launching the editor.
 
-Note that `project/` is not self-contained. `GoannaClient` resolves Luanti's
-share path to `res://../luanti` at run time, so it reads the base texture
-pack out of the submodule checkout. The Godot project cannot be moved or
-copied away from the repository, and an export will not find those textures.
-That is a known gap, not a design.
+Note that `project/` is not self-contained. Run from a checkout,
+`GoannaClient` resolves Luanti's share path to `res://../luanti`, so it reads
+the base texture pack out of the submodule checkout, and the Godot project
+cannot be moved or copied away from the repository. An exported build looks
+instead for a `luanti` folder beside the folder that holds the executable,
+which is how a release is laid out (`GoannaClient::connect_to` in
+`src/goanna_client.cpp`).
 
 Progress is printed to the console once a second: connection state, media
 files received, mapblocks received and meshed, materials built, and the

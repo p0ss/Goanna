@@ -1,5 +1,21 @@
 # Default look checkpoint
 
+**Historical record.** This is the checkpoint of 2026-09-13 (commit
+`933f27c3`), kept as written. It describes work that has since been
+replaced, so do not read it as the current look. For how things work now:
+
+- Lamps: the shared lamp and shadow budget described below was split.
+  Lamp admission now follows the light pool alone, and shadows have
+  their own count and distance budget per tier. See
+  [graphics tiers](../systems/graphics-tiers.md#current-implementation)
+  and [render feature switches](../systems/render-feature-switches.md).
+- Daylight, twilight and night lighting, sky, fog and clouds: see
+  [sky orchestration](../systems/sky-orchestration.md).
+- Authored materials, roughness and emission: see
+  [materials](../systems/materials.md), with the later investigations in
+  the [materials log](materials-log.md) and
+  [material calibration](material-calibration.md).
+
 This is work in progress, not an accepted visual overhaul. The first two review passes were rejected for flattened lighting, unreliable comparisons, material artifacts and distant-terrain regressions.
 
 The checkpoint includes daylight grading controls with a protected twilight interval, blue night-sky ambient lighting, bounded atmosphere, dry-bark roughness, aligned stone/brick UVs, explicit emitting-mesh ownership, torch and lantern source placement, corrected roughness decoding and emission-mask colour space, and a shared lamp/shadow budget.
