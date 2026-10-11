@@ -184,7 +184,7 @@ func build(host: Node) -> void:
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END

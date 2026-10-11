@@ -102,9 +102,9 @@ are skipped, and Luanti's `null` for an empty list reads as none.
 
 The Traffic toggle shades known cells by how often workers stand there
 and marks workers on the viewed level with their recent trails. Forbidden
-areas (red), locked doors (dark red) and militia stations with their
-rings (blue) are planner designations and always drawn, on known cells
-only. The Devices and Defence tool families come from the server's tool
+areas (red), locked doors (dark red), militia stations with their rings
+and watch posts (blue) and protected areas (pale blue) are planner
+designations and militia coverage, always drawn, on known cells only. The Devices and Defence tool families come from the server's tool
 list like the others.
 
 Remembered columns are slightly desaturated (30 percent) and darkened

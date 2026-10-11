@@ -103,6 +103,8 @@ const FORBIDDEN := Color(0.9, 0.15, 0.15, 0.2)
 const LOCKED := Color(0.7, 0.05, 0.05, 0.9)
 const STATION := Color(0.35, 0.5, 1.0, 0.8)
 const STATION_RING := Color(0.35, 0.5, 1.0, 0.25)
+const PROTECTED := Color(0.35, 0.5, 1.0, 0.12)
+const WATCH := Color(0.55, 0.65, 1.0, 0.85)
 var shown_overlays := {"rooms": false, "miasma": false, "traffic": false}
 var overlay_sheets: Node3D
 
@@ -908,6 +910,7 @@ func _draw_overlays() -> void:
 			groups.append([TRAFFIC_BANDS[band], busy[band]])
 	# Designations are plans, always shown like order marks.
 	var marks := zone_cells(snapshot)
+	groups.append([PROTECTED, marks.area])
 	groups.append([FORBIDDEN, marks.forbid])
 	groups.append([STATION_RING, marks.ring])
 	for group in groups:
@@ -915,7 +918,7 @@ func _draw_overlays() -> void:
 		for c in group[1]:
 			positions.append(Vector3(c.x, level + 30.05, -c.y))
 		_planes(overlay_sheets, positions, _colour(group[0]), 1.0, 1.0)
-	var small: Array = [[LOCKED, marks.lock, 0.6], [STATION, marks.post, 0.7]]
+	var small: Array = [[LOCKED, marks.lock, 0.6], [STATION, marks.post, 0.7], [WATCH, marks.watch, 0.4]]
 	if shown_overlays.traffic:
 		var workers := worker_marks(snapshot)
 		small.append([WORKER_TRAIL, workers.trail, 0.25])
@@ -975,19 +978,31 @@ static func worker_marks(layer: Dictionary) -> Dictionary:
 # Forbidden areas, locked doors and militia stations with their rings,
 # on known cells.
 static func zone_cells(layer: Dictionary) -> Dictionary:
-	var out := {"forbid": [], "lock": [], "post": [], "ring": []}
+	var out := {"forbid": [], "area": [], "lock": [], "post": [], "ring": [], "watch": []}
 	var r: Variant = layer.get("rect")
 	if not r is Dictionary:
 		return out
-	for e in _overlay_list(layer, "zones"):
-		if not e is Dictionary or not e.get("rect") is Dictionary:
+	for pair in [["zones", "forbid"], ["areas", "area"]]:
+		for e in _overlay_list(layer, pair[0]):
+			if not e is Dictionary or not e.get("rect") is Dictionary:
+				continue
+			var b: Dictionary = e.rect
+			if not (_number(b.get("x0")) and _number(b.get("x1")) and _number(b.get("z0")) and _number(b.get("z1"))):
+				continue
+			for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
+				for x in range(maxi(int(b.x0), int(r.x0)), mini(int(b.x1), int(r.x1)) + 1):
+					if _known_cell(layer, x, z): out[pair[1]].append(Vector2i(x, z))
+	for e in _overlay_list(layer, "watch"):
+		if not e is Dictionary or not (_number(e.get("x")) and _number(e.get("z"))):
 			continue
-		var b: Dictionary = e.rect
-		if not (_number(b.get("x0")) and _number(b.get("x1")) and _number(b.get("z0")) and _number(b.get("z1"))):
-			continue
-		for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
-			for x in range(maxi(int(b.x0), int(r.x0)), mini(int(b.x1), int(r.x1)) + 1):
-				if _known_cell(layer, x, z): out.forbid.append(Vector2i(x, z))
+		if e.get("kind") == "night":
+			var ring := clampi(int(e.get("ring", 3)) if _number(e.get("ring", 3)) else 3, 1, 8)
+			for dz in range(-ring, ring + 1):
+				for dx in range(-ring, ring + 1):
+					if maxi(absi(dx), absi(dz)) == ring and _known_cell(layer, int(e.x) + dx, int(e.z) + dz):
+						out.watch.append(Vector2i(int(e.x) + dx, int(e.z) + dz))
+		elif _known_cell(layer, int(e.x), int(e.z)):
+			out.watch.append(Vector2i(int(e.x), int(e.z)))
 	for e in _overlay_list(layer, "locks"):
 		if e is Dictionary and _number(e.get("x")) and _number(e.get("z")) and _known_cell(layer, int(e.x), int(e.z)):
 			out.lock.append(Vector2i(int(e.x), int(e.z)))
@@ -1125,8 +1140,13 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 	var cell := Vector2i(int(pos.x), int(pos.z))
 	if cell in marks.forbid:
 		notes += "\nForbidden area: workers take no work here"
+	if cell in marks.area:
+		notes += "\nProtected area: soldiers patrol it and answer hostiles inside"
 	if cell in marks.lock:
 		notes += "\nLocked door"
+	for e in _overlay_list(layer, "watch"):
+		if e is Dictionary and e.get("kind") == "door" and e.get("x") == pos.x and e.get("z") == pos.z:
+			notes += "\nOuter door: watched by soldiers at night"
 	for e in _overlay_list(layer, "stations"):
 		if e is Dictionary and e.get("x") == pos.x and e.get("z") == pos.z:
 			notes += "\nStation: %s" % ("all soldiers" if str(e.get("squad", "*")) == "*" else str(e.get("squad")))
