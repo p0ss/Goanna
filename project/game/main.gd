@@ -329,6 +329,10 @@ var headlight: OmniLight3D
 # per frame carried light update from turning it back on.
 var headlight_auto := true
 var iris: GoannaIrisEffect
+# The same pack's geometry programs, translated; the client draws terrain
+# and water with them. Null without a pack, or with
+# GOANNA_SHADERPACK_GBUFFERS=0.
+var iris_gbuffers: GoannaIrisGbuffers
 var test_started := 0.0
 var showcase_mode := false
 var showcase_placed := false
@@ -769,9 +773,20 @@ func _ready() -> void:
 	add_child(headlight)
 
 	# GOANNA_SHADERPACK=/path/to/pack: run an Iris or OptiFine shader pack's
-	# screen space chain (deferred, composite, final) as a CompositorEffect.
-	# The gbuffers programs are not run; see docs/design/iris-compat.md.
+	# screen space chain (deferred, composite, final) as a CompositorEffect,
+	# and its gbuffers terrain and water programs, translated into Godot
+	# shaders, on the node meshes; see docs/design/iris-compat.md.
 	var shaderpack := OS.get_environment("GOANNA_SHADERPACK")
+	if shaderpack != "" and OS.get_environment("GOANNA_SHADERPACK_GBUFFERS") != "0":
+		iris_gbuffers = GoannaIrisGbuffers.new()
+		if OS.get_environment("GOANNA_SHADERPACK_DUMP") != "":
+			iris_gbuffers.set_dump_dir(OS.get_environment("GOANNA_SHADERPACK_DUMP"))
+		if iris_gbuffers.load_pack(shaderpack):
+			client.set_iris_gbuffers(iris_gbuffers)
+			print("shader pack gbuffers ", iris_gbuffers.report())
+		else:
+			print("shader pack gbuffers not loaded: ", iris_gbuffers.report())
+			iris_gbuffers = null
 	if shaderpack != "":
 		iris = GoannaIrisEffect.new()
 		if OS.get_environment("GOANNA_SHADERPACK_DUMP") != "":
@@ -789,7 +804,7 @@ func _ready() -> void:
 			# twice. The effect decodes the pack's output back to linear for
 			# the sRGB stage. GOANNA_SHADERPACK_RAW=1 keeps Godot's tonemap and
 			# hands the pack linear HDR instead, for comparison.
-			if iris.has_final() and iris.get_bridge_colour():
+			if _pack_owns_colour():
 				env.environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 				env.environment.tonemap_white = 1.0
 				env.environment.tonemap_exposure = 1.0
@@ -797,6 +812,12 @@ func _ready() -> void:
 		else:
 			print("shader pack failed to load: ", iris.report())
 			iris = null
+	# A pack with terrain but no screen space chain (Base-Shader) still owns
+	# the colour of the world.
+	if iris_gbuffers and iris_gbuffers.has_terrain():
+		env.environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+		env.environment.tonemap_white = 1.0
+		env.environment.tonemap_exposure = 1.0
 
 	# GOANNA_MAT="channel=value,channel=value": set material strength channels
 	# at startup, so a headless run can put one of them in a state the settings
@@ -3977,8 +3998,9 @@ func _apply_sky() -> void:
 	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0) * bloom_strength
 	e.glow_enabled = render_features["render_bloom"] and bloom_strength > 0.001
-	# A pack with a final stage owns its exposure and grade.
-	if iris and iris.has_final() and iris.get_bridge_colour():
+	# A pack with a final stage owns its exposure and grade, and so does one
+	# whose terrain program writes the colour of the world directly.
+	if _pack_owns_colour():
 		e.adjustment_color_correction = null
 		e.adjustment_contrast = 1.0
 		e.adjustment_saturation = 1.0
@@ -4089,6 +4111,24 @@ func _apply_sky() -> void:
 		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
 			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain})
+	if iris_gbuffers:
+		# The pack's terrain does its own fog, so it is told where Goanna's
+		# would have begun and closed.
+		var pg := PlayerContext.find(self, "goanna_particles")
+		iris_gbuffers.update(get_viewport().get_camera_3d(), {"sun_direction": sun_dir,
+			"moon_direction": moon_dir, "time_of_day": st["time_of_day"],
+			"in_water": 1 if underwater else 0, "sky_color": top,
+			"fog_color": e.fog_light_color, "fog_start": e.fog_depth_begin,
+			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0})
+
+
+# Whether a shader pack's output is the finished colour, so Godot's tonemap
+# and grade must step aside: it has a final program (and the colour bridge
+# is on), or its translated terrain program writes display colour.
+func _pack_owns_colour() -> bool:
+	if iris and iris.has_final() and iris.get_bridge_colour():
+		return true
+	return iris_gbuffers != null and iris_gbuffers.has_terrain()
 
 
 # Sun/moon disc textures come from the server's media through the texture

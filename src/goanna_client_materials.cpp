@@ -127,6 +127,38 @@ void GoannaClient::set_solid_ice(bool on) {
 }
 bool GoannaClient::solid_ice() const { return m_solid_ice; }
 
+void GoannaClient::set_iris_gbuffers(const Ref<GoannaIrisGbuffers> &gbuffers) {
+    m_iris_gbuffers = gbuffers;
+    m_iris_block_ids = PackedInt32Array();
+    m_iris_block_names = 0;
+    clearMaterials();
+}
+
+bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface) {
+    if (m_iris_gbuffers.is_null())
+        return false;
+    Ref<Shader> sh = m_iris_gbuffers->shader(surface);
+    if (sh.is_null())
+        return false;
+    sm->set_shader(sh);
+    if (surface == GoannaIrisGbuffers::SURFACE_WATER) {
+        // Every water surface is the one block; Mineclonia's water has no
+        // entry in the texture map the block table is built from.
+        sm->set_shader_parameter("goanna_iris_entity_override", m_iris_gbuffers->block_id("water"));
+        return true;
+    }
+    const auto &names = m_session->materialTable().block_names;
+    if (m_iris_block_ids.is_empty() || m_iris_block_names != names.size()) {
+        PackedStringArray pn;
+        for (const auto &n : names)
+            pn.push_back(String(n.c_str()));
+        m_iris_block_ids = m_iris_gbuffers->block_ids(pn);
+        m_iris_block_names = names.size();
+    }
+    sm->set_shader_parameter("goanna_iris_block_ids", m_iris_block_ids);
+    return true;
+}
+
 void GoannaClient::set_flame_material(bool on) {
     if (on == m_flame_material)
         return;
@@ -765,6 +797,10 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             // opaque tile and an overlay lands on its base.
             if (scissor)
                 sm->set_render_priority(1);
+            // A shader pack's terrain program, when one is loaded; the
+            // uniforms below are the same either way.
+            applyIrisGbuffers(sm, scissor ? GoannaIrisGbuffers::SURFACE_CUTOUT
+                                          : GoannaIrisGbuffers::SURFACE_TERRAIN);
             sm->set_shader_parameter("albedo_array", arr);
             // Authored PBR from the server's own media, if a pack ships it:
             // this is what a resource pack buys over inferring relief from
@@ -1003,6 +1039,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm.instantiate();
         sm->set_shader(sh);
         sm->set_shader_parameter("albedo_tex", tex);
+        if (sh == m_sh_water)
+            applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER);
         if (sh == m_sh_lava) {
             const LavaTile &lava = m_lava_tex.at(key.texture_id);
             GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava.surface_texture);

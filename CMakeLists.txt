@@ -110,6 +110,7 @@ add_library(goanna SHARED
     src/iris/iris_preproc.cpp
     src/iris/iris_glsl_ast.cpp
     src/iris/iris_gbuffers.cpp
+    src/iris/goanna_iris_gbuffers.cpp
     src/transplant/collision.cpp
     src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp

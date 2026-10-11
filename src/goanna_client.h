@@ -58,6 +58,7 @@
 #include "goanna_lod_storage.h"
 #include "goanna_mesh_pool.h"
 #include "goanna_shared_cache.h"
+#include "iris/goanna_iris_gbuffers.h"
 #include <godot_cpp/classes/image_texture3d.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include "goanna_schedule.h"
@@ -210,6 +211,11 @@ public:
     // GOANNA_FLAME_MATERIAL=0; the switch exists for old against new.
     void set_flame_material(bool on);
     bool flame_material() const { return m_flame_material; }
+    // A shader pack's translated geometry programs (GoannaIrisGbuffers,
+    // docs/design/iris-compat.md rungs 5 to 7): node array tiles and water
+    // are drawn with them instead of Goanna's own shaders. Set before
+    // connect_to; null, the default, leaves every material as it was.
+    void set_iris_gbuffers(const godot::Ref<GoannaIrisGbuffers> &gbuffers);
     void set_texture_map(const godot::String &csv);
     void set_texture_path(const godot::String &path);
     // The texture resolution tier: 128, 256 or 512 map pixels per 16 art
@@ -1259,6 +1265,14 @@ private:
     struct FlameTex { u8 level = 0; bool firelike = false; };
     std::map<u32, FlameTex> m_flame_tex;
     bool m_flame_material = true;
+    godot::Ref<GoannaIrisGbuffers> m_iris_gbuffers;
+    // The pack's block number per entry of the session's block table, built
+    // at the first pack material and kept while the table's size holds.
+    godot::PackedInt32Array m_iris_block_ids;
+    size_t m_iris_block_names = 0;
+    // Puts a pack's program on `sm` when one is loaded for the surface
+    // (GoannaIrisGbuffers::SURFACE_*); false, and `sm` untouched, otherwise.
+    bool applyIrisGbuffers(const godot::Ref<godot::ShaderMaterial> &sm, int surface);
     bool flameSurface(const MaterialKey &key) const {
         return m_flame_material && !key.array_texture && !key.crack_overlay &&
                 m_flame_tex.count(key.texture_id);

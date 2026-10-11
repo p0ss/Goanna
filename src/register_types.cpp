@@ -2,15 +2,17 @@
 // Copyright (C) 2026 the Goanna contributors
 
 // The GDExtension's entry point, goanna_library_init, named in
-// project/goanna.gdextension. It registers the four classes GDScript can
-// make: GoannaClient (the whole client), GoannaIrisEffect, GoannaRipples
-// and GoannaSpeechInput. Godot calls it on the main thread as the
-// extension loads, at the scene initialisation level.
+// project/goanna.gdextension. It registers the five classes GDScript can
+// make: GoannaClient (the whole client), GoannaIrisEffect,
+// GoannaIrisGbuffers, GoannaRipples and GoannaSpeechInput. Godot calls it
+// on the main thread as the extension loads, at the scene initialisation
+// level.
 
 #include "goanna_client.h"
 #include "goanna_ripples.h"
 #include "goanna_speech_input.h"
 #include "iris/goanna_iris_effect.h"
+#include "iris/goanna_iris_gbuffers.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
@@ -24,6 +26,7 @@ static void initialize_goanna(ModuleInitializationLevel p_level) {
         return;
     GDREGISTER_CLASS(goanna::GoannaClient);
     GDREGISTER_CLASS(goanna::GoannaIrisEffect);
+    GDREGISTER_CLASS(goanna::GoannaIrisGbuffers);
     GDREGISTER_CLASS(goanna::GoannaRipples);
     GDREGISTER_CLASS(goanna::GoannaSpeechInput);
 }

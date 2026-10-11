@@ -142,6 +142,14 @@ godot-cpp is), so the file's header carries the full copyright and
 permission notice. The sun gate and the analytic stand-in for Godot's DFG
 table are Goanna's.
 
+**`project/tests/shaderpacks/base-shader/`, a test pack.** Base-Shader 3.0
+by Bestsoft101, <https://github.com/Bestsoft101/Base-Shader>, released under
+CC0-1.0 (its `LICENSE.txt` is beside it), downloaded from Modrinth on
+2026-10-11 and unmodified. It is the first target of the gbuffers
+translator (`docs/design/iris-compat.md`, rung 5) and is here so the
+translator's checks run against a real pack. It is test data: nothing ships
+it.
+
 ## Designs we credit
 
 No code from these is in the repository or the binary, so they carry no

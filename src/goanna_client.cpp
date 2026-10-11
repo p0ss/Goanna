@@ -652,6 +652,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_solid_ice", "on"), &GoannaClient::set_solid_ice);
     ClassDB::bind_method(D_METHOD("solid_ice"), &GoannaClient::solid_ice);
     ClassDB::bind_method(D_METHOD("set_flame_material", "on"), &GoannaClient::set_flame_material);
+    ClassDB::bind_method(D_METHOD("set_iris_gbuffers", "gbuffers"), &GoannaClient::set_iris_gbuffers);
     ClassDB::bind_method(D_METHOD("flame_material"), &GoannaClient::flame_material);
     ClassDB::bind_method(D_METHOD("set_texture_map", "csv"), &GoannaClient::set_texture_map);
     ClassDB::bind_method(D_METHOD("set_texture_path", "path"), &GoannaClient::set_texture_path);

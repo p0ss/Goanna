@@ -719,6 +719,8 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                     const auto lava = m_lava_tex.find(sf.texture_id);
                     wm->set_shader(lava != m_lava_tex.end() ? m_sh_lava : m_sh_water);
                     wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
+                    if (lava == m_lava_tex.end())
+                        applyIrisGbuffers(wm, GoannaIrisGbuffers::SURFACE_WATER);
                     if (lava != m_lava_tex.end()) {
                         GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava->second.surface_texture);
                         if (surface && surface->godotTexture().is_valid()) {
