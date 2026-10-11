@@ -177,10 +177,6 @@ names the cause either way, with "Goanna: could not load model" from
 - **The magenta shape at the hand** was reported and has never been
   reproduced; the guards above address the most likely path to it. See the
   log for what was checked.
-- **The swing against a vanilla client's.** The log recorded the swing as
-  smaller than a vanilla client's on games that leave the arm bone alone.
-  That was written before the mining clock drove a stroke of Goanna's own
-  while digging, and has not been checked since.
 - **The free flying debug camera.** Whether the body should be drawn under
   it is open. You are not in your body in that mode: the camera has detached
   from the physics and the body follows it around like a ghost. Hiding it

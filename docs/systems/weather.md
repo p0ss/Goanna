@@ -8,12 +8,13 @@ everything here is built from data the client already holds.
 
 ## Status
 
-Tested headless; parts seen on a GPU, and none of it yet judged to look
-right. The owner looked at the falling rain, splashes and puddles in play
-five times up to 27 September 2026, and each look found faults that were
-then fixed headless: the rain is now a box of drops, the splashes small
-rings in the ground's own shading and the puddles water filling the relief,
-and none of those three rebuilds has been looked at since. The storm cells,
+Rain and puddles are checked in play. The owner looked at the falling rain,
+splashes and puddles in play five times up to 27 September 2026, and each
+look found faults that were then fixed headless: the rain is now a box of
+drops, the splashes small rings in the ground's own shading and the puddles
+water filling the relief. The owner checked the rain and puddles again in
+play on 11 October 2026 and found them fine; the splashes were not named in
+that check. The storm cells,
 snowstorms, settled snow, hail, blowing dust and the other games' weather
 were run against local servers with a headless client on the software
 renderer on 27 September, and given one GPU look pass in headless gamescope

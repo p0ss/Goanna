@@ -214,3 +214,10 @@ the physics and the body follows it around like a ghost. Hiding it there
 would want to be conditional on the camera having detached rather than on
 the "Show own body" setting, and would want to keep the shadow, so that the
 frame still tells you where the player is.
+
+## The dig swing checked, 11 October 2026
+
+The owner checked the dig in play on 11 October 2026 and found it fine. That
+closes the 29 September note that the swing was smaller than a vanilla client's,
+which was written before the mining clock drove a stroke of Goanna's own
+while digging.
