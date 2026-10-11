@@ -274,6 +274,11 @@ struct FuncSym {
     // Stage globals this function or anything it calls reads or writes,
     // passed in as inout parameters (see VarSym::kind), by pack name.
     std::vector<std::string> routed;
+    // Built in inputs (goanna_gl_Vertex and the rest) it or its callees
+    // read, passed in as parameters: Godot lets only vertex() and fragment()
+    // read the stage built ins they are made from, and carrying them as
+    // varyings ran Mellow out of Godot's 32.
+    std::set<std::string> inputs;
 };
 
 struct VarSym {
@@ -535,9 +540,9 @@ Val Translator::builtinIdent(const std::string &n, bool &found) {
     // (stageBuiltin knows which).
     auto input = [&](const std::string &local, const Ty &t) {
         (frag ? m_fin : m_vin).insert(local);
-        if (!m_in_main)
-            (frag ? m_fin : m_vin).insert("carry:" + local);
-        v.code = m_in_main ? local : "goanna_c_" + local.substr(7);
+        if (!m_in_main && m_cur_func)
+            m_cur_func->inputs.insert(local);
+        v.code = local;
         v.t = t;
         return v;
     };
@@ -1031,6 +1036,10 @@ Val Translator::call(const Expr &e) {
             const VarSym *l = findLocal(r);
             args.push_back({l ? l->emitted : routedName(r, m_stage), Ty(), false});
         }
+        for (auto &in : f->inputs) {
+            args.push_back({in, Ty(), false});
+            if (!m_in_main && m_cur_func) m_cur_func->inputs.insert(in);
+        }
         if (m_cur_func) m_cur_func->busy = m_cur_func->busy; // dependency recorded by emission order
         return {f->emitted + "(" + join(args) + ")", f->ret, false};
     }
@@ -1491,8 +1500,13 @@ void Translator::emitFunction(FuncSym &f) {
         if (v.t.array) warn("array '" + r + "' passed to a function is not supported");
         m_scopes.back()[r] = {n, v.t};
     }
-    sig += ")";
     std::string body = stmt(f.f->body, 0);
+    for (auto &in : f.inputs) {
+        std::string decl = stageBuiltin(in, f.stage);
+        std::string type = decl.substr(0, decl.find(' '));
+        sig += std::string(sig.back() == '(' ? "" : ", ") + "in " + type + " " + in;
+    }
+    sig += ")";
     f.code = sig + "\n" + body;
     bool shared = false;
     if (f.stage == Stage::Fragment) {
@@ -1868,7 +1882,7 @@ bool Translator::run(const Program &p, std::string &err) {
                  "goanna_layer", "goanna_anim_layer", "goanna_block_entity", "goanna_vertex_colour",
                  "goanna_frag_coord", "goanna_mid_block", "goanna_to_linear", "goanna_lightmap_texmat",
                  "goanna_iris_block_ids", "goanna_iris_entity_override", "goanna_old_lighting",
-                 "goanna_node_anim_time", "goanna_c_gl_Vertex"})
+                 "goanna_node_anim_time"})
         m_used_names.insert(n);
 
     if (!collectGlobals(Stage::Vertex, err) || !collectGlobals(Stage::Fragment, err))
@@ -1890,12 +1904,6 @@ bool Translator::run(const Program &p, std::string &err) {
                  "goanna_gl_Position", "goanna_gl_Ignored"}) {
         if (!m_vin.count(n)) continue;
         vo << "\t" << stageBuiltin(n, Stage::Vertex) << "\n";
-        if (m_vin.count(std::string("carry:") + n)) {
-            std::string c = std::string("goanna_c_") + (n + 7);
-            std::string type = stageBuiltin(n, Stage::Vertex).substr(0, 4);
-            addDecl("varying " + type + " " + c + ";");
-            vo << "\t" << c << " = " << n << ";\n";
-        }
     }
     if (m_vin.count("vary:goanna_v_FrontColor") || m_fin.count("vary:goanna_v_FrontColor")) {
         addDecl("varying vec4 goanna_v_FrontColor;");
@@ -1975,10 +1983,7 @@ bool Translator::run(const Program &p, std::string &err) {
     if (m_fin.count("goanna_gl_FragCoord")) {
         needGlobal("iris_gbufferProjection", "mat4");
         fo << "\t" << stageBuiltin("goanna_gl_FragCoord", Stage::Fragment) << "\n";
-        if (m_fin.count("carry:goanna_gl_FragCoord")) {
-            addDecl("varying vec4 goanna_c_gl_FragCoord;");
-            fo << "\tgoanna_c_gl_FragCoord = goanna_gl_FragCoord;\n";
-        }
+
     }
     if (m_fin.count("goanna_gl_FragDepth")) fo << "\t" << stageBuiltin("goanna_gl_FragDepth", Stage::Fragment) << "\n";
     for (auto &g : m_main_locals[1]) fo << "\t" << g << ";\n";

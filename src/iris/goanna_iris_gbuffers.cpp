@@ -330,24 +330,26 @@ void GoannaIrisGbuffers::makeTextures() {
 // table of block light (x) against sky light (y). CUSTOM0 already holds
 // Luanti's light decoded to brightness, so a texel's coordinate is a
 // brightness here rather than a level, and the table only has to colour
-// it: sky light takes the sky's colour by day and a dim blue at night,
-// block light a warm torch colour, combined so neither saturates the other.
+// it. As in Minecraft, full sky light at noon is white, so a vanilla-like
+// pack shows its textures as they are; it fades to a dim blue at night,
+// takes a little of the sky's colour at dawn and dusk, and block light is
+// a warm torch colour, the two combined so neither saturates the other.
 void GoannaIrisGbuffers::updateLightmap(float daylight, const Color &sky) {
     if (m_lightmap.is_null()) return;
     Ref<Image> img = Image::create_empty(16, 16, false, Image::FORMAT_RGBA8);
-    const Color night(0.10f, 0.11f, 0.20f);
-    // the sky's own tint, lifted toward white so noon is not blue
-    Color day = sky.lerp(Color(1, 1, 1), 0.75f);
+    const Color night(0.07f, 0.08f, 0.15f);
+    const float dusk = 4.0f * daylight * (1.0f - daylight); // 1 at the half way point
+    Color day = Color(1, 1, 1).lerp(sky, 0.25f * dusk);
     Color skyc = night.lerp(day, daylight);
     const Color torch(1.0f, 0.86f, 0.64f);
-    const float floor_ = 0.035f;
+    const float floor_ = 0.03f;
     for (int y = 0; y < 16; ++y)
         for (int x = 0; x < 16; ++x) {
             float b = x / 15.0f, s = y / 15.0f;
             Color c;
             for (int k = 0; k < 3; ++k) {
-                float sv = skyc[k] * s, bv = torch[k] * b * b;
-                c[k] = std::min(1.0f, floor_ + 1.0f - (1.0f - sv) * (1.0f - bv));
+                float sv = skyc[k] * s, bv = torch[k] * b;
+                c[k] = std::min(1.0f, floor_ + (1.0f - floor_) * (1.0f - (1.0f - sv) * (1.0f - bv)));
             }
             c.a = 1.0f;
             img->set_pixel(x, y, c);
