@@ -114,6 +114,7 @@ void GoannaIrisGbuffers::registerGlobal(const std::string &name, const std::stri
 }
 
 void GoannaIrisGbuffers::setGlobal(const char *name, const Variant &v) {
+    if (std::strncmp(name, "iris_", 5) == 0) m_builtin[name + 5] = v;
     if (!m_globals.count(name)) return;
     RenderingServer::get_singleton()->global_shader_parameter_set(StringName(name), v);
 }
@@ -168,6 +169,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         }
         iris::GbuffersOptions o;
         o.surface = kinds[s];
+        for (auto &d : m_pack.customUniforms().defs())
+            if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
         o.label = m_pack.name() + "/" + chosen;
         iris::GbuffersResult r;
@@ -194,6 +197,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         sh->set_code(String::utf8(r.code.c_str()));
         m_shaders[s] = sh;
     }
+    m_custom = m_pack.customUniforms();
     parseBlockProperties((std::filesystem::path(m_pack.shadersDir()) / "block.properties").string());
     makeTextures();
     m_t0 = Time::get_singleton()->get_ticks_usec();
@@ -463,6 +467,83 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
 
     const float daylight = std::clamp(sun.normalized().y * 4.0f + 0.5f, 0.0f, 1.0f);
     updateLightmap(daylight, sky);
+
+    // The pack's custom uniforms, from the values above, as the screen
+    // space chain evaluates them for its passes.
+    if (!m_custom.defs().empty()) {
+        m_custom.evaluate([this](const std::string &n, iris::Value &v) { return lookupBuiltin(n, v); }, dt);
+        for (auto &d : m_custom.defs()) {
+            std::string g = "iris_cu_" + d.name;
+            auto it = m_globals.find(g);
+            iris::Value v;
+            if (!d.is_uniform || it == m_globals.end() || !m_custom.value(d.name, v)) continue;
+            const std::string &t = it->second;
+            Variant out;
+            if (t == "float") out = v.v[0];
+            else if (t == "int") out = (int)v.v[0];
+            else if (t == "bool") out = v.v[0] != 0.0f;
+            else if (t == "vec2") out = Vector2(v.v[0], v.v[1]);
+            else if (t == "vec3") out = Vector3(v.v[0], v.v[1], v.v[2]);
+            else if (t == "vec4") out = Vector4(v.v[0], v.v[1], v.v[2], v.v[3]);
+            else if (t == "ivec2") out = Vector2i((int)v.v[0], (int)v.v[1]);
+            else if (t == "ivec3") out = Vector3i((int)v.v[0], (int)v.v[1], (int)v.v[2]);
+            else continue;
+            RenderingServer::get_singleton()->global_shader_parameter_set(StringName(g.c_str()), out);
+        }
+    }
+}
+
+// What a custom uniform reads: the value update() set this frame, a
+// component of a vector, or one element of a matrix as name.column.row.
+bool GoannaIrisGbuffers::lookupBuiltin(const std::string &name, iris::Value &out) const {
+    std::string base = name;
+    int col = -1, row = -1;
+    size_t d1 = name.find('.');
+    if (d1 != std::string::npos) {
+        base = name.substr(0, d1);
+        size_t d2 = name.find('.', d1 + 1);
+        if (d2 == std::string::npos) return false;
+        col = std::atoi(name.c_str() + d1 + 1);
+        row = std::atoi(name.c_str() + d2 + 1);
+        if (col < 0 || col > 3 || row < 0 || row > 3) return false;
+    }
+    auto it = m_builtin.find(base);
+    if (it == m_builtin.end()) return false;
+    const Variant &v = it->second;
+    out = iris::Value();
+    switch (v.get_type()) {
+    case Variant::FLOAT: out.v[0] = (float)(double)v; return true;
+    case Variant::INT: out.v[0] = (float)(int64_t)v; return true;
+    case Variant::BOOL: out.v[0] = (bool)v ? 1.0f : 0.0f; return true;
+    case Variant::VECTOR2: {
+        Vector2 x = v;
+        out.n = 2; out.v[0] = x.x; out.v[1] = x.y;
+        return true;
+    }
+    case Variant::VECTOR2I: {
+        Vector2i x = v;
+        out.n = 2; out.v[0] = (float)x.x; out.v[1] = (float)x.y;
+        return true;
+    }
+    case Variant::VECTOR3: {
+        Vector3 x = v;
+        out.n = 3; out.v[0] = x.x; out.v[1] = x.y; out.v[2] = x.z;
+        return true;
+    }
+    case Variant::PROJECTION: {
+        if (col < 0) return true;
+        Projection p = v;
+        out.v[0] = p.columns[col][row];
+        return true;
+    }
+    case Variant::BASIS: {
+        if (col < 0 || col > 2 || row > 2) return true;
+        Basis b = v;
+        out.v[0] = b.get_column(col)[row];
+        return true;
+    }
+    default: return false;
+    }
 }
 
 Dictionary GoannaIrisGbuffers::report() const {

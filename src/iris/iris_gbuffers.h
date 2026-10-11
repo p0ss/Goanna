@@ -30,6 +30,7 @@
 #include "iris_preproc.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,10 @@ struct GbuffersOptions {
     bool old_lighting = true;
     // A label for the header comment, usually pack/program.
     std::string label;
+    // The pack's custom uniforms (uniform.* in shaders.properties), by name.
+    // A program uniform named here is read through the global
+    // iris_cu_<name>, which GoannaIrisGbuffers sets each frame.
+    std::set<std::string> custom_uniforms;
 };
 
 struct GbuffersResult {

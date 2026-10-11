@@ -1671,6 +1671,11 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                     globals[d.name] = ou->second;
                     continue;
                 }
+                if (m_o.custom_uniforms.count(d.name) && !d.array && t.b != Ty::Struct) {
+                    // a custom uniform, evaluated on the CPU each frame
+                    globals[d.name] = {needGlobal("iris_cu_" + d.name, t.godot()), t};
+                    continue;
+                }
                 std::string name = uniqueGlobal(d.name);
                 std::string init;
                 if (d.init) init = " = " + conv(expr(d.init), t).code;

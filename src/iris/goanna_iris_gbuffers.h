@@ -99,6 +99,11 @@ private:
     int m_frame = 0;
     float m_rain = 0.0f, m_wetness = 0.0f;
     godot::Projection m_prev_mv, m_prev_proj;
+    // Every Iris uniform update() worked out this frame, by its Iris name,
+    // for the custom uniforms to read whether or not a shader declares it.
+    std::map<std::string, godot::Variant> m_builtin;
+    iris::CustomUniforms m_custom;
+    bool lookupBuiltin(const std::string &name, iris::Value &out) const;
     godot::Vector3 m_prev_cam;
 };
 
