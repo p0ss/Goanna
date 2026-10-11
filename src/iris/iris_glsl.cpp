@@ -257,12 +257,24 @@ void scanConsts(const std::string &raw, std::map<std::string, std::string> &out)
     }
 }
 
+// The last directive of a kind wins: a pack writes one unconditionally and
+// a second inside the #if that adds a target, and only the live branch's
+// survives the loader's conditional pass.
+static bool lastMatch(const std::string &raw, const std::regex &re, std::smatch &out) {
+    bool found = false;
+    for (auto it = std::sregex_iterator(raw.begin(), raw.end(), re); it != std::sregex_iterator(); ++it) {
+        out = *it;
+        found = true;
+    }
+    return found;
+}
+
 std::vector<int> scanDrawBuffers(const std::string &raw) {
     std::vector<int> out;
     static const std::regex rt(R"(/\*\s*RENDERTARGETS\s*:\s*([0-9,\s]*)\*/)");
     static const std::regex db(R"(/\*\s*DRAWBUFFERS\s*:\s*([0-9A-Za-z]*)\s*\*/)");
     std::smatch m;
-    if (std::regex_search(raw, m, rt)) {
+    if (lastMatch(raw, rt, m)) {
         std::string list = m[1].str();
         std::stringstream ss(list);
         std::string tok;
@@ -273,7 +285,7 @@ std::vector<int> scanDrawBuffers(const std::string &raw) {
         }
         return out;
     }
-    if (std::regex_search(raw, m, db)) {
+    if (lastMatch(raw, db, m)) {
         for (char c : m[1].str()) {
             if (c >= '0' && c <= '9')
                 out.push_back(c - '0');
@@ -466,6 +478,28 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     stripDirectives(vs);
     stripDirectives(fs);
 
+    // Words a pack written for GLSL 1.20 to 4.20 may use as names but that
+    // Vulkan GLSL 4.50, which we compile as, reserves. Renamed in both
+    // stages alike.
+    {
+        static const std::regex verre(R"(#version\s+(\d+))");
+        std::smatch vm;
+        int version = std::regex_search(p.fsh, vm, verre) ? std::atoi(vm[1].str().c_str()) : 120;
+        static const char *since400[] = {"sample", "patch", "subroutine", "precise"};
+        static const char *since430[] = {"buffer", "shared", "coherent", "volatile", "restrict", "readonly",
+                "writeonly"};
+        auto rename = [&](const char *w) {
+            vs = replaceWord(vs, w, std::string("goanna_r_") + w);
+            fs = replaceWord(fs, w, std::string("goanna_r_") + w);
+        };
+        // Vulkan GLSL has a bare `sampler` type that no GL dialect has.
+        rename("sampler");
+        if (version < 400)
+            for (auto w : since400) rename(w);
+        if (version < 430)
+            for (auto w : since430) rename(w);
+    }
+
     std::vector<Decl> vdecl, fdecl;
     extractDecls(vs, vdecl);
     extractDecls(fs, fdecl);
@@ -488,7 +522,8 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
             {"texture2DGrad", "textureGrad"}, {"texture2DProj", "textureProj"},
             {"texture2DRect", "texture"}, {"texture2D", "texture"}, {"textureCubeLod", "textureLod"},
             {"textureCube", "texture"}, {"texture3DLod", "textureLod"}, {"texture3D", "texture"},
-            {"shadow2DLod", "textureLod"}, {"shadow2D", "texture"},
+            {"shadow2DLod", "goanna_shadow2DLod"}, {"shadow2D", "goanna_shadow2D"},
+            {"gl_Fog", "goanna_Fog"},
             {"gl_ModelViewProjectionMatrixInverse", "goanna_mvp_inv"},
             {"gl_ModelViewProjectionMatrix", "goanna_mvp"},
             {"gl_ModelViewMatrixInverse", "goanna_mv_inv"}, {"gl_ModelViewMatrix", "goanna_mv"},
@@ -599,13 +634,11 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         else if (d.keyword == "varying" || d.keyword == "out") addVarying(d, true);
         else if (d.keyword == "attribute" || d.keyword == "in") attributes.push_back(d);
     }
+    std::vector<Decl> fragOuts; // unlocated, given locations below
     for (auto &d : fdecl) {
         if (d.keyword == "uniform") handleUniform(d);
         else if (d.keyword == "varying" || d.keyword == "in") addVarying(d, false);
-        else if (d.keyword == "out") {
-            // an unlocated fragment output: treat name as gl_FragData[0]
-            fs = replaceWord(fs, d.name, "goanna_out_0");
-        }
+        else if (d.keyword == "out") fragOuts.push_back(d);
     }
     // samplers referenced through an alias or declared nowhere (some packs
     // rely on Iris declaring colortex for them): pick them up from use
@@ -650,7 +683,37 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     for (auto f : kFormatNames)
         pre << "#define " << f << " 0\n";
     pre << o.extraDefines;
-    pre << standardLayout().declaration("GoannaIris", 1, 0);
+    // The standard block, with every member the pack did not declare renamed
+    // out of its way: a pack is free to have a global of its own called
+    // fogDensity, and the block's member would collide with it.
+    std::set<std::string> declaredUniforms;
+    for (auto *decls : {&vdecl, &fdecl})
+        for (auto &d : *decls)
+            if (d.keyword == "uniform") declaredUniforms.insert(d.name);
+    auto stdName = [&](const std::string &n) {
+        return (n.rfind("goanna_", 0) == 0 || declaredUniforms.count(n)) ? n : "goanna_u_" + n;
+    };
+    pre << "layout(set = 1, binding = 0, std140) uniform GoannaIris {\n";
+    for (auto &m : standardLayout().members)
+        pre << "    " << utypeName(m.type) << " " << stdName(m.name) << ";\n";
+    pre << "};\n";
+    if (containsWord(vs, "goanna_Fog") || containsWord(fs, "goanna_Fog")) {
+        // gl_Fog, the fixed function fog state, from the fog uniforms.
+        pre << "struct goanna_FogParameters { vec4 color; float density; float start; float end; float scale; };\n"
+            << "goanna_FogParameters goanna_Fog = goanna_FogParameters(vec4(" << stdName("fogColor") << ", 1.0), "
+            << stdName("fogDensity") << ", " << stdName("fogStart") << ", " << stdName("fogEnd") << ", 1.0 / max("
+            << stdName("fogEnd") << " - " << stdName("fogStart") << ", 1e-4));\n";
+    }
+    if (containsWord(vs, "goanna_shadow2D") || containsWord(fs, "goanna_shadow2D") ||
+            containsWord(vs, "goanna_shadow2DLod") || containsWord(fs, "goanna_shadow2DLod")) {
+        // shadow2D returns a vec4 in the legacy dialect, from a shadow sampler
+        // or, when a pack declared a plain one, from a manual compare.
+        pre << "vec4 goanna_shadow2D(sampler2DShadow s, vec3 c) { return vec4(texture(s, c)); }\n"
+               "vec4 goanna_shadow2D(sampler2D s, vec3 c) { return vec4(step(c.z, texture(s, c.xy).r)); }\n"
+               "vec4 goanna_shadow2DLod(sampler2DShadow s, vec3 c, float l) { return vec4(textureLod(s, c, l)); }\n"
+               "vec4 goanna_shadow2DLod(sampler2D s, vec3 c, float l) {\n"
+               "    return vec4(step(c.z, textureLod(s, c.xy, l).r)); }\n";
+    }
     if (!out.extra.members.empty())
         pre << out.extra.declaration("GoannaIrisExtra", 1, 1);
     std::string samplerDecl;
@@ -715,6 +778,27 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         static const std::regex outre(R"(\bgoanna_out_(\d+)\b)");
         for (auto it = std::sregex_iterator(fs.begin(), fs.end(), outre); it != std::sregex_iterator(); ++it)
             written.insert(std::atoi((*it)[1].str().c_str()));
+    }
+    // Unlocated outputs take the lowest locations not already claimed by a
+    // located one, in declaration order, as a GL linker assigns them, and
+    // keep the type the pack gave them.
+    {
+        std::set<int> taken = written;
+        static const std::regex locre(R"(layout\s*\([^)]*\blocation\s*=\s*(\d+)[^)]*\)\s*out\b)");
+        for (auto it = std::sregex_iterator(fs.begin(), fs.end(), locre); it != std::sregex_iterator(); ++it)
+            taken.insert(std::atoi((*it)[1].str().c_str()));
+        int next = 0;
+        for (auto &d : fragOuts) {
+            while (taken.count(next)) ++next;
+            taken.insert(next);
+            std::string decl = d.type + " " + d.name + (d.array ? "[" + std::to_string(d.array) + "]" : "") + ";\n";
+            if (next < (int)db.size()) {
+                f << "layout(location = " << next << ") out " << decl;
+            } else {
+                f << decl;
+                out.warnings.push_back("output '" + d.name + "' has no target in DRAWBUFFERS, discarded");
+            }
+        }
     }
     for (int n : written) {
         if (n >= 0 && n < (int)db.size())
