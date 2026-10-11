@@ -110,5 +110,33 @@ look right; four (MakeUp, Chocapic13, Sildur's Vibrant, Super Duper
 Vanilla) do not even keep their main colour in `colortex0`. A real shadow
 map is the same: 17 of these packs read `shadowtex` in the chain, and the
 map has to come from the pack's own translated `shadow` program, which a
-compositor effect cannot run. Until rungs 5 and 7 land, judge a pack here
-by whether it loads, compiles and runs, not by its look.
+compositor effect cannot run. Rung 5 now draws one output (below); until a
+second output and a shadow map exist, judge a pack here by whether it
+loads, compiles and runs, not by its look.
+
+## The geometry programs
+
+What `GoannaIrisGbuffers` does with each pack's `gbuffers_terrain`,
+`gbuffers_terrain_cutout`, `gbuffers_water` and the foliage surface (the
+cut-out program on leaves and plants), on 2026-10-11 with Godot 4.5.1.
+"Front end" is `tests/iris_gbuffers.gd` with `GOANNA_IRIS_PACK`: all four
+translate and Godot's shader front end accepts them, headless, with no
+GPU. "GPU" is a frame through `tools/goanna-render` on the RTX 3090
+(Luanti 5.17.0, Mineclonia release 38561); the run details and what each
+frame showed are in `docs/design/iris-compat.md`, "The gbuffers
+translator, as built". "Dropped" lists the `colortex` targets the terrain
+program writes besides its colour, which one output cannot carry.
+
+| Pack | Terrain program | Front end | Dropped | GPU |
+| --- | --- | --- | --- | --- |
+| Base-Shader 3.0 | `gbuffers_terrain` | all four | none | drawn, near and far, in its flat vanilla look |
+| Eclipse 1.0 | `gbuffers_textured_lit` | all four | 1, 4, 6 (water: 4, 1, 3) | drawn dark; water transparent |
+| Mellow 3.4.1a | `gbuffers_terrain` | all four | none | drawn; the frame is a pale haze, not traced |
+| BSL 10.1.8 | `gbuffers_terrain` | all four | not recorded | not run |
+| Complementary Reimagined r5.9.3 | `gbuffers_terrain` | all four | not recorded | not run |
+| MakeUp Ultra Fast 9.5g | `gbuffers_terrain` | all four | not recorded | not run |
+
+Miniature, Sildur's Enhanced Default and Photon's terrain also passed the
+front end earlier the same day, before a reboot and before the later
+translator changes, so they are not in the table; Photon's water did not
+(a struct in a varying).

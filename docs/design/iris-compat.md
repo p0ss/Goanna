@@ -20,7 +20,9 @@ loaded, translated and compiled offline, not run. Per pack results are in
 What is new since 2026-08-21, all in `src/iris/` and checked by
 `goanna_iris_pack_test` and the offline compile check:
 
-- `shaders.properties` goes through a preprocessor first (`iris_expr.cpp`):
+- `shaders.properties` goes through a preprocessor first (`iris_preproc.cpp`,
+  the one `#if` engine the loader, the chain and the gbuffers translator
+  share since later the same day):
   `#if`, `#ifdef`, `#elif`, `#define` and the rest, against the MC_ and
   IRIS_ macros and the pack's option defaults, which the loader gathers from
   the `#define` lines of its sources. `program.<name>.enabled` (and the
@@ -55,9 +57,15 @@ What is new since 2026-08-21, all in `src/iris/` and checked by
   texture, so a shadow lookup says lit, as the plain `shadowtex` dummy does.
 - The translator fixes the real packs needed are listed in the status page.
 
-All of the effect side is in commit `a4410a9c` and has not yet run on the
-GPU: two attempts on 2026-10-11 were stopped by the GPU being held and by a
-reboot. Treat it as written, not observed.
+All of the effect side is in commit `a4410a9c`. Its first GPU run came
+later on 2026-10-11, as a side effect of the gbuffers frames (see "The
+gbuffers translator, as built" below): Eclipse's chain (3 of 3 passes) and
+Mellow's (9 of 9) compiled and ran on the RTX 3090 against the render
+service's fixture world (Luanti 5.17.0, Mineclonia, Godot 4.5.1), and both
+clients then crashed with signal 11 in a `GoannaIrisEffect` callable taking
+a `PackedByteArray`, which reads as the centre depth readback arriving
+after the effect is gone; the frames had already been taken. How the
+chain looks was not judged.
 
 The rest of this section is the state of 2026-08-21, kept because it is
 still true unless a line above says otherwise.
@@ -127,8 +135,9 @@ Things learnt on the way, recorded so they are not relearnt:
   `size.buffer`, `scale` and `flip` directives, multiview, and varyings of
   struct type (Photon). `shadowtex*` is still a 1x1 depth of 1.0, so
   nothing is in shadow: a real shadow map needs the pack's own translated
-  `shadow` program (rung 7), which a compositor effect cannot run. The gbuffers translator (rungs 5 to 7) has not been
-  started, and `docs/design/roadmap.md` says why it waits.
+  `shadow` program (rung 7), which a compositor effect cannot run. The gbuffers translator (rungs 5
+  to 7) is built since 2026-10-11; see "The gbuffers translator, as
+  built".
 
 `GOANNA_SHADERPACK_DUMP=<dir>` writes each pass's translated GLSL, which is
 the first thing to look at when a pack fails to compile: the error line
@@ -333,12 +342,15 @@ what is already on the vertex, `CUSTOM0.rg * 255.0`, rather than a path to
 revive. Earlier drafts of this page said otherwise and were right when they were
 written.
 
-What is still absent is the `lightmap` sampler itself, the small texture a
-pack multiplies that coordinate through. Minecraft generates it from the
-time of day, so Goanna has to generate its own from the server's sky colour
-and its torch colour. Without it a translated gbuffers program samples
-nothing and the world renders fullbright, which is the same symptom the
-missing coordinate would have caused and is worth not confusing with it.
+The `lightmap` sampler itself, the small texture a pack multiplies that
+coordinate through, is generated since 2026-10-11 by `GoannaIrisGbuffers`
+each frame: sixteen by sixteen, block light against sky light, white at
+noon under full sky as Minecraft's is, a dim blue at night, a warm torch
+colour for block light. `CUSTOM0` holds brightness rather than a light
+level, so the coordinate is `CUSTOM0.rg * 240.0`, Minecraft's own range,
+and the table is linear in it rather than carrying a second light curve. A
+first version tinted noon by the sky's colour and turned Base-Shader's gold
+block brown on lavapipe, which is the kind of mistake only a frame shows.
 
 ### The limit is multiple render targets
 
@@ -358,7 +370,8 @@ precise about rather than discovering late:
   composite pass reads that target gets nothing.
 - `Material::set_next_pass` can emulate MRT by drawing the geometry again per
   target. It costs a full geometry pass each and is worth it for two, not for
-  eight.
+  eight. It also draws into the same colour buffer, so on its own it does
+  not reach a `colortex`; each extra pass would need a target of its own.
 
 So: most packs mostly work, a pack with an unusual G buffer layout does not,
 and the failure is legible rather than mysterious once the DRAWBUFFERS
@@ -403,18 +416,178 @@ rather than a preference.
    path. One program, the most visible one, and the first real test of the
    translator. Its DRAWBUFFERS declaration says immediately whether the pack
    is expressible. The target is Base-Shader; the section below says why and
-   lists what it asks for.
+   lists what it asks for. Built and observed on the GPU, near and far,
+   2026-10-11; see "The gbuffers translator, as built".
 6. **`gbuffers_water`, then the rest.** Water is the one whose absence is
    most obvious, and it exercises vertex displacement. Base has no water
-   program, so this rung is measured against Eclipse.
+   program, so this rung is measured against Eclipse. The translation runs,
+   displacement included, but Eclipse draws its water in `composite` from
+   targets only a second output can reach, so on the GPU its water surface
+   is transparent; see below.
 7. **Shadow.** Godot already runs a shadow pass, so a translated shadow
    program mostly needs vertex displacement to agree with the terrain
    program, or waving grass casts unwaving shadows. Base has no shadow
-   program either; Eclipse ships one.
+   program either; Eclipse ships one. The agreement holds by construction
+   since 2026-10-11, but it buys less than this item assumed, and nothing of
+   it has been measured; see below.
 
 Rungs 1 to 4 are the screen space chain and need no translator at all. Rungs
 5 to 7 are the translator, and each is separately useful: a pack with only
 its composite chain running already looks like a shader pack.
+
+## The gbuffers translator, as built
+
+Built 2026-10-11 by rungs 5 to 7 above. The parts:
+
+- `src/iris/iris_preproc.cpp`, the preprocessor the whole loader shares
+  (see "The preprocessor, which is the hard part"). The translator runs it
+  in full on each stage the loader hands over, because a declaration
+  inside an `#ifdef` cannot be parsed before the `#ifdef` is decided and
+  Godot's shading language has no preprocessor of the right kind.
+- `src/iris/iris_glsl_ast.cpp`, a parser into a syntax tree.
+- `src/iris/iris_gbuffers.cpp`, the translator. It types every expression
+  as it emits it in Godot's shading language, and that turned out to be the
+  heart of the job rather than "expression level work inside a fixed
+  harness": Godot converts nothing implicitly (`vec2(int, int)` is an
+  error), has no global variables, no function prototypes, no comma
+  operator, no non-square matrices and no shadow samplers, will not let a
+  local share a global's name, builds a matrix only from whole columns,
+  and lets no function but `vertex()` and `fragment()` write a varying or
+  read a stage built in such as `FRAGCOORD`. Each has a rewrite: the
+  conversions are written out; a global initialised from a uniform becomes
+  a function returning its initialiser, a constant one a `const`, and any
+  other a local of the main body; varyings, outputs and such globals a
+  helper writes are passed to it as `inout` parameters, and the built in
+  inputs it reads as `in` ones, which costs no interpolator; functions are
+  emitted callees first; and a function both stages include is emitted
+  once.
+- `project/shaders/iris_gbuffers_shell.gdshaderinc`, the hand written
+  shell. It answers the pack's inputs from the node mesh contract
+  (`docs/systems/mesh-attributes.md`): `gl_Vertex` the world position,
+  `gl_Color` the tile tint times Goanna's traced occlusion and, with
+  `oldLighting`, Minecraft's face shading (top 1.0, bottom 0.5, sides 0.8
+  and 0.6), `gl_MultiTexCoord1` the block and sky light, `mc_Entity.x` the
+  pack's `block.properties` number for the node's block, `at_tangent`,
+  `mc_midTexCoord` and `at_midBlock`, and `gl_FragCoord` in OpenGL's
+  convention with a depth the pack's own `gbufferProjection` agrees with.
+  The atlas is the material's texture array sampled at the face's layer,
+  without `source_color`, so the pack reads gamma values as Minecraft gives
+  them, and its colour output is converted to linear on the way into
+  `ALBEDO`.
+- `src/iris/goanna_iris_gbuffers.cpp`, `GoannaIrisGbuffers`: loads the
+  programs through `iris::Pack`, with the same options, overrides
+  (`GOANNA_SHADERPACK_OPTIONS`), `program.*.enabled` and macros as the
+  chain, and with Iris's fallbacks (`gbuffers_terrain_cutout` to
+  `gbuffers_terrain` to `gbuffers_textured_lit` to `gbuffers_textured` to
+  `gbuffers_basic`; water to terrain first). It registers the Godot global
+  parameters the translated code reads and sets them each frame from the
+  player's camera: the Iris matrices (`gbufferModelView` is the camera's
+  rotation alone, so player space is world less `cameraPosition`, as in
+  Minecraft), the fixed function stand ins, the sun, time, fog, rain, the
+  lightmap, and the pack's custom uniforms, evaluated from those values by
+  the same evaluator the chain uses. `GoannaClient` puts the shaders on
+  four surfaces: opaque array tiles (`gbuffers_terrain`), cut-out array
+  tiles (`gbuffers_terrain_cutout`, alpha tested at `alphaTestRef`), the
+  single texture leaves and plants (the cut-out program again), and water
+  (`gbuffers_water`, blended). The far tiers share the array materials, so
+  they take the same programs with nothing added for them.
+
+`GOANNA_SHADERPACK` loads it beside the screen space chain, and
+`GOANNA_SHADERPACK_GBUFFERS=0` leaves it out for comparison. Without a pack
+none of it is created and every material is as it was.
+
+A displaced vertex. A pack writes `gl_Position` in clip space with the
+player camera's matrices. The shell takes it back to a world position and
+writes `VERTEX`, so Godot transforms it for whatever pass is running, the
+shadow pass included. It rebuilds the view position from `x`, `y` and `w`,
+which a perspective projection keeps exactly; rebuilding from `z`, where
+depth precision went, would move a vertex at a thousand nodes by about half
+a node (worked out, not measured). Plain `ftransform()` leaves `VERTEX`
+alone.
+
+### What was observed
+
+Offline, no GPU, Godot 4.5.1, 2026-10-11: `goanna_iris_gbuffers_test` (in
+`cmake --build build --target check`) and `tests/iris_gbuffers.gd` pass,
+the second against Base-Shader 3.0, which is CC0-1.0 and is in
+`project/tests/shaderpacks/base-shader/` as test data. With
+`GOANNA_IRIS_PACK` pointing at them, the terrain, cut-out, water and
+foliage programs of Eclipse 1.0, Mellow 3.4.1a, BSL 10.1.8, Complementary
+Reimagined r5.9.3 and MakeUp Ultra Fast 9.5g also pass Godot's shader
+front end (and, before the reboot that day, those of Miniature, Sildur's
+Enhanced Default and Photon's terrain; Photon's water puts a struct in a
+varying, which Godot refuses). The front end is not the GPU backend: it
+does not count varyings, and Mellow passed it and then failed on lavapipe
+with 33 against Godot's limit of 32, which is what moved the built in
+inputs from varyings to parameters. Complementary's translation crashed
+Godot's compiler outright, because constant folding `mat4(1.0) * vec4(...)`
+indexes past an array in Godot 4.5.1; the translator drops an identity
+texture matrix rather than write that expression, and the client would
+otherwise crash on load.
+
+On lavapipe, before the reboot, through `tools/goanna-render --software`
+(640 by 360, the fixture world): the first Base-Shader frame turned the
+gold block brown, which led to the white noon lightmap; Mellow failed with
+the varying limit above; and Mellow's terrain, once compiling, was black,
+because its lighting reads custom uniforms that then read zero.
+
+On the GPU, the same evening, through `tools/goanna-render` on an RTX
+3090, 1280 by 720, Luanti 5.17.0 server, Mineclonia (release 38561),
+Godot 4.5.1, the branch clean at the commit named:
+
+- Base-Shader, near and far (`r1tod1`, a v7 Mineclonia world, at
+  `36fe743e`): the near bubble, the far tiers out to the horizon and the
+  water all drawn by the pack, in its flat face shaded look, with its own
+  fog closing on the far tiers in the fog colour; no shader errors in the
+  client log. The far tiers needed nothing of their own, as "The LOD
+  terrain has to be the same terrain" predicted.
+- Base-Shader on the fixture's stage (at `f745b425`): grass, stone bricks,
+  gold, oak leaves (now through the foliage surface) and water, beside the
+  same stage with no pack.
+- Eclipse on the stage: terrain drawn through `gbuffers_textured_lit`
+  (it has no terrain program) and nearly black, with the whole frame dark
+  under its chain; the water surface transparent, as its water program
+  writes colour 0 with alpha 0 for water and puts the water in
+  `colortex4`, `colortex1` and `colortex3`, which are dropped and listed in
+  `report()`. Not traced further.
+- Mellow on the stage, with custom uniforms: no longer black, but the whole
+  frame is a pale haze over faint shapes. Its chain runs over the result,
+  and which half makes the haze was not traced.
+
+Not observed: any displaced vertex (Eclipse's waves, Mellow's waving
+leaves) on the GPU, and so nothing of rung 7's shadow agreement; any pack
+at night, in rain or under water; performance.
+
+### What is left
+
+- **A second output.** Rung 6 against Eclipse needs it, and so does every
+  popular pack but Base-Shader and Mellow
+  (`docs/design/shaderpack-survey.md`). The translator already knows every
+  output a program writes and to which `colortex`; a second output is the
+  same translation with another output chosen as the colour, drawn into a
+  target the chain reads, so it adds a draw path rather than a rewrite.
+  Choosing which output is the colour is also what the packs that keep it
+  in `colortex1` or `colortex4` need.
+- **The pack's own shadow map.** Under a pack the terrain is unshaded, so
+  Godot's shadows land only on what Godot still lights (entities, the
+  procedural grass). A pack's shadows come from its `shadow` program drawn
+  into a `shadowtex` its own maths agrees with, distortion and all, which
+  Godot's shadow atlas is not. That is a geometry pass of Goanna's own,
+  through `RenderingDevice`, and has not been started. What rung 7 does
+  give is that the shadows Godot does draw move with the pack's
+  displacement, because every pass transforms the same displaced
+  `VERTEX`; unmeasured.
+- **Everything not on a node surface**: entities, the sky, clouds, the hand,
+  particles and the procedural grass keep Godot's shaders; their programs
+  (`gbuffers_entities`, `gbuffers_skybasic` and the rest) are not loaded.
+- `atlasSize` is a single tile's 16 by 16 because there is no atlas, so a
+  pack that does arithmetic on atlas coordinates (parallax, neighbouring
+  tiles) is not answered; `eyeBrightnessSmooth`, `moonPhase` and `worldDay`
+  are constants, as for the chain.
+- A pack whose translation Godot's compiler crashes on takes the client
+  with it. One such construct is avoided; others may exist.
+- Local multiplayer: the globals are not scoped per view as `RenderScope`
+  scopes Goanna's own, so two players with a pack would share one camera.
 
 ## The first target, and why it is Base-Shader
 
@@ -459,7 +632,7 @@ work would take.
 | What the pack asks for | What Goanna answers with |
 | --- | --- |
 | `gl_Vertex`, `gl_Color`, `gl_MultiTexCoord0` | `VERTEX`, `COLOR`, `UV` |
-| `gl_MultiTexCoord1` (`lmcoord`) | `CUSTOM0.rg * 255.0` |
+| `gl_MultiTexCoord1` (`lmcoord`) | `CUSTOM0.rg * 240.0` |
 | `ftransform()` | Godot's own transform: leave `VERTEX` alone |
 | `texture2D(texture, uv)` | `texture(albedo_array, vec3(uv, UV2.x))` |
 | `lightmap` | generated per frame from the sky and torch colour |
@@ -513,12 +686,19 @@ The rule, then, and it applies to every pack rather than to ours alone:
 
 - The pack has `final`: Godot's tonemap goes linear. Already implemented in
   `project/game/main.gd`.
-- The pack has a translated terrain program: Godot's `fog_density`,
-  `fog_aerial_perspective` and `fog_sky_affect` writes are skipped, and the
-  drawn distance `main.gd` already computes is handed to the pack as
-  `gl_Fog.start` and `gl_Fog.end` instead. `far` on its own is the camera's
-  1000, not what Goanna draws, so a pack scaling fog by `far` would fog the
-  far tiers wrongly.
+- The pack has a translated terrain program: the drawn distance `main.gd`
+  already computes (the environment's depth fog begin and end) is handed to
+  the pack as `gl_Fog.start` and `gl_Fog.end`. `far` on its own is the
+  camera's far plane, not what Goanna draws, so a pack scaling fog by `far`
+  would fog the far tiers wrongly. As built on 2026-10-11 the environment's
+  fog is not switched off: every translated shader takes
+  `render_mode fog_disabled` instead, which keeps Godot's fog off exactly
+  the surfaces the pack fogs and on everything else (the sky, entities, the
+  procedural grass), with no change to `main.gd`'s fog writes. The same
+  holds for the volumetric cloud layer, so a camera inside it sees pack
+  terrain through it while Godot's own surfaces stay clouded. The tonemap
+  goes linear, as for a pack with `final`, because the terrain program
+  writes display colour.
 - Neither: Godot keeps both, as today.
 
 ### What unshaded costs, stated plainly
@@ -552,6 +732,16 @@ Iris does this with glsl-transformer, which is **AGPL-3.0**. Do not use it
 and do not read it. Write a preprocessor against the documented dialect
 instead: it is a rewriter over a small, well specified subset, not a general
 GLSL compiler, because the output only has to satisfy the driver.
+
+That last clause holds for the screen space chain, whose output goes to
+glslang. It does not hold for the gbuffers programs, whose output goes to
+Godot's shading language, which needs every type written out; there the
+translator is a parser and a typed emitter (see "The gbuffers translator,
+as built"). Both sides run their `#if` and `#define` lines through the same
+preprocessor, `src/iris/iris_preproc.cpp`, in two modes: conditionals only,
+text left for glslang (the loader's pass over `shaders.properties`,
+`block.properties` and every program), and full expansion on top of that
+(the gbuffers translator). Function-like macros work in both.
 
 ## On licence, corrected
 
