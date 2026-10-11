@@ -115,6 +115,7 @@ nav:
           - Launch target: develop/launch-target.md
           - Formspec conformance: develop/formspec-conformance.md
           - Shader pack testing: develop/shaderpack-testing.md
+          - Shader pack status: develop/shaderpack-status.md
       - Benchmarks:
           - Benchmarking graphics settings: develop/benchmark.md
           - Rendering baseline: develop/baseline.md

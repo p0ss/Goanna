@@ -9,10 +9,61 @@ rather than a matter of effort.
 What 22 popular packs actually ask for, and the order of work that follows
 from it, is in the [survey of popular shader packs](shaderpack-survey.md).
 
-## Status, 2026-08-21
+## Status, 2026-10-11
 
-Rung 1 below is done and rung 4's machinery is in place, measured rather than
-claimed. `src/iris/` holds a pack loader (`iris_pack.cpp`), the GLSL translator
+Rungs 1 and 3 below are done for the screen space chain, and rung 4 runs
+every program a pack enables. What has been observed live is still only the
+proof pack, on 2026-08-21 and 2026-10-10; real packs have so far been
+loaded, translated and compiled offline, not run. Per pack results are in
+`docs/develop/shaderpack-status.md`.
+
+What is new since 2026-08-21, all in `src/iris/` and checked by
+`goanna_iris_pack_test` and the offline compile check:
+
+- `shaders.properties` goes through a preprocessor first (`iris_expr.cpp`):
+  `#if`, `#ifdef`, `#elif`, `#define` and the rest, against the MC_ and
+  IRIS_ macros and the pack's option defaults, which the loader gathers from
+  the `#define` lines of its sources. `program.<name>.enabled` (and the
+  `world0/` form) switches chain programs off. Option defaults can be
+  overridden with `GOANNA_SHADERPACK_OPTIONS`, which rewrites the sources'
+  `#define` lines as an Iris options file would.
+- `uniform.<type>.<name>` and `variable.<type>.<name>` are parsed into an
+  evaluator with OptiFine's function set (`if`, `smooth`, `in`, `between`,
+  `frac`, `vec3` and so on, matrix elements as `m.1.2`), evaluated every
+  frame against the standard block, and written into each pass's extra
+  uniform block. A custom uniform named like a standard one replaces it.
+- Each program's own conditionals are resolved per stage before
+  translation, so a declaration in a pack's `#ifdef FSH` branch no longer
+  collides with the vertex stage's.
+- `iris.features.required` is read; Goanna declares no optional Iris
+  feature, so a pack that requires one (Noble, Rethinking Voxels, Shrimple)
+  is refused with the reason in `report()`.
+- Depth reaches the pack in OpenGL's convention. Godot 4.5 stores reversed
+  Z, so the effect copies the depth buffer inverted into the texture a pack
+  reads; before this a pack's sky test (`depth == 1.0`) and every position
+  reconstruction were inside out. `depthtex1` is a copy taken at
+  `PRE_TRANSPARENT` by a companion effect (`make_depth_capture`), so depth
+  writing translucents such as glass are in `depthtex0` only. Water writes
+  no depth in Goanna, so it is in neither, which a pack's water detection
+  will notice. `depthtex2` is `depthtex1`: the hand is drawn with the
+  opaque pass. `centerDepthSmooth` is the centre pixel of `depthtex0`, read
+  back asynchronously and smoothed with the pack's `centerDepthHalflife`.
+- `texture.noise` and `texture.deferred.*` and `texture.composite.*` image
+  files are loaded and bound in place of the named sampler; raw (`.dat`)
+  and resource textures are reported and skipped.
+- `sampler2DShadow` gets a comparison sampler over a cleared 1x1 depth
+  texture, so a shadow lookup says lit, as the plain `shadowtex` dummy does.
+- The translator fixes the real packs needed are listed in the status page.
+
+All of the effect side is in commit `a4410a9c` and has not yet run on the
+GPU: two attempts on 2026-10-11 were stopped by the GPU being held and by a
+reboot. Treat it as written, not observed.
+
+The rest of this section is the state of 2026-08-21, kept because it is
+still true unless a line above says otherwise.
+
+On 2026-08-21 rung 1 was done and rung 4's machinery in place, measured
+rather than claimed. `src/iris/` holds a pack loader (`iris_pack.cpp`), the GLSL translator
 (`iris_glsl.cpp`) and `GoannaIrisEffect`, a `CompositorEffect` that runs a
 pack's `deferred*`, `composite*` and `final` programs at `POST_TRANSPARENT`.
 `GOANNA_SHADERPACK=/path/to/pack` loads one from `main.gd`. Against a local
@@ -64,14 +115,19 @@ Things learnt on the way, recorded so they are not relearnt:
   Minecraft and Iris do: 0.2 a second, then half lives of 30 s wetting and
   10 s drying), `isEyeInWater` (1 in any liquid, never 2: the node definition
   does not say which liquids are lava), `eyeAltitude`, `near`, `far`.
-  Still constant: `eyeBrightness` and `eyeBrightnessSmooth` (240, 240; the
-  client does not expose node light at a position yet), `moonPhase` (0; the
-  protocol carries no day count), health, hunger, air, `nightVision`,
-  `blindness`, `centerDepthSmooth`, `atlasSize`, `fogStart`, `fogEnd`.
-- Not yet done, and not far off: `shaders.properties` option `#define`s and
-  custom uniforms, compute (`.csh`) programs, `depthtex1`/`depthtex2` (both
-  are `depthtex0` today), `shadowtex*` (a 1x1 depth of 1.0, so nothing is in
-  shadow), multiview. The gbuffers translator (rungs 5 to 7) has not been
+  Still constant on 2026-10-11: `eyeBrightness` and `eyeBrightnessSmooth`
+  (240, 240; the client does not expose node light at a position yet),
+  `moonPhase` and `worldDay` (0; the protocol carries no day count), health,
+  hunger, air, `nightVision`, `blindness`, `atlasSize`, `fogStart`,
+  `fogEnd`, `biome`. In custom uniform expressions `biome_precipitation`
+  reads as rain and the OptiFine player flags (`is_on_ground` and the rest)
+  read false.
+- Not yet done: compute (`.csh`), `prepare`, `begin`, `setup` and
+  `shadowcomp` programs, custom images and SSBOs, raw custom textures,
+  `size.buffer`, `scale` and `flip` directives, multiview, and varyings of
+  struct type (Photon). `shadowtex*` is still a 1x1 depth of 1.0, so
+  nothing is in shadow: a real shadow map needs the pack's own translated
+  `shadow` program (rung 7), which a compositor effect cannot run. The gbuffers translator (rungs 5 to 7) has not been
   started, and `docs/design/roadmap.md` says why it waits.
 
 `GOANNA_SHADERPACK_DUMP=<dir>` writes each pass's translated GLSL, which is
