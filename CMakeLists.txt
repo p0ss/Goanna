@@ -103,6 +103,7 @@ add_library(goanna SHARED
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
     src/goanna_limbs.cpp
+    src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp
@@ -281,6 +282,17 @@ add_executable(goanna_ripples_test EXCLUDE_FROM_ALL src/goanna_ripples_test.cpp)
 target_include_directories(goanna_ripples_test PRIVATE src)
 target_link_libraries(goanna_ripples_test PRIVATE goanna godot::cpp)
 
+# The shader pack loader without a GPU: preprocessor conditionals, custom
+# uniforms, options and the proof pack. With --dump PACK DIR it writes a
+# pack's translated passes for tools/test/shaderpack_compile.py.
+add_executable(goanna_iris_pack_test EXCLUDE_FROM_ALL
+    src/goanna_iris_pack_test.cpp
+    src/iris/iris_expr.cpp
+    src/iris/iris_glsl.cpp
+    src/iris/iris_pack.cpp
+)
+target_include_directories(goanna_iris_pack_test PRIVATE src)
+
 # Player limbs split at the knee and elbow, and the swim and tread poses.
 add_executable(goanna_limbs_test EXCLUDE_FROM_ALL src/goanna_limbs_test.cpp)
 target_include_directories(goanna_limbs_test PRIVATE src)
@@ -304,6 +316,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_array_route_test
     goanna_flame_test
     goanna_horizon_test
+    goanna_iris_pack_test
     goanna_item_icon_test
     goanna_light_test
     goanna_limbs_test
