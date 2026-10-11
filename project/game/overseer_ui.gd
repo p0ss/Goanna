@@ -21,6 +21,9 @@ var plans: ItemList
 var plan_detail: Label
 var locate: Button
 var cancel: Button
+var act: Button
+var page_banner: Button
+var plans_button: Button
 var family := "Select"
 var records: Array = []
 var selected_id := ""
@@ -79,6 +82,10 @@ func build(host: Node) -> void:
 	var row := HBoxContainer.new()
 	top.add_child(row)
 	header = label(row, "Overseer | Connecting")
+	# The newest unseen danger page; pressing it shows where and marks it seen.
+	page_banner = button(row, "", open_banner)
+	page_banner.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+	page_banner.hide()
 	for pair in [["Back", view.go_back], ["Leave", view.leave]]:
 		var compact := button(row, pair[0], pair[1])
 		compact.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -94,6 +101,8 @@ func build(host: Node) -> void:
 	rail_scroll.add_child(rail)
 	for name in ["Select", "Terrain", "Gather", "Build", "Zones", "Devices", "Defence", "Plans"]:
 		var b := button(rail, name, choose_family.bind(name))
+		b.set_meta("family", name)
+		if name == "Plans": plans_button = b
 		b.custom_minimum_size.x = 112
 		b.tooltip_text = "Inspect places and objects" if name == "Select" else name
 	map_button = button(rail, "Map focus", focus_map)
@@ -157,6 +166,8 @@ func build(host: Node) -> void:
 	plan_detail = label(context, "")
 	locate = button(context, "Locate plan", locate_plan)
 	cancel = button(context, "Cancel pending work", cancel_plan)
+	act = button(context, "Act", act_plan)
+	act.tooltip_text = "Do what the office would do, where it can be done from afar."
 	nav = box(view.root_control)
 	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	nav.offset_left = -316; nav.offset_right = -12
@@ -284,12 +295,13 @@ func refresh() -> void:
 	for child in rail.get_children():
 		if child is Button and child != map_button:
 			child.toggle_mode = true
-			child.set_pressed_no_signal(child.text == family)
+			child.set_pressed_no_signal(child.get_meta("family", child.text) == family)
 	for child in actions.get_children():
 		if child is Button: child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool)
 	title.text = "Plans" if is_plans else family
 	actions.visible = not is_plans
 	for control in [plans, plan_detail, locate, cancel]: control.visible = is_plans
+	act.visible = is_plans and _selected().get("can_act", false)
 	view.room_name.visible = view.tool.begins_with("room:") and not is_plans
 	var has_draft: bool = view.first_corner != null
 	actions.visible = not is_plans and not has_draft
@@ -315,6 +327,10 @@ func update_plans(value: Array) -> void:
 	records = value
 	plans.clear()
 	for entry in records:
+		if entry.get("kind") == "page":
+			var times := " x%d" % int(entry.total) if int(entry.get("total", 1)) > 1 else ""
+			plans.add_item("%s  %s  %s%s" % [entry.get("title", "Note"), entry.get("by", ""), entry.state, times])
+			continue
 		plans.add_item("%s  %s  %s (%s/%s)" % [entry.id, entry.get("title", entry.kind), entry.state, entry.done, entry.total])
 		if entry.id == selected_id: plans.select(plans.item_count - 1)
 	if plans.get_selected_items().is_empty():
@@ -327,16 +343,65 @@ func select_plan(index: int) -> void:
 	if index < 0 or index >= records.size(): return
 	var entry: Dictionary = records[index]
 	selected_id = str(entry.id)
-	plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, entry.by, str(entry.get("reason", ""))]
-	locate.disabled = false
+	var is_page: bool = entry.get("kind") == "page"
+	if is_page:
+		plan_detail.text = "%s from %s\n%s" % [entry.get("title", "Note"), entry.get("by", ""), str(entry.get("reason", ""))]
+		if entry.get("state") == "New":
+			view.mark_page_seen(str(entry.id).trim_prefix("page:"))
+	else:
+		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, entry.by, str(entry.get("reason", ""))]
+	locate.disabled = not entry.get("pos") is Dictionary
 	cancel.disabled = not entry.get("can_cancel", false)
+	act.visible = family == "Plans" and entry.get("can_act", false)
+	act.disabled = not view.pending.is_empty() and view.pending.get("t") != "act"
 	if not view.pending.is_empty(): cancel.disabled = view.pending.get("t") != "cancel" or view.pending.get("id") != selected_id
-	cancel.text = "Retry cancellation" if not view.pending.is_empty() else "Cancel pending work"
+	cancel.text = "Retry cancellation" if not view.pending.is_empty() else "Drop" if is_page else "Cancel pending work"
 	cancel.tooltip_text = "Claimed work cannot currently be cancelled." if not entry.get("can_cancel", false) else "Completed changes remain in the world."
+
+func _selected() -> Dictionary:
+	for entry in records:
+		if entry.id == selected_id: return entry
+	return {}
+
+func act_plan() -> void:
+	if selected_id.is_empty(): return
+	if not view.pending.is_empty():
+		if view.pending.get("t") == "act": view._send(view.pending.duplicate())
+		return
+	view.request_id += 1
+	view.pending = {"t": "act", "req": "camera:%d" % view.request_id, "id": selected_id}
+	view._send(view.pending.duplicate())
+	view.inspector.text = "Asking the office to act."
+
+## Shows the newest unseen danger page, and the unseen count on Plans.
+func refresh_pages() -> void:
+	var newest: Dictionary = {}
+	var unseen := 0
+	for id in view.pages:
+		var page: Dictionary = view.pages[id]
+		if page.get("state") != "new": continue
+		unseen += 1
+		if page.get("level") == "danger" and (newest.is_empty() or str(id) > str(newest.id)): newest = page
+	page_banner.visible = not newest.is_empty()
+	if not newest.is_empty():
+		page_banner.text = "%s: %s" % [str(newest.get("from", "")), str(newest.get("text", ""))]
+		page_banner.set_meta("page", newest)
+	plans_button.text = "Plans (%d)" % unseen if unseen > 0 else "Plans"
+
+func open_banner() -> void:
+	var page: Dictionary = page_banner.get_meta("page", {})
+	if page.is_empty(): return
+	if page.get("pos") is Dictionary and view._pos(page.pos):
+		view.centre = Vector2(page.pos.x, page.pos.z)
+		view.level = int(page.pos.y)
+		view._move_camera(); view._request_view()
+	view.inspector.text = "%s: %s" % [str(page.get("from", "")), str(page.get("text", ""))]
+	view.mark_page_seen(str(page.id))
 
 func locate_plan() -> void:
 	for entry in records:
 		if entry.id == selected_id:
+			if not entry.get("pos") is Dictionary: return
 			view.centre = Vector2(entry.pos.x, entry.pos.z)
 			view.level = int(entry.pos.y)
 			view._move_camera(); view._request_view()

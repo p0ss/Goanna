@@ -106,6 +106,8 @@ const STATION_RING := Color(0.35, 0.5, 1.0, 0.25)
 const PROTECTED := Color(0.35, 0.5, 1.0, 0.12)
 const WATCH := Color(0.55, 0.65, 1.0, 0.85)
 var shown_overlays := {"rooms": false, "miasma": false, "traffic": false}
+# Officers' pages to this planner, by id, as the server last sent them.
+var pages: Dictionary = {}
 var overlay_sheets: Node3D
 
 func _ready() -> void:
@@ -362,6 +364,10 @@ func _receive(msg: Dictionary) -> void:
 		tools = msg.tools
 		ui.update_capabilities(msg.get("capabilities", {"tools": tools}))
 		_update_materials(msg.get("materials", []))
+		pages.clear()
+		if msg.get("pages") is Array:
+			for page in msg.pages.slice(0, 64): _take_page(page)
+		ui.refresh_pages()
 		session_ready = true
 		_move_camera()
 		_request_view()
@@ -388,6 +394,11 @@ func _receive(msg: Dictionary) -> void:
 		ui.update_capabilities(msg.capabilities)
 	elif type == "plans" and msg.get("plans") is Array:
 		ui.update_plans(msg.plans)
+	elif type == "page" and session_ready and msg.get("page") is Dictionary:
+		if msg.get("what") == "done": pages.erase(str(msg.page.get("id", "")))
+		else: _take_page(msg.page)
+		ui.refresh_pages()
+		if ui.family == "Plans": _send({"t": "plans"})
 	elif type == "reply":
 		if str(msg.get("req", "")) != str(pending.get("req", "")) or pending.is_empty():
 			return
@@ -398,6 +409,18 @@ func _receive(msg: Dictionary) -> void:
 			discard_draft()
 		ui.refresh()
 		_send({"t": "plans"})
+
+func _take_page(page: Variant) -> void:
+	if not page is Dictionary or not page.get("id") is String or pages.size() >= 64 and not pages.has(page.id):
+		return
+	if not page.get("level") in ["danger", "urgent", "note"]: page.level = "note"
+	pages[page.id] = page
+
+## Tells the server a page was read; the banner and count follow at once.
+func mark_page_seen(id: String) -> void:
+	if pages.has(id): pages[id].state = "seen"
+	_send({"t": "seen", "id": "page:" + id})
+	ui.refresh_pages()
 
 func _update_materials(value: Variant) -> void:
 	material_catalog = value if value is Array else []

@@ -262,6 +262,36 @@ func run() -> void:
 	var empty := {"v": 1, "t": "layer", "seq": view.sequence, "rev": 5, "y": -1, "empty": true}
 	view._receive(empty)
 	check(view.visible_meshes() == 0, "empty or unserved layer clears geometry")
+	# Officers' pages: a banner for an unseen danger page, a count on Plans,
+	# seen when opened, gone when done; Act and Drop in Plans.
+	view._receive({"v": 1, "t": "page", "what": "raised", "page": {"id": "p1", "level": "danger",
+		"text": "Goblins at the gate.", "from": "Ada, captain", "state": "new", "count": 1,
+		"pos": {"x": 2, "y": 0, "z": 0}}})
+	view._receive({"v": 1, "t": "page", "what": "raised", "page": {"id": "p2", "level": "note",
+		"text": "Nothing here can make iron.", "from": "Bo, manager", "state": "new", "count": 2}})
+	check(view.ui.page_banner.visible and view.ui.page_banner.text.contains("Goblins")
+		and view.ui.plans_button.text == "Plans (2)", "an unseen danger page shows a banner, and Plans counts unseen pages")
+	client.sent.clear()
+	view.ui.open_banner()
+	check(not view.ui.page_banner.visible and view.ui.plans_button.text == "Plans (1)"
+		and client.sent.any(func(m: Variant) -> bool: return m.get("t") == "seen" and m.get("id") == "page:p1"),
+		"opening the banner marks the page seen on the server")
+	view._receive({"v": 1, "t": "page", "what": "done", "page": {"id": "p2"}})
+	check(not view.pages.has("p2") and view.ui.plans_button.text == "Plans", "a done page leaves the count")
+	view.ui.choose_family("Plans")
+	view.ui.update_plans([{"id": "page:p1", "kind": "page", "title": "Danger", "by": "Ada, captain", "state": "Seen",
+		"total": 1, "done": 0, "reason": "Goblins at the gate.", "can_cancel": true, "can_act": true,
+		"pos": {"x": 2, "y": 0, "z": 0}}, {"id": "o1", "kind": "dig", "title": "Excavation", "by": "x", "state": "Queued",
+		"total": 1, "done": 0, "can_cancel": true, "pos": {"x": 0, "y": 0, "z": 0}}])
+	view.ui.plans.select(0);view.ui.select_plan(0)
+	check(view.ui.act.visible and view.ui.cancel.text == "Drop", "a page in Plans offers Act and Drop")
+	client.sent.clear()
+	view.ui.act_plan()
+	check(view.pending.get("t") == "act" and client.sent.back().get("id") == "page:p1", "Act asks the server, as a request")
+	view._receive({"v": 1, "t": "reply", "req": view.pending.req, "ok": false, "reason": "nothing to do"})
+	view.ui.select_plan(1)
+	check(not view.ui.act.visible and view.ui.cancel.text == "Cancel pending work", "plans keep Cancel without Act")
+	view.ui.choose_family("Select")
 	view._close()
 	check(main.cam.cull_mask == 1048575 and main.captured, "leaving restores ordinary view and pointer")
 	view._open()

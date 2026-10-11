@@ -107,6 +107,11 @@ and watch posts (blue) and protected areas (pale blue) are planner
 designations and militia coverage, always drawn, on known cells only. The Devices and Defence tool families come from the server's tool
 list like the others.
 
+Officers' pages arrive in the hello and as `page` messages. The newest
+unseen danger page is a red line in the header that locates it and marks
+it seen; the Plans button counts unseen pages. Plans lists pages first,
+with Act and Drop, both answered by the server.
+
 Remembered columns are slightly desaturated (30 percent) and darkened
 (16 percent) by `shaders/overseer_memory.gdshader`. Order outlines share this
 column treatment. Blue-white transparent sheets accumulate at each open
