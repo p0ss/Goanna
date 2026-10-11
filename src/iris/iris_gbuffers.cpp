@@ -800,7 +800,7 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         const Expr &e) {
     SamplerRole role;
     samplerRole(sampler, role);
-    const bool array = m_o.surface != GbuffersSurface::Translucent;
+    const bool array = m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout;
     auto coord = [&](const Val &uv) {
         if (!array) return uv.code;
         m_layer_needed = true;
@@ -1916,7 +1916,7 @@ bool Translator::run(const Program &p, std::string &err) {
     for (auto &g : m_main_locals[0]) vo << "\t" << g << ";\n";
     if (m_layer_needed) {
         addDecl("varying flat int goanna_layer;");
-        vo << "\tgoanna_layer = " << (m_o.surface == GbuffersSurface::Translucent ? "0" : "goanna_anim_layer(int(round(UV2.x)))") << ";\n";
+        vo << "\tgoanna_layer = " << "goanna_anim_layer(int(round(UV2.x)))" << ";\n";
     }
     for (auto &r : m_routed_all[0]) {
         const VarSym &v = m_globals[0].at(r);
@@ -2014,7 +2014,7 @@ bool Translator::run(const Program &p, std::string &err) {
     }
     if (colour >= 0) {
         std::string c = "goanna_out_" + std::to_string(colour);
-        if (m_o.surface == GbuffersSurface::ArrayCutout) {
+        if (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }
@@ -2035,9 +2035,11 @@ bool Translator::run(const Program &p, std::string &err) {
     o << "render_mode unshaded, fog_disabled, ";
     if (m_o.surface == GbuffersSurface::Translucent)
         o << "blend_mix, cull_disabled, depth_draw_opaque;\n";
+    else if (m_o.surface == GbuffersSurface::SingleCutout)
+        o << "cull_disabled;\n";
     else
         o << "cull_back;\n";
-    if (m_o.surface != GbuffersSurface::Translucent)
+    if (m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout)
         o << "#define GOANNA_IRIS_ARRAY\n";
     if (m_o.old_lighting)
         o << "#define GOANNA_IRIS_OLD_LIGHTING\n";

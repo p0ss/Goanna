@@ -1041,6 +1041,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm->set_shader_parameter("albedo_tex", tex);
         if (sh == m_sh_water)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER);
+        else if (sh == m_sh_leaves || sh == m_sh_plants)
+            applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_FOLIAGE);
         if (sh == m_sh_lava) {
             const LavaTile &lava = m_lava_tex.at(key.texture_id);
             GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava.surface_texture);

@@ -43,7 +43,10 @@ class GoannaIrisGbuffers : public godot::RefCounted {
 
 public:
     // Which surface a shader is for, as materialFor asks.
-    enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_COUNT = 3 };
+    // SURFACE_FOLIAGE is the single texture leaves and plants
+    // (waving_leaves.gdshader, waving_plants.gdshader), drawn with the
+    // cutout program.
+    enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_FOLIAGE = 3, SURFACE_COUNT = 4 };
 
     // Translates the pack's terrain, cutout and water programs (each with
     // Iris's fallbacks) and registers the globals they read. True when at
@@ -84,7 +87,7 @@ private:
     std::vector<std::string> m_warnings[SURFACE_COUNT];
     std::vector<int> m_dropped[SURFACE_COUNT];
     std::string m_error[SURFACE_COUNT];
-    bool m_moves[SURFACE_COUNT] = {false, false, false};
+    bool m_moves[SURFACE_COUNT] = {false, false, false, false};
     std::string m_load_error, m_dump_dir;
     // Godot global name -> type, for every global some program reads.
     std::map<std::string, std::string> m_globals;

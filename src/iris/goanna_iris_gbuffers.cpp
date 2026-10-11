@@ -145,9 +145,12 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
             }
         }
     }
-    const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water"};
+    const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
+            "gbuffers_terrain_cutout"};
     const iris::GbuffersSurface kinds[SURFACE_COUNT] = {iris::GbuffersSurface::ArrayOpaque,
-            iris::GbuffersSurface::ArrayCutout, iris::GbuffersSurface::Translucent};
+            iris::GbuffersSurface::ArrayCutout, iris::GbuffersSurface::Translucent,
+            iris::GbuffersSurface::SingleCutout};
+    const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         std::string chosen;
         for (auto &n : iris::gbuffersFallback(wanted[s]))
@@ -186,7 +189,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         if (!m_dump_dir.empty()) {
             std::error_code ec;
             std::filesystem::create_directories(m_dump_dir, ec);
-            std::ofstream(m_dump_dir + "/" + wanted[s] + ".gdshader") << r.code;
+            std::ofstream(m_dump_dir + "/" + files[s] + ".gdshader") << r.code;
         }
         Ref<Shader> sh;
         sh.instantiate();
@@ -480,7 +483,7 @@ Dictionary GoannaIrisGbuffers::report() const {
     Dictionary d;
     d["pack"] = String(m_pack.name().c_str());
     if (!m_load_error.empty()) d["error"] = String(m_load_error.c_str());
-    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water"};
+    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         Dictionary e;
         e["program"] = String(m_program[s].c_str());

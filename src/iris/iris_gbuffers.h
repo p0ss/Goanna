@@ -41,6 +41,7 @@ enum class GbuffersSurface {
     ArrayOpaque, // nodes_array.gdshader's tiles: an array texture, no alpha test
     ArrayCutout, // nodes_array_scissor.gdshader's tiles: alpha tested at alphaTestRef
     Translucent, // water.gdshader's surfaces: one texture, blended
+    SingleCutout, // waving_leaves and waving_plants: one texture, alpha tested, both sides
 };
 
 struct GbuffersOptions {
