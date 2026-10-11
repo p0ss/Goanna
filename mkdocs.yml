@@ -178,6 +178,8 @@ nav:
       - Director log: history/director-log.md
       - Materials log: history/materials-log.md
       - Overseer log: history/overseer-log.md
+      - Weather log: history/weather-log.md
+      - First person body log: history/first-person-body-log.md
       - Material calibration: history/material-calibration.md
       - Performance inventory: history/performance-inventory.md
       - Default look checkpoint: history/default-look.md

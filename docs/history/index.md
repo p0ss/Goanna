@@ -18,6 +18,11 @@ read the [systems](../systems/index.md) pages; for plans, the
   measurements.
 - [Overseer log](overseer-log.md): the overseer camera's verification
   record, and the client fixes DorfCraft's playtests turned up.
+- [Weather log](weather-log.md): shader weather's live checks and what
+  was changed after each, other games' weather measured, the ripple
+  tunings, and the storm work's status at its landing.
+- [First person body log](first-person-body-log.md): the faults reported
+  against the local player's own body, their causes and fixes.
 
 ## Investigations and checkpoints
 

@@ -8,212 +8,182 @@ because the body stands exactly where the camera is and any error in placing
 it lands in the middle of the frame rather than somewhere you can ignore.
 
 This is its own document rather than a section of
-`docs/systems/protocol-coverage.md` because almost none of it is protocol: it is
-placement, bone posing and shadow casting, and the one protocol part (the
-keypress field) is a single line. `docs/systems/protocol-coverage.md` should say
-what Goanna sends and receives, not how it poses an arm.
+[protocol coverage](protocol-coverage.md) because almost none of it is
+protocol: it is placement, bone posing and shadow casting, and the protocol
+parts (the keypress field and the local animations packet) are a line each.
+Protocol coverage says what Goanna sends and receives, not how it poses an
+arm.
 
-The code is `EntityRenderer::buildMeshVisual` and the `is_self` blocks in
-`EntityRenderer::sync`, both in `src/goanna_entities.cpp`, with the pose
-mathematics in `ModelAnimator::step` in `src/goanna_models.cpp`.
+The dated record of the faults reported against the body, their causes and the
+fixes is in the [first person body log](../history/first-person-body-log.md).
+What is described here was observed against local Mineclonia and Minetest Game
+servers (Luanti 5.16.1 and 5.17.0, and a 5.10.0 server for the local animations)
+with Godot 4.5.1 on Linux, on the dates the log gives.
 
-## 2026-08-22, five reported faults, four causes
+## Main files
 
-Observed against a local Mineclonia server (Luanti 5.16.1, world
-`goanna_fpbody`, port 30821) with Godot 4.5.1 on Linux, on branch
-`first-person-body`. Screenshots were framed by script so the before and
-after halves are comparable.
+| File | What it does |
+| --- | --- |
+| `src/goanna_entities.cpp` | `EntityRenderer::buildMeshVisual` (the shadow copy), the `is_self` blocks in `EntityRenderer::sync` (placement, visibility, arm), `chooseArmBone`, `rebuildVisual` and `modelFor` |
+| `src/goanna_models.cpp`, `src/goanna_models.h` | `ModelAnimator::step`: the pose, the head shrink, the shadow skeleton, `setFirstPerson` |
+| `src/goanna_mining_cycle.h` | The mining clock that times the arm's stroke against the dig |
+| `src/goanna_client_player.cpp` | `GoannaClient::set_player_pose`, the keys reported to the server, `set_show_body` |
+| `src/goanna_session.cpp` | `writePlayerPosTo` (the keypress field), `onLocalPlayerAnimations` |
+| `src/transplant/client/content_cao.cpp` | Upstream's `setLocalPlayerAnimation` and the local player part of `GenericCAO::step` |
+| `project/game/main.gd` | The lean over the body looking down (`_body_lean`), the camera modes and third person placement |
 
-### The body filled the screen, and you were inside it
+## Where the body stands
 
-Reported as a wall of skin at eye height in ordinary screenshots. It is not
-the head, and it is not terrain. The cause is that
-`GoannaClient::set_player_pose` is handed the camera position and stored it
-as the local player's position:
+The body stands on the local player's position, which is the feet. Every
+caller of `GoannaClient::set_player_pose` hands it the camera, which is the
+eye, so it sets the player's position an eye height below what it is given;
+walking goes through `step_player`, which leaves the feet alone and returns
+an eye position the camera is set from. What Goanna reports to the server
+is the camera, so block streaming centres on it.
 
-    p->setPosition(luanti * BS);
+In `EntityRenderer::sync` the body is pinned to the predicted local player
+rather than the server interpolated object, so it does not trail the camera.
+Its yaw follows the look yaw and its pitch stays level. It stands where the
+player stands, with no nudge along the look.
 
-Every other reader of that value takes it for the feet. The collision box
-stands on it, `step_interact` starts the dig ray an eye offset above it, and
-the first person body is drawn from it. Setting it to the eye put the body's
-feet at eye height, so the legs and waist rose through the lens.
-
-It only shows in fly mode, because that is the only mode that calls
-`set_player_pose` every frame; walking goes through `step_player`, which
-returns an eye position the camera is set from and leaves the player's feet
-alone. That is exactly why every agent hit it: the control channel's `pose`
-command turns fly mode on by default, so every scripted screenshot is taken
-in the one mode where it breaks.
-
-The fix is to put the feet an eye height below the camera the caller gave
-us. Switching fly off no longer jumps the camera up by an eye height either,
-and the dig ray in fly mode now starts at the eye rather than 1.6 nodes
-above it. What Goanna reports to the server is unchanged, so block streaming
-still centres on the camera.
-
-The old workaround, nudging the body 1.2 BS units (0.12 nodes) backwards
-along the look yaw to keep the shoulders out of the lens, is gone with it.
-It was too small to hide a head and large enough to put your legs and your
-shadow twelve centimetres behind your feet.
-
-### The shadow had no head
+## The head and the shadow
 
 To keep the head out of the camera, `ModelAnimator` collapses the model's
-`Head` joint to a hundredth of its size each step. One skinned mesh cannot
-be headless to the camera and whole to the light, so the head left the
-shadow pass with it.
+`Head` joint to a hundredth of its size each step, and any hat layers
+attached to it go with it.
 
 The player model is a single skinned `MeshInstance3D` with several surfaces
 under one `Skeleton3D`, so per surface `cast_shadow` cannot separate the
 head, and camera cull masks cannot either: the head is a bone, not an
-object. So the local player now gets a second copy of the same mesh on its
-own skeleton. `ModelAnimator::step` takes an optional second skeleton and
-writes the same pose into it without the shrink; that copy is
+object. So the local player gets a second copy of the same mesh on its own
+skeleton. `ModelAnimator::step` takes an optional second skeleton and writes
+the same pose into it without the shrink; that copy is
 `SHADOW_CASTING_SETTING_SHADOWS_ONLY` and the copy the camera sees is
-`SHADOW_CASTING_SETTING_OFF`. The cost is one extra skinned draw for one
-entity.
+`SHADOW_CASTING_SETTING_OFF`. The shadow therefore has a head. The cost is
+one extra skinned draw for one entity.
 
-"Show own body" now hides only the copy the camera sees, so turning it off
-leaves you a complete shadow to judge the sun by, which is what a player
-turning it off actually wants.
+## Show own body and the camera modes
 
-### The arm pointed backwards, and was not where the tool was
+**Show own body** (`show_body`, in the Graphics settings under Camera; the
+environment variable `GOANNA_BODY=0` or `1` sets it at start) hides only the
+copy the camera sees. Turning it off leaves a complete shadow to judge the
+sun by, which is what a player turning it off wants.
 
-Two causes, and the second is the interesting one.
+`F7` cycles first person, the view from behind and the view from the front.
+Holding Alt and moving the mouse steps out from first person to the view
+behind and orbits from there; Alt with the wheel moves the camera in and out
+(1 to 2.75 nodes), and in past the closest goes back to first person. The
+third person views draw the whole body, head included, whatever Show own body
+says (`EntityRenderer::setThirdPerson` turns the head shrink off), as does
+the overseer camera. A third person camera pulled in closer than 0.8 nodes
+by a wall draws the body as first person does, head shrunk, rather than
+showing the inside of the head; it backs off 0.3 nodes from a wall where the
+vanilla camera backs off 0.5.
 
-Goanna posed the arm with an absolute euler of its own on
-`Arm_Right_Pitch_Control`. Mineclonia's character model bakes a half turn
-into that joint's rest and expresses it as a scale of (1, -1, -1), which is
-why the game's own animation code carries a table of "bone workaround
-scales". Replacing the joint's rotation while leaving that scale alone
-mirrors the arm. It also threw away the pitch the game itself sets on that
-bone for the held item, every step, which was already correct.
+## Looking down
 
-So Goanna no longer replaces the arm's rotation. It adds to it, in the same
-euler degrees and the same inverted storage a Luanti bone override uses, and
-only while the swing is running, so at rest the arm is exactly where the
-model and the server left it. Which arm is yours is now decided by the bone
-the game hangs the wield item from rather than by which arm projects to the
-camera's right, which was a guess that only held for models laid out the way
-Luanti's character is.
+Mineclonia's eye height (1.5) is the model's shoulder line, so a camera
+pitched about the eye shows the top of the torso and an open neck looking
+down. Instead, with the body shown, the camera leans out over the body as
+the gaze drops, 0.45 nodes forward and a little up when looking straight
+down (`_body_lean`, `BODY_LEAN_FORWARD` and `BODY_LEAN_DOWN` in `main.gd`),
+so it shows the front of the shirt and an arm. Nothing changes looking level
+or up, or with the body hidden. The dig ray follows the camera
+(`set_view_offset`), as the vanilla client's shootline follows its camera,
+so the crosshair still covers what is pointed at.
 
-The second cause is that Goanna never told the server it was digging.
-`GoannaSession::writePlayerPosTo` sent the keypress field of
-TOSERVER_PLAYERPOS as a hardcoded zero, so no game ever saw the local
-player's dig button down, and no game ever played its mining animation on
-the body. Mineclonia switches to its `mine` animation and aims the arm down
-the look direction while that button is held, and none of that reached us.
-Goanna now reports the dig and place bits, which is what a vanilla client
-sends and what `player:get_player_control()` reads. Movement and sneak are
-still not reported.
+## The arm
 
-With the game driving the arm during a dig, Goanna's own swing would only
-overshoot, so it stands down whenever the server has a bone override on the
-arm bone. It stays as the fallback for a game that never touches it.
+Mineclonia's character model bakes a half turn into the rest of
+`Arm_Right_Pitch_Control` and expresses it as a scale of (1, -1, -1), which
+is why the game's own animation code carries a table of "bone workaround
+scales". Replacing that joint's rotation mirrors the arm and throws away the
+pitch the game sets for the held item. So Goanna never replaces the arm's
+rotation: it adds to it, in the same euler degrees and the same inverted
+storage a Luanti bone override uses, and at rest the arm is exactly where
+the model and the server left it.
 
-Confirmed by reading the animation frame while digging: the local player's
-frame goes from about 3 (standing) to about 193 (mining) while the button is
-held and back to 3 when it is released.
+Which arm is yours is decided by the bone the game hangs the wield item from
+(`chooseArmBone`; where a game hangs one off each hand, as Mineclonia does
+for the offhand, the one holding something). The pitch control bone is
+preferred on each side, since turning it turns the whole arm.
 
-## 2026-09-19, the game's own local animations
+While digging, the mining clock (`src/goanna_mining_cycle.h`) drives one
+lift and downstroke per blow, timed so the last blow lands at the dig's tool
+time, and the contact pose is the aimed one. A game that aims the
+arm itself with a bone override (Mineclonia aims it down the look direction
+while the dig button is held) keeps its aim, and Goanna adds only the
+stroke. For other interactions Goanna's own swing is a fallback that stands
+down whenever the server has a bone override on the arm bone. The swing's
+size and how much of the look pitch it follows can be tuned with
+`GOANNA_ARM="chop,pitch_follow"` (default `-20,1`), and `GOANNA_DEBUG_ARM`
+prints the arm bone chosen. In first person the elbows keep only a quarter
+of the walking bend (`FIRST_PERSON_ELBOW`), so the hand and what it holds do
+not rise into the view with every step; see [limbs](limbs.md).
 
-A game can give the player's own model animations that the client plays
-from its own controls: `player:set_local_animation(idle, walk, dig,
+## What the server hears
+
+Goanna reports the whole keypress field of TOSERVER_PLAYERPOS, as the
+vanilla client does, from `PlayerControl::getKeysPressed`: movement, jump,
+aux1, sneak, dig and place. That is what `player:get_player_control()`
+reads, so a game that animates the player from it (Mineclonia picks its walk
+and mining animations this way) animates the body as it would a vanilla
+player's. Sneak reaching the server changes the eye height and the model's
+pose on Mineclonia, as it does for a vanilla player.
+
+## The game's own local animations
+
+A game can give the player's own model animations that the client plays from
+its own controls: `player:set_local_animation(idle, walk, dig,
 walk_while_dig, speed)`, which arrives as TOCLIENT_LOCAL_PLAYER_ANIMATIONS.
 The vanilla client plays them whenever it shows the local player's model,
 which for it means third person, and does not interrupt them with a server
 animation on the first track that uses one of the same frame ranges. Goanna
-ignored the packet, so the body only ever played what the server sent.
-
-Goanna now handles it, and the body plays those animations whenever it is
-drawn, through upstream's own `setLocalPlayerAnimation` and the local player
-part of `GenericCAO::step` in `src/transplant/client/content_cao.cpp`. The
-dig and place buttons are recorded in the player's controls for it, as the
+plays them whenever the body is drawn, through upstream's own
+`setLocalPlayerAnimation` and the local player part of `GenericCAO::step`,
+with the dig and place buttons recorded in the player's controls as the
 vanilla client records them.
 
-This mattered because Goanna reported no movement keys to the server until
-2026-09-29 (see below), so a game that animates walking from
-`get_player_control()` never told the body to walk. Minetest Game's `player_api` sets local animations, so on a
-fresh Minetest Game world (Luanti 5.17.0 Flatpak, Godot 4.5.1) the body now
-plays its walk range, frames 168 to 187, while W is held, although the
-server's own animation is still standing, and its dig range, 189 to 198,
-while digging; the same held against a Luanti 5.10.0 server. Mineclonia sets
-no local animations, so nothing changes there: the body stands while
-walking, and digging plays the server's mining range, 189 to 198, as before.
+Minetest Game's `player_api` sets local animations, so there the body plays
+its walk range (frames 168 to 187) while W is held and its dig
+range (189 to 198) while digging. Mineclonia sets none, so its body plays
+what the server sends.
 
-## The magenta shape at the hand
+## A model that fails to load
 
-Reported separately, and not reproduced here: a large flat magenta shape
-where the hand and wield item are drawn, in one case filling the upper half
-of the frame after a teleport. It was not seen in any of the forty odd
-frames captured for this work, before or after, including at (3000, 90,
-3000) on a freshly generated Mineclonia world, and a pixel scan of all of
-them found no magenta at all.
+Goanna has one flat magenta, `Color(0.8, 0.3, 0.8)`, used for an entity
+texture that does not resolve. `EntityRenderer::rebuildVisual` falls back to
+a capsule sized by the collision box when a model fails to load, tinted with
+the first texture, which for the local player would be a capsule round the
+camera. Two guards keep that away from the lens:
 
-What can be said from the code is that Goanna has exactly one flat magenta,
-`Color(0.8, 0.3, 0.8)` in `EntityRenderer::materialForTexture`, used when a
-texture name does not resolve. It is an entity colour, so the shape is an
-entity, and the two entities at your hand are your own body and the wield
-item attached to its `Wield_Item` bone. Luanti's own `unknown_node.png` is a
-checkerboard, so a clean shaded magenta face is not that.
+- `EntityRenderer::modelFor` caches only a successful load, so a lookup that
+  ran before the model's media arrived does not condemn that model to the
+  placeholder for the session.
+- The local player never falls back to the placeholder. It draws nothing
+  until the model loads, and the body returns on the next visual version.
 
-The most likely path to it is the placeholder in
-`EntityRenderer::rebuildVisual`: a model that fails to load falls back to a
-capsule sized by the entity's collision box, tinted with its first texture,
-and if that texture does not resolve either the capsule is magenta. For the
-local player that capsule is your own collision box, so the camera is inside
-it, and before the placement fix above its feet were at the eye in fly mode,
-which would put a magenta wall across the upper half of the frame. That is
-the third report exactly.
+If a magenta shape is seen at the hand, `tools/goanna-control set show_body
+0` decides it: if the shape goes, it is the body, and if it survives it is
+the wield item, which is the same fallback one entity along. The client log
+names the cause either way, with "Goanna: could not load model" from
+`ModelLoader::load` or "Goanna: mesh not found in media" from
+`ModelCache::getMesh`.
 
-Two guards are in place now. `EntityRenderer::modelFor` no longer caches a
-failed load, so one lookup that ran before the model's media arrived cannot
-condemn that model to the placeholder for the whole session. And the local
-player no longer falls back to the placeholder at all: nothing is better
-than a magenta capsule around the camera, and the body returns on the next
-visual version once the model loads.
+## Known limits and open work
 
-If it recurs, `tools/goanna-control set show_body 0` decides it: if the
-shape goes, it is the body, and if it survives it is the wield item, which
-is the same fallback one entity along. The client log names the cause
-either way, with "Goanna: could not load model" from `ModelLoader::load` or
-"Goanna: mesh not found in media" from `ModelCache::getMesh`.
-
-## What is still wrong
-
-Looking straight down used to fill the lower half of the frame with the top
-of your own torso and an open neck, because the camera pitched about the
-eye, and Mineclonia's eye height (1.5) is the model's shoulder line. Since
-2026-09-29 the camera leans out over the body as the gaze drops, 0.45 nodes
-forward and a little up when looking straight down (`_body_lean` in
-`main.gd`), so it shows the front of the shirt and an arm rather than the
-inside of the neck. The legs are still mostly hidden by the chest at that
-height. The dig ray follows the camera (`set_view_offset`), as the vanilla
-client's shootline follows its camera, so the crosshair still covers what
-is pointed at.
-
-The third person views (`F7`) draw the whole body, head included, whatever
-"Show own body" says: `EntityRenderer::setThirdPerson` turns the head
-shrink off.
-
-The swing is smaller than a vanilla client's, because a vanilla client also
-gets the server's mining animation from the moment the button goes down,
-while Goanna's own swing only fires when the game leaves the arm bone alone.
-On Mineclonia the game does drive it, so this only shows on games that do
-not.
-
-Since 2026-09-29 Goanna reports the whole keypress field, as the vanilla
-client does, from `PlayerControl::getKeysPressed`: movement, jump, aux1,
-sneak, dig and place. Before, it sent dig and place only, and Mineclonia,
-which picks the walk animation from those keys, showed a body standing still
-while it walked. Checked in third person on test_world: the legs and arms
-swing while W is held. Sneak now reaches the server too, which on Mineclonia
-changes the eye height and the model's pose, as it does for a vanilla
-player.
-
-Whether the body should be drawn at all under the free flying debug camera
-is open. You are not in your body in that mode: the camera has detached from
-the physics and the body follows it around like a ghost. Hiding it there
-would want to be conditional on the camera having detached rather than on
-the "Show own body" setting, and would want to keep the shadow, so that the
-frame still tells you where the player is.
+- **Looking down, the legs are mostly hidden** by the chest at Mineclonia's
+  eye height, even with the lean.
+- **The magenta shape at the hand** was reported and has never been
+  reproduced; the guards above address the most likely path to it. See the
+  log for what was checked.
+- **The swing against a vanilla client's.** The log recorded the swing as
+  smaller than a vanilla client's on games that leave the arm bone alone.
+  That was written before the mining clock drove a stroke of Goanna's own
+  while digging, and has not been checked since.
+- **The free flying debug camera.** Whether the body should be drawn under
+  it is open. You are not in your body in that mode: the camera has detached
+  from the physics and the body follows it around like a ghost. Hiding it
+  there would want to be conditional on the camera having detached rather
+  than on Show own body, and would want to keep the shadow, so that the
+  frame still tells you where the player is.

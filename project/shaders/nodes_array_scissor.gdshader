@@ -34,7 +34,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 #include "res://shaders/diamond_ore.gdshaderinc"
 // goanna_rain and the rain cover map, for splashes and puddles. Cut-outs
 // on open ground take rain too, and the far tiers draw ground with this
-// shader (above; docs/systems/weather.md, "Splashes and puddles in play").
+// shader (above; docs/systems/weather.md, "Which shader draws the ground").
 #include "res://shaders/weather_common.gdshaderinc"
 
 void vertex() {

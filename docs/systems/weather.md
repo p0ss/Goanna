@@ -6,93 +6,46 @@ lightning drawn from the server's strike. Presentation only: the spawners
 arrive exactly as before, nothing sent to the server changes, and
 everything here is built from data the client already holds.
 
-**Status: seen five times, not right yet, and rebuilt since.** The first
-two live checks were Godot 4.5.1, Mineclonia, the warm beach at Godot (515,
-4, 447), noon, `/weather rain`. The first showed no rain at the defaults; the
-second showed streaks at the defaults, but gathered in one narrow band, with
-the sky speckled and bright arcs, all turning with yaw. The third, by the
-owner in play at night on sand, found the rain good at a distance, leaning
-and dense, with a clear circle round the player looking down, no splashes or
-puddles to be seen, and lightning drawn poorly. After changes for that, the
-owner in play again found the rain still a "pillbox" looking down, with rain
-rushing in underneath, radial lines round a clear circle looking up, and
-still no splash or puddle on the ground, though rain rings did show on
-water. "Live checks" below says what was changed after each. The falling
-rain has since been rebuilt as a box of drops, and splashes and puddles now
-reach the shader that draws the ground. The owner then saw the splashes, as
-big bright white spots with no ring, their colour not the ground's (the
-fifth check); they have been rebuilt as small rings in the ground's own
-shading, and the puddles as water filling the relief. All of that has been
-tested headless only, and nothing of it has been observed.
+## Status
 
-## Storms, other games' weather and snow: status
+Tested headless; parts seen on a GPU, and none of it yet judged to look
+right. The owner looked at the falling rain, splashes and puddles in play
+five times up to 27 September 2026, and each look found faults that were
+then fixed headless: the rain is now a box of drops, the splashes small
+rings in the ground's own shading and the puddles water filling the relief,
+and none of those three rebuilds has been looked at since. The storm cells,
+snowstorms, settled snow, hail, blowing dust and the other games' weather
+were run against local servers with a headless client on the software
+renderer on 27 September, and given one GPU look pass in headless gamescope
+on 28 September, which found the defects under "Known limits"; they landed
+on main on 10 October 2026 after a rebase, checked since only by the
+headless tests. The wakes, ripple patch and body splashes have been seen
+headless on software rendering only.
 
-Landed on main on 2026-10-10, after a rebase onto weeks of other weather,
-water and sky work. What it adds, each described in its own section:
+The [weather log](../history/weather-log.md) holds the dated record: what
+each live check found and what was changed after it, the measurements of
+other games' weather, the earlier tunings of the ripple patch, and the
+status recorded at the landing.
 
-- **Storm cells** (below): a drifting field of storm cells scales rain,
-  snow, hail and dust from a drizzle at a cell's edge to a downpour at its
-  heart, and scales the storm deck and the wetness with it.
-- **Snowstorms**: snow rises further than rain at a cell's heart and
-  turns into a whiteout that closes the fog in and greys it and the sky.
-- **Settled snow**: snow builds `goanna_snow_cover` instead of wetting the
-  ground, and the node and leaves shaders dust up facing surfaces open to
-  the sky, texel by texel.
-- **Wet grass droplets** (`grass_volume.gdshader`): a few tilted, mirror
-  smooth droplets on wet blades where the sky reaches, gated, like the
-  rest of the wet look, by the tier's wet surfaces flag.
-- **Hail and blowing sand** ("Hail, blowing sand and the rest"): drawn
-  by the precipitation shader as kinds of their own, with dust closing
-  and browning the fog.
-- **Covered particles**: weather still drawn as particles is kept out
-  from under roofs by the rain cover map.
-- **Other games' weather** ("Other games"): Mineclonia and VoxeLibre
-  (`mcl_weather`), pmb_core (`aom_weather`), backroomtest (`br_weather`),
-  Kythen, Regional Weather (Climate API), theFox's `weather`, Mymonths and
-  Snowdrift.
-- **`storm_override`** on the weather node: 0 to 1 pins where in a storm
-  cell the viewer stands, for a test or a screenshot; below 0, the
-  default, the field decides.
+## Main files
 
-How it was verified, and how not:
-
-- On 2026-09-27, before the rebase, each supported mod was run against a
-  local server (Minetest Game, or Mineclonia for `mcl_weather`) with a
-  headless client on the software renderer, and the recognised weather
-  and its intensity were read from the client ("Other games").
-- On 2026-09-28, still before the rebase, a GPU look pass in headless
-  gamescope found the defects listed below.
-- At the landing, on 2026-10-10, only headless checks with Godot 4.5.1's dummy
-  renderer: `project/tests/weather.gd` and the native tests (`cmake --build
-  build --target check`), both passing, and the other headless tests that load
-  the changed scripts: `ripples`, `wake`, `water_optics`, `cloud_layers`,
-  `procedural_grass`, `local_play`, `graphics_profiles` and `render_features`
-  pass; `local_play_scene` (3 menu failures) and `portal_materials` (3
-  failures) fail the same way on main before the landing. These draw no frame.
-  The rebased code, which now sets its shader globals per view for local
-  multiplayer, loads the covered particle shaders through the view's scope and
-  gates the droplets on the tier flag, has not been run against a server or
-  looked at on a GPU since the rebase. None of it is claimed to look right.
-
-Known defects, open, from the 2026-09-28 GPU look pass (realistic rates,
-not the fake spawner):
-
-- **Blowing dust is invisible.** The grains (`DUST_RADIUS` 0.012, alpha
-  0.5) are near invisible, and Mymonths' sandstorm at 0.67 shows nothing.
-  The fog does close in and brown.
-- **The sky stays sunny under a storm.** `storm_cover` reaches 0.93, but
-  the sky keeps blue gaps and full sun lies on the ground.
-- **Hail is sparse**: thin, sparse streaks rather than a hailstorm.
-- **The fake snow spawner is far heavier than real snow.** `weather snow
-  fake=true` (`particles.gd`, `inject_test_spawner`) is 400 a second over
-  16 by 16 nodes, about 39 times Mineclonia's snow by density, so it sits
-  at the cap of 4 and a full whiteout at any storm strength. Judge snow
-  with a spawner of 100 a second over 50 by 50 (density 1) instead. Its
-  rain is over the cap too. Not changed here, since `local_bench.gd`'s
-  rain benchmark uses the same spawner.
-
-Rain and snow at realistic rates did scale with the storm as intended in
-that pass.
+| File | What it does |
+| --- | --- |
+| `project/game/effects/particles.gd` | Recognises weather spawners and particles and routes them to the shader or to particles; `precipitation()`, `rainfall()` and `snowfall()`; the covered particle material |
+| `project/game/effects/weather.gd` | Intensities and easing, the storm field, the drop MultiMeshes, `debug_state()`, and GDScript copies of the shader maths for the tests |
+| `project/shaders/precipitation.gdshader` | Falling rain, snow, hail and dust |
+| `project/shaders/weather_common.gdshaderinc` | The ground's damp film, standing water, basins, splashes and settled snow, and the rain rings on water |
+| `project/shaders/nodes_array.gdshader`, `nodes_array_scissor.gdshader` | The terrain shaders, both of which call the shared rain and snow terms |
+| `project/shaders/waving_leaves.gdshader`, `grass_volume.gdshader` | Snow on leaves, droplets on wet grass |
+| `project/shaders/particle_covered.gdshaderinc` and `particle_covered_{mix,add,sub}.gdshader` | Particle weather kept out from under roofs |
+| `project/game/effects/rain_cover.gd`; `GoannaClient::rain_cover_rows` in `src/goanna_client_player.cpp` | The rain cover map |
+| `project/game/effects/lightning.gd`, `project/shaders/lightning.gdshader` | The bolt and its light |
+| `project/game/main.gd` | The wind (`grass_wind`), the storm deck, wetness, settled snow cover, the fog in a whiteout or dust, and the lightning flash (`_take_lightning`) |
+| `project/game/effects/wake.gd`, `project/shaders/wake.gdshaderinc` | Wakes, and which bodies the ripple patch draws |
+| `src/goanna_ripples.{h,cpp}` | The ripple patch (`RippleField`, `GoannaRipples`) |
+| `project/game/effects/splashes.gd`, `project/shaders/splash_crown.gdshader`, `droplet.gdshader` | Droplets and crowns thrown by bodies |
+| `project/shaders/water.gdshader` | Draws the rain rings, wakes and ripples on water |
+| `project/tests/weather.gd`, `wake.gd`, `ripples.gd`; `src/goanna_ripples_test.cpp` | The tests (see "Tests") |
 
 ## Where weather comes from
 
@@ -102,9 +55,10 @@ textures (`weather_pack_rain_raindrop_1.png` and `_2.png`) and two flake
 textures (`weather_pack_snow_snowflake1.png` and `2.png`), but its
 `add_spawner_player` deletes every spawner the player has before adding one
 under a new id, so one is running at a time: 500 a second for rain, 900 in a
-thunderstorm, 100 for snow. The live check saw one rain spawner of 500.
+thunderstorm, 100 for snow. The first live check, on 26 September 2026,
+saw one rain spawner of 500.
 
-`project/game/effects/particles.gd` already recognised these by texture name
+`project/game/effects/particles.gd` recognises these by texture name
 (the `is_weather` test: the name contains `rain` or `snow`) for
 `precipitation()`, which drives wet ground (`goanna_wetness`) and the storm sky
 in `main.gd`.
@@ -124,7 +78,7 @@ shapes seen in the games installed here, 2026-09-27:
 
 | Game | Its weather | Recognised by |
 | --- | --- | --- |
-| Mineclonia, VoxelLibre (`mcl_weather`) | one attached spawner, `weather_pack_rain_raindrop_*`, `weather_pack_snow_snowflake*` | name, attached |
+| Mineclonia, VoxeLibre (`mcl_weather`) | one attached spawner, `weather_pack_rain_raindrop_*`, `weather_pack_snow_snowflake*` | name, attached |
 | pmb_core (`aom_weather`), backroomtest (`br_weather`) | attached spawners, `aom_weather_rain*.png`, `aom_weather_snow_*.png`; heavy rain adds sheets 260 across on the horizon | name, attached |
 | Kythen | a 0.55 second burst every half second while outdoors, at world coordinates round the player, textured `kythen_water.png` | falls like rain, round the player |
 | Minetest Game, Asuna | no weather | nothing to draw |
@@ -159,20 +113,6 @@ density its light rain is 0.50 and its heavy rain 0.67 of Mineclonia's,
 before its third spawner. Sheets 40 across or more are a curtain on the
 horizon, not drops, and are left out.
 
-Regional Weather was run live on 2026-09-27: Minetest Game with Climate
-API, Regional Weather, `lightning`, `lighting_monoid` and
-`player_monoids` as world mods, and a headless client on the software
-renderer. Each preset forced with `/set_weather`: rain, heavy rain, snow
-and heavy snow were all taken as weather (about a dozen bursts at once)
-and drew 0.52, 0.93, 0.78 and 0.70, scaled by a storm field of 0.1 to 0.2
-at the spot; hail was left to its particles. Its snow and heavy snow both
-reach the cap of 2 before the storm field, so the two look alike. Two
-traps for anyone repeating it: Climate API skips a dead player, and a
-client that spawned underground dies there; respawn and fly up before
-forcing a preset. Nothing was looked at on a GPU, and the `lightning`
-mod's strike (one spawner of one sprite, `lightning_lightning_N.png`, the
-sky set plain white for a moment) has not been seen.
-
 Weather sent one particle at a time, as Snowdrift sends it, is counted
 instead of drawn: a rain or snow named particle falling within 40 nodes of
 the player and above their head is added to a count per kind, and the
@@ -181,22 +121,19 @@ velocity and size, stands in for a spawner (`_weather_particle`,
 `_update_single_weather`). A texture says snow by `flake` first, then not
 if it says `rain` or `drop`, then by `snow`: Snowdrift's rain is
 `snowdrift_raindrop.png` (`weather.is_snow_name`). Snowdrift's particles
-never reached the client before 2026-09-27, when the batched particle
-packet was first read (`docs/systems/protocol-coverage.md`).
+arrive in the batched particle packet
+([protocol coverage](protocol-coverage.md)).
 
-The other three were run live the same day, each alone on Minetest Game
-with a headless client on the software renderer. theFox's `weather`: rain
-1.18 and storm 1.13 under a weak storm field, snow 0.90, hail and sand as
-particles; standing flown up at y 45 nothing came, since the mod only
-rains where it finds sky light in the air above, which was not generated
-yet. Mymonths: rain 1.2, storm 1.14, snow 0.88 where the ground was snowy,
-hail and sandstorm as particles; its weather follows the nodes round the
-player, so a spot by sand or snow changes it. Snowdrift, a test copy with
-its precipitation forced on and its freeze read from a setting: rain 0.27
-and snow 0.21 under a weak storm field. theFox's rain uses sprites 25
-across and runs about five bursts at once, so by the drop count it is
-already heavy; at a storm cell's heart its rain and its storm both reach
-the cap and look alike.
+Each of these was run live on 27 September 2026 against a local server
+with a headless client on the software renderer, and the recognised weather
+and its intensity read from the client; the numbers are in the
+[weather log](../history/weather-log.md). Two traps for anyone repeating
+the Regional Weather run: Climate API skips a dead player, and a client
+that spawned underground dies there; respawn and fly up before forcing a
+preset with `/set_weather`. theFox's `weather` only rains where it finds
+sky light in the air above, so a player flown up over ungenerated air gets
+none, and Mymonths' weather follows the nodes round the player, so a spot
+by sand or snow changes it.
 
 **For a game author** who wants Goanna to draw their weather: attach the
 spawner to the player (`attached = player`), or keep spawning it, or its
@@ -262,14 +199,10 @@ transforms are identity and nothing is uploaded per frame.
   shadow, outside global illumination.
 - Nothing is drawn while the eye is underwater.
 
-This replaced six cylinders nested round the camera, which could not work
-at steep angles: a cylinder is seen edge on above and below the eye, so
-looking up its streaks became radial lines round a clear circle, and
-looking down the nearest wall was a ring of rain rushing in under a dry
-disc. A box has no angle it looks wrong from. What was lost: rain beyond
-about 12 nodes. The cylinders drew a layer 22 nodes out, which is what the
-owner found good at a distance; the far box fades out from 10.5 nodes to
-its sides at 12, and the storm fog and sky are left to carry the distance.
+Rain ends about 12 nodes out: the far box fades out from 10.5 nodes to its
+sides at 12, and the storm fog and sky are left to carry the distance. A
+box has no angle it looks wrong from, which is why it is a box; the
+cylinders it replaced, and what they did at steep angles, are in the log.
 
 Intensity comes from the spawners' rate (amount a second for an endless
 spawner, amount over time for a timed one), summed per kind and divided by
@@ -290,11 +223,10 @@ the sky or a lamp.
   map where there is one and by strong sky light beyond it, from
   `goanna_wetness`: darker by the porosity (soil soaks, stone sheens),
   roughness pulled toward 0.32, the normal map's relief softened by up to
-  30 per cent, as a film of water fills the fine texture. It was a
-  roughness of 0.13 over everything open with the relief left whole, which
-  read as wet plastic. On an authored relief the crests (height over 0.75)
-  drain first and take up to half as much. Sky light alone wet floors
-  several nodes in from a doorway, where the light still reaches.
+  30 per cent, as a film of water fills the fine texture. On an authored
+  relief the crests (height over 0.75) drain first and take up to half as
+  much. Sky light alone wet floors several nodes in from a doorway, where
+  the light still reaches.
 - **Standing water in the relief** (`goanna_water_level`, `goanna_pool`).
   The owner's idea: the soft wet look is the dips between ridges filled
   with water. A LabPBR `_n` map carries the surface's height in its alpha,
@@ -344,34 +276,6 @@ basin: a missing `_n` gets a filler layer whose alpha is 0, and one
 inferred from the colour has 255, neither a height, and `layer_depth` is
 measured only from an authored height, so it tells them apart.
 
-What these replaced, after the fifth check: a splash was a fleck a fifth of
-a node across for a tenth of a second, its albedo mixed 80 per cent toward
-white with a share of the sky fill added as light "so it can be seen at
-night", with a ring 0.7 nodes across in the normal that the fleck drowned
-out. In play it was a field of big white spots coming and going with no
-ring, their colour nothing to do with the ground. A puddle was a patch of
-the same noise with a hard edge, half the albedo and a mirror, drawn over
-the relief whatever its shape.
-
-**Splashes and puddles in play.** Neither was ever seen, through two live
-checks, while the ground did go wet and rings did show on water. The terms were
-only in `nodes_array.gdshader`, and in play the ground is not drawn by it.
-`GoannaClient::materialFor` puts a node array on `nodes_array_scissor.gdshader`
-if any of its layers has alpha, and the arrays are upstream's bunches
-(`NodeVisuals::fillNodeVisuals`), which group tiles by size alone, 256 at a
-time. 1160 of Mineclonia's 1841 16 pixel textures have some alpha (counted over
-every 16 pixel PNG in its mods, near enough the set its nodes use), so the
-chance of a bunch of 256 with none is nil: every array is a scissor array, and
-sand, grass and stone are all drawn by the scissor shader, which had the wetness
-block and nothing after it. The terms now live in one function both shaders
-call, and the status trace below names the shader of the ground under the eye.
-The same cause kept the parallax march, which is only in `nodes_array.gdshader`,
-off the ground too. That was fixed on 2026-09-27 by choosing the shader per
-tile, by its own layer (`docs/systems/materials.md`, "Which shader draws a
-tile"): sand, grass tops and stone now go to `nodes_array.gdshader` on the near
-mesh, while cut-outs and the far tiers stay on the scissor shader. Both still
-carry the rain terms.
-
 **Rings on water** (`project/shaders/water.gdshader`). Expanding rings in the
 water normal on open water within 22 nodes, on top of the waves.
 
@@ -385,6 +289,19 @@ edge.
 Splashes and rings follow `goanna_rain` (what is falling now), not
 `goanna_wetness` (which lingers for minutes after rain), so they stop with
 the rain.
+
+### Which shader draws the ground
+
+The rain terms (film, standing water, basins, splashes) and settled snow
+live in functions in `weather_common.gdshaderinc` that both array shaders
+call, because the ground can be drawn by either. The near mesh chooses the
+shader per tile, by its own layer (see [materials](materials.md), "Which
+shader draws a tile"): sand, grass tops and stone go to
+`nodes_array.gdshader`, which also carries the parallax march, while
+cut-outs and the far tiers stay on `nodes_array_scissor.gdshader`. The
+status trace (below) names the shader of the ground under the eye. When the
+terms were in `nodes_array.gdshader` alone, nobody ever saw a splash or a
+puddle in play; the log has how that was found.
 
 ### Storm cells
 
@@ -425,26 +342,19 @@ hail at the cap; Regional Weather's sandstorm about 1.6, Mymonths' 0.6,
 theFox's 0.2 (its box is 40 by 40, and it blows at head height, rising a
 little, so a dust box counts from just below the head).
 
-Particle weather this client does not draw by shader, and all of it with
-shader weather off, is drawn with `particle_covered.gdshaderinc` in place
-of its StandardMaterial3D (through `particle_covered_mix`, `_add` or
-`_sub.gdshader`, one per blend, loaded through the view's scope) when it falls from a box round the player and
-above their head: the same texture, colour, billboard, kept scale,
-animation and blend, and nothing under the cover map's roof, since
-Goanna's particles do not collide and such weather fell through every
-roof. `weather.gd` keeps the cover map while any is running
-(`cover_wanted`). Godot does not give a script the shader it generates for
-a StandardMaterial3D, so this is a small shader of its own rather than
-one line added to that. `GOANNA_PARTICLE_UNCOVERED=1` keeps the plain
-material, to compare. Pollen (Regional Weather) rises from below the
-head, so it is neither weather nor covered, and keeps its particles.
-
-Seen on 2026-09-27 on the software renderer: Regional Weather's sandstorm
-browned the distance and the sky with blowing grains, its hail drew as
-short white streaks. With shader weather off, 24 rain spawners took the
-covered material without a shader error, but particle rain did not show
-on the software renderer with the covered material or the plain one, so
-whether the cover test hides the right particles has not been seen.
+Particle weather this client does not draw by shader, and all of it with shader
+weather off, is drawn with `particle_covered.gdshaderinc` in place of its
+StandardMaterial3D (through `particle_covered_mix`, `_add` or `_sub.gdshader`,
+one per blend, loaded through the view's scope) when it falls from a box round
+the player and above their head: the same texture, colour, billboard, kept
+scale, animation and blend, and nothing under the cover map's roof, since
+Goanna's particles do not collide and such weather fell through every roof.
+`weather.gd` keeps the cover map while any is running (`cover_wanted`). Godot
+does not give a script the shader it generates for a StandardMaterial3D, so this
+is a small shader of its own rather than one line added to that.
+`GOANNA_PARTICLE_UNCOVERED=1` keeps the plain material, to compare. Pollen
+(Regional Weather) rises from below the head, so it is neither weather nor
+covered, and keeps its particles.
 
 ### Snowstorms
 
@@ -458,7 +368,7 @@ blown five times as far as they fall; `main.gd` pulls the fog in to end at
 50 nodes on a linear ramp, turns it toward the grey of driven snow and
 lays it over the sky; and settled snow builds up to three times faster.
 
-A flake is not a disc of one size any more. Its own hash sets its size,
+A flake is not a disc of one size. Its own hash sets its size,
 from 0.45 to 1.2 of the radius, with one in twenty five a clump half as
 big again, and its spin. Close enough to be more than a couple of pixels
 across it is a six armed crystal turning as it falls; driven by the wind
@@ -466,10 +376,6 @@ it smears along its path, up to three and a half times its length and
 thinner as it lengthens, so a blizzard is streaks rather than dots. The
 game's own flake textures (Mineclonia's are 3 to 12 pixels) are not used:
 at a flake's size they would only show within a metre or two.
-
-Seen on 2026-09-27 only on the software renderer, in a disposable
-Minetest Game world with a faked snowfall: driven streaks, the far hill
-greying, snow settling on sand. Not yet seen on a GPU.
 
 ### Settled snow
 
@@ -592,26 +498,25 @@ energy 16 at the stroke's peak, following the same flicker. No shadow: an
 omni shadow is six more passes over everything in range for a light that
 lives a fifth of a second, so a strike beside a house lights its inside.
 
-**The flash** (`main.gd`, `_take_lightning`). The server's white sky could
-not reach the screen: `_apply_sky` eases every sky colour set over four
-seconds so a biome border does not flip the dome, and a tenth of a second
-of white moved it about 2 per cent of the way, then took seconds to ease
-back. A sky set white through day, dawn and night is now held out of the
-easing and becomes a flash: 1 while the server's white lasts, dying away
-over a few hundredths of a second after it. A white sky that lasts longer
-than 0.6 seconds is taken as the game's real sky. lightning.gd's own flash
-(each strike's flicker, weighed by distance: full within 50 nodes, down to
-0.3 of it at 225 and beyond) covers a game that strikes without whitening
-the sky; the two together are one flash, not two. The flash whitens the
-dome and horizon, and so the fog, lights the cloud deck and its undersides,
-raises the day night ratio the ambient, background and haze follow, and
-adds to the sky fill, which lights whatever is open to the sky and nothing
-under a roof.
+**The flash** (`main.gd`, `_take_lightning`). The server's white sky would not
+reach the screen through the ordinary sky easing: `_apply_sky` eases every sky
+colour set over four seconds so a biome border does not flip the dome, and a
+tenth of a second of white would move it about 2 per cent of the way, then take
+seconds to ease back. So a sky set white through day, dawn and night is held out
+of the easing and becomes a flash: 1 while the server's white lasts, dying away
+over a few hundredths of a second after it. A white sky that lasts longer than
+0.6 seconds is taken as the game's real sky. lightning.gd's own flash (each
+strike's flicker, weighed by distance: full within 50 nodes, down to 0.3 of it
+at 225 and beyond) covers a game that strikes without whitening the sky; the two
+together are one flash, not two. The flash whitens the dome and horizon, and so
+the fog, lights the cloud deck and its undersides, raises the day night ratio
+the ambient, background and haze follow, and adds to the sky fill, which lights
+whatever is open to the sky and nothing under a roof.
 
-With shader weather off, the strike keeps the particle path, as before, and
-the server's flash still reaches the sky. The particle path's culling box
-now includes the particle's own size: it was a node round the emitter, 50
-nodes up the bolt, so the bolt vanished whenever its middle left the view.
+With shader weather off, the strike keeps the particle path and the
+server's flash still reaches the sky. The particle path's culling box
+includes the particle's own size, so the bolt stays drawn while any of it
+is in view.
 
 ## Wakes
 
@@ -676,11 +581,11 @@ many of them touch water, and the points live.
 
 ## Ripples
 
-The rings read as pings from first person: each point grew one thin ring on
-its own, nothing came ahead of a swimmer, and a body standing still pinged
-once every 1.2 seconds. Round the eye they give way to a patch of water that
-keeps what is done to it. Presentation only, like the rings, and tested
-headless only; nothing of it has been observed.
+Wake rings alone read as pings from first person: each point grows one thin ring
+on its own, nothing comes ahead of a swimmer, and a body standing still pings
+once every 1.2 seconds. So round the eye they give way to a patch of water that
+keeps what is done to it. Presentation only, like the rings, and tested headless
+only; nothing of it has been observed.
 
 **The field** (`src/goanna_ripples.h`, `RippleField`, wrapped for GDScript
 as `GoannaRipples`). A square 32 nodes across, eight cells a node (256 by
@@ -710,41 +615,22 @@ hugging the edge of its footprint and half spread out to twice its radius,
 summed over the cells so no water is made or lost and every crest has its
 trough.
 
-The footprint is a disc whose soft edge (`kEdge`) is centred 0.42 nodes
-out, just outside a player's 0.3. The first versions centred both the
-shove and the push on a Gaussian under the body: the crest it shoved up
-stood a fifth of a node ahead, inside the body, and the ring it pushed out
-was a node across before it was steep enough to see, so the water hard by a
-body lay flat whatever it did, a dead zone round the player seen looking
-down. That is what
-rings out from a body falling in, bobbing or climbing out; a body in the
-air over the water, or wholly under it, does nothing to the surface by
-going up or down (`wake.gd`'s `sinking`). A swimmer faster than the waves
-leaves them in a V along its path, curving where it turns (about 15
-degrees each side at 3 nodes a second).
-The player's velocity is the movement step's own (`last_move.speed`);
-animals shove at 0.7 of the player and move between the ten-a-second
-samples along their last velocity.
+The footprint is a disc whose soft edge (`kEdge`) is centred 0.42 nodes out,
+just outside a player's 0.3, so the crest stands at the body's edge rather than
+inside it. That is what rings out from a body falling in, bobbing or climbing
+out; a body in the air over the water, or wholly under it, does nothing to the
+surface by going up or down (`wake.gd`'s `sinking`). A swimmer faster than the
+waves leaves them in a V along its path, curving where it turns (about 15
+degrees each side at 3 nodes a second). The player's velocity is the movement
+step's own (`last_move.speed`); animals shove at 0.7 of the player and move
+between the ten-a-second samples along their last velocity.
 
-Three tunings came before this one. The first, on a swimmer at 3 nodes a second,
-drew nothing a player could see: wading at 1 node a second left a slope of 0.09
-against the rings' 0.3. The second pressed down on the water under every body
-all the time and swayed that press at a fixed 1.1 Hz, which drew waves out of a
-player standing still, at a rate that had nothing to do with what the player
-did, and the press, built up over half a second, left the middle of the pattern
-behind a moving player. The third lifted the surface with the body's own
-vertical speed, in the air as well as in the water, making water to do it, and a
-player jumping up and down piled up broad mounds with no troughs, drawn as white
-smoke rings by the crest whitening that went with them. Jumping in and out for
-five seconds peaked at 0.27 and -0.23 with no water made under that tuning; a
-gentle bob, a fifth of a node up and down, makes faint rings (0.03), as it does
-in real water, where narrowing the push to sharpen them only made them fainter.
-The test prints and floors the steepest slope 0.4 to 1.5 and 1.5 to 6 nodes from
-a swimmer. Now, for a player: nothing holding still; moving, 0.35 to 1.2 near
-and 0.22 to 0.30 further out; bobbing 0.11 near and 0.024 out; 0.09 out two
-seconds after dropping in. Jumping in and out for five seconds peaks at 0.08
-round the body. It also checks a swimmer's crest is ahead of it and its trough
-behind, centred on it.
+The native test (`goanna_ripples_test`) prints and floors the steepest slope 0.4
+to 1.5 and 1.5 to 6 nodes from a swimmer. For a player: nothing holding still;
+moving, 0.35 to 1.2 near and 0.22 to 0.30 further out; bobbing 0.11 near and
+0.024 out; 0.09 out two seconds after dropping in. Jumping in and out for five
+seconds peaks at 0.08 round the body. It also checks a swimmer's crest is ahead
+of it and its trough behind, centred on it.
 
 **Which bodies** (`project/game/effects/wake.gd`, `claim` and `ripple_frame`).
 The patch lies on one water surface: the local player's, when it is in the
@@ -758,34 +644,31 @@ surface and every four seconds while it is moving, four rows of nodes a
 frame so the couple of thousand lookups do not land in one frame.
 
 **Drawing** (`project/shaders/water.gdshader`). The heights reach the water
-shader as a 256 by 256 float texture (`goanna_ripple_height`), with the
-patch's corner, side and surface height (`goanna_ripple_area`) and whether
-it is moving (`goanna_ripple_state`). On the top of the water within 0.4 of
-that surface, from above or below, the slope bends the normal (0.8 of it)
-on top of the waves, rain and rings. Crests are not whitened: they are not
-breaking, and whitening every one over 0.05 nodes made a splash an all
-white ring. Still water or none: one uniform branch. Looked down on, water reflects only a fiftieth of the sky, so in
-the shallows a ripple shows by how it bends the bed seen through it: the
-refraction offset is the tilt the waves give the normal, times the depth
-of water over the bed (only the first 1.5 nodes of it), over the distance
-(`refraction`, 0.12; the physical 0.18, a quarter of the shift over the 1.4
-of the view, over depths to 4 nodes, swung deep pools about queasily),
-capped at 3 per cent of the screen. It was the whole normal times 0.006 times the ray's length through
-the water, which moved a shallow bed by a pixel. That alone was still
-only a subtle distortion looked down on, so in sunlight the patch also
-throws caustics: the light on the bed is scaled by how the surface where
-the sun's refracted ray came in focuses it, 1 / (1 + a quarter of depth
-times curvature), the curvature taken over two cells either side, clamped
-to 0.3 to 2.5 and blended in at 0.7 of full sun. Crests throw bright moving
-lines on the bed and troughs dim it. `goanna_sun_glow` gates it, so there
-are none at night, under a weather sky or in a ridge's shadow; and only the
-ripple patch throws them, not the everyday waves. Round a swimmer at 2
-nodes a second over a bed a node down the bed ranges from 0.54 to 2.5 of
-its light where the wake is, and nearly none of it sits at a clamp
-(goanna_ripples_test prints both).
+shader as a 256 by 256 float texture (`goanna_ripple_height`), with the patch's
+corner, side and surface height (`goanna_ripple_area`) and whether it is moving
+(`goanna_ripple_state`). On the top of the water within 0.4 of that surface,
+from above or below, the slope bends the normal (0.8 of it) on top of the waves,
+rain and rings. Crests are not whitened: they are not breaking, and whitening
+every one over 0.05 nodes made a splash an all white ring. Still water or none:
+one uniform branch. Looked down on, water reflects only a fiftieth of the sky,
+so in the shallows a ripple shows by how it bends the bed seen through it: the
+refraction offset is the tilt the waves give the normal, times the depth of
+water over the bed (only the first 1.5 nodes of it), over the distance
+(`refraction`, 0.12; the physical 0.18, a quarter of the shift over the 1.4 of
+the view, over depths to 4 nodes, swung deep pools about queasily), capped at 3
+per cent of the screen. In sunlight the patch also throws caustics: the light on
+the bed is scaled by how the surface where the sun's refracted ray came in
+focuses it, 1 / (1 + a quarter of depth times curvature), the curvature taken
+over two cells either side, clamped to 0.3 to 2.5 and blended in at 0.7 of full
+sun. Crests throw bright moving lines on the bed and troughs dim it.
+`goanna_sun_glow` gates it, so there are none at night, under a weather sky or
+in a ridge's shadow; and only the ripple patch throws them, not the everyday
+waves. Round a swimmer at 2 nodes a second over a bed a node down the bed ranges
+from 0.54 to 2.5 of its light where the wake is, and nearly none of it sits at a
+clamp (goanna_ripples_test prints both).
 
-Seen from high up even that was not enough, and the rings round a body did
-not show at all. Two things were added on the top of the water:
+Seen from high up, refraction and caustics alone do not show the rings
+round a body, so the top of the water also carries:
 
 - **Shading.** A ripple's faces turned towards the sun are brightened and
   those turned away darkened, by 0.6 of the slope along the sun's
@@ -802,10 +685,7 @@ not show at all. Two things were added on the top of the water:
   even white over every crest read as smoke rings, and a plain white edge
   was what the owner asked not to have.
 
-Seen headless on software rendering, a hard kick beside a standing player
-froths as clumps of rimmed bubbles of mixed sizes; the shading did not show
-in those captures, where the patch steps slower than real time and the
-light was dim, and neither has been looked at on a GPU.
+Neither has been looked at on a GPU; the headless captures are in the log.
 
 The control channel's `status` carries it under `wake.ripples`: the surface,
 how many bodies the patch draws, whether it is moving and its highest
@@ -839,8 +719,7 @@ yet on a GPU.
   up) leaning the way the blow went. The mesh is a plain 144 by 8 ring the
   shader shapes from the crown's age; at most 8 at once.
 - **Coming out** as fast: drips off the sides of the body, below the eye,
-  falling back. They came out of a box through the whole body, which in
-  first person put them in front of the lens.
+  falling back, so in first person none come in front of the lens.
 - **Moving through the surface** faster than 2.2 nodes a second across,
   with the surface somewhere up its body: spray fanned up and forward off
   its bow, harder the faster it goes, for as long as it keeps moving.
@@ -856,19 +735,38 @@ as small kicks on the ripple patch, round where they were thrown, 0.3 to 0.8
 seconds later; spray lands beside the bow. Each droplet is a short lit streak
 along its flight, about 0.02 by 0.09 nodes, turned about that line to face the
 eye (`shaders/droplet.gdshader`), fading over the last third of its flight.
-Round billboards 0.07 across, the first version, read as white bubbles coming
-out of the chest and hands. At most 16 bursts and 6 sprays at once.
+At most 16 bursts and 6 sprays at once.
 
-## The setting
+## Settings and knobs
 
-**Shader weather** in the Video tab (`shader_weather`, on by default, shown
-without opening Advanced), declared in `game_ui.gd` beside **Player effect
-particles** and listed in `LOCAL_KEYS`. Off, weather spawners get their
-particle emitters as before and the shader draws nothing, so there are no
-splashes or rings either, and a lightning strike is a textured particle
-with no light. Puddles follow the wetness, which does not depend on the
-setting. Changing it mid storm rebuilds the running storm
-the other way at once, from the spawners as they arrived.
+**Shader weather** in the Graphics tab (`shader_weather`, on by default),
+declared in `game_ui.gd` and listed in `LOCAL_KEYS`, so it is saved with
+the client's own settings. Off, weather spawners get their particle
+emitters as before and the shader draws nothing, so there are no splashes
+or rings either, and a lightning strike is a textured particle with no
+light. Puddles follow the wetness, which does not depend on the setting.
+Changing it mid storm rebuilds the running storm the other way at once,
+from the spawners as they arrived.
+
+The wet look on the ground, grass and leaves is gated by the graphics
+tier's wet surfaces flag (`render_wet_surfaces`, see
+[render feature switches](render-feature-switches.md)).
+
+The wakes, ripples and body splashes have no setting and are always on,
+whatever shader weather says.
+
+For tests and screenshots:
+
+- `storm_override` on the weather node: 0 to 1 pins where in a storm cell
+  the viewer stands; below 0, the default, the field decides.
+- The control channel's `weather` command (`kind clear|rain|snow|thunder`)
+  sends the game's `/weather` chat command; with `fake=true` it injects a
+  local test spawner instead (`particles.gd`, `inject_test_spawner`). That
+  spawner is far heavier than real weather (see "Known limits").
+- `GOANNA_PARTICLE_UNCOVERED=1` keeps particle weather on its plain
+  material instead of the covered one, to compare.
+- `status` carries `weather` and `wake`, described under the cover map,
+  "Wakes" and "Ripples".
 
 ## Expected cost
 
@@ -881,9 +779,8 @@ Not measured. What the code does:
 - Fragments: each drawn drop is a thin transparent quad, lit, with one
   cover map read. The near box's drops a node or two away are the large
   ones, a few pixels wide and a few hundred long, and there are some tens
-  of them in view; the far ones are a pixel and a half wide. Against the
-  six cylinders this replaced, which were four to six layers of overdraw
-  across the whole view, most pixels now carry no rain at all.
+  of them in view; the far ones are a pixel and a half wide. Most pixels
+  carry no rain at all.
 - Standing water: on flat up facing pixels once the world is wet, the
   basin noise (eight hashes) and a cover map read, in and for minutes
   after rain, in both array shaders. The height it fills is the alpha of
@@ -909,133 +806,40 @@ Not measured. What the code does:
   points, per water pixel; at most one exponential, a cosine and a sine for
   a point whose ring is near the pixel. Nothing when no point is live.
 
-## Live checks
+## Known limits
 
-### First
+Open defects from the GPU look pass of 28 September 2026, at realistic
+rates, before the storm work was rebased and landed (rain and snow did
+scale with the storm as intended in that pass):
 
-Godot 4.5.1, Mineclonia, the warm beach at Godot (515, 4, 447), noon,
-`/weather rain`. The weather node's state was right (intensity 0.5, the mesh
-at the camera, one rain spawner), and nothing could be seen. Only with the
-streak opacity raised tenfold, the intensity at 2 and the cover map switched
-off together did faint streaks appear, with bright curved arcs on the right
-of the frame. What was changed, headless:
+- **Blowing dust is invisible.** The grains (`DUST_RADIUS` 0.012, alpha
+  0.5) are near invisible, and Mymonths' sandstorm at 0.67 shows nothing.
+  The fog does close in and brown.
+- **The sky stays sunny under a storm.** `storm_cover` reaches 0.93, but
+  the sky keeps blue gaps and full sun lies on the ground.
+- **Hail is sparse**: thin, sparse streaks rather than a hailstorm.
+- **The fake snow spawner is far heavier than real snow.** `weather snow
+  fake=true` (`particles.gd`, `inject_test_spawner`) is 400 a second over
+  16 by 16 nodes, about 39 times Mineclonia's snow by density, so it sits
+  at the cap of 4 and a full whiteout at any storm strength. Judge snow
+  with a spawner of 100 a second over 50 by 50 (density 1) instead. Its
+  rain is over the cap too. It is left as it is because `local_bench.gd`'s
+  rain benchmark uses the same spawner.
 
-- Opacity. Peak streak opacity had been 0.17 on the nearest layer, drawn
-  unshaded in the sky gradient's colour, which is small beside sunlit sand
-  once the exposure is applied. The rain is now lit by the scene's own
-  lights, peaks at 0.68 near and 0.34 far, and is denser; the constants live
-  in `weather.gd`, reach the material from there, and a test holds the peak
-  to at least 0.5 near and 0.25 far.
-- Intensity. The references assumed two Mineclonia spawners; there is one,
-  so ordinary rain was drawn at half strength. Rain is now 1 and thunder 1.8.
-- Arcs. The rain rings on water and ground were evaluated one cell at a time
-  but could grow past their cell, so each was cut off by a straight line;
-  with the sun in the water those cut rings are bright partial circles.
-  Rings now stay inside their cells, and water rings stop at 22 nodes rather
-  than 30. That was a real fault, but not the arcs: the second check found
-  them in open air (below).
-- The cover map. No fault was found in the lookup on reading, and a test now
-  reads the uploaded texture back the way the shader does over an open beach
-  and finds every point a layer draws at open, while an empty or part
-  scanned map withdraws its area so the shader treats everything as open.
-  The C++ scan against a real map is still untested; `open_share` in the
-  status is the way to check it live.
+Other limits:
 
-### Second
-
-Same place and time. Status: rain 1.0, `eye_open` true, `open_share` 0.87,
-cover over the eye 2.5, so the map was not hiding anything. Streaks were
-visible at the defaults, over sky and sand, but three faults remained, all
-turning with yaw: the rain gathered into one narrow bright band (straight
-ahead at yaw 60), the rest of the sky was speckled with sub pixel white
-dots like stars, and bright curved arcs hung in open air (upper right at
-yaw 0, which is the same direction as the band).
-
-All three were one fault. To keep the rain still in the world when the
-player walked sideways, the column coordinate carried the camera's world
-position along each layer's tangent. That term changes round the turn at a
-rate of the camera's distance from world zero, about 680 nodes at the
-beach, against layer radii of 3 to 22. In most directions it squeezed a
-layer's columns far below a pixel (the stars); in the two directions square
-to the camera's position it spread them back to their proper size (the
-band); and between, where it cancelled the arc length exactly, one column
-was smeared across the view (the arcs). The wind's shear had the same
-fault, smaller, measured from world zero instead of the eye. What changed:
-
-- The column coordinate is arc length alone. No shift keeps the pattern
-  still in every direction at once on a cylinder round a moving camera, so
-  there is none, and the rain moves with you sideways.
-- The shear is measured from the eye, the lean is held to 0.35, and the
-  edge on fade now ends at 60 degrees, so the column coordinate advances at
-  no less than 0.39 of its calm rate anywhere a layer is drawn.
-- Minification, for the specks the far layers could still make at low
-  resolution: columns under 5 pixels apart fade, and so do streaks under 8
-  pixels long (flakes likewise by their cell size).
-
-### Third
-
-The owner, in play, at night on sand (the screenshot is sand lit by a
-torch, wet and glossy). Rain looked good at a distance, leaning and dense.
-Three faults:
-
-- "Like I have an umbrella": no rain within a node or two of the player,
-  plain looking down at about 30 degrees. The nearest layer was 3 nodes
-  out, so a ray more than 28 degrees down met the ground first, and the
-  edge on fade removed everything past 45 degrees anyway. The two low
-  layers above are the fix; the test finds 178 of 359 quarter degree steps
-  of depression clear under the old layout and none under the new, down to
-  a clear circle of half a node.
-- No splashes or puddles visible. The flecks were too small, too brief and
-  too grey (above), and there were no puddles.
-- Lightning. The strike went down the particle path as a flat unshaded
-  quad, culled whenever the middle of the bolt left the view, and the
-  server's white sky was eased away before it could be seen (above).
-
-### Fourth
-
-The owner, in play, with Godot 4.5.1 against Mineclonia. Looking down:
-"it's still like a pillbox, the rain rushes in underneath". Looking up:
-the streaks became radial lines round a clear circle overhead. "The ground
-does get wet as the rain persists, but I've never seen a splash or a
-puddle", while rain rings did show on water. What was changed, headless:
-
-- The cylinders are gone. They are edge on above and below the eye, which
-  is both faults, and no layout of them fixes that. The rain is now a box
-  of drops fixed in the world (above). The test casts rays at pitches from
-  80 degrees down to 80 up, at three yaws, and finds drawn drops within 12
-  degrees of every one in at least six of eight moments.
-- Splashes and puddles: the terms were in the one array shader that does
-  not draw the ground in play (above, "Splashes and puddles in play").
-  Found by reading `materialFor` and upstream's bunching, and confirmed
-  against Mineclonia's textures; not by a live client, which the status
-  trace is now for. Both shaders now draw them, puddles are darker and a
-  little more widespread (a fifth of open flat ground after a minute of
-  rain), and flecks are brighter.
-
-### Fifth
-
-The owner, in play at night against Mineclonia, in rain on open ground lit
-by a torch (the Godot version was not recorded). The splashes were seen at
-last: "bright white giant spots ... in game it just looks like hundreds of
-big spots appearing and disappearing without any kind of concentric ring
-effect, and their colour doesn't seem well matched to the surface". The
-brightened flecks of the fourth round were the whole of what showed: a
-fifth of a node of near white albedo with light of its own, over a ring
-too faint beside it to read. And for puddles, the owner's idea: "it may be
-possible to get the soft wet puddle look by softening the reflectivity
-and normals, like those dips in between ridges are what would get filled
-in by water." What was changed, headless:
-
-- Splashes are small rings, 7 to 15 centimetres across, about 31 a square
-  node a second at intensity 1, each spreading over a third of a second,
-  in the normal only, over a brief wet mark that darkens and smooths the
-  ground's own colour. Nothing white is mixed in and no light is added;
-  the test holds rain's effect on the albedo to a factor of at most 1.
-- Standing water fills the relief's hollows, by the height in the `_n`
-  map's alpha, rising with the wetness; the noise puddles are kept as
-  basins that raise the level until the crests drown too.
-- The damp film is softer: roughness toward 0.32 rather than 0.13, and
-  the relief softened rather than left whole under a gloss.
+- Rain ends about 12 nodes out.
+- Lightning strikes where the server says, and a strike at a storm cell's
+  edge is drawn at full strength.
+- Regional Weather's snow and heavy snow both reach the cap of 2 before the
+  storm field, so the two look alike; at a storm cell's heart theFox's rain
+  and its storm both reach the cap and look alike too.
+- The `lightning` mod's strike (one spawner of one sprite,
+  `lightning_lightning_N.png`, the sky set plain white for a moment) has
+  not been seen.
+- Whether the cover test hides the right particles for particle weather has
+  not been seen: particle rain did not show on the software renderer with
+  either material.
 
 ## What is untested
 
@@ -1055,19 +859,18 @@ Everything visual. In particular, the owner's visual check should look at:
 - Walking and turning: the drops must stay put in the world (walk forward
   and pass them), and no drop should pop in or out at the box's faces,
   which are 3 nodes out for the near box and 12 for the far.
-- The distance. Rain now ends about 12 nodes out; whether the storm still
+- The distance. Rain ends about 12 nodes out; whether the storm still
   reads as heavy at the horizon, or whether a far layer is wanted back.
 - The status trace, `status` then `weather.ground`, on open sand in rain:
-  `shader` should be `nodes_array` (it was `nodes_array_scissor` before
-  the per tile choice), `layer_alpha` false, `shader_has_terms` true and
-  `failing` empty. If it is not empty, it names the gate.
+  `shader` should be `nodes_array`, `layer_alpha` false, `shader_has_terms` true
+  and `failing` empty. If it is not empty, it names the gate.
 - Splashes on open ground at intensity 1, by day and by night, within a
   few nodes: whether each reads as a small ring spreading and fading
   rather than a spot, whether it takes the ground's colour (a darker,
   glossier patch of the same sand or dirt, lit as the ground round it
   is), whether there are too many or too few, and that they fade out
   further off without a visible edge or shimmer. None under a roof. At
-  night by a torch in particular, where the old flecks were brightest.
+  night by a torch in particular.
 - Water in the relief as a shower goes on: first the joints and dips of
   an authored tile (the dirt, gravel and cobble tops show it best) going
   dark and mirror smooth with the crests damp between, then basins where
@@ -1111,7 +914,7 @@ Everything visual. In particular, the owner's visual check should look at:
 Not done: splashes on leaves and plants, drops sliding down walls, and
 splashes thrown up from the ground by the falling drops themselves (the
 splashes are the ground's own, not the drops').
-Lamps light nearby rain now that it is lit, which is also untested.
+Lamps light nearby rain, since it is lit, which is also untested.
 
 ## Tests
 
