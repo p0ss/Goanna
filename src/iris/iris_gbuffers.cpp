@@ -478,6 +478,8 @@ private:
     std::set<std::string> m_routed_all[2];
     std::set<std::string> m_consts[2];
     std::vector<bool> m_switch_uint;
+    // Built in inputs each global-turned-function reads, by function name.
+    std::map<std::string, std::vector<std::string>> m_lazy_inputs;
     // Plain globals of a stage, declared at the top of its main.
     std::vector<std::string> m_main_locals[2];
     // Whether a global is assigned anywhere in either stage.
@@ -683,8 +685,18 @@ Val Translator::ident(const Expr &e) {
     auto &g = m_globals[si(m_stage)];
     auto it = g.find(n);
     if (it != g.end()) {
-        if (it->second.emitted.compare(0, 14, "goanna_lazy_fn") == 0)
-            return {it->second.emitted.substr(15) + "()", it->second.t, false};
+        if (it->second.emitted.compare(0, 14, "goanna_lazy_fn") == 0) {
+            // A global initialised from uniforms or inputs, now a function;
+            // the built in inputs it reads are passed as for any helper.
+            std::string fname = it->second.emitted.substr(15);
+            std::string args;
+            for (auto &in : m_lazy_inputs[fname]) {
+                args += (args.empty() ? "" : ", ") + in;
+                (m_stage == Stage::Fragment ? m_fin : m_vin).insert(in);
+                if (!m_in_main && m_cur_func) m_cur_func->inputs.insert(in);
+            }
+            return {fname + "(" + args + ")", it->second.t, false};
+        }
         if (it->second.t.b == Ty::Sampler && it->second.emitted == n) {
             // A sampler handed to a function as a value: its bound texture.
             SamplerRole role;
@@ -1764,9 +1776,22 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 if (d.init && !d.array && !assigned(d.name)) {
                     std::string fname = uniqueGlobal("goanna_global_" + d.name);
                     m_scopes.emplace_back();
+                    FuncSym lazy;
+                    lazy.stage = st;
+                    FuncSym *outer = m_cur_func;
+                    m_cur_func = &lazy;
                     std::string init = conv(expr(d.init), t).code;
+                    m_cur_func = outer;
                     m_scopes.pop_back();
-                    m_func_order.push_back(t.godot() + " " + fname + "() {\n\treturn " + init + ";\n}\n");
+                    std::string params;
+                    for (auto &in : lazy.inputs) {
+                        std::string decl = stageBuiltin(in, st);
+                        params += (params.empty() ? "" : ", ") + std::string("in ") +
+                                decl.substr(0, decl.find(' ')) + " " + in;
+                        m_lazy_inputs[fname].push_back(in);
+                    }
+                    m_func_order.push_back(t.godot() + " " + fname + "(" + params + ") {\n\treturn " + init +
+                            ";\n}\n");
                     globals[d.name] = {"goanna_lazy_fn:" + fname, t};
                 } else {
                     std::string name = uniqueGlobal(d.name);

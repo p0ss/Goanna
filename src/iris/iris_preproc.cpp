@@ -445,7 +445,7 @@ void runDirectives(const std::string &src, MacroTable &macros, bool full, bool k
             advanceComments(raw);
         }
         if (t.empty() || t[0] != '#' || commented) {
-            if (active() && !t.empty()) {
+            if (active() && (!t.empty() || !full)) {
                 if (full) {
                     std::set<std::string> disabled;
                     o << expand(raw, macros, disabled, 0);
