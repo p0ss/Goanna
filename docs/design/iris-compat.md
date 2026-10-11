@@ -6,6 +6,9 @@ Minecraft's renderer, and that is not a compatibility layer, it is a second
 renderer. What follows is the line between the two, and it is a real line
 rather than a matter of effort.
 
+What 22 popular packs actually ask for, and the order of work that follows
+from it, is in the [survey of popular shader packs](shaderpack-survey.md).
+
 ## Status, 2026-08-21
 
 Rung 1 below is done and rung 4's machinery is in place, measured rather than

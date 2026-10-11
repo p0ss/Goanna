@@ -167,6 +167,7 @@ nav:
       - Materials and shading: design/pbr-plan.md
       - A material format: design/material-format.md
       - Iris shader packs: design/iris-compat.md
+      - Shader pack survey: design/shaderpack-survey.md
       - Capabilities: design/capabilities.md
       - Validating capabilities: design/validation.md
       - Director design: design/director-design.md

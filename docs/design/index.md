@@ -21,6 +21,8 @@ what was intended and why; how the code works now is under
   2.0, and a proposed shape for material data a game could ship.
 - [Iris shader packs](iris-compat.md): the plan for loading Iris and
   OptiFine shader packs.
+- [Survey of popular shader packs](shaderpack-survey.md): what 22 popular
+  packs need, how often, and what to support first.
 
 ## Servers and boundaries
 
