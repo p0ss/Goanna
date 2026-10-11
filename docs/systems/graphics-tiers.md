@@ -194,8 +194,8 @@ from them; raising it would need the pack read again and every texture
 rebuilt, which is what a rejoin does. The menu row says so when it is
 changed in game. `GOANNA_TEXTURE_SIZE=128` (or 256, 512) pins it for a
 scripted run, over any profile. A bench plan's tier variants carry it so
-`tools/check-bench-plans.py` stays in step, but a live sweep cannot vary
-it; measure it a session per value
+`tools/bench/check-bench-plans.py` stays in step, but a live sweep cannot
+vary it; measure it a session per value
 ([driver](../perf/texture-size-2026-10-05/run.py)).
 
 The pack itself is built at 256 and shipped at 256 for now. With it, Low
@@ -286,7 +286,7 @@ measured limits, then expose a simple preset with optional advanced tuning.
 
 The three profile benchmark plans and the Deck plan now include Lowest
 and the complete settings for their named tiers. Run
-`tools/check-bench-plans.py` before collecting a report. The local-play
+`tools/bench/check-bench-plans.py` before collecting a report. The local-play
 harness also accepts `--profile lowest`; scene overrides must be reported
 because they can change a preset's actual configuration.
 
