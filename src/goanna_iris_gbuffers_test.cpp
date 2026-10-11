@@ -7,7 +7,7 @@
 // project/tests/iris_gbuffers.gd, which runs Godot's shader front end on
 // it. Built on request:
 //
-//   cmake --build build --target goanna_iris_gbuffers_test
+//   cmake --build build --target check (or goanna_iris_gbuffers_test)
 //   build/goanna_iris_gbuffers_test
 //
 // With a pack directory and an output directory it also translates the
@@ -62,6 +62,19 @@ static void testPreprocessor() {
     preprocess("#define SHADOW_DISTORT 0.10 // [0.0 0.1]\n/* a\nb */\n#if SHADOW_DISTORT > 0.05\nyes\n#endif\n", m2, out,
             errs);
     check(contains(out, "yes"), "float comparison in #if");
+
+    // The pack loader's conditional pass is the same engine: a function-like
+    // macro in a condition, which the loader's own evaluator could not do,
+    // and text left unexpanded with its comments and # lines.
+    std::map<std::string, std::string> pm = standardMacros();
+    std::vector<std::string> perrs;
+    std::string pout = runConditionals("#define F(x) ((x) * 2)\n#define N 3 // [1 2 3]\n#if F(2) == 4 && N == 3\n"
+                                       "keep N // note\n#endif\n#Profiles\n",
+            pm, &perrs, true);
+    check(perrs.empty(), "conditional pass errors");
+    check(contains(pout, "keep N // note"), "conditional pass keeps text unexpanded: " + pout);
+    check(contains(pout, "#define F(x)") && contains(pout, "#Profiles"), "defines and # comments kept");
+    check(pm.count("F") && pm["N"] == "3", "macros come back to the caller");
 }
 
 static std::string translateOne(const std::string &vsh, const std::string &fsh, GbuffersSurface s,
@@ -127,6 +140,12 @@ static void testTranslator() {
     check(err.empty(), "displacement translates: " + err);
     check(r.moves_vertices, "displacement detected");
     check(contains(code, "VERTEX = goanna_unproject("), "displacement written back to VERTEX");
+
+    // An unlocated output takes the lowest location a located one left.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "layout(location = 0) out vec4 a;\nout vec4 b;\nvoid main() { a = vec4(1.0); b = vec4(0.5); }\n",
+            GbuffersSurface::ArrayOpaque, r, err);
+    check(err.empty() && contains(code, "goanna_out_1 = vec4(0.5)"), "unlocated output after a located one: " + code);
 
     // Extra targets are reported, not silently lost.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",

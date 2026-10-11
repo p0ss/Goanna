@@ -9,6 +9,7 @@
 // outputs that follow the program's DRAWBUFFERS declaration.
 
 #include "iris_glsl.h"
+#include "iris_preproc.h"
 
 #include <algorithm>
 #include <cctype>
@@ -704,10 +705,10 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     // ---- prelude
     std::ostringstream pre;
     pre << "#version 450\n";
-    pre << "#define MC_VERSION 12101\n#define MC_GL_VERSION 460\n#define MC_GLSL_VERSION 460\n"
-           "#define MC_OS_LINUX\n#define MC_GL_VENDOR_OTHER\n#define MC_GL_RENDERER_OTHER\n"
-           "#define MC_RENDER_QUALITY 1.0\n#define MC_SHADOW_QUALITY 1.0\n#define MC_HAND_DEPTH 0.125\n"
-           "#define IS_IRIS\n#define IRIS_VERSION 10800\n#define GOANNA 1\n";
+    // The same macro set the pack loader and the gbuffers translator start
+    // from (iris_preproc.h).
+    for (auto &m : standardMacros())
+        pre << "#define " << m.first << (m.second.empty() ? "" : " " + m.second) << "\n";
     if (o.labpbr)
         pre << "#define MC_NORMAL_MAP\n#define MC_SPECULAR_MAP\n#define MC_TEXTURE_FORMAT_LAB_PBR\n";
     for (auto f : kFormatNames)

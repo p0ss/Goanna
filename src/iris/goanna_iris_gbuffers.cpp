@@ -10,6 +10,7 @@
 #include "iris/iris_preproc.h"
 
 #include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/viewport.hpp>
@@ -119,13 +120,16 @@ void GoannaIrisGbuffers::setGlobal(const char *name, const Variant &v) {
 
 bool GoannaIrisGbuffers::load_pack(const String &path) {
     std::string err;
+    // GOANNA_SHADERPACK_OPTIONS, read the same way GoannaIrisEffect reads
+    // it, so both halves of a pack compile with the same options.
+    m_pack.setOptionOverrides(iris::parseOptionOverrides(
+            OS::get_singleton()->get_environment("GOANNA_SHADERPACK_OPTIONS").utf8().get_data()));
     if (!m_pack.load(path.utf8().get_data(), err)) {
         m_load_error = err;
         UtilityFunctions::push_error(String("Goanna Iris gbuffers: ") + err.c_str());
         return false;
     }
-    // oldLighting: false, true, or the name of a boolean option, which is
-    // on when some program defines it outside a comment.
+    // oldLighting: false, true, or the name of a boolean option.
     bool old_lighting = true;
     auto ol = m_pack.properties().find("oldLighting");
     if (ol != m_pack.properties().end()) {
@@ -133,16 +137,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         if (v == "false") {
             old_lighting = false;
         } else if (v != "true") {
-            old_lighting = false;
-            std::regex def("^[ \\t]*#define[ \\t]+" + v + "\\b", std::regex::multiline);
-            for (auto &n : m_pack.programNames()) {
-                iris::Program p;
-                std::string e2;
-                if (m_pack.program(n, p, e2) && (std::regex_search(p.vsh, def) || std::regex_search(p.fsh, def))) {
-                    old_lighting = true;
-                    break;
-                }
-            }
+            // the pack's options, overrides applied, as the chain sees them
+            old_lighting = m_pack.options().count(v) > 0;
         }
     }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
@@ -154,7 +150,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         std::string chosen;
         for (auto &n : iris::gbuffersFallback(wanted[s]))
-            if (m_pack.hasProgram(n)) {
+            if (m_pack.hasProgram(n) && m_pack.programEnabled(n)) {
                 chosen = n;
                 break;
             }
@@ -165,7 +161,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         m_program[s] = chosen;
         iris::Program p;
         std::string perr;
-        if (!m_pack.program(chosen, p, perr)) {
+        std::vector<std::string> pwarn;
+        if (!m_pack.program(chosen, p, perr, &pwarn)) {
             m_error[s] = perr;
             continue;
         }
@@ -181,7 +178,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
                     "): " + terr.c_str());
             continue;
         }
-        m_warnings[s] = r.warnings;
+        m_warnings[s] = pwarn;
+        m_warnings[s].insert(m_warnings[s].end(), r.warnings.begin(), r.warnings.end());
         m_dropped[s] = r.dropped;
         m_moves[s] = r.moves_vertices;
         // The globals must exist before Godot parses the shader.
@@ -209,25 +207,13 @@ void GoannaIrisGbuffers::parseBlockProperties(const std::string &path) {
     if (!f) return;
     std::stringstream ss;
     ss << f.rdbuf();
-    // Comments in a properties file start with #, which the preprocessor
-    // would read as directives; keep only real directives.
-    std::string text, line;
-    std::stringstream in(ss.str());
-    while (std::getline(in, line)) {
-        std::string t = trim(line);
-        static const char *dirs[] = {"#if", "#ifdef", "#ifndef", "#elif", "#else", "#endif", "#define", "#undef"};
-        bool directive = false;
-        for (auto d : dirs)
-            if (t.compare(0, std::strlen(d), d) == 0) directive = true;
-        if (!t.empty() && t[0] == '#' && !directive) t.clear();
-        text += (directive ? t : line) + "\n";
-    }
-    iris::MacroTable m;
-    iris::defineMacro(m, "MC_VERSION", "12101");
-    iris::defineMacro(m, "IS_IRIS");
-    std::string out;
-    std::vector<std::string> errs;
-    iris::preprocess(text, m, out, errs);
+    // The conditionals against the pack's options, as iris::Pack runs them
+    // over shaders.properties; # comment lines come back as they were and
+    // are skipped below.
+    std::map<std::string, std::string> macros = iris::standardMacros();
+    for (auto &kv : m_pack.options()) macros[kv.first] = kv.second;
+    std::string out = iris::runConditionals(ss.str(), macros);
+    std::string line;
     std::stringstream lines(out);
     std::string pending;
     while (std::getline(lines, line)) {

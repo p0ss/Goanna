@@ -173,18 +173,9 @@ bool GoannaIrisEffect::load_pack(const String &path) {
     m_load_error.clear();
     std::string err;
     {
-        // NAME=value pairs, separated by commas or spaces.
-        std::map<std::string, std::string> overrides;
-        std::string env = OS::get_singleton()->get_environment("GOANNA_SHADERPACK_OPTIONS").utf8().get_data();
-        std::replace(env.begin(), env.end(), ',', ' ');
-        std::stringstream ss(env);
-        std::string item;
-        while (ss >> item) {
-            size_t eq = item.find('=');
-            if (eq != std::string::npos)
-                overrides[item.substr(0, eq)] = item.substr(eq + 1);
-        }
-        m_pack.setOptionOverrides(overrides);
+        // NAME=value pairs; GoannaIrisGbuffers reads the same variable.
+        m_pack.setOptionOverrides(iris::parseOptionOverrides(
+                OS::get_singleton()->get_environment("GOANNA_SHADERPACK_OPTIONS").utf8().get_data()));
     }
     if (!m_pack.load(path.utf8().get_data(), err)) {
         m_load_error = err;

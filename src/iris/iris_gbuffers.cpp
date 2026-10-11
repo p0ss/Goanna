@@ -853,8 +853,9 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
     }
     std::string base = fn;
     static const std::pair<const char *, const char *> legacy[] = {{"texture2DLod", "textureLod"},
-            {"texture2DGradARB", "textureGrad"}, {"texture2DGrad", "textureGrad"}, {"texture2DProj", "textureProj"},
-            {"texture2D", "texture"}, {"texture3D", "texture"}, {"textureCube", "texture"}};
+            {"texture2DLodARB", "textureLod"}, {"texture2DGradARB", "textureGrad"}, {"texture2DGrad", "textureGrad"},
+            {"texture2DProj", "textureProj"}, {"texture2D", "texture"}, {"texture3D", "texture"},
+            {"textureCube", "texture"}, {"texelFetch2D", "texelFetch"}};
     for (auto &l : legacy)
         if (base == l.first) base = l.second;
     Ty v4 = Ty::vec(Ty::Float, 4);
@@ -913,7 +914,7 @@ Val Translator::call(const Expr &e) {
     }
     const std::string &fn = e.text;
     // Sampler calls: the first argument names the sampler.
-    bool texfn = fn.rfind("texture", 0) == 0 || fn.rfind("shadow2D", 0) == 0 || fn == "texelFetch" ||
+    bool texfn = fn.rfind("texture", 0) == 0 || fn.rfind("shadow2D", 0) == 0 || fn.rfind("texelFetch", 0) == 0 ||
             fn == "texelFetchOffset";
     if (texfn && !e.a.empty() && e.a[0]->kind == Expr::Ident) {
         const std::string &s = e.a[0]->text;
@@ -1569,6 +1570,20 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
     }
     m_scopes.clear();
     m_scopes.emplace_back();
+    // Fragment outputs: a located one keeps its location, and unlocated ones
+    // take the lowest locations left, in declaration order, as a GL linker
+    // assigns them and as the screen space chain's translator does.
+    auto locationOf = [](const std::string &layout) {
+        auto p = layout.find("location");
+        if (p == std::string::npos) return -1;
+        auto eq = layout.find('=', p);
+        return eq == std::string::npos ? -1 : std::atoi(layout.c_str() + eq + 1);
+    };
+    std::set<int> located;
+    if (st == Stage::Fragment)
+        for (auto &it : u.items)
+            if (it.kind == Item::GlobalItem && it.global.storage == "out" && locationOf(it.global.layout) >= 0)
+                located.insert(locationOf(it.global.layout));
     int out_loc = 0;
     if (st == Stage::Vertex) {
         // gl_Position is a local of vertex(), passed to any helper that
@@ -1695,13 +1710,10 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 continue;
             }
             if (st == Stage::Fragment && st_ == "out") {
-                int loc = out_loc++;
-                if (!g.layout.empty()) {
-                    auto p = g.layout.find("location");
-                    if (p != std::string::npos) {
-                        auto eq = g.layout.find('=', p);
-                        if (eq != std::string::npos) loc = std::atoi(g.layout.c_str() + eq + 1);
-                    }
+                int loc = locationOf(g.layout);
+                if (loc < 0) {
+                    while (located.count(out_loc)) ++out_loc;
+                    loc = out_loc++;
                 }
                 std::string name = "goanna_out_" + std::to_string(loc);
                 globals[d.name] = {name, Ty::vec(Ty::Float, 4), 2};
@@ -1842,18 +1854,9 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
 bool Translator::run(const Program &p, std::string &err) {
     // ---- preprocess and parse both stages
     MacroTable base;
-    defineMacro(base, "MC_VERSION", "12101");
-    defineMacro(base, "MC_GL_VERSION", "460");
-    defineMacro(base, "MC_GLSL_VERSION", "460");
-    defineMacro(base, "MC_OS_LINUX");
-    defineMacro(base, "MC_GL_VENDOR_OTHER");
-    defineMacro(base, "MC_GL_RENDERER_OTHER");
-    defineMacro(base, "MC_RENDER_QUALITY", "1.0");
-    defineMacro(base, "MC_SHADOW_QUALITY", "1.0");
-    defineMacro(base, "MC_HAND_DEPTH", "0.125");
-    defineMacro(base, "IS_IRIS");
-    defineMacro(base, "IRIS_VERSION", "10800");
-    defineMacro(base, "GOANNA");
+    // The macro set the pack loader and the screen space chain use too.
+    for (auto &m : standardMacros())
+        defineMacro(base, m.first, m.second);
     for (int k = 0; k < 6; ++k) {
         static const char *stages[] = {"MC_RENDER_STAGE_NONE", "MC_RENDER_STAGE_SKY", "MC_RENDER_STAGE_SUNSET",
                 "MC_RENDER_STAGE_TERRAIN_SOLID", "MC_RENDER_STAGE_TERRAIN_CUTOUT", "MC_RENDER_STAGE_TERRAIN_TRANSLUCENT"};

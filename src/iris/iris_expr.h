@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 //
-// Expressions in a shader pack's own text, outside the GLSL: the
-// preprocessor conditionals `shaders.properties` carries (#if, #ifdef and
-// friends, evaluated against the pack's option defaults and the MC_ and
-// IRIS_ macros), and the custom uniform language of `uniform.<type>.<name>`
-// and `variable.<type>.<name>` lines, which Iris evaluates on the CPU every
-// frame. Written from the OptiFine shader documentation (shaders.txt), not
+// Expressions in a shader pack's own text, outside the GLSL: the custom
+// uniform language of `uniform.<type>.<name>` and `variable.<type>.<name>`
+// lines, which Iris evaluates on the CPU every frame. The preprocessor
+// conditionals `shaders.properties` carries are iris_preproc.h's, which
+// this header includes for its callers. Written from the OptiFine shader documentation (shaders.txt), not
 // from any loader's source. See docs/design/iris-compat.md.
 //
 // Pure C++ with no Godot, so the tests run it without a GPU. A CustomUniforms
@@ -14,6 +13,8 @@
 // thread, by GoannaIrisEffect. Main types: iris::Value, iris::Expr and
 // iris::CustomUniforms.
 #pragma once
+
+#include "iris_preproc.h"
 
 #include <cstdint>
 #include <functional>
@@ -55,21 +56,6 @@ public:
 private:
     std::shared_ptr<ExprNode> m_root;
 };
-
-// #if expressions. Identifiers that are macros expand to their value (which
-// may itself be an expression); undefined ones are 0; `defined X` and
-// `defined(X)` test the table. The result is the C truth of the expression.
-bool conditionHolds(const std::string &expr, const std::map<std::string, std::string> &macros, std::string &err);
-
-// Runs the conditional directives over `text`, line by line: #if, #ifdef,
-// #ifndef, #elif, #else, #endif, and #define and #undef in live branches,
-// which update `macros`. Lines in dead branches and the directives
-// themselves come back empty, so line numbers keep. Any other line starting
-// with # is left alone (shaders.properties uses # for comments too). With
-// `keep_defines`, #define and #undef lines in live branches stay in the
-// output, for GLSL that a compiler will preprocess again.
-std::string runConditionals(const std::string &text, std::map<std::string, std::string> &macros,
-        std::vector<std::string> *errors = nullptr, bool keep_defines = false);
 
 // The pack's `uniform.*` and `variable.*` definitions, in file order. Each
 // may read the built in uniforms and every definition before it.

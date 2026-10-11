@@ -53,14 +53,19 @@ static bool matchDefine(const std::string &line, bool &commented, std::string &n
     return true;
 }
 
-const std::map<std::string, std::string> &standardMacros() {
-    static const std::map<std::string, std::string> m = {
-        {"MC_VERSION", "12101"}, {"MC_GL_VERSION", "460"}, {"MC_GLSL_VERSION", "460"}, {"MC_OS_LINUX", ""},
-        {"MC_GL_VENDOR_OTHER", ""}, {"MC_GL_RENDERER_OTHER", ""}, {"MC_RENDER_QUALITY", "1.0"},
-        {"MC_SHADOW_QUALITY", "1.0"}, {"MC_HAND_DEPTH", "0.125"}, {"IS_IRIS", ""}, {"IRIS_VERSION", "10800"},
-        {"GOANNA", "1"},
-    };
-    return m;
+
+std::map<std::string, std::string> parseOptionOverrides(const std::string &text) {
+    std::map<std::string, std::string> out;
+    std::string s = text;
+    std::replace(s.begin(), s.end(), ',', ' ');
+    std::stringstream ss(s);
+    std::string item;
+    while (ss >> item) {
+        size_t eq = item.find('=');
+        if (eq != std::string::npos)
+            out[item.substr(0, eq)] = item.substr(eq + 1);
+    }
+    return out;
 }
 
 void Pack::scanOptions(const std::string &src) {

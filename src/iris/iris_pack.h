@@ -20,9 +20,13 @@
 namespace goanna {
 namespace iris {
 
-// The macros a pack sees before any of its own: MC_VERSION, IS_IRIS and the
-// rest, the same set the translator's prelude defines.
-const std::map<std::string, std::string> &standardMacros();
+// standardMacros(), the macros a pack sees before its own, is in
+// iris_preproc.h, which iris_expr.h brings in.
+
+// GOANNA_SHADERPACK_OPTIONS's form: NAME=value pairs separated by commas
+// or spaces. Both GoannaIrisEffect and GoannaIrisGbuffers read the variable
+// through this, so the two halves of a pack see one set of options.
+std::map<std::string, std::string> parseOptionOverrides(const std::string &text);
 
 class Pack {
 public:

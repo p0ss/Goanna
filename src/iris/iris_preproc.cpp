@@ -377,9 +377,22 @@ bool evalCondition(const std::string &expr, const MacroTable &macros, double &va
     return err.empty();
 }
 
-bool preprocess(const std::string &src, MacroTable &macros, std::string &out, std::vector<std::string> &errors) {
-    std::string text = stripComments(src);
-    // Logical lines, with continuations joined and blank lines put back after.
+
+namespace {
+
+// The directive engine both entry points share. In full mode (the gbuffers
+// translator's) comments are removed first, every # line is a directive,
+// and live text has its macros expanded. In conditional mode (the pack
+// loader's, for shaders.properties and for program sources glslang will
+// preprocess again) the text is left as written: comments stay, a directive
+// inside a block comment is commented out and ignored, a # line that is not
+// a directive is text (properties files use # for comments), and #define
+// and #undef lines may be kept.
+void runDirectives(const std::string &src, MacroTable &macros, bool full, bool keep_defines, std::string &out,
+        std::vector<std::string> &errors) {
+    std::string text = full ? stripComments(src) : src;
+    // Logical lines. In full mode continuations are joined and blank lines
+    // put back after; conditional mode leaves lines as they are.
     std::vector<std::string> lines;
     {
         std::stringstream ss(text);
@@ -387,7 +400,7 @@ bool preprocess(const std::string &src, MacroTable &macros, std::string &out, st
         int extra = 0;
         while (std::getline(ss, line)) {
             if (!line.empty() && line.back() == '\r') line.pop_back();
-            if (!line.empty() && line.back() == '\\') {
+            if (full && !line.empty() && line.back() == '\\') {
                 pending += line.substr(0, line.size() - 1) + " ";
                 ++extra;
                 continue;
@@ -404,15 +417,41 @@ bool preprocess(const std::string &src, MacroTable &macros, std::string &out, st
     };
     std::vector<Cond> stack;
     auto active = [&]() { return stack.empty() || stack.back().active; };
+    // Conditional mode only: whether a /* comment is open at a line's start.
+    bool in_comment = false;
+    auto advanceComments = [&](const std::string &l) {
+        for (size_t i = 0; i + 1 < l.size(); ++i) {
+            if (in_comment) {
+                if (l[i] == '*' && l[i + 1] == '/') {
+                    in_comment = false;
+                    ++i;
+                }
+            } else if (l[i] == '/' && l[i + 1] == '/') {
+                return;
+            } else if (l[i] == '/' && l[i + 1] == '*') {
+                in_comment = true;
+                ++i;
+            }
+        }
+    };
     std::ostringstream o;
     int lineno = 0;
     for (auto &raw : lines) {
         ++lineno;
         std::string t = trim(raw);
-        if (t.empty() || t[0] != '#') {
+        bool commented = false;
+        if (!full) {
+            commented = in_comment;
+            advanceComments(raw);
+        }
+        if (t.empty() || t[0] != '#' || commented) {
             if (active() && !t.empty()) {
-                std::set<std::string> disabled;
-                o << expand(raw, macros, disabled, 0);
+                if (full) {
+                    std::set<std::string> disabled;
+                    o << expand(raw, macros, disabled, 0);
+                } else {
+                    o << raw;
+                }
             }
             o << "\n";
             continue;
@@ -422,6 +461,11 @@ bool preprocess(const std::string &src, MacroTable &macros, std::string &out, st
         while (k < d.size() && identChar(d[k])) ++k;
         std::string dir = d.substr(0, k);
         std::string rest = trim(d.substr(k));
+        if (!full) {
+            // a trailing // comment is not part of a directive
+            size_t cm = rest.find("//");
+            if (cm != std::string::npos) rest = trim(rest.substr(0, cm));
+        }
         auto err = [&](const std::string &m) { errors.push_back("line " + std::to_string(lineno) + ": " + m); };
         auto evalHere = [&](const std::string &e) {
             double v = 0;
@@ -429,17 +473,18 @@ bool preprocess(const std::string &src, MacroTable &macros, std::string &out, st
             if (!evalCondition(e, macros, v, e2)) err("#" + dir + " " + e + ": " + e2);
             return v != 0;
         };
+        bool keep = false;
         if (dir == "ifdef" || dir == "ifndef") {
             size_t n = 0;
             while (n < rest.size() && identChar(rest[n])) ++n;
             bool def = macros.count(rest.substr(0, n)) > 0;
             bool cond = dir == "ifdef" ? def : !def;
             bool parent = active();
-            stack.push_back({parent, parent && cond, cond});
+            stack.push_back({parent, parent && cond, parent && cond});
         } else if (dir == "if") {
             bool parent = active();
             bool cond = parent ? evalHere(rest) : false;
-            stack.push_back({parent, parent && cond, cond});
+            stack.push_back({parent, parent && cond, parent && cond});
         } else if (dir == "elif") {
             if (stack.empty()) {
                 err("#elif without #if");
@@ -493,22 +538,71 @@ bool preprocess(const std::string &src, MacroTable &macros, std::string &out, st
                 m.body = b < rest.size() ? trim(rest.substr(b)) : "";
                 macros[name] = m;
             }
+            keep = keep_defines;
         } else if (dir == "undef") {
             size_t n = 0;
             while (n < rest.size() && identChar(rest[n])) ++n;
             macros.erase(rest.substr(0, n));
+            keep = keep_defines;
+        } else if (!full) {
+            // not a directive: a comment line, kept for the caller to skip
+            keep = true;
         } else if (dir == "error") {
             err("#error " + rest);
         } else if (dir == "include") {
             err("#include left unresolved: " + rest);
         }
-        // #version, #extension, #pragma and #line are dropped
+        // in full mode #version, #extension, #pragma and #line are dropped
+        if (keep) o << raw;
         o << "\n";
     }
     if (!stack.empty())
         errors.push_back("unterminated #if at end of source");
     out = o.str();
-    return errors.empty();
+}
+
+MacroTable tableOf(const std::map<std::string, std::string> &macros) {
+    MacroTable t;
+    for (auto &kv : macros) defineMacro(t, kv.first, kv.second);
+    return t;
+}
+
+} // namespace
+
+bool preprocess(const std::string &src, MacroTable &macros, std::string &out, std::vector<std::string> &errors) {
+    size_t before = errors.size();
+    runDirectives(src, macros, true, false, out, errors);
+    return errors.size() == before;
+}
+
+const std::map<std::string, std::string> &standardMacros() {
+    static const std::map<std::string, std::string> m = {
+        {"MC_VERSION", "12101"}, {"MC_GL_VERSION", "460"}, {"MC_GLSL_VERSION", "460"}, {"MC_OS_LINUX", ""},
+        {"MC_GL_VENDOR_OTHER", ""}, {"MC_GL_RENDERER_OTHER", ""}, {"MC_RENDER_QUALITY", "1.0"},
+        {"MC_SHADOW_QUALITY", "1.0"}, {"MC_HAND_DEPTH", "0.125"}, {"IS_IRIS", ""}, {"IRIS_VERSION", "10800"},
+        {"GOANNA", "1"},
+    };
+    return m;
+}
+
+bool conditionHolds(const std::string &expr, const std::map<std::string, std::string> &macros, std::string &err) {
+    double v = 0;
+    if (!evalCondition(expr, tableOf(macros), v, err)) return false;
+    return v != 0;
+}
+
+std::string runConditionals(const std::string &text, std::map<std::string, std::string> &macros,
+        std::vector<std::string> *errors, bool keep_defines) {
+    MacroTable t = tableOf(macros);
+    std::vector<std::string> errs;
+    std::string out;
+    runDirectives(text, t, false, keep_defines, out, errs);
+    if (errors) errors->insert(errors->end(), errs.begin(), errs.end());
+    // Back to name -> value. A function-like macro keeps its name, which is
+    // what #ifdef tests, with no value.
+    macros.clear();
+    for (auto &kv : t) macros[kv.first] = kv.second.function ? "" : kv.second.body;
+    return out;
 }
 
 } // namespace iris
