@@ -21,7 +21,7 @@ jobs:
     name: Linux, GCC
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -48,7 +48,7 @@ jobs:
     name: Windows, MSVC
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -84,7 +84,7 @@ jobs:
           test -f project/bin/libgoanna.windows.template_debug.x86_64.dll
           ls -lh project/bin/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: goanna-windows-x86_64
           path: project/bin/*.dll
@@ -93,6 +93,6 @@ jobs:
     name: Text style
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check house style
         run: tools/check-style.sh
