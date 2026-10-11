@@ -107,6 +107,9 @@ add_library(goanna SHARED
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
     src/iris/goanna_iris_effect.cpp
+    src/iris/iris_preproc.cpp
+    src/iris/iris_glsl_ast.cpp
+    src/iris/iris_gbuffers.cpp
     src/transplant/collision.cpp
     src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp
@@ -130,6 +133,18 @@ add_executable(goanna_light_test EXCLUDE_FROM_ALL
 )
 target_include_directories(goanna_light_test PRIVATE src)
 target_link_libraries(goanna_light_test PRIVATE luanti_core)
+
+# The shader pack gbuffers translator and its preprocessor, offline: the
+# text it writes, and with a pack directory the pack's programs translated.
+# Not built by default: cmake --build build --target goanna_iris_gbuffers_test
+add_executable(goanna_iris_gbuffers_test EXCLUDE_FROM_ALL
+    src/iris/iris_gbuffers_test.cpp
+    src/iris/iris_gbuffers.cpp
+    src/iris/iris_glsl_ast.cpp
+    src/iris/iris_preproc.cpp
+    src/iris/iris_glsl.cpp
+    src/iris/iris_pack.cpp)
+target_include_directories(goanna_iris_gbuffers_test PRIVATE src)
 
 # Coarse voxel topology: recursive XYZ mips and exposed lower faces.
 add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
