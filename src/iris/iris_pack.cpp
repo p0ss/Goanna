@@ -284,6 +284,20 @@ bool Pack::program(const std::string &name, Program &out, std::string &err, std:
     return err.empty();
 }
 
+std::vector<std::string> Pack::missingFeatures() const {
+    std::vector<std::string> out;
+    auto it = m_props.find("iris.features.required");
+    if (it == m_props.end())
+        return out;
+    std::string list = it->second;
+    std::replace(list.begin(), list.end(), ',', ' ');
+    std::stringstream ss(list);
+    std::string f;
+    while (ss >> f)
+        out.push_back(f);
+    return out;
+}
+
 bool Pack::programEnabled(const std::string &name) const {
     auto it = m_props.end();
     if (!m_world.empty())

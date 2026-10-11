@@ -78,7 +78,13 @@ void testConditionals() {
             "#Profiles, a comment and not a directive\n"
             "#if COLORED == 3\n"
             "d=3\n"
-            "#endif\n";
+            "#endif\n"
+            "/*\n"
+            "#if 0\n"
+            "#endif*/\n"
+            "e=5 /* a comment\n"
+            "#if 0 also commented out\n"
+            "*/\n";
     std::vector<std::string> errs;
     std::string out = runConditionals(text, m, &errs);
     check(errs.empty(), "no errors in a well formed file");
@@ -88,6 +94,7 @@ void testConditionals() {
     check(out.find("c=yes") != std::string::npos && out.find("c=never") == std::string::npos, "nested #if 0 / #else");
     check(out.find("d=3") != std::string::npos, "#define in a live branch is seen later");
     check(out.find("#Profiles") != std::string::npos, "a comment line is kept for the caller");
+    check(errs.empty() && out.find("e=5") != std::string::npos, "directives inside a block comment are ignored");
     check(std::count(out.begin(), out.end(), '\n') == std::count(text, text + std::strlen(text), '\n'),
             "line count is kept");
 }
@@ -194,6 +201,7 @@ void testPackOptions() {
             "#endif\n"
             "#ifdef GODRAYS\n"
             "variable.float.rays=1\n"
+            "iris.features.required=COMPUTE_SHADERS, SSBO\n"
             "#endif\n");
     {
         Pack p;
@@ -206,6 +214,7 @@ void testPackOptions() {
         auto chain = p.compositeChain();
         check(chain.size() == 3 && chain[0] == "composite" && chain[1] == "composite1" && chain[2] == "final",
                 "composite2 disabled by its expression, composite1 enabled by BLOOM");
+        check(p.missingFeatures().empty(), "a requirement in a dead branch does not count");
         check(p.customUniforms().defs().size() == 1 && p.customUniforms().defs()[0].source.find("+ 2") != std::string::npos,
                 "the live #if branch's uniform is the one kept");
     }
@@ -219,6 +228,7 @@ void testPackOptions() {
         check(chain.size() == 2 && chain[1] == "final", "both toggled programs now off");
         check(p.customUniforms().defs().size() == 2, "override reaches the properties conditionals");
         check(p.unknownOverrides().size() == 1 && p.unknownOverrides()[0] == "NOPE", "unknown override listed");
+        check(p.missingFeatures().size() == 2 && p.missingFeatures()[1] == "SSBO", "required features listed");
         Program prog;
         p.program("composite", prog, err);
         check(prog.fsh.find("//#define BLOOM") != std::string::npos, "override rewrites the source define");
@@ -265,6 +275,7 @@ int dump(int argc, char **argv) {
     man << "programs\t" << p.programNames().size() << "\n";
     man << "options\t" << p.options().size() + p.optionsOff().size() << "\n";
     for (auto &n : p.unknownOverrides()) man << "unknown_override\t" << n << "\n";
+    for (auto &f : p.missingFeatures()) man << "missing_feature\t" << f << "\n";
     for (auto &w : p.propertyWarnings()) man << "property_warning\t" << w << "\n";
     for (auto &n : p.disabledPrograms()) man << "disabled\t" << n << "\n";
     // Evaluate custom uniforms once with nothing but constants, to list the

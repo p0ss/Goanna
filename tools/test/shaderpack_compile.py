@@ -118,7 +118,8 @@ def main():
         ok = sum(1 for p in res["passes"] if p["ok"])
         print(f"== {name}: {ok} of {len(res['passes'])} passes compile")
         for key, value in res["notes"]:
-            if key in ("load_error", "disabled", "property_warning", "custom_unresolved", "unknown_override"):
+            if key in ("load_error", "disabled", "property_warning", "custom_unresolved", "unknown_override",
+                       "missing_feature"):
                 print(f"   {key}: {value}")
         for p in res["passes"]:
             zero = sorted(n for n, how in p["extra"].items() if how == "zero")

@@ -439,11 +439,29 @@ std::string runConditionals(const std::string &text, std::map<std::string, std::
     std::stringstream ss(text);
     std::string line;
     int lineno = 0;
+    // Whether a /* comment is open at the start of the line. A directive
+    // inside a block comment is commented out, which packs do to switch a
+    // block off.
+    bool in_comment = false;
+    auto advanceComments = [&](const std::string &l) {
+        for (size_t i = 0; i + 1 < l.size(); ++i) {
+            if (in_comment) {
+                if (l[i] == '*' && l[i + 1] == '/') { in_comment = false; ++i; }
+            } else if (l[i] == '/' && l[i + 1] == '/') {
+                return;
+            } else if (l[i] == '/' && l[i + 1] == '*') {
+                in_comment = true;
+                ++i;
+            }
+        }
+    };
     while (std::getline(ss, line)) {
         ++lineno;
         if (!line.empty() && line.back() == '\r') line.pop_back();
         std::string t = trim(line);
-        if (t.empty() || t[0] != '#') {
+        bool commented = in_comment;
+        advanceComments(line);
+        if (t.empty() || t[0] != '#' || commented) {
             if (live()) out += line;
             out += '\n';
             continue;

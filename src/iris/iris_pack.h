@@ -57,6 +57,11 @@ public:
     // Problems with the properties file: conditionals that did not parse and
     // custom uniforms that were skipped.
     const std::vector<std::string> &propertyWarnings() const { return m_prop_warnings; }
+    // Iris optional features (iris.features.required) the pack needs and
+    // Goanna does not supply. Goanna declares none of them, so every name
+    // listed is missing, and a pack with any is refused, as Iris refuses
+    // one on a loader without them. Read from the preprocessed properties.
+    std::vector<std::string> missingFeatures() const;
     // Program names that have a fragment stage, in discovery order.
     const std::vector<std::string> &programNames() const { return m_programs; }
     bool hasProgram(const std::string &name) const;
