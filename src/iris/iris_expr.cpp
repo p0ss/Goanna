@@ -600,6 +600,15 @@ bool namedConstant(const std::string &name, Value &out) {
     if (name == "PPT_NONE") { out = Value::scalar(0); return true; }
     if (name == "PPT_RAIN") { out = Value::scalar(1); return true; }
     if (name == "PPT_SNOW") { out = Value::scalar(2); return true; }
+    // Biome and player state OptiFine offers to expressions and the
+    // protocol does not carry: precipitation reads as rain, since the
+    // particle side says when it falls, and the player flags read false.
+    if (name == "biome_precipitation") { out = Value::scalar(1); return true; }
+    static const char *flags[] = {"is_alive", "is_burning", "is_child", "is_glowing", "is_hurt", "is_in_lava",
+            "is_in_water", "is_invisible", "is_on_ground", "is_ridden", "is_riding", "is_sneaking",
+            "is_sprinting", "is_wet"};
+    for (auto f : flags)
+        if (name == f) { out = Value::scalar(std::string(f) == "is_alive" ? 1.0f : 0.0f); return true; }
     return numbered("BIOME_", "BIOME_PLAINS") || numbered("CAT_", "CAT_PLAINS");
 }
 

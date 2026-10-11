@@ -10,6 +10,8 @@
 #include "iris/goanna_iris_effect.h"
 
 #include <godot_cpp/classes/framebuffer_cache_rd.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/rd_framebuffer_pass.hpp>
 #include <godot_cpp/classes/rd_pipeline_color_blend_state.hpp>
 #include <godot_cpp/classes/rd_pipeline_color_blend_state_attachment.hpp>
@@ -32,7 +34,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <sstream>
 
 using namespace godot;
 
@@ -73,7 +77,9 @@ const char *kBlitVertex =
 // holds. mode 2 decodes a pack's finished image back to linear for Godot's
 // output stage, which main.gd sets to a linear tonemap while a pack owns
 // final. Packs do their own exposure and tonemapping; handing them HDR and
-// then tonemapping their result again is how a pack looks washed out.
+// then tonemapping their result again is how a pack looks washed out. mode 3
+// turns Godot's reversed Z depth into OpenGL's convention (0 near, 1 far,
+// sky 1.0), which is what every pack's depth arithmetic assumes.
 const char *kBlitFragment =
         "#version 450\n"
         "layout(set = 0, binding = 0) uniform sampler2D src;\n"
@@ -84,6 +90,7 @@ const char *kBlitFragment =
         "    vec4 c = texture(src, uv);\n"
         "    if (params.mode == 1) c.rgb = pow(clamp(c.rgb, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));\n"
         "    else if (params.mode == 2) c.rgb = pow(max(c.rgb, vec3(0.0)), vec3(2.2));\n"
+        "    else if (params.mode == 3) c = vec4(1.0 - c.r);\n"
         "    o = c;\n"
         "}\n";
 
@@ -148,6 +155,7 @@ void GoannaIrisEffect::_notification(int p_what) {
 
 void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_pack", "path"), &GoannaIrisEffect::load_pack);
+    ClassDB::bind_method(D_METHOD("make_depth_capture"), &GoannaIrisEffect::make_depth_capture);
     ClassDB::bind_method(D_METHOD("pack_name"), &GoannaIrisEffect::pack_name);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisEffect::report);
     ClassDB::bind_method(D_METHOD("set_world_state", "state"), &GoannaIrisEffect::set_world_state);
@@ -164,11 +172,41 @@ bool GoannaIrisEffect::load_pack(const String &path) {
     m_passes.clear();
     m_load_error.clear();
     std::string err;
+    {
+        // NAME=value pairs, separated by commas or spaces.
+        std::map<std::string, std::string> overrides;
+        std::string env = OS::get_singleton()->get_environment("GOANNA_SHADERPACK_OPTIONS").utf8().get_data();
+        std::replace(env.begin(), env.end(), ',', ' ');
+        std::stringstream ss(env);
+        std::string item;
+        while (ss >> item) {
+            size_t eq = item.find('=');
+            if (eq != std::string::npos)
+                overrides[item.substr(0, eq)] = item.substr(eq + 1);
+        }
+        m_pack.setOptionOverrides(overrides);
+    }
     if (!m_pack.load(path.utf8().get_data(), err)) {
         m_load_error = err;
         UtilityFunctions::push_error(String("Goanna Iris: ") + err.c_str());
         return false;
     }
+    // Goanna supplies none of Iris's optional features (compute, custom
+    // images, SSBOs and the rest), so a pack that requires one is refused
+    // rather than run in a state its author never wrote for.
+    m_missing_features = m_pack.missingFeatures();
+    if (!m_missing_features.empty()) {
+        m_load_error = "pack requires Iris features Goanna does not supply:";
+        for (auto &f : m_missing_features)
+            m_load_error += " " + f;
+        UtilityFunctions::push_error(String("Goanna Iris: ") + m_load_error.c_str());
+        return false;
+    }
+    m_custom = m_pack.customUniforms();
+    loadCustomTextures();
+    std::set<std::string> customNames;
+    for (auto &d : m_custom.defs())
+        customNames.insert(d.name);
     // colortex formats and clear flags from the pack's const directives.
     // Without the colour bridge colortex0 carries Godot's HDR colour, so its
     // default widens from RGBA8 to RGBA16F unless the pack says otherwise.
@@ -191,13 +229,20 @@ bool GoannaIrisEffect::load_pack(const String &path) {
         Pass pass;
         pass.name = name;
         pass.is_final = name == "final";
-        if (!m_pack.program(name, prog, perr)) {
+        pass.stage = name.rfind("deferred", 0) == 0 ? "deferred" : "composite";
+        std::vector<std::string> ppwarn;
+        if (!m_pack.program(name, prog, perr, &ppwarn)) {
             pass.error = perr;
             m_passes.push_back(pass);
             continue;
         }
         if (!iris::translate(prog, opts, pass.tr, perr))
             pass.error = perr;
+        for (auto &w : ppwarn)
+            pass.tr.warnings.push_back(w);
+        for (auto &m : pass.tr.extra.members)
+            if (!customNames.count(m.name) && !knownExtra(m.name))
+                pass.zero_uniforms.push_back(m.name);
         for (auto &s : pass.tr.samplers)
             if (s.name.rfind("colortex", 0) == 0)
                 m_ct_used[std::atoi(s.name.c_str() + 8)] = true;
@@ -234,6 +279,19 @@ Dictionary GoannaIrisEffect::report() const {
     for (auto &p : m_pack.programNames())
         programs.push_back(String::utf8(p.c_str()));
     d["programs"] = programs;
+    auto strings = [](const std::vector<std::string> &v) {
+        Array a;
+        for (auto &x : v)
+            a.push_back(String::utf8(x.c_str()));
+        return a;
+    };
+    d["missing_features"] = strings(m_missing_features);
+    d["disabled_programs"] = strings(m_pack.disabledPrograms());
+    d["property_warnings"] = strings(m_pack.propertyWarnings());
+    d["unknown_options"] = strings(m_pack.unknownOverrides());
+    d["custom_uniforms"] = (int64_t)m_custom.defs().size();
+    d["custom_unresolved"] = strings(m_custom_unresolved);
+    d["custom_textures"] = strings(m_texture_notes);
     Array passes;
     for (auto &p : m_passes) {
         Dictionary pd;
@@ -252,6 +310,7 @@ Dictionary GoannaIrisEffect::report() const {
         for (auto &s : p.tr.samplers)
             sm.push_back(String::utf8(s.name.c_str()));
         pd["samplers"] = sm;
+        pd["zero_uniforms"] = strings(p.zero_uniforms);
         passes.push_back(pd);
     }
     d["passes"] = passes;
@@ -278,12 +337,11 @@ void GoannaIrisEffect::set_dump_dir(const String &dir) {
 // ---------------------------------------------------------------------------
 // Render thread
 
-bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
-    if (m_gpu_ready)
+bool GoannaIrisEffect::ensureBlit(RenderingDevice *rd) {
+    if (m_blit_shader.is_valid())
         return true;
-    // Held while the passes compile, which is the only time the render
-    // thread writes what report() reads.
-    std::lock_guard<std::mutex> lock(m_report_mutex);
+    if (m_dead)
+        return false;
     std::string err;
     m_blit_shader = compileGlsl(rd, kBlitVertex, kBlitFragment, "goanna_iris_blit", err);
     if (!m_blit_shader.is_valid()) {
@@ -291,13 +349,6 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
         m_dead = true;
         return false;
     }
-    Ref<RDSamplerState> ss;
-    ss.instantiate();
-    ss->set_mag_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
-    ss->set_min_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
-    ss->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
-    ss->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
-    m_sampler_linear = rd->sampler_create(ss);
     Ref<RDSamplerState> sn;
     sn.instantiate();
     sn->set_mag_filter(RenderingDevice::SAMPLER_FILTER_NEAREST);
@@ -305,6 +356,24 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
     sn->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
     sn->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
     m_sampler_nearest = rd->sampler_create(sn);
+    return true;
+}
+
+bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
+    if (m_gpu_ready)
+        return true;
+    // Held while the passes compile, which is the only time the render
+    // thread writes what report() reads.
+    std::lock_guard<std::mutex> lock(m_report_mutex);
+    if (!ensureBlit(rd))
+        return false;
+    Ref<RDSamplerState> ss;
+    ss.instantiate();
+    ss->set_mag_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
+    ss->set_min_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
+    ss->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
+    ss->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
+    m_sampler_linear = rd->sampler_create(ss);
     Ref<RDSamplerState> sr;
     sr.instantiate();
     sr->set_mag_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
@@ -312,6 +381,55 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
     sr->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
     sr->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
     m_sampler_repeat = rd->sampler_create(sr);
+    Ref<RDSamplerState> snr;
+    snr.instantiate();
+    snr->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
+    snr->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
+    m_sampler_nearest_repeat = rd->sampler_create(snr);
+    // sampler2DShadow wants a comparison sampler and a depth format texture.
+    Ref<RDSamplerState> sc;
+    sc.instantiate();
+    sc->set_mag_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
+    sc->set_min_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
+    sc->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
+    sc->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE);
+    sc->set_enable_compare(true);
+    sc->set_compare_op(RenderingDevice::COMPARE_OP_LESS_OR_EQUAL);
+    m_sampler_shadow = rd->sampler_create(sc);
+    {
+        // No shadow pass yet: a 1x1 depth of 1.0, cleared rather than
+        // uploaded, so every compare says lit.
+        Ref<RDTextureFormat> tf;
+        tf.instantiate();
+        tf->set_width(1);
+        tf->set_height(1);
+        tf->set_format(RenderingDevice::DATA_FORMAT_D32_SFLOAT);
+        tf->set_usage_bits(RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT |
+                RenderingDevice::TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        Ref<RDTextureView> tv;
+        tv.instantiate();
+        m_dummy_shadow_depth = rd->texture_create(tf, tv);
+        TypedArray<RID> t;
+        t.push_back(m_dummy_shadow_depth);
+        RID fb = rd->framebuffer_create(t);
+        rd->draw_list_begin(fb, RenderingDevice::DRAW_CLEAR_DEPTH, PackedColorArray(), 1.0f);
+        rd->draw_list_end();
+        rd->free_rid(fb);
+    }
+    {
+        Ref<RDTextureFormat> tf;
+        tf.instantiate();
+        tf->set_width(1);
+        tf->set_height(1);
+        tf->set_format(RenderingDevice::DATA_FORMAT_R32_SFLOAT);
+        tf->set_usage_bits(RenderingDevice::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT |
+                RenderingDevice::TEXTURE_USAGE_CAN_COPY_FROM_BIT | RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT);
+        Ref<RDTextureView> tv;
+        tv.instantiate();
+        m_center_tex = rd->texture_create(tf, tv);
+    }
+    for (auto &c : m_custom_tex)
+        c.tex = makeTexture(rd, c.w, c.h, RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM, c.rgba);
 
     PackedByteArray black;
     black.resize(4);
@@ -464,23 +582,104 @@ RID GoannaIrisEffect::colortex(RenderSceneBuffersRD *rb, int index, int side, co
     return rb->create_texture(ctx, name, m_ct_format[index], usage, RenderingDevice::TEXTURE_SAMPLES_1, size, 1, 1, true, false);
 }
 
-RID GoannaIrisEffect::textureFor(const std::string &name, RenderSceneBuffersRD *rb, const RID &colour, const RID &depth,
-        const std::array<int, 16> &side) {
+// Whether `name` is a uniform this effect answers outside the standard block:
+// the core profile matrices Iris supplies, which in a full screen pass are
+// the identity and the [0,1] quad's orthographic projection.
+bool GoannaIrisEffect::knownExtra(const std::string &name) {
+    return name == "modelViewMatrix" || name == "modelViewMatrixInverse" || name == "projectionMatrix" ||
+            name == "projectionMatrixInverse" || name == "textureMatrix" || name == "normalMatrix" ||
+            name == "chunkOffset";
+}
+
+RID GoannaIrisEffect::textureFor(const Pass &p, const iris::Translated::Sampler &s, RenderSceneBuffersRD *rb,
+        const RID &depth0, const RID &depth1, const std::array<int, 16> &side) {
+    const std::string &name = s.name;
+    // texture.<stage>.<sampler> from the pack's properties wins over the
+    // built in binding of the same name.
+    for (auto &c : m_custom_tex)
+        if (c.tex.is_valid() && (c.key == p.stage + ":" + name || (name == "noisetex" && c.key == "noise")))
+            return c.tex;
     if (name.rfind("colortex", 0) == 0) {
         int i = std::atoi(name.c_str() + 8);
         if (i >= 0 && i < 16)
             return colortex(rb, i, side[i], rb->get_internal_size());
         return m_dummy_black;
     }
-    if (name.rfind("depthtex", 0) == 0)
-        return depth;
+    // depthtex2 is depthtex1 without the hand; Goanna's hand is drawn in
+    // the same pass as everything opaque, so the two are the same here.
+    if (name == "depthtex0")
+        return depth0;
+    if (name == "depthtex1" || name == "depthtex2")
+        return depth1;
     if (name == "noisetex")
         return m_noise;
     if (name.rfind("shadowtex", 0) == 0)
-        return m_dummy_depth;
+        return s.type.find("Shadow") != std::string::npos ? m_dummy_shadow_depth : m_dummy_depth;
     if (name == "gtexture" || name == "lightmap" || name == "normals")
         return m_dummy_white;
     return m_dummy_black;
+}
+
+RID GoannaIrisEffect::samplerFor(const Pass &p, const iris::Translated::Sampler &s) const {
+    if (s.type.find("Shadow") != std::string::npos)
+        return m_sampler_shadow;
+    for (auto &c : m_custom_tex)
+        if (c.tex.is_valid() && (c.key == p.stage + ":" + s.name || (s.name == "noisetex" && c.key == "noise")))
+            return m_sampler_nearest_repeat;
+    if (s.name == "noisetex")
+        return m_sampler_repeat;
+    if (s.name.rfind("depthtex", 0) == 0 || s.name.rfind("shadowtex", 0) == 0)
+        return m_sampler_nearest;
+    return m_sampler_linear;
+}
+
+// texture.noise and texture.<stage>.<sampler> lines naming an image file in
+// the pack. Main thread: the pixels are read here and uploaded at first use.
+void GoannaIrisEffect::loadCustomTextures() {
+    namespace fs = std::filesystem;
+    m_custom_tex.clear();
+    m_texture_notes.clear();
+    for (auto &kv : m_pack.properties()) {
+        const std::string &key = kv.first;
+        if (key.rfind("texture.", 0) != 0)
+            continue;
+        std::string rest = key.substr(8), id;
+        if (rest == "noise") {
+            id = "noise";
+        } else {
+            size_t dot = rest.find('.');
+            if (dot == std::string::npos)
+                continue;
+            std::string stage = rest.substr(0, dot), name = rest.substr(dot + 1);
+            if (stage != "deferred" && stage != "composite") {
+                m_texture_notes.push_back(key + ": stage not run here");
+                continue;
+            }
+            std::string canon = iris::canonicalSampler(name);
+            id = stage + ":" + (canon.empty() ? name : canon);
+        }
+        std::string value = kv.second;
+        if (value.find(' ') != std::string::npos || value.find(':') != std::string::npos) {
+            m_texture_notes.push_back(key + ": raw or resource textures are not read yet");
+            continue;
+        }
+        std::string rel = !value.empty() && value[0] == '/' ? value.substr(1) : value;
+        std::string path = (fs::path(m_pack.shadersDir()) / rel).string();
+        Ref<Image> img = Image::load_from_file(String::utf8(path.c_str()));
+        if (img.is_null() || img->is_empty()) {
+            m_texture_notes.push_back(key + ": cannot read " + value);
+            continue;
+        }
+        img->decompress();
+        img->convert(Image::FORMAT_RGBA8);
+        CustomTexture c;
+        c.key = id;
+        c.w = img->get_width();
+        c.h = img->get_height();
+        c.rgba = img->get_data();
+        m_custom_tex.push_back(c);
+        m_texture_notes.push_back(key + ": " + value + " loaded");
+    }
 }
 
 // ---- uniform block writers
@@ -510,6 +709,143 @@ void GoannaIrisEffect::putVec3(const char *name, const Vector3 &v) {
     put(name, f, 3);
 }
 
+// The standard block read back by name, for custom uniform expressions.
+// "name.c.r" is element (column c, row r) of a matrix.
+bool GoannaIrisEffect::lookupBuiltin(const std::string &name, iris::Value &out) const {
+    std::string base = name;
+    int col = -1, row = -1;
+    size_t d1 = name.find('.');
+    if (d1 != std::string::npos) {
+        base = name.substr(0, d1);
+        size_t d2 = name.find('.', d1 + 1);
+        if (d2 == std::string::npos)
+            return false;
+        col = std::atoi(name.c_str() + d1 + 1);
+        row = std::atoi(name.c_str() + d2 + 1);
+        if (col < 0 || col > 3 || row < 0 || row > 3)
+            return false;
+    }
+    const iris::Layout::Member *m = iris::standardLayout().find(base);
+    if (!m)
+        return false;
+    const uint8_t *p = m_ubo_data.data() + m->offset;
+    out = iris::Value();
+    auto f = [&](int i) {
+        float v;
+        std::memcpy(&v, p + i * 4, 4);
+        return v;
+    };
+    auto n = [&](int i) {
+        int32_t v;
+        std::memcpy(&v, p + i * 4, 4);
+        return (float)v;
+    };
+    switch (m->type) {
+    case iris::UType::Mat4:
+    case iris::UType::Mat3:
+        if (col < 0)
+            return true; // a whole matrix has no scalar value
+        out.v[0] = f(col * 4 + row);
+        return true;
+    case iris::UType::Mat2:
+        return true;
+    case iris::UType::Float:
+        out.v[0] = f(0);
+        return true;
+    case iris::UType::Int:
+    case iris::UType::Bool:
+        out.v[0] = n(0);
+        return true;
+    case iris::UType::Vec2: case iris::UType::Vec3: case iris::UType::Vec4:
+        out.n = m->type == iris::UType::Vec2 ? 2 : m->type == iris::UType::Vec3 ? 3 : 4;
+        for (int i = 0; i < out.n; ++i) out.v[i] = f(i);
+        return true;
+    case iris::UType::IVec2: case iris::UType::IVec3: case iris::UType::IVec4:
+        out.n = m->type == iris::UType::IVec2 ? 2 : m->type == iris::UType::IVec3 ? 3 : 4;
+        for (int i = 0; i < out.n; ++i) out.v[i] = n(i);
+        return true;
+    }
+    return false;
+}
+
+static void writeValue(uint8_t *dst, iris::UType t, const iris::Value &v) {
+    using U = iris::UType;
+    int count = 1;
+    bool integer = false;
+    switch (t) {
+    case U::Float: break;
+    case U::Int: case U::Bool: integer = true; break;
+    case U::Vec2: count = 2; break;
+    case U::Vec3: count = 3; break;
+    case U::Vec4: count = 4; break;
+    case U::IVec2: count = 2; integer = true; break;
+    case U::IVec3: count = 3; integer = true; break;
+    case U::IVec4: count = 4; integer = true; break;
+    default: return;
+    }
+    for (int i = 0; i < count; ++i) {
+        float x = i < v.n ? v.v[i] : 0.0f;
+        if (integer) {
+            int32_t k = (int32_t)x;
+            std::memcpy(dst + i * 4, &k, 4);
+        } else {
+            std::memcpy(dst + i * 4, &x, 4);
+        }
+    }
+}
+
+// The pack's uniform.* and variable.* lines, once a frame, after the
+// standard block is filled. A custom uniform named like a standard one
+// replaces it, as in Iris.
+void GoannaIrisEffect::evaluateCustom() {
+    if (m_custom.defs().empty())
+        return;
+    m_custom.evaluate([this](const std::string &n, iris::Value &v) { return lookupBuiltin(n, v); }, m_dt);
+    for (auto &d : m_custom.defs()) {
+        if (!d.is_uniform)
+            continue;
+        const iris::Layout::Member *m = iris::standardLayout().find(d.name);
+        iris::Value v;
+        if (m && m_custom.value(d.name, v))
+            writeValue(m_ubo_data.data() + m->offset, m->type, v);
+    }
+    if (!m_custom_reported) {
+        std::lock_guard<std::mutex> lock(m_report_mutex);
+        m_custom_unresolved = m_custom.unresolved();
+        m_custom_reported = true;
+    }
+}
+
+void GoannaIrisEffect::fillExtra(RenderingDevice *rd, Pass &p) {
+    if (!p.extra_ubo.is_valid())
+        return;
+    p.extra_data.assign(p.tr.extra.paddedSize(), 0);
+    static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    static const float ortho[16] = {2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, -1, -1, 0, 1};
+    static const float orthoInv[16] = {0.5f, 0, 0, 0, 0, 0.5f, 0, 0, 0, 0, 1, 0, 0.5f, 0.5f, 0, 1};
+    static const float ident3[12] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+    for (auto &m : p.tr.extra.members) {
+        uint8_t *dst = p.extra_data.data() + m.offset;
+        iris::Value v;
+        if (m_custom.value(m.name, v)) {
+            writeValue(dst, m.type, v);
+        } else if (m.type == iris::UType::Mat4) {
+            if (m.name == "projectionMatrix")
+                std::memcpy(dst, ortho, 64);
+            else if (m.name == "projectionMatrixInverse")
+                std::memcpy(dst, orthoInv, 64);
+            else if (m.name == "modelViewMatrix" || m.name == "modelViewMatrixInverse" || m.name == "textureMatrix")
+                std::memcpy(dst, ident, 64);
+        } else if (m.type == iris::UType::Mat3 && m.name == "normalMatrix") {
+            std::memcpy(dst, ident3, 48);
+        }
+    }
+    PackedByteArray b;
+    b.resize(p.extra_data.size());
+    std::memcpy(b.ptrw(), p.extra_data.data(), p.extra_data.size());
+    rd->buffer_update(p.extra_ubo, 0, b.size(), b);
+}
+
 static Projection basisToProjection(const Basis &b) {
     Projection p;
     for (int c = 0; c < 3; ++c)
@@ -528,6 +864,7 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     float t = (float)((now - m_t0) / 1000000.0);
     float dt = (float)((now - m_last_us) / 1000000.0);
     m_last_us = now;
+    m_dt = dt;
     t = std::fmod(t, 3600.0f);
     RenderSceneData *sd = rdata->get_render_scene_data();
     Transform3D cam = sd ? sd->get_cam_transform() : Transform3D();
@@ -632,7 +969,19 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     putFloat("darknessFactor", 0.0f);
     putFloat("darknessLightFactor", 0.0f);
     putFloat("screenBrightness", 0.5f);
-    putFloat("centerDepthSmooth", 0.5f);
+    {
+        // Iris smooths the centre depth with a half life the pack may set
+        // (centerDepthHalflife, in seconds, 1 by default).
+        float half = 1.0f;
+        auto it = m_pack.consts().find("centerDepthHalflife");
+        if (it != m_pack.consts().end())
+            half = std::max(0.01f, (float)std::atof(it->second.c_str()));
+        if (m_frame == 0)
+            m_center_smooth = m_center_raw;
+        else
+            m_center_smooth += (m_center_raw - m_center_smooth) * (1.0f - std::pow(0.5f, dt / half));
+        putFloat("centerDepthSmooth", m_center_smooth);
+    }
     putFloat("fogStart", (float)proj.get_z_far() * 0.8f);
     putFloat("fogEnd", (float)proj.get_z_far());
     putFloat("fogDensity", 0.0f);
@@ -662,7 +1011,63 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     ++m_frame;
 }
 
+RID GoannaIrisEffect::depthCopy(RenderingDevice *rd, RenderSceneBuffersRD *rb, const char *name, const RID &src,
+        const Vector2i &size) {
+    StringName ctx("goanna_iris");
+    StringName n(name);
+    RID tex;
+    if (rb->has_texture(ctx, n)) {
+        tex = rb->get_texture(ctx, n);
+    } else {
+        uint32_t usage = RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT |
+                RenderingDevice::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT;
+        tex = rb->create_texture(ctx, n, RenderingDevice::DATA_FORMAT_R32_SFLOAT, usage,
+                RenderingDevice::TEXTURE_SAMPLES_1, size, 1, 1, true, false);
+    }
+    TypedArray<RID> t;
+    t.push_back(tex);
+    TypedArray<RDFramebufferPass> nopasses;
+    RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
+    blit(rd, src, fb, rd->framebuffer_get_format(fb), 3);
+    return tex;
+}
+
+void GoannaIrisEffect::captureDepth(RenderingDevice *rd, RenderSceneBuffersRD *rb) {
+    if (!ensureBlit(rd))
+        return;
+    RID depth = rb->get_depth_texture();
+    if (depth.is_valid())
+        depthCopy(rd, rb, "depth_before_translucent", depth, rb->get_internal_size());
+}
+
+void GoannaIrisEffect::onCenterDepth(const PackedByteArray &data) {
+    if (data.size() >= 4) {
+        float v;
+        std::memcpy(&v, data.ptr(), 4);
+        if (std::isfinite(v))
+            m_center_raw = v;
+    }
+    m_center_pending = false;
+}
+
+Ref<GoannaIrisEffect> GoannaIrisEffect::make_depth_capture() const {
+    Ref<GoannaIrisEffect> e;
+    e.instantiate();
+    e->m_capture = true;
+    e->set_effect_callback_type(EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT);
+    return e;
+}
+
 void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_data) {
+    if (m_capture) {
+        if (p_type != EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT || !p_render_data)
+            return;
+        RenderingDevice *rd = RenderingServer::get_singleton()->get_rendering_device();
+        Ref<RenderSceneBuffersRD> rb = p_render_data->get_render_scene_buffers();
+        if (rd && rb.is_valid() && rb->get_view_count() == 1)
+            captureDepth(rd, rb.ptr());
+        return;
+    }
     if (p_type != EFFECT_CALLBACK_TYPE_POST_TRANSPARENT || m_dead || m_passes.empty() || !p_render_data)
         return;
     RenderingDevice *rd = RenderingServer::get_singleton()->get_rendering_device();
@@ -687,7 +1092,24 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     if (!colour.is_valid())
         return;
 
+    // Depth in OpenGL's convention: depthtex0 now, with everything drawn,
+    // and depthtex1 from the capture taken before translucent geometry if
+    // the companion effect is in the Compositor (else the same as 0).
+    RID depth0 = depth.is_valid() ? depthCopy(rd, rb.ptr(), "depth_gl", depth, size) : m_dummy_depth;
+    RID depth1 = rb->has_texture("goanna_iris", "depth_before_translucent")
+            ? rb->get_texture("goanna_iris", "depth_before_translucent") : depth0;
+    if (!m_center_pending && depth.is_valid()) {
+        TypedArray<RID> t;
+        t.push_back(m_center_tex);
+        TypedArray<RDFramebufferPass> np;
+        RID cfb = FramebufferCacheRD::get_cache_multipass(t, np, 1);
+        blit(rd, depth0, cfb, rd->framebuffer_get_format(cfb), 0);
+        if (rd->texture_get_data_async(m_center_tex, 0, callable_mp(this, &GoannaIrisEffect::onCenterDepth)) == OK)
+            m_center_pending = true;
+    }
+
     fillUniforms(p_render_data, size);
+    evaluateCustom();
     PackedByteArray ub;
     ub.resize(m_ubo_data.size());
     std::memcpy(ub.ptrw(), m_ubo_data.data(), m_ubo_data.size());
@@ -757,9 +1179,8 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             u.instantiate();
             u->set_uniform_type(RenderingDevice::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE);
             u->set_binding(s.binding);
-            bool isDepth = s.name.rfind("depthtex", 0) == 0 || s.name.rfind("shadowtex", 0) == 0;
-            u->add_id(s.name == "noisetex" ? m_sampler_repeat : (isDepth ? m_sampler_nearest : m_sampler_linear));
-            u->add_id(textureFor(s.name, rb.ptr(), colour, depth, side));
+            u->add_id(samplerFor(p, s));
+            u->add_id(textureFor(p, s, rb.ptr(), depth0, depth1, side));
             set0.push_back(u);
         }
         // set 1: uniform blocks
@@ -772,6 +1193,7 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             u->add_id(m_ubo);
             set1.push_back(u);
             if (p.extra_ubo.is_valid()) {
+                fillExtra(rd, p);
                 Ref<RDUniform> e;
                 e.instantiate();
                 e->set_uniform_type(RenderingDevice::UNIFORM_TYPE_UNIFORM_BUFFER);
@@ -848,6 +1270,12 @@ void GoannaIrisEffect::freeGpu() {
     freeIf(m_sampler_linear);
     freeIf(m_sampler_nearest);
     freeIf(m_sampler_repeat);
+    freeIf(m_sampler_nearest_repeat);
+    freeIf(m_sampler_shadow);
+    freeIf(m_dummy_shadow_depth);
+    freeIf(m_center_tex);
+    for (auto &c : m_custom_tex)
+        freeIf(c.tex);
     freeIf(m_dummy_black);
     freeIf(m_dummy_white);
     freeIf(m_dummy_depth);

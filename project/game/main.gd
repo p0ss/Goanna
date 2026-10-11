@@ -780,7 +780,9 @@ func _ready() -> void:
 			iris.set_bridge_colour(false)
 		if iris.load_pack(shaderpack):
 			var comp := Compositor.new()
-			comp.compositor_effects = [iris]
+			# The capture copies depth before translucent geometry, which the
+			# pack reads as depthtex1; it has to run ahead of the pack.
+			comp.compositor_effects = [iris.make_depth_capture(), iris]
 			env.compositor = comp
 			# A pack's final program is the finished image: it has done its own
 			# exposure and tonemap, so Godot's must step aside or it is applied
