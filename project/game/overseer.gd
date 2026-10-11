@@ -1107,8 +1107,10 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 			best = s
 			source = e
 	if best > 0.0:
-		notes += "\nMiasma from a %s %s, seen day %s" % [str(source.get("stage", "")),
-			"gore pile" if source.get("kind") == "gore" else "carcass", str(source.get("day", "?"))]
+		var what := "a %s %s" % [str(source.get("stage", "")), "gore pile" if source.get("kind") == "gore" else "carcass"]
+		if source.get("kind") == "rubbish": what = "rubbish"
+		elif source.get("kind") == "rotting": what = "rotting food"
+		notes += "\nMiasma from %s, seen day %s" % [what, str(source.get("day", "?"))]
 	var overlays: Variant = layer.get("overlays")
 	if overlays is Dictionary and overlays.get("traffic") is Array:
 		var flat: Array = overlays.traffic

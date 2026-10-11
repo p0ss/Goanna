@@ -177,6 +177,9 @@ func run() -> void:
 	var notes := Overseer.overlay_notes(marked, {"x": 0, "y": 0, "z": 0})
 	check(notes.contains("decorated, 11 points, as of day 3") and notes.contains("rotten carcass, seen day 4"),
 		"inspect names the room's tier and the miasma's source")
+	var junk := {"rect": layer.rect, "overlays": {"miasma": [{"x": 0, "y": 0, "z": 0, "scent": 3, "kind": "rotting", "stage": "rotting", "day": 5}]}}
+	check(Overseer.overlay_notes(junk, {"x": 0, "y": 0, "z": 0}).contains("Miasma from rotting food, seen day 5"),
+		"inspect names rubbish and rotting food plainly")
 	check(Overseer.overlay_notes(marked, {"x": 2, "y": 0, "z": 0}).contains("not yet surveyed"),
 		"inspect says when a room is not yet surveyed")
 	check(Overseer.room_cells({"rect": layer.rect, "overlays": {"rooms": "nonsense"}}).is_empty()
