@@ -66,6 +66,13 @@ func run() -> void:
 			for room in overlays.rooms:
 				if room is Dictionary and room.get("name") == "Test room" and room.get("surveyed") == true:
 					surveyed = true
+		var families := {}
+		for t in view.tools:
+			families[str(t.id)] = str(t.get("family", ""))
+		check(families.get("forbid") == "Zones" and families.get("operate") == "Devices"
+			and families.get("station:*") == "Defence", "server offers forbidding, devices and stations")
+		check(overlays is Dictionary and overlays.has("traffic") and overlays.has("zones"),
+			"layers carry traffic and designations")
 		# Luanti writes an empty list as null; the view reads that as none.
 		check(surveyed and overlays.has("miasma") and Overseer.room_cells(view.snapshot).size() > 0,
 			"layers carry the surveyed fixture room and the miasma overlay")

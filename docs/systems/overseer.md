@@ -100,6 +100,13 @@ Inspect adds the room's tier, points and read day, and the strongest
 miasma source. Overlay lists are capped at 256 entries; malformed entries
 are skipped, and Luanti's `null` for an empty list reads as none.
 
+The Traffic toggle shades known cells by how often workers stand there
+and marks workers on the viewed level with their recent trails. Forbidden
+areas (red), locked doors (dark red) and militia stations with their
+rings (blue) are planner designations and always drawn, on known cells
+only. The Devices and Defence tool families come from the server's tool
+list like the others.
+
 Remembered columns are slightly desaturated (30 percent) and darkened
 (16 percent) by `shaders/overseer_memory.gdshader`. Order outlines share this
 column treatment. Blue-white transparent sheets accumulate at each open

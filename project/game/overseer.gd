@@ -95,7 +95,15 @@ const ROOM_TIER_COLOURS := [Color(0.55, 0.6, 0.72, 0.3), Color(0.35, 0.75, 0.45,
 const ROOM_UNSURVEYED := Color(0.5, 0.5, 0.5, 0.14)
 const MIASMA_BANDS := [Color(0.55, 0.72, 0.18, 0.1), Color(0.55, 0.72, 0.18, 0.18),
 	Color(0.5, 0.65, 0.15, 0.26), Color(0.45, 0.55, 0.1, 0.34)]
-var shown_overlays := {"rooms": false, "miasma": false}
+const TRAFFIC_BANDS := [Color(1.0, 0.75, 0.3, 0.14), Color(1.0, 0.6, 0.2, 0.24),
+	Color(1.0, 0.45, 0.15, 0.34), Color(0.95, 0.25, 0.1, 0.44)]
+const WORKER_MARK := Color(0.3, 0.9, 1.0, 0.95)
+const WORKER_TRAIL := Color(0.3, 0.9, 1.0, 0.4)
+const FORBIDDEN := Color(0.9, 0.15, 0.15, 0.2)
+const LOCKED := Color(0.7, 0.05, 0.05, 0.9)
+const STATION := Color(0.35, 0.5, 1.0, 0.8)
+const STATION_RING := Color(0.35, 0.5, 1.0, 0.25)
+var shown_overlays := {"rooms": false, "miasma": false, "traffic": false}
 var overlay_sheets: Node3D
 
 func _ready() -> void:
@@ -894,11 +902,106 @@ func _draw_overlays() -> void:
 		var miasma := miasma_cells(snapshot)
 		for band in miasma:
 			groups.append([MIASMA_BANDS[band], miasma[band]])
+	if shown_overlays.traffic:
+		var busy := traffic_cells(snapshot)
+		for band in busy:
+			groups.append([TRAFFIC_BANDS[band], busy[band]])
+	# Designations are plans, always shown like order marks.
+	var marks := zone_cells(snapshot)
+	groups.append([FORBIDDEN, marks.forbid])
+	groups.append([STATION_RING, marks.ring])
 	for group in groups:
 		var positions: Array = []
 		for c in group[1]:
 			positions.append(Vector3(c.x, level + 30.05, -c.y))
 		_planes(overlay_sheets, positions, _colour(group[0]), 1.0, 1.0)
+	var small: Array = [[LOCKED, marks.lock, 0.6], [STATION, marks.post, 0.7]]
+	if shown_overlays.traffic:
+		var workers := worker_marks(snapshot)
+		small.append([WORKER_TRAIL, workers.trail, 0.25])
+		small.append([WORKER_MARK, workers.here, 0.55])
+	for group in small:
+		var positions: Array = []
+		for c in group[1]:
+			positions.append(Vector3(c.x, level + 30.08, -c.y))
+		_planes(overlay_sheets, positions, _colour(group[0]), group[2], group[2])
+
+static func _known_cell(layer: Dictionary, x: int, z: int) -> bool:
+	var r: Variant = layer.get("rect")
+	if not r is Dictionary or not layer.get("cells") is Array:
+		return false
+	if x < int(r.x0) or x > int(r.x1) or z < int(r.z0) or z > int(r.z1):
+		return false
+	var i := (z - int(r.z0)) * (int(r.x1) - int(r.x0) + 1) + x - int(r.x0)
+	return i < layer.cells.size() and int(layer.cells[i]) > 0
+
+# Known cells by traffic band: under 1, under 4, under 16, then more.
+static func traffic_cells(layer: Dictionary) -> Dictionary:
+	var out := {}
+	var overlays: Variant = layer.get("overlays")
+	if not overlays is Dictionary or not overlays.get("traffic") is Array:
+		return out
+	var flat: Array = overlays.traffic
+	for i in range(0, mini(flat.size() - 2, 3 * 4096), 3):
+		if not (_number(flat[i]) and _number(flat[i + 1]) and _number(flat[i + 2])):
+			continue
+		var x := int(flat[i])
+		var z := int(flat[i + 1])
+		if not _known_cell(layer, x, z):
+			continue
+		var n := float(flat[i + 2]) / 10.0
+		var band := 0 if n < 1.0 else 1 if n < 4.0 else 2 if n < 16.0 else 3
+		if not out.has(band):
+			out[band] = []
+		out[band].append(Vector2i(x, z))
+	return out
+
+# Workers standing on this level, and their trails, on known cells.
+static func worker_marks(layer: Dictionary) -> Dictionary:
+	var out := {"here": [], "trail": []}
+	for e in _overlay_list(layer, "workers"):
+		if not e is Dictionary:
+			continue
+		if e.get("here", false) == true and _number(e.get("x")) and _number(e.get("z")) \
+				and _known_cell(layer, int(e.x), int(e.z)):
+			out.here.append(Vector2i(int(e.x), int(e.z)))
+		var trail: Variant = e.get("trail")
+		if trail is Array:
+			for i in range(0, mini(trail.size() - 1, 64), 2):
+				if _number(trail[i]) and _number(trail[i + 1]) and _known_cell(layer, int(trail[i]), int(trail[i + 1])):
+					out.trail.append(Vector2i(int(trail[i]), int(trail[i + 1])))
+	return out
+
+# Forbidden areas, locked doors and militia stations with their rings,
+# on known cells.
+static func zone_cells(layer: Dictionary) -> Dictionary:
+	var out := {"forbid": [], "lock": [], "post": [], "ring": []}
+	var r: Variant = layer.get("rect")
+	if not r is Dictionary:
+		return out
+	for e in _overlay_list(layer, "zones"):
+		if not e is Dictionary or not e.get("rect") is Dictionary:
+			continue
+		var b: Dictionary = e.rect
+		if not (_number(b.get("x0")) and _number(b.get("x1")) and _number(b.get("z0")) and _number(b.get("z1"))):
+			continue
+		for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
+			for x in range(maxi(int(b.x0), int(r.x0)), mini(int(b.x1), int(r.x1)) + 1):
+				if _known_cell(layer, x, z): out.forbid.append(Vector2i(x, z))
+	for e in _overlay_list(layer, "locks"):
+		if e is Dictionary and _number(e.get("x")) and _number(e.get("z")) and _known_cell(layer, int(e.x), int(e.z)):
+			out.lock.append(Vector2i(int(e.x), int(e.z)))
+	for e in _overlay_list(layer, "stations"):
+		if not e is Dictionary or not (_number(e.get("x")) and _number(e.get("z"))):
+			continue
+		var ring := clampi(int(e.get("ring", 3)) if _number(e.get("ring", 3)) else 3, 1, 8)
+		if _known_cell(layer, int(e.x), int(e.z)):
+			out.post.append(Vector2i(int(e.x), int(e.z)))
+		for dz in range(-ring, ring + 1):
+			for dx in range(-ring, ring + 1):
+				if maxi(absi(dx), absi(dz)) == ring and _known_cell(layer, int(e.x) + dx, int(e.z) + dz):
+					out.ring.append(Vector2i(int(e.x) + dx, int(e.z) + dz))
+	return out
 
 static func _overlay_list(layer: Dictionary, kind: String) -> Array:
 	var overlays: Variant = layer.get("overlays")
@@ -1006,6 +1109,25 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 	if best > 0.0:
 		notes += "\nMiasma from a %s %s, seen day %s" % [str(source.get("stage", "")),
 			"gore pile" if source.get("kind") == "gore" else "carcass", str(source.get("day", "?"))]
+	var overlays: Variant = layer.get("overlays")
+	if overlays is Dictionary and overlays.get("traffic") is Array:
+		var flat: Array = overlays.traffic
+		for i in range(0, mini(flat.size() - 2, 3 * 4096), 3):
+			if _number(flat[i]) and _number(flat[i + 1]) and int(flat[i]) == int(pos.x) and int(flat[i + 1]) == int(pos.z) \
+					and _number(flat[i + 2]):
+				notes += "\nTraffic: %.1f" % (float(flat[i + 2]) / 10.0)
+	for e in _overlay_list(layer, "workers"):
+		if e is Dictionary and e.get("here", false) == true and e.get("x") == pos.x and e.get("z") == pos.z:
+			notes += "\n%s: %s" % [str(e.get("name", "Worker")), str(e.get("activity", "idle"))]
+	var marks := zone_cells(layer)
+	var cell := Vector2i(int(pos.x), int(pos.z))
+	if cell in marks.forbid:
+		notes += "\nForbidden area: workers take no work here"
+	if cell in marks.lock:
+		notes += "\nLocked door"
+	for e in _overlay_list(layer, "stations"):
+		if e is Dictionary and e.get("x") == pos.x and e.get("z") == pos.z:
+			notes += "\nStation: %s" % ("all soldiers" if str(e.get("squad", "*")) == "*" else str(e.get("squad")))
 	return notes
 
 func _cell(screen: Vector2) -> Dictionary:

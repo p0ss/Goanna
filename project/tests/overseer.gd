@@ -188,6 +188,34 @@ func run() -> void:
 	view.toggle_overlay("rooms");view.toggle_overlay("miasma")
 	check(view.overlay_sheets.get_child_count() == 4, "toggled overlays draw one sheet per colour")
 	view.toggle_overlay("rooms");view.toggle_overlay("miasma")
+	# Traffic, workers and designations, only on known cells.
+	var busy := layer.duplicate(true)
+	busy.overlays = {"traffic": [0, 0, 5, 1, 0, 200, 2, 0, 50],
+		"workers": [{"id": "w1", "name": "Ada", "activity": "walk", "here": true, "x": 1, "z": 0, "trail": [0, 0, 1, 0, 2, 0]},
+			{"id": "w2", "name": "Bo", "activity": "dig", "here": true, "x": 2, "z": 0, "trail": null}],
+		"zones": [{"id": "z1", "kind": "forbid", "rect": {"x0": 0, "x1": 5, "z0": 0, "z1": 0}}],
+		"locks": [{"x": 0, "z": 0}, {"x": 2, "z": 0}],
+		"stations": [{"squad": "*", "x": 1, "y": 0, "z": 0, "ring": 1}]}
+	var heat := Overseer.traffic_cells(busy)
+	check(heat.get(0) == [Vector2i(0, 0)] and heat.get(3) == [Vector2i(1, 0)] and heat.size() == 2,
+		"traffic is banded by weight and never drawn on unknown cells")
+	var people := Overseer.worker_marks(busy)
+	check(people.here == [Vector2i(1, 0)] and people.trail == [Vector2i(0, 0), Vector2i(1, 0)],
+		"workers and trails are marked on known cells only")
+	var marks := Overseer.zone_cells(busy)
+	check(marks.forbid == [Vector2i(0, 0), Vector2i(1, 0)] and marks.lock == [Vector2i(0, 0)]
+		and marks.post == [Vector2i(1, 0)] and marks.ring == [Vector2i(0, 0)],
+		"forbidden areas, locks and station rings are clipped to known cells")
+	var here := Overseer.overlay_notes(busy, {"x": 1, "y": 0, "z": 0})
+	check(here.contains("Traffic: 20.0") and here.contains("Ada: walk") and here.contains("Forbidden area")
+		and here.contains("Station: all soldiers"), "inspect names traffic, the worker, the area and the station")
+	check(Overseer.overlay_notes(busy, {"x": 0, "y": 0, "z": 0}).contains("Locked door"), "inspect names a locked door")
+	view.snapshot = busy
+	view._draw_overlays()
+	check(view.overlay_sheets.get_child_count() == 4, "designations draw without a toggle")
+	view.toggle_overlay("traffic")
+	check(view.overlay_sheets.get_child_count() == 8, "the traffic toggle adds heat, trails and workers")
+	view.toggle_overlay("traffic")
 	view.snapshot = layer
 	# A level sent ahead for the same request is kept, never drawn early.
 	var ahead := layer.duplicate(true)
