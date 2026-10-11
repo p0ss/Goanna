@@ -86,6 +86,17 @@ const CACHED_LEVELS := 8
 var layer_cache: Dictionary = {}
 var level_meshes: Dictionary = {}
 var meshed_level := 0
+# Overlays the server sends with each layer. Room quality is tinted by
+# tier, or left grey until the room is surveyed; miasma shades known cells
+# by the strongest remembered scent reaching them.
+const OVERLAY_LIMIT := 256
+const ROOM_TIER_COLOURS := [Color(0.55, 0.6, 0.72, 0.3), Color(0.35, 0.75, 0.45, 0.3),
+	Color(0.95, 0.75, 0.25, 0.32), Color(0.78, 0.45, 0.95, 0.34)]
+const ROOM_UNSURVEYED := Color(0.5, 0.5, 0.5, 0.14)
+const MIASMA_BANDS := [Color(0.55, 0.72, 0.18, 0.1), Color(0.55, 0.72, 0.18, 0.18),
+	Color(0.5, 0.65, 0.15, 0.26), Color(0.45, 0.55, 0.1, 0.34)]
+var shown_overlays := {"rooms": false, "miasma": false}
+var overlay_sheets: Node3D
 
 func _ready() -> void:
 	layer = 150
@@ -857,6 +868,145 @@ func _draw_layer() -> void:
 		_planes(overlay, vertical, _colour(colour), 0.06, 0.94)
 	if int(floor(body.y + 0.5)) == level:
 		_planes(overlay, [Vector3(body.x, level + 30.1, body.z)], _colour(Color(0.5, 0.85, 1.0)), 0.3, 0.3)
+	_draw_overlays()
+
+func toggle_overlay(kind: String) -> void:
+	if not shown_overlays.has(kind):
+		return
+	shown_overlays[kind] = not shown_overlays[kind]
+	_draw_overlays()
+
+# Sheets sit just under the order marks, one MultiMesh per colour.
+func _draw_overlays() -> void:
+	if is_instance_valid(overlay_sheets):
+		overlay_sheets.queue_free()
+	overlay_sheets = null
+	if snapshot.is_empty() or snapshot.get("empty", false) or not is_instance_valid(overlay):
+		return
+	overlay_sheets = Node3D.new()
+	overlay.add_child(overlay_sheets)
+	var groups: Array = []
+	if shown_overlays.rooms:
+		var rooms := room_cells(snapshot)
+		for tier in rooms:
+			groups.append([ROOM_UNSURVEYED if tier < 0 else ROOM_TIER_COLOURS[tier], rooms[tier]])
+	if shown_overlays.miasma:
+		var miasma := miasma_cells(snapshot)
+		for band in miasma:
+			groups.append([MIASMA_BANDS[band], miasma[band]])
+	for group in groups:
+		var positions: Array = []
+		for c in group[1]:
+			positions.append(Vector3(c.x, level + 30.05, -c.y))
+		_planes(overlay_sheets, positions, _colour(group[0]), 1.0, 1.0)
+
+static func _overlay_list(layer: Dictionary, kind: String) -> Array:
+	var overlays: Variant = layer.get("overlays")
+	if not overlays is Dictionary or not overlays.get(kind) is Array:
+		return []
+	return overlays[kind].slice(0, OVERLAY_LIMIT)
+
+# Cells of each room on this level, by tier; -1 for not yet surveyed.
+static func room_cells(layer: Dictionary) -> Dictionary:
+	var out := {}
+	var r: Variant = layer.get("rect")
+	if not r is Dictionary:
+		return out
+	for e in _overlay_list(layer, "rooms"):
+		if not e is Dictionary or not e.get("rect") is Dictionary:
+			continue
+		var b: Dictionary = e.rect
+		if not (_number(b.get("x0")) and _number(b.get("x1")) and _number(b.get("z0")) and _number(b.get("z1"))):
+			continue
+		var tier := -1
+		if e.get("surveyed", false) == true and _number(e.get("tier")):
+			tier = clampi(int(e.tier), 0, ROOM_TIER_COLOURS.size() - 1)
+		if not out.has(tier):
+			out[tier] = []
+		for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
+			for x in range(maxi(int(b.x0), int(r.x0)), mini(int(b.x1), int(r.x1)) + 1):
+				out[tier].append(Vector2i(x, z))
+	return out
+
+# Strength of the strongest source at each known cell, from 0 to 1. A
+# source's scent is a sphere; this level cuts it at its own height.
+static func miasma_strength(layer: Dictionary) -> PackedFloat32Array:
+	var r: Variant = layer.get("rect")
+	var strength := PackedFloat32Array()
+	if not r is Dictionary or not layer.get("cells") is Array:
+		return strength
+	var width := int(r.x1) - int(r.x0) + 1
+	var height := int(r.z1) - int(r.z0) + 1
+	if width * height != layer.cells.size():
+		return strength
+	strength.resize(width * height)
+	for e in _overlay_list(layer, "miasma"):
+		if not e is Dictionary or not (_number(e.get("x")) and _number(e.get("y")) and _number(e.get("z"))
+				and _number(e.get("scent"), false)):
+			continue
+		var dy := float(int(e.y) - int(layer.y))
+		var reach_sq := float(e.scent) * float(e.scent) - dy * dy
+		if reach_sq <= 0.0:
+			continue
+		var reach := sqrt(reach_sq)
+		for z in range(maxi(int(floor(e.z - reach)), int(r.z0)), mini(int(ceil(e.z + reach)), int(r.z1)) + 1):
+			for x in range(maxi(int(floor(e.x - reach)), int(r.x0)), mini(int(ceil(e.x + reach)), int(r.x1)) + 1):
+				var d := Vector2(x - int(e.x), z - int(e.z)).length()
+				if d >= reach:
+					continue
+				var i := (z - int(r.z0)) * width + x - int(r.x0)
+				strength[i] = maxf(strength[i], 1.0 - d / reach)
+	return strength
+
+# Known cells by miasma band, 0 (faint) to 3 (strong).
+static func miasma_cells(layer: Dictionary) -> Dictionary:
+	var out := {}
+	var strength := miasma_strength(layer)
+	if strength.is_empty():
+		return out
+	var r: Dictionary = layer.rect
+	var width := int(r.x1) - int(r.x0) + 1
+	for i in strength.size():
+		if strength[i] <= 0.0 or int(layer.cells[i]) == 0:
+			continue
+		var band := mini(int(strength[i] * MIASMA_BANDS.size()), MIASMA_BANDS.size() - 1)
+		if not out.has(band):
+			out[band] = []
+		out[band].append(Vector2i(int(r.x0) + i % width, int(r.z0) + i / width))
+	return out
+
+# What the overlays say about one cell, for Inspect.
+static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
+	var notes := ""
+	for e in _overlay_list(layer, "rooms"):
+		if not e is Dictionary or not e.get("rect") is Dictionary:
+			continue
+		var b: Dictionary = e.rect
+		if pos.x < b.get("x0", 0) or pos.x > b.get("x1", -1) or pos.z < b.get("z0", 0) or pos.z > b.get("z1", -1):
+			continue
+		var name := "%s \"%s\"" % [str(e.get("title", "Room")), str(e.get("name", ""))]
+		if e.get("surveyed", false) == true:
+			notes += "\n%s: %s, %s points, as of day %s" % [name, str(e.get("tier_name", "")),
+				str(e.get("points", 0)), str(e.get("day", "?"))]
+			if e.get("valid", true) == false:
+				notes += " (not usable: %s)" % str(e.get("why", "?"))
+		else:
+			notes += "\n%s: not yet surveyed" % name
+	var best := 0.0
+	var source: Dictionary = {}
+	for e in _overlay_list(layer, "miasma"):
+		if not e is Dictionary or not (_number(e.get("x")) and _number(e.get("y")) and _number(e.get("z"))
+				and _number(e.get("scent"), false)) or float(e.scent) <= 0.0:
+			continue
+		var d := Vector3(pos.x - int(e.x), pos.y - int(e.y), pos.z - int(e.z)).length()
+		var s := 1.0 - d / float(e.scent)
+		if s > best:
+			best = s
+			source = e
+	if best > 0.0:
+		notes += "\nMiasma from a %s %s, seen day %s" % [str(source.get("stage", "")),
+			"gore pile" if source.get("kind") == "gore" else "carcass", str(source.get("day", "?"))]
+	return notes
 
 func _cell(screen: Vector2) -> Dictionary:
 	var origin := camera.project_ray_origin(screen)
@@ -906,6 +1056,7 @@ func select_cell(pos: Dictionary) -> void:
 		for order_entry in snapshot.get("orders", []):
 			if order_entry.get("pos") == pos:
 				inspector.text += "\n%s: %s %s" % [order_entry.get("kind", "Order"), order_entry.get("state", ""), order_entry.get("reason", "")]
+		inspector.text += overlay_notes(snapshot, pos)
 	elif first_corner == null:
 		first_corner = pos.duplicate()
 		last_corner = null

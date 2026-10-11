@@ -60,6 +60,15 @@ func run() -> void:
 	print("Camera snapshot: ", JSON.stringify(view.snapshot).left(200))
 	if view.session_ready:
 		check(view.snapshot.get("y", -100) == 0, "camera opens at the body's level")
+		var overlays: Variant = view.snapshot.get("overlays")
+		var surveyed := false
+		if overlays is Dictionary and overlays.get("rooms") is Array:
+			for room in overlays.rooms:
+				if room is Dictionary and room.get("name") == "Test room" and room.get("surveyed") == true:
+					surveyed = true
+		# Luanti writes an empty list as null; the view reads that as none.
+		check(surveyed and overlays.has("miasma") and Overseer.room_cells(view.snapshot).size() > 0,
+			"layers carry the surveyed fixture room and the miasma overlay")
 		check(not client.overseer_channel("dorfcraft:o:" + "0".repeat(32)), "native bridge refuses a channel without a HUD grant")
 		view.change_level(-1)
 		# A level the server already sent may be drawn at once, as memory.

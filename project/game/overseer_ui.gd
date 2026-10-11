@@ -176,8 +176,14 @@ func build(host: Node) -> void:
 	var footer_row := HBoxContainer.new()
 	footer.add_child(footer_row)
 	view.status = label(footer_row, "Opening overseer view...")
+	for pair in [["Rooms", "rooms", "Show room quality by tier"], ["Miasma", "miasma", "Show smell from seen carrion"]]:
+		var toggle := button(footer_row, pair[0], view.toggle_overlay.bind(pair[1]))
+		toggle.toggle_mode = true
+		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
+		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END

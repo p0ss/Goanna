@@ -91,6 +91,15 @@ sequence and have a newer revision. Missing, empty, out-of-claim and stale
 layers stay dark grey. Closing restores the original camera mask, UI visibility
 and pointer capture.
 
+The footer's Rooms and Miasma toggles draw the layer's overlays as
+translucent sheets just under the order marks. Rooms are grey until the
+server says every cell is known, then tinted by tier (bare, furnished,
+decorated, adorned). Miasma cuts each remembered scent sphere at the
+viewed level and shades only known cells, in four bands by distance.
+Inspect adds the room's tier, points and read day, and the strongest
+miasma source. Overlay lists are capped at 256 entries; malformed entries
+are skipped, and Luanti's `null` for an empty list reads as none.
+
 Remembered columns are slightly desaturated (30 percent) and darkened
 (16 percent) by `shaders/overseer_memory.gdshader`. Order outlines share this
 column treatment. Blue-white transparent sheets accumulate at each open
