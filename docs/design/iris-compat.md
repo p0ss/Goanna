@@ -61,8 +61,9 @@ What is new since 2026-08-21, all in `src/iris/` and checked by
 - `texture.noise` and `texture.deferred.*` and `texture.composite.*` image
   files are loaded and bound in place of the named sampler; raw (`.dat`)
   and resource textures are reported and skipped.
-- `sampler2DShadow` gets a comparison sampler over a cleared 1x1 depth
-  texture, so a shadow lookup says lit, as the plain `shadowtex` dummy does.
+- `sampler2DShadow` gets a comparison sampler, over the pack's own shadow
+  map since 2026-10-12 (rung 7, "The shadow map, as built"), and until it
+  is drawn over a cleared 1x1 depth texture that says lit.
 - The translator fixes the real packs needed are listed in the status page.
 
 All of the effect side is in commit `a4410a9c`. Its first GPU run came
@@ -151,11 +152,9 @@ Things learnt on the way, recorded so they are not relearnt:
 - Not yet done: compute (`.csh`), `prepare`, `begin`, `setup` and
   `shadowcomp` programs, custom images and SSBOs, raw custom textures,
   `size.buffer`, `scale` and `flip` directives, multiview, and varyings of
-  struct type (Photon). `shadowtex*` is still a 1x1 depth of 1.0, so
-  nothing is in shadow: a real shadow map needs the pack's own translated
-  `shadow` program (rung 7), which a compositor effect cannot run. The gbuffers translator (rungs 5
-  to 7) is built since 2026-10-11; see "The gbuffers translator, as
-  built".
+  struct type (Photon). The gbuffers translator (rungs 5 to 7) is built
+  since 2026-10-11 and the pack's own shadow map since 2026-10-12; see "The
+  gbuffers translator, as built".
 
 `GOANNA_SHADERPACK_DUMP=<dir>` writes each pass's translated GLSL, which is
 the first thing to look at when a pack fails to compile: the error line
@@ -449,12 +448,14 @@ rather than a preference.
    surface was transparent; the second outputs now reach them, and on the
    GPU its water is drawn, tinted and reflecting the stage. See "Second
    outputs" below.
-7. **Shadow.** Godot already runs a shadow pass, so a translated shadow
-   program mostly needs vertex displacement to agree with the terrain
-   program, or waving grass casts unwaving shadows. Base has no shadow
-   program either; Eclipse ships one. The agreement holds by construction
-   since 2026-10-11, but it buys less than this item assumed, and nothing of
-   it has been measured; see below.
+7. **Shadow.** This item first assumed Godot's own shadow pass would do,
+   given vertex displacement that agrees with the terrain program. It does
+   not: a pack looks its shadows up in a map drawn by its own `shadow`
+   program, with its own matrices and distortion, and Godot's shadow atlas
+   is neither. Built 2026-10-12 as a pass of Goanna's own that draws the
+   near terrain with the translated shadow program into the pack's map,
+   read by the gbuffers programs and the chain; observed on the GPU with
+   Eclipse, on the stage and on `r1tod1`. See "The shadow map, as built".
 
 Rungs 1 to 4 are the screen space chain and need no translator at all. Rungs
 5 to 7 are the translator, and each is separately useful: a pack with only
@@ -583,6 +584,109 @@ What it costs and where it stops:
 - Whether Godot renders the subviewports before the main view in the same
   frame, or a frame late, was not checked; a still camera cannot show it.
 
+### The shadow map, as built
+
+Built 2026-10-12 for rung 7. A pack's shadows come from its `shadow`
+program drawn into a map its own lookups agree with, distortion and all;
+Godot's shadow atlas is not that. The first slice draws the near terrain
+only. The parts, and the choices behind them:
+
+- **What is drawn.** Copies of the near terrain meshes, nothing else: the
+  regional batches and the per block special meshes, which are what
+  `GoannaClient` gives terrain materials to. Each copy is a child
+  `MeshInstance3D` named `iris_shadow` (`GoannaClient::irisShadowTwin`),
+  sharing the mesh, on render layer 13 alone, casting nothing into Godot's
+  shadow maps and out of GI. Each surface takes the shadow program
+  translated for its shell (opaque array tiles, cut-out array tiles,
+  foliage), with the base material's uniforms copied; a surface the pack
+  draws no shadow for (water, glass, lava, glow, anything not on a pack
+  program) takes a material that puts every vertex on one point outside
+  the clip volume. The far tiers are not drawn: they share the array
+  materials, but have no copies, and most of them lie beyond a pack's
+  `shadowDistance` (160 by default) anyway.
+- **How the meshes are reached.** Through Godot's renderer, not a
+  `RenderingDevice` draw of Goanna's own. Godot 4.5 exposes no mesh's
+  vertex buffer as an RD resource, so a pass of our own would need a second
+  copy of every near mesh uploaded by hand and kept in step with every
+  remesh. A `SubViewport` sharing the world, with an orthographic `Camera3D`
+  whose cull mask is layer 13 alone, draws exactly the copies and nothing
+  else: entities, sky, particles and lights are all on other layers, so
+  Godot does no lighting, no shadow maps and no sky for it, and its own
+  `Environment` clears to white with fog, glow and GI off. The camera is
+  the pack's shadow box (`shadowDistance` either side, 0.05 to 256 deep,
+  100 nodes out along the light), so Godot's culling is the pack's.
+- **Where the pack's maths runs.** In the translated shadow program
+  (`GbuffersOptions::shadow_pass`). Its fixed function matrices are the
+  light's (`iris_shadow_gl_ModelViewMatrix` is `shadowModelView` after the
+  camera's translation, `gl_ProjectionMatrix` is `shadowProjection`), so
+  `ftransform()` and the pack's own `shadowProjection * shadowModelView`
+  agree. Its `gl_Position`, displacement and distortion included, goes
+  straight to `POSITION`: x, y and w as written, so the map's texels sit
+  where the pack's lookups put them, and z moved from OpenGL's `-w..w` to
+  the reversed `0..w` Godot's depth test wants
+  (`goanna_shadow_position` in the shell). Its colour reaches `ALBEDO`
+  unconverted, for `shadowcolor0`.
+- **Keeping the program out of other cameras.** The shadow program writes
+  its position only when `CAMERA_VISIBLE_LAYERS` is exactly layer 13, the
+  shadow camera's mask; in any other camera every vertex lands on one point
+  outside the clip volume. The player's camera also drops layer 13 from
+  its mask, so it does not even cull the copies. Layer 13 (bit 12) is
+  clear of `NODE_SURFACE_LAYER` (bit 14) and of the second output pass
+  bits (15 to 19), which the shadow camera leaves all clear, so the
+  programs draw their colour there.
+- **The matrices** (`src/iris/iris_shadow.cpp`, pure arithmetic with a
+  native test). `shadowModelView` looks from the light at the player:
+  view +z is the direction to the sun by day and the moon by night (the
+  same choice as `shadowLightPosition`), x stays across the sun's path so
+  the map does not spin, the player is 100 nodes out, and the frame snaps
+  to `shadowIntervalSize` (2 by default) so texels do not crawl as the
+  player walks. `shadowProjection` is the orthographic box above. Both are
+  built from Goanna's own sun, not from `sunAngle` and the pack's
+  `sunPathRotation`: the shadows have to fall from the sun the server
+  shows, so `sunPathRotation` is read, reported and not applied. The
+  settings come from the pack's const directives (`shadowMapResolution`,
+  `shadowDistance`, `shadowIntervalSize`), an option's name resolved to its
+  value; a perspective map (`shadowMapFov`) is reported and drawn
+  orthographic. `GoannaIrisGbuffers::update` sets the matrices for the
+  shadow program and every gbuffers program, `main.gd` moves the culling
+  camera and hands them to the screen space chain, all from the same
+  numbers in the same frame.
+- **Keeping the result.** `GoannaIrisShadow`, a `CompositorEffect` in the
+  shadow camera's `Compositor`, copies the viewport's depth and colour at
+  `POST_TRANSPARENT` into textures of its own, made once at the first
+  frame's size: shadowtex0 as `D32` (a comparison sampler in the chain
+  needs a depth format) and as `R32F` (for Godot shaders, through a
+  `Texture2DRD`), both in OpenGL's convention (0 at the light's near
+  plane, 1 where nothing was drawn), and `shadowcolor0` as `RGBA16F`.
+  `GoannaIrisEffect` binds the depth copy for `shadowtex0` and
+  `shadowtex1` and the colour for `shadowcolor0`; the gbuffers programs
+  read the `Texture2DRD`s as the globals `iris_shadowtex0`,
+  `iris_shadowtex1` and `iris_shadowcolor0`, sampled nearest. A
+  `sampler2DShadow` lookup in a gbuffers program, which Godot's shading
+  language cannot express, is written out as a `step` against the stored
+  depth. Until the first map is drawn every one of them reads white, so
+  nothing is in shadow, as before the pass existed. Frees go through the
+  render thread in a callable that owns only the RIDs, after the
+  `Texture2DRD`s have let go of them.
+- **Synchronisation.** Godot draws a `SubViewport` before the viewport that
+  contains it, so in a frame the map is drawn and copied before the
+  player's view samples it, all on the render thread, ordered by the render
+  graph's barriers. The matrices are set on the main thread before the
+  frame is drawn, so the map and its lookups use the same ones. Were the
+  order ever the other way, the lookups would be one frame behind the map.
+
+What the first slice leaves out: `shadowtex1` is the same map as
+`shadowtex0`, because no translucent geometry is drawn into it, so a pack's
+coloured shadows through glass and water (the `shadowtex0` against
+`shadowtex1` test) never trigger; entities, the player, the far tiers,
+glowing surfaces and the procedural grass cast nothing; `shadowcolor1`,
+`shadowcomp` and per program shadow variants (`shadow_solid`,
+`shadow_cutout`) are not read; `shadowDistanceRenderMul` and the
+`shadow.culling` directives are ignored; and a pack that sets
+`sunPathRotation` sees its shadows fall from Goanna's sun. With
+`GOANNA_SHADERPACK_SHADOW=0` the pass is left out and the map reads as all
+lit, for comparison.
+
 ### What was observed
 
 Offline, no GPU, Godot 4.5.1, 2026-10-11: `goanna_iris_gbuffers_test` (in
@@ -684,9 +788,39 @@ by averaging regions of the PNGs:
   plane; its lake reads as the lake bed in pale squares, the water itself
   nearly clear. Base-Shader is as on 2026-10-11.
 
+The shadow map, 2026-10-12, through `tools/goanna-render` on the RTX 3090
+(NVIDIA 615.71.09), 1280 by 720, Luanti 5.17.0 server, Mineclonia
+(release 38561), Godot 4.5.1, Eclipse 1.0 with `SSAO_ENABLED=false` (its
+SSAO reads normals and turns the stage nearly black), each frame against
+the same with `GOANNA_SHADERPACK_SHADOW=0`:
+
+- On the stage, at `24530daa` (the shadow commit before the rebase onto
+  rung 6, with the debug overlay uncommitted): the shadow viewport, shown
+  in a corner with `GOANNA_SHADERPACK_SHADOW_SHOW=1`, holds the stage seen
+  from the sun, barrelled by Eclipse's distortion, the trunk, leaves,
+  pillars and gold slab where they stand, and the kept `shadowtex0` is the
+  same shape in depth, 1.0 round it. With `SOFT_SHADOWS=false` the floor
+  takes Eclipse's teal shadows of the leaf canopy, the pillar, the wall and
+  the slab on its posts, at 8:24 in the morning falling west, as Godot's own
+  shadows fall in the frame without a pack, and at 15:36 falling east. With
+  Eclipse's default soft shadows the frames with and without the map differ
+  in fewer than 400 pixels: its filter scores a point fully in shadow 0.15
+  (`docs/develop/shaderpack-status.md`, "The shadow map"). A probe pack of
+  ours (a plain `shadow` program and a terrain program that halves the
+  light where its lookup is in shadow) shows the same shadows, hard, with
+  the jagged edges a 1024 map over 320 nodes gives without distortion.
+- On `r1tod1`, with the code as committed, on rung 6 (`b41c0f40`): from
+  14 nodes over a frozen lake looking at a snowy island with spruces, the
+  snow tops west of the spruces are in shadow in the morning and lit in
+  the afternoon, and from 22 up looking north the steps of the slope to
+  the east are shadowed in bands on the side away from the morning sun.
+  The ice, which Goanna draws with its own shader, takes no shadow. The
+  far tiers are as without the map. The dark blue grid on the lake behind
+  the island is in the frames without the map too.
+
 Not observed: any displaced vertex (Eclipse's waves, Mellow's waving
-leaves) on the GPU, and so nothing of rung 7's shadow agreement; any pack
-at night, in rain or under water; performance.
+leaves) on the GPU; any pack at night, in rain or under water; the shadow
+map at night; performance, the shadow pass's included.
 
 ### What is left
 
@@ -694,8 +828,8 @@ at night, in rain or under water; performance.
   outputs"), but each target is a whole geometry pass, not yet measured,
   and values pass through half floats, which loses the bits Photon packs
   into its 16 bit material targets. One render target per pass would need
-  the geometry drawn through `RenderingDevice`, as the shadow map below
-  will. Of the packs whose terrain programs were checked, BSL and MakeUp
+  the geometry drawn through `RenderingDevice`, which neither the
+  second outputs nor the shadow map do. Of the packs whose terrain programs were checked, BSL and MakeUp
   write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
   colour; only Eclipse has been looked at on the GPU with them.
 - **Photon's chain.** Its geometry programs pass Godot's front end since
@@ -706,15 +840,13 @@ at night, in rain or under water; performance.
   terrain draws magenta under what runs. The chain translator needs the
   struct ahead of the varying and a location per member, or the flattening
   the gbuffers translator now does.
-- **The pack's own shadow map.** Under a pack the terrain is unshaded, so
-  Godot's shadows land only on what Godot still lights (entities, the
-  procedural grass). A pack's shadows come from its `shadow` program drawn
-  into a `shadowtex` its own maths agrees with, distortion and all, which
-  Godot's shadow atlas is not. That is a geometry pass of Goanna's own,
-  through `RenderingDevice`, and has not been started. What rung 7 does
-  give is that the shadows Godot does draw move with the pack's
-  displacement, because every pass transforms the same displaced
-  `VERTEX`; unmeasured.
+- **The rest of the shadow map.** The first slice draws opaque, cut-out
+  and foliage near terrain only; see the end of "The shadow map, as
+  built" for what it leaves out: translucent casters and so `shadowtex1`
+  and coloured shadows, entities, the far tiers, glow and Goanna's own
+  grass, `shadowcomp`, the per program shadow variants, `sunPathRotation`.
+  Its cost is not measured: a second scene render of the near terrain,
+  with Godot's depth prepass, each frame.
 - **Everything not on a node surface**: entities, the sky, clouds, the hand,
   particles and the procedural grass keep Godot's shaders; their programs
   (`gbuffers_entities`, `gbuffers_skybasic` and the rest) are not loaded.

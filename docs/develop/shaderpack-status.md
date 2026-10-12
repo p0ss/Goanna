@@ -116,9 +116,10 @@ look right; four (MakeUp, Chocapic13, Sildur's Vibrant, Super Duper
 Vanilla) do not even keep their main colour in `colortex0`. A real shadow
 map is the same: 17 of these packs read `shadowtex` in the chain, and the
 map has to come from the pack's own translated `shadow` program, which a
-compositor effect cannot run. Rungs 5 and 6 now draw the geometry
-programs and their second outputs (below); until a shadow map exists, judge
-a pack here by whether it loads, compiles and runs, not by its look.
+compositor effect cannot run. Rungs 5 to 7 now draw the geometry
+programs, their second outputs and the near terrain's shadow map (below),
+but each has been looked at with few packs, so judge a pack here first by
+whether it loads, compiles and runs.
 
 Until commit `0fce1c1b` (2026-10-13) the chain also gave every pack a wrong
 projection: Godot's own, with its depth already in Vulkan's reversed
@@ -154,3 +155,27 @@ each of which the chain reads and so gets a camera of its own (see
 Miniature and Sildur's Enhanced Default passed the front end on
 2026-10-11, before a reboot and before the later translator changes, and
 were not run again.
+
+## The shadow map
+
+A pack's own shadow map (rung 7, `docs/design/iris-compat.md`, "The shadow
+map, as built") exists since 2026-10-12: its `shadow` program draws the near
+terrain into a map at its `shadowMapResolution`, which the gbuffers programs
+and the chain then read. Of the packs above only Eclipse has been run with
+it. Before that, every shadow lookup said lit.
+
+| Pack | Shadow program | Front end | GPU |
+| --- | --- | --- | --- |
+| Eclipse 1.0 | `shadow`, 1024, distorted | all three surfaces | the map is drawn, distortion and all; with `SOFT_SHADOWS=false` its teal shadows fall the right way from the stage's blocks and, on `r1tod1`, from the spruces and terraces; with its default soft shadows barely visible |
+| Base-Shader 3.0 | none | none to translate | the pass is not made |
+
+Run on the RTX 3090 with Luanti 5.17.0, Mineclonia release 38561 and Godot
+4.5.1, with Eclipse's SSAO off; the frames are described in
+`docs/design/iris-compat.md`, "What was observed".
+
+Eclipse's soft shadows are faint by its own arithmetic, not ours: its
+filter takes 5 by 5 samples (`SHADOW_SAMPLES` 2 either side) and divides by
+`(6 * SHADOW_SAMPLES + 1)` squared, 169, so a point fully in shadow scores
+0.15, and two later lighting terms that add `inShadow` brighten most of
+that back. With its default options the shadowed and unshadowed frames of
+the stage differ in fewer than 400 pixels at 1280 by 720.

@@ -4207,18 +4207,24 @@ func _setup_iris_shadow() -> void:
 	if iris:
 		iris.set_shadow(iris_shadow)
 	# GOANNA_SHADERPACK_SHADOW_SHOW=1 puts the shadow viewport's colour (the
-	# shadow program's output on white) in the top left corner, to see what
-	# the map holds.
+	# shadow program's output on white) in the top left corner, and beside
+	# it the kept shadowtex0 (depth in red), to see what the map holds.
 	if OS.get_environment("GOANNA_SHADERPACK_SHADOW_SHOW") == "1":
 		var layer := CanvasLayer.new()
 		layer.layer = 100
-		var rect := TextureRect.new()
-		rect.texture = vp.get_texture()
-		rect.size = Vector2(320, 320)
-		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		rect.stretch_mode = TextureRect.STRETCH_SCALE
-		layer.add_child(rect)
+		var textures: Array[Texture2D] = [vp.get_texture(), iris_shadow.shadowtex()]
+		for i in textures.size():
+			var rect := TextureRect.new()
+			rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			rect.stretch_mode = TextureRect.STRETCH_SCALE
+			rect.texture = textures[i]
+			rect.custom_minimum_size = Vector2(256, 256)
+			rect.size = Vector2(256, 256)
+			rect.position = Vector2(256 * i, 0)
+			layer.add_child(rect)
 		add_child(layer)
+		get_tree().create_timer(10.0).timeout.connect(
+				func() -> void: print("shader pack shadow capture ", iris_shadow.report()))
 	print("shader pack shadow map ", res, " square, ", st.get("size", 0.0), " nodes across")
 
 
