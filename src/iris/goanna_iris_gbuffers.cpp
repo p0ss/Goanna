@@ -96,6 +96,12 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisGbuffers::report);
     ClassDB::bind_method(D_METHOD("second_targets"), &GoannaIrisGbuffers::second_targets);
     ClassDB::bind_method(D_METHOD("set_dump_dir", "dir"), &GoannaIrisGbuffers::set_dump_dir);
+    ClassDB::bind_method(D_METHOD("has_shadow"), &GoannaIrisGbuffers::has_shadow);
+    ClassDB::bind_method(D_METHOD("shadow_shader", "surface"), &GoannaIrisGbuffers::shadow_shader);
+    ClassDB::bind_method(D_METHOD("shadow_resolution"), &GoannaIrisGbuffers::shadow_resolution);
+    ClassDB::bind_method(D_METHOD("shadow_layer"), &GoannaIrisGbuffers::shadow_layer);
+    ClassDB::bind_method(D_METHOD("set_shadow", "shadow"), &GoannaIrisGbuffers::set_shadow);
+    ClassDB::bind_method(D_METHOD("shadow_state"), &GoannaIrisGbuffers::shadow_state);
 }
 
 void GoannaIrisGbuffers::set_dump_dir(const String &dir) { m_dump_dir = dir.utf8().get_data(); }
@@ -211,6 +217,13 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         sh.instantiate();
         sh->set_code(String::utf8(r.code.c_str()));
         m_shaders[s] = sh;
+    }
+    {
+        iris::GbuffersOptions so;
+        for (auto &d : m_pack.customUniforms().defs())
+            if (d.is_uniform) so.custom_uniforms.insert(d.name);
+        so.old_lighting = old_lighting;
+        loadShadow(so);
     }
     m_custom = m_pack.customUniforms();
     parseBlockProperties((std::filesystem::path(m_pack.shadersDir()) / "block.properties").string());
@@ -332,6 +345,11 @@ void GoannaIrisGbuffers::makeTextures() {
     setGlobal("iris_tex_black", m_black);
     setGlobal("iris_noisetex", m_noise);
     setGlobal("iris_lightmap", m_lightmap);
+    // The shadow map until a shadow pass has drawn one: depth 1.0, so
+    // nothing is in shadow, and a white shadowcolor0.
+    setGlobal("iris_shadowtex0", m_white);
+    setGlobal("iris_shadowtex1", m_white);
+    setGlobal("iris_shadowcolor0", m_white);
 }
 
 // The lightmap a pack multiplies lmcoord through, Minecraft's 16 by 16
@@ -395,12 +413,15 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     setGlobal("iris_gl_ModelViewMatrixInverse", toProjection(cam));
     setGlobal("iris_gl_ModelViewProjectionMatrix", proj * gl_mv);
     setGlobal("iris_gl_NormalMatrix", view.basis);
-    // No shadow pass of the pack's own yet (rung 7): the shadow matrices
-    // are the camera's, as GoannaIrisEffect gives them.
-    setGlobal("iris_shadowModelView", mv);
-    setGlobal("iris_shadowModelViewInverse", mv_inv);
-    setGlobal("iris_shadowProjection", proj);
-    setGlobal("iris_shadowProjectionInverse", proj_inv);
+    // The shadow matrices: the pack's own shadow space when it has a shadow
+    // program (rung 7, set below once the light is known), otherwise the
+    // camera's, as GoannaIrisEffect gives them.
+    if (!has_shadow()) {
+        setGlobal("iris_shadowModelView", mv);
+        setGlobal("iris_shadowModelViewInverse", mv_inv);
+        setGlobal("iris_shadowProjection", proj);
+        setGlobal("iris_shadowProjectionInverse", proj_inv);
+    }
     setGlobal("iris_cameraPosition", pos);
     setGlobal("iris_previousCameraPosition", m_frame > 1 ? m_prev_cam : pos);
     setGlobal("iris_eyePosition", pos);
@@ -432,6 +453,7 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     setGlobal("iris_sunPosition", sun_v);
     setGlobal("iris_moonPosition", moon_v);
     setGlobal("iris_shadowLightPosition", sun.y >= 0.0f ? sun_v : moon_v);
+    if (has_shadow()) updateShadow(pos, sun.y >= 0.0f ? sun : moon);
     setGlobal("iris_upPosition", cam.basis.inverse().xform(Vector3(0, 1, 0)) * 100.0f);
     // Luanti's day starts at midnight, Minecraft's at sunrise.
     float sun_angle = std::fmod(tod - 0.25f + 1.0f, 1.0f);
@@ -594,6 +616,145 @@ Dictionary GoannaIrisGbuffers::report() const {
         d[names[s]] = e;
     }
     d["block_ids"] = (int)m_block_ids.size();
+    Dictionary sh;
+    sh["program"] = String(m_shadow_program.c_str());
+    sh["translated"] = has_shadow();
+    if (!m_shadow_error.empty()) sh["error"] = String(m_shadow_error.c_str());
+    PackedStringArray sw;
+    for (auto &x : m_shadow_warnings) sw.push_back(String(x.c_str()));
+    for (auto &x : m_shadow_settings.notes) sw.push_back(String(x.c_str()));
+    sh["warnings"] = sw;
+    sh["resolution"] = m_shadow_settings.resolution;
+    sh["distance"] = m_shadow_settings.distance;
+    if (m_shadow.is_valid()) sh["capture"] = m_shadow->report();
+    d["shadow"] = sh;
+    return d;
+}
+
+// ---------------------------------------------------------------------------
+// Rung 7: the pack's own shadow map
+
+namespace {
+
+Projection fromMat4(const iris::Mat4 m) {
+    Projection p;
+    for (int c = 0; c < 4; ++c)
+        for (int r = 0; r < 4; ++r) p.columns[c][r] = m[c * 4 + r];
+    return p;
+}
+
+} // namespace
+
+Ref<Shader> GoannaIrisGbuffers::shadow_shader(int surface) const {
+    if (surface < 0 || surface >= SURFACE_COUNT) return Ref<Shader>();
+    return m_shadow_shaders[surface];
+}
+
+void GoannaIrisGbuffers::set_shadow(const Ref<GoannaIrisShadow> &shadow) { m_shadow = shadow; }
+
+// The shadow program, translated for each surface its copy of the terrain
+// is drawn on. Water is not among them: a pack's shadow program usually
+// drops water (Eclipse moves it out of the clip volume) and the
+// translucent shadowtex0 against shadowtex1 split is not drawn yet.
+void GoannaIrisGbuffers::loadShadow(const iris::GbuffersOptions &base) {
+    m_shadow_settings = iris::readShadowSettings(m_pack.consts(), m_pack.options());
+    if (!m_pack.hasProgram("shadow") || !m_pack.programEnabled("shadow")) {
+        m_shadow_error = m_pack.hasProgram("shadow") ? "shadow program disabled" : "no program";
+        return;
+    }
+    m_shadow_program = "shadow";
+    iris::Program p;
+    std::string perr;
+    if (!m_pack.program("shadow", p, perr, &m_shadow_warnings)) {
+        m_shadow_error = perr;
+        return;
+    }
+    const int surfaces[] = {SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE};
+    const iris::GbuffersSurface kinds[] = {iris::GbuffersSurface::ArrayOpaque, iris::GbuffersSurface::ArrayCutout,
+            iris::GbuffersSurface::SingleCutout};
+    const char *files[] = {"shadow_terrain", "shadow_cutout", "shadow_foliage"};
+    for (int i = 0; i < 3; ++i) {
+        iris::GbuffersOptions o = base;
+        o.surface = kinds[i];
+        o.shadow_pass = true;
+        o.label = m_pack.name() + "/shadow";
+        iris::GbuffersResult r;
+        std::string terr;
+        if (!iris::translateGbuffers(p, o, r, terr)) {
+            m_shadow_error = terr;
+            UtilityFunctions::push_warning(String("Goanna Iris gbuffers: shadow: ") + terr.c_str());
+            for (auto &sh : m_shadow_shaders) sh.unref();
+            return;
+        }
+        if (i == 0) m_shadow_warnings.insert(m_shadow_warnings.end(), r.warnings.begin(), r.warnings.end());
+        for (auto &g : r.globals) registerGlobal(g.first, g.second);
+        if (!m_dump_dir.empty()) {
+            std::error_code ec;
+            std::filesystem::create_directories(m_dump_dir, ec);
+            std::ofstream(m_dump_dir + "/" + files[i] + ".gdshader") << r.code;
+        }
+        Ref<Shader> sh;
+        sh.instantiate();
+        sh->set_code(String::utf8(r.code.c_str()));
+        m_shadow_shaders[surfaces[i]] = sh;
+    }
+}
+
+// This frame's shadow space from the camera and the light (the sun by day,
+// the moon by night, as shadowLightPosition), set for the shadow program's
+// fixed function matrices and for every program's shadow uniforms.
+void GoannaIrisGbuffers::updateShadow(const Vector3 &camera, const Vector3 &light) {
+    const iris::ShadowSettings &st = m_shadow_settings;
+    const float l[3] = {light.x, light.y, light.z};
+    const float c[3] = {camera.x, camera.y, camera.z};
+    iris::Mat4 mv, proj, translate, gl_mv;
+    iris::shadowModelView(l, c, st.interval, mv);
+    iris::shadowProjection(st.distance, st.near_plane, st.far_plane, proj);
+    // The fixed function modelview takes world positions, as in the
+    // gbuffers programs: shadowModelView after the camera's translation.
+    for (int k = 0; k < 16; ++k) translate[k] = (k % 5 == 0) ? 1.0f : 0.0f;
+    translate[12] = -camera.x;
+    translate[13] = -camera.y;
+    translate[14] = -camera.z;
+    iris::mul(mv, translate, gl_mv);
+    m_shadow_mv = fromMat4(mv);
+    m_shadow_proj = fromMat4(proj);
+    const Projection glmv = fromMat4(gl_mv);
+    setGlobal("iris_shadowModelView", m_shadow_mv);
+    setGlobal("iris_shadowModelViewInverse", m_shadow_mv.inverse());
+    setGlobal("iris_shadowProjection", m_shadow_proj);
+    setGlobal("iris_shadowProjectionInverse", m_shadow_proj.inverse());
+    setGlobal("iris_shadow_gl_ModelViewMatrix", glmv);
+    setGlobal("iris_shadow_gl_ModelViewMatrixInverse", glmv.inverse());
+    setGlobal("iris_shadow_gl_ModelViewProjectionMatrix", m_shadow_proj * glmv);
+    Basis nb;
+    for (int col = 0; col < 3; ++col)
+        for (int row = 0; row < 3; ++row) nb.rows[row][col] = mv[col * 4 + row];
+    setGlobal("iris_shadow_gl_NormalMatrix", nb);
+    // The light's eye in the world, for main.gd's culling camera.
+    iris::Mat4 eye;
+    iris::affineInverse(gl_mv, eye);
+    Basis eb;
+    for (int col = 0; col < 3; ++col)
+        for (int row = 0; row < 3; ++row) eb.rows[row][col] = eye[col * 4 + row];
+    m_shadow_eye = Transform3D(eb, Vector3(eye[12], eye[13], eye[14]));
+    if (m_shadow.is_valid() && m_shadow->sync()) {
+        setGlobal("iris_shadowtex0", m_shadow->shadowtex());
+        setGlobal("iris_shadowtex1", m_shadow->shadowtex());
+        setGlobal("iris_shadowcolor0", m_shadow->shadowcolor());
+    }
+}
+
+Dictionary GoannaIrisGbuffers::shadow_state() const {
+    Dictionary d;
+    if (!has_shadow()) return d;
+    d["shadow_model_view"] = m_shadow_mv;
+    d["shadow_projection"] = m_shadow_proj;
+    d["camera_transform"] = m_shadow_eye;
+    d["size"] = 2.0f * m_shadow_settings.distance;
+    d["near"] = m_shadow_settings.near_plane;
+    d["far"] = m_shadow_settings.far_plane;
+    d["resolution"] = m_shadow_settings.resolution;
     return d;
 }
 

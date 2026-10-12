@@ -99,5 +99,20 @@ func _initialize() -> void:
 		check(g.block_id("stone") == -1, "an unlisted block is not -1")
 		var ids: PackedInt32Array = g.block_ids(PackedStringArray(["", "stone", "oak_leaves"]))
 		check(ids.size() == 512 and ids[1] == -1 and ids[2] == 10000, "block_ids table")
+	# The shadow program (rung 7), translated for the opaque and cut-out
+	# array tiles and the foliage; Base-Shader has none.
+	if bundled:
+		check(not g.has_shadow(), "Base-Shader has no shadow program")
+	elif g.has_shadow():
+		for surface in [0, 1, 3]:
+			var shadow: Shader = g.shadow_shader(surface)
+			var sname: String = "shadow " + ["terrain", "cutout", "", "foliage"][surface]
+			check(shadow != null, sname + " was not translated: %s" % report.get("shadow"))
+			if shadow == null:
+				continue
+			var snames := uniform_names(shadow)
+			check(not snames.is_empty(), sname + " does not compile in Godot")
+			for u in (ARRAY_UNIFORMS if surface < 2 else ["albedo_tex"]):
+				check(snames.has(u), sname + " has no uniform " + u)
 	print("iris_gbuffers: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)

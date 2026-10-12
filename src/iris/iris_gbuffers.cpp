@@ -216,8 +216,31 @@ const GlobalDef *findGlobal(const std::string &pack) {
     return nullptr;
 }
 
+// In the shadow program the fixed function matrices are the light's, as
+// Iris gives them there: the modelview is shadowModelView after the
+// camera's translation, the projection shadowProjection.
+const GlobalDef *findShadowFixed(const std::string &pack) {
+    static const GlobalDef fixed[] = {
+        {"gl_ModelViewMatrix", "iris_shadow_gl_ModelViewMatrix", "mat4"},
+        {"modelViewMatrix", "iris_shadow_gl_ModelViewMatrix", "mat4"},
+        {"gl_ModelViewMatrixInverse", "iris_shadow_gl_ModelViewMatrixInverse", "mat4"},
+        {"modelViewMatrixInverse", "iris_shadow_gl_ModelViewMatrixInverse", "mat4"},
+        {"gl_ProjectionMatrix", "iris_shadowProjection", "mat4"},
+        {"projectionMatrix", "iris_shadowProjection", "mat4"},
+        {"gl_ProjectionMatrixInverse", "iris_shadowProjectionInverse", "mat4"},
+        {"projectionMatrixInverse", "iris_shadowProjectionInverse", "mat4"},
+        {"gl_ModelViewProjectionMatrix", "iris_shadow_gl_ModelViewProjectionMatrix", "mat4"},
+        {"gl_NormalMatrix", "iris_shadow_gl_NormalMatrix", "mat3"},
+        {"normalMatrix", "iris_shadow_gl_NormalMatrix", "mat3"},
+    };
+    for (auto &f : fixed)
+        if (pack == f.pack)
+            return &f;
+    return nullptr;
+}
+
 // What a pack sampler is bound to.
-enum class SamplerRole { Atlas, Normals, Specular, Lightmap, Noise, White, Black };
+enum class SamplerRole { Atlas, Normals, Specular, Lightmap, Noise, White, Black, ShadowDepth0, ShadowDepth1, ShadowColour0 };
 
 bool samplerRole(const std::string &name, SamplerRole &role) {
     if (name == "texture" || name == "tex" || name == "gtexture") role = SamplerRole::Atlas;
@@ -225,6 +248,13 @@ bool samplerRole(const std::string &name, SamplerRole &role) {
     else if (name == "specular") role = SamplerRole::Specular;
     else if (name == "lightmap") role = SamplerRole::Lightmap;
     else if (name == "noisetex") role = SamplerRole::Noise;
+    // The pack's shadow map (rung 7), with the legacy names Iris also
+    // takes: shadow is shadowtex0, watershadow shadowtex1, shadowcolor
+    // shadowcolor0. Until a shadow pass has drawn they read white: depth
+    // 1.0, nothing in shadow.
+    else if (name == "shadowtex0" || name == "shadow") role = SamplerRole::ShadowDepth0;
+    else if (name == "shadowtex1" || name == "watershadow") role = SamplerRole::ShadowDepth1;
+    else if (name == "shadowcolor0" || name == "shadowcolor") role = SamplerRole::ShadowColour0;
     else if (name.compare(0, 9, "shadowtex") == 0 || name.compare(0, 8, "depthtex") == 0 || name == "shadow" ||
             name == "watershadow" || name == "gdepthtex" || name.compare(0, 11, "shadowcolor") == 0)
         role = SamplerRole::White;
@@ -378,7 +408,8 @@ private:
             std::string hint;
             if (type == "sampler2D")
                 hint = name == "iris_lightmap" ? " : filter_linear, repeat_disable"
-                                               : " : filter_linear_mipmap, repeat_enable";
+                        : name.compare(0, 11, "iris_shadow") == 0 ? " : filter_nearest, repeat_disable"
+                                                                  : " : filter_linear_mipmap, repeat_enable";
             addDecl("global uniform " + type + " " + name + hint + ";");
             m_r.globals.push_back({name, type});
         }
@@ -690,7 +721,7 @@ Val Translator::builtinIdent(const std::string &n, bool &found) {
         v.t = Ty::vec(Ty::Float, 3);
         return v;
     }
-    if (const GlobalDef *g = findGlobal(n)) {
+    if (const GlobalDef *g = m_o.shadow_pass && findShadowFixed(n) ? findShadowFixed(n) : findGlobal(n)) {
         v.code = needGlobal(g->godot, g->type);
         v.t = tyFromName(g->type, m_structs);
         return v;
@@ -872,13 +903,30 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         tex = needGlobal("iris_tex_black", "sampler2D");
         warn("sampler '" + sampler + "' reads a constant black texture");
         break;
+    case SamplerRole::ShadowDepth0: tex = needGlobal("iris_shadowtex0", "sampler2D"); break;
+    case SamplerRole::ShadowDepth1: tex = needGlobal("iris_shadowtex1", "sampler2D"); break;
+    case SamplerRole::ShadowColour0: tex = needGlobal("iris_shadowcolor0", "sampler2D"); break;
     }
-    // Shadow comparisons: nothing is in shadow.
+    const bool shadow_depth = role == SamplerRole::ShadowDepth0 || role == SamplerRole::ShadowDepth1;
+    // Shadow comparisons. Godot has no comparison sampler, so a depth
+    // map's compare is written out: lit (1.0) where the reference is no
+    // further than the stored depth, as LESS_OR_EQUAL compares. Any other
+    // shadow sampler says nothing is in shadow.
     bool shadow_cmp = fn.rfind("shadow2D", 0) == 0 ||
             (fn.compare(0, 7, "texture") == 0 && args.size() >= 2 && args[1].t.n == 3 && !layered &&
-                    sampler.compare(0, 6, "shadow") == 0 && role == SamplerRole::White &&
+                    sampler.compare(0, 6, "shadow") == 0 && (role == SamplerRole::White || shadow_depth) &&
                     m_globals[si(m_stage)].count(sampler) &&
                     m_globals[si(m_stage)][sampler].t.name.find("Shadow") != std::string::npos);
+    if (shadow_cmp && shadow_depth && args.size() >= 2) {
+        std::string c = conv(args[1], Ty::vec(Ty::Float, 3)).code;
+        std::string lod = fn.find("Lod") != std::string::npos && args.size() >= 3 ? conv(args[2], Ty::scalar(Ty::Float)).code : "";
+        std::string read = lod.empty() ? "texture(" + tex + ", (" + c + ").xy).r"
+                                       : "textureLod(" + tex + ", (" + c + ").xy, " + lod + ").r";
+        std::string cmp = "step((" + c + ").z, " + read + ")";
+        if (fn.rfind("shadow2D", 0) == 0)
+            return {"vec4(" + cmp + ")", Ty::vec(Ty::Float, 4), false};
+        return {cmp, Ty::scalar(Ty::Float), false};
+    }
     if (shadow_cmp) {
         if (fn.rfind("shadow2D", 0) == 0)
             return {"vec4(1.0)", Ty::vec(Ty::Float, 4), false};
@@ -986,7 +1034,8 @@ Val Translator::call(const Expr &e) {
     if (fn == "ftransform" && m_stage == Stage::Vertex) {
         bool f;
         Val vtx = builtinIdent("gl_Vertex", f);
-        std::string mvp = needGlobal("iris_gl_ModelViewProjectionMatrix", "mat4");
+        std::string mvp = needGlobal(m_o.shadow_pass ? "iris_shadow_gl_ModelViewProjectionMatrix"
+                                                     : "iris_gl_ModelViewProjectionMatrix", "mat4");
         return {"(" + mvp + " * " + vtx.code + ")", Ty::vec(Ty::Float, 4), false};
     }
     std::vector<Val> args;
@@ -1721,7 +1770,8 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                     globals[d.name] = {d.name, t};
                     continue;
                 }
-                if (const GlobalDef *gd = findGlobal(d.name)) {
+                if (const GlobalDef *gd = m_o.shadow_pass && findShadowFixed(d.name) ? findShadowFixed(d.name)
+                                                                                    : findGlobal(d.name)) {
                     Ty gt = tyFromName(gd->type, m_structs);
                     std::string code = gd->godot;
                     if (gt != t && !t.array) {
@@ -2026,7 +2076,7 @@ bool Translator::run(const Program &p, std::string &err) {
     for (const char *n : {"albedo_array", "normal_array", "spec_array", "albedo_tex", "layer_anim",
                  "goanna_layer", "goanna_anim_layer", "goanna_block_entity", "goanna_vertex_colour",
                  "goanna_frag_coord", "goanna_mid_block", "goanna_to_linear", "goanna_lightmap_texmat",
-                 "goanna_iris_block_ids", "goanna_iris_entity_override", "goanna_old_lighting",
+                 "goanna_iris_block_ids", "goanna_iris_entity_override", "goanna_old_lighting", "goanna_shadow_position",
                  "goanna_node_anim_time"})
         m_used_names.insert(n);
 
@@ -2125,7 +2175,14 @@ bool Translator::run(const Program &p, std::string &err) {
             }
     }
     if (m_routed_all[0].count("gl_Position")) plain = false;
-    if (m_vin.count("goanna_gl_Position") && !plain) {
+    if (m_o.shadow_pass) {
+        // The light's clip position goes out as it is, in Goanna's shadow
+        // camera only; see goanna_shadow_position in the shell.
+        m_r.moves_vertices = !plain;
+        vo << "\tPOSITION = goanna_shadow_position("
+           << (m_vin.count("goanna_gl_Position") ? "goanna_gl_Position" : "vec4(2.0, 2.0, 2.0, 1.0)")
+           << ", CAMERA_VISIBLE_LAYERS);\n";
+    } else if (m_vin.count("goanna_gl_Position") && !plain) {
         m_r.moves_vertices = true;
         std::string P = needGlobal("iris_gbufferProjection", "mat4");
         std::string MVI = needGlobal("iris_gbufferModelViewInverse", "mat4");
@@ -2188,7 +2245,9 @@ bool Translator::run(const Program &p, std::string &err) {
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }
         std::string ind;
-        if (!second.empty()) {
+        // The shadow program draws one target, shadowcolor0.
+        const bool split = !second.empty() && !m_o.shadow_pass;
+        if (split) {
             // A target this program does not write keeps what is under it,
             // as GL's masked write does: alpha 0 where blended, and where
             // opaque the clear value, so the surface still hides what is
@@ -2206,10 +2265,12 @@ bool Translator::run(const Program &p, std::string &err) {
             fo << "\t} else {\n";
             ind = "\t";
         }
-        fo << "\t" << ind << "ALBEDO = goanna_to_linear(" << c << ".rgb);\n";
+        // The shadow program's colour is shadowcolor0, kept as written.
+        fo << "\t" << ind << "ALBEDO = "
+           << (m_o.shadow_pass ? "clamp(" + c + ".rgb, 0.0, 1.0)" : "goanna_to_linear(" + c + ".rgb)") << ";\n";
         if (blended)
             fo << "\t" << ind << "ALPHA = clamp(" << c << ".a, 0.0, 1.0);\n";
-        if (!second.empty())
+        if (split)
             fo << "\t}\n";
     } else {
         warn("the fragment stage writes no colour");
@@ -2230,7 +2291,7 @@ bool Translator::run(const Program &p, std::string &err) {
     if (m_o.surface == GbuffersSurface::Translucent)
         o << "blend_mix, cull_disabled, " << (m_o.translucent_depth ? "depth_draw_always" : "depth_draw_opaque")
           << ";\n";
-    else if (m_o.surface == GbuffersSurface::SingleCutout)
+    else if (m_o.surface == GbuffersSurface::SingleCutout || m_o.shadow_pass)
         o << "cull_disabled;\n";
     else
         o << "cull_back;\n";
@@ -2238,6 +2299,8 @@ bool Translator::run(const Program &p, std::string &err) {
         o << "#define GOANNA_IRIS_ARRAY\n";
     if (m_o.old_lighting)
         o << "#define GOANNA_IRIS_OLD_LIGHTING\n";
+    if (m_o.shadow_pass)
+        o << "#define GOANNA_IRIS_SHADOW\n";
     o << "#include \"res://shaders/iris_gbuffers_shell.gdshaderinc\"\n\n";
     if (m_texmat1)
         o << "const mat4 goanna_lightmap_texmat = mat4(vec4(1.0 / 256.0, 0.0, 0.0, 0.0), vec4(0.0, 1.0 / 256.0, 0.0, 0.0), "

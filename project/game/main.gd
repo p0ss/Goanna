@@ -336,6 +336,13 @@ var iris_gbuffers: GoannaIrisGbuffers
 # The cameras drawing the geometry programs' second outputs for the chain
 # (game/effects/iris_targets.gd); null without both halves of a pack.
 var iris_targets: Node
+# The pack's own shadow map (docs/design/iris-compat.md, rung 7): a square
+# SubViewport at the pack's shadowMapResolution whose orthographic camera
+# sees only the shadow layer, and the capture effect in its Compositor that
+# keeps the result for the gbuffers programs and the screen space chain.
+# Null without a pack that has a shadow program.
+var iris_shadow: GoannaIrisShadow
+var iris_shadow_camera: Camera3D
 var test_started := 0.0
 var showcase_mode := false
 var showcase_placed := false
@@ -815,6 +822,7 @@ func _ready() -> void:
 		else:
 			print("shader pack failed to load: ", iris.report())
 			iris = null
+	_setup_iris_shadow()
 	# A pack with terrain but no screen space chain (Base-Shader) still owns
 	# the colour of the world.
 	if iris_gbuffers and iris_gbuffers.has_terrain():
@@ -4131,6 +4139,87 @@ func _apply_sky() -> void:
 			"in_water": 1 if underwater else 0, "sky_color": top,
 			"fog_color": e.fog_light_color, "fog_start": e.fog_depth_begin,
 			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0})
+		if iris_shadow != null:
+			# This frame's shadow space, for the culling camera and the chain;
+			# the gbuffers programs already have it from update().
+			var ss := iris_gbuffers.shadow_state()
+			iris_shadow_camera.global_transform = ss["camera_transform"]
+			iris_shadow_camera.size = ss["size"]
+			if iris:
+				iris.set_world_state(ss)
+
+
+# The pack's shadow pass. Its programs draw copies of the near terrain on
+# the shadow layer (GoannaClient::irisShadowTwin), and only this camera
+# sees that layer, so it draws nothing else: no lights reach it either, as
+# they are on layer 1. The camera is the pack's shadow box for culling
+# only; the shadow program writes the light's clip position itself. Its
+# own environment keeps the sky, fog, glow and GI out of the map, and
+# clears it white (depth 1, nothing in shadow; shadowcolor0 white).
+# GOANNA_SHADERPACK_SHADOW=0 leaves the pass out, for comparison: the map
+# then reads as all lit, as it did before the pass existed.
+func _setup_iris_shadow() -> void:
+	if iris_gbuffers == null or not iris_gbuffers.has_shadow():
+		return
+	if OS.get_environment("GOANNA_SHADERPACK_SHADOW") == "0":
+		return
+	iris_shadow = GoannaIrisShadow.new()
+	iris_gbuffers.set_shadow(iris_shadow)
+	var res: int = iris_gbuffers.shadow_resolution()
+	var vp := SubViewport.new()
+	vp.name = "IrisShadow"
+	vp.size = Vector2i(res, res)
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.msaa_3d = Viewport.MSAA_DISABLED
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.use_taa = false
+	vp.use_debanding = false
+	vp.use_occlusion_culling = false
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	vp.scaling_3d_scale = 1.0
+	vp.mesh_lod_threshold = 0.0
+	vp.positional_shadow_atlas_size = 0
+	var senv := Environment.new()
+	senv.background_mode = Environment.BG_COLOR
+	senv.background_color = Color(1, 1, 1, 1)
+	senv.ambient_light_source = Environment.AMBIENT_SOURCE_DISABLED
+	senv.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	senv.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	iris_shadow_camera = Camera3D.new()
+	iris_shadow_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	iris_shadow_camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	iris_shadow_camera.cull_mask = iris_gbuffers.shadow_layer()
+	iris_shadow_camera.environment = senv
+	iris_shadow_camera.attributes = CameraAttributesPractical.new()
+	var st := iris_gbuffers.shadow_state()
+	iris_shadow_camera.near = st.get("near", 0.05)
+	iris_shadow_camera.far = st.get("far", 256.0)
+	var comp := Compositor.new()
+	comp.compositor_effects = [iris_shadow]
+	iris_shadow_camera.compositor = comp
+	vp.add_child(iris_shadow_camera)
+	iris_shadow_camera.current = true
+	add_child(vp)
+	# The player's camera never draws the shadow copies. (Any other camera
+	# that does gets nothing from them: the shadow program draws only in a
+	# camera whose cull mask is the shadow layer alone.)
+	cam.cull_mask &= ~iris_gbuffers.shadow_layer()
+	if iris:
+		iris.set_shadow(iris_shadow)
+	# GOANNA_SHADERPACK_SHADOW_SHOW=1 puts the shadow viewport's colour (the
+	# shadow program's output on white) in the top left corner, to see what
+	# the map holds.
+	if OS.get_environment("GOANNA_SHADERPACK_SHADOW_SHOW") == "1":
+		var layer := CanvasLayer.new()
+		layer.layer = 100
+		var rect := TextureRect.new()
+		rect.texture = vp.get_texture()
+		rect.size = Vector2(320, 320)
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_SCALE
+		layer.add_child(rect)
+		add_child(layer)
+	print("shader pack shadow map ", res, " square, ", st.get("size", 0.0), " nodes across")
 
 
 # Whether a shader pack's output is the finished colour, so Godot's tonemap

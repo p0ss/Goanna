@@ -1243,6 +1243,7 @@ private:
     void clearMaterials() {
         m_materials.clear();
         m_anim_materials.clear();
+        m_iris_shadow_mats.clear();
     }
     // The node animation clock, seconds in [0, 60) as Client::step keeps it,
     // and a pinned value from set_node_animation_time (below 0 when free).
@@ -1273,6 +1274,18 @@ private:
     // Puts a pack's program on `sm` when one is loaded for the surface
     // (GoannaIrisGbuffers::SURFACE_*); false, and `sm` untouched, otherwise.
     bool applyIrisGbuffers(const godot::Ref<godot::ShaderMaterial> &sm, int surface);
+    // A pack's shadow map (iris-compat.md, rung 7): a child of a near
+    // terrain MeshInstance3D drawing the same mesh on the shadow layer
+    // alone, each surface with the pack's shadow program in place of its
+    // gbuffers one. Nothing while no pack with a shadow program is loaded.
+    // Called wherever a near terrain node is given a mesh.
+    void irisShadowTwin(godot::MeshInstance3D *node);
+    // The shadow material for one of the node materials, by the base's
+    // instance id; a material that collapses its surface for any base the
+    // pack has no shadow program for (water, glass, lava, glow).
+    std::unordered_map<uint64_t, godot::Ref<godot::Material>> m_iris_shadow_mats;
+    godot::Ref<godot::Material> m_iris_shadow_none;
+    godot::Ref<godot::Material> irisShadowMaterial(const godot::Ref<godot::Material> &base);
     bool flameSurface(const MaterialKey &key) const {
         return m_flame_material && !key.array_texture && !key.crack_overlay &&
                 m_flame_tex.count(key.texture_id);

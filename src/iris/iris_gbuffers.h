@@ -80,6 +80,13 @@ struct GbuffersOptions {
     // A program uniform named here is read through the global
     // iris_cu_<name>, which GoannaIrisGbuffers sets each frame.
     std::set<std::string> custom_uniforms;
+    // The pack's shadow program rather than a gbuffers one (rung 7). Its
+    // fixed function matrices are the light's (iris_shadow_gl_*), its
+    // gl_Position goes straight to POSITION, converted to Vulkan's depth
+    // convention and only in Goanna's shadow camera (every other camera
+    // sees nothing), and its colour reaches ALBEDO as written, for
+    // shadowcolor0. `surface` still says which shell it is drawn on.
+    bool shadow_pass = false;
 };
 
 struct GbuffersResult {

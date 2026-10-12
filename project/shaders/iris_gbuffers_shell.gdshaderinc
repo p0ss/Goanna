@@ -111,3 +111,23 @@ vec3 goanna_to_linear(vec3 c) {
 	c = clamp(c, 0.0, 1.0);
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
 }
+
+#ifdef GOANNA_IRIS_SHADOW
+// The pack's shadow program (docs/design/iris-compat.md, rung 7). Goanna
+// draws the shadow map with a camera of its own whose cull mask is render
+// layer 13 alone (GoannaIrisGbuffers::SHADOW_LAYER), the only layer the
+// shadow copies of the near terrain are on. The clip position the pack
+// made with the light's matrices goes out unchanged in x, y and w, so the
+// map's texels are where the pack's own lookups expect them, and its depth
+// is moved from OpenGL's -w..w to the reversed 0..w Godot's depth test
+// wants, near the light at w. Any other camera, which should never see
+// these surfaces, gets nothing: every vertex on one point outside the clip
+// volume.
+const uint GOANNA_IRIS_SHADOW_LAYERS = 4096u;
+
+vec4 goanna_shadow_position(vec4 clip, uint layers) {
+	if (layers != GOANNA_IRIS_SHADOW_LAYERS)
+		return vec4(2.0, 2.0, 2.0, 1.0);
+	return vec4(clip.x, clip.y, 0.5 * (clip.w - clip.z), clip.w);
+}
+#endif

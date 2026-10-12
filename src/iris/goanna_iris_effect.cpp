@@ -197,6 +197,7 @@ void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("pack_name"), &GoannaIrisEffect::pack_name);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisEffect::report);
     ClassDB::bind_method(D_METHOD("set_world_state", "state"), &GoannaIrisEffect::set_world_state);
+    ClassDB::bind_method(D_METHOD("set_shadow", "shadow"), &GoannaIrisEffect::set_shadow);
     ClassDB::bind_method(D_METHOD("set_dump_dir", "dir"), &GoannaIrisEffect::set_dump_dir);
     ClassDB::bind_method(D_METHOD("set_bridge_colour", "on"), &GoannaIrisEffect::set_bridge_colour);
     ClassDB::bind_method(D_METHOD("get_bridge_colour"), &GoannaIrisEffect::get_bridge_colour);
@@ -362,6 +363,15 @@ void GoannaIrisEffect::set_world_state(const Dictionary &s) {
     if (s.has("in_water")) m_world.in_water = (int)s["in_water"];
     if (s.has("sky_color")) m_world.sky = s["sky_color"];
     if (s.has("fog_color")) m_world.fog = s["fog_color"];
+    if (s.has("shadow_model_view") && s.has("shadow_projection")) {
+        m_world.shadow_mv = s["shadow_model_view"];
+        m_world.shadow_proj = s["shadow_projection"];
+        m_world.has_shadow = true;
+    }
+}
+
+void GoannaIrisEffect::set_shadow(const Ref<GoannaIrisShadow> &shadow) {
+    m_shadow = shadow;
 }
 
 void GoannaIrisEffect::set_dump_dir(const String &dir) {
@@ -647,6 +657,15 @@ RID GoannaIrisEffect::textureFor(const Pass &p, const iris::Translated::Sampler 
         return depth1;
     if (name == "noisetex")
         return m_noise;
+    // The pack's own shadow map once it has been drawn (rung 7): the depth
+    // format copy serves a comparison sampler and a plain one alike.
+    // shadowtex1 is shadowtex0: no translucent geometry is drawn into it.
+    if (m_shadow.is_valid() && m_shadow->depth_rid().is_valid()) {
+        if (name == "shadowtex0" || name == "shadowtex1")
+            return m_shadow->depth_rid();
+        if (name == "shadowcolor0" && m_shadow->colour_rid().is_valid())
+            return m_shadow->colour_rid();
+    }
     if (name.rfind("shadowtex", 0) == 0)
         return s.type.find("Shadow") != std::string::npos ? m_dummy_shadow_depth : m_dummy_depth;
     if (name == "gtexture" || name == "lightmap" || name == "normals")
@@ -939,12 +958,20 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     putMat4("gbufferProjectionInverse", proj.inverse());
     putMat4("gbufferPreviousModelView", basisToProjection(m_prev_cam.basis.inverse()));
     putMat4("gbufferPreviousProjection", m_prev_proj);
-    // No shadow pass yet: the shadow matrices are the camera's, so a pack
-    // that projects into shadow space gets something finite.
-    putMat4("shadowModelView", mv);
-    putMat4("shadowModelViewInverse", mvInv);
-    putMat4("shadowProjection", proj);
-    putMat4("shadowProjectionInverse", proj.inverse());
+    // The pack's shadow matrices when main.gd supplies them (rung 7);
+    // otherwise the camera's, so a pack that projects into shadow space
+    // gets something finite.
+    if (w.has_shadow) {
+        putMat4("shadowModelView", w.shadow_mv);
+        putMat4("shadowModelViewInverse", w.shadow_mv.inverse());
+        putMat4("shadowProjection", w.shadow_proj);
+        putMat4("shadowProjectionInverse", w.shadow_proj.inverse());
+    } else {
+        putMat4("shadowModelView", mv);
+        putMat4("shadowModelViewInverse", mvInv);
+        putMat4("shadowProjection", proj);
+        putMat4("shadowProjectionInverse", proj.inverse());
+    }
     // Composite passes: Iris draws a unit quad under an ortho projection, so
     // ftransform() of [0,1] lands on the screen.
     Projection ortho;

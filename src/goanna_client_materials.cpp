@@ -159,6 +159,83 @@ bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface)
     return true;
 }
 
+Ref<Material> GoannaClient::irisShadowMaterial(const Ref<Material> &base) {
+    Ref<ShaderMaterial> sm = base;
+    const uint64_t id = base.is_valid() ? base->get_instance_id() : 0;
+    auto it = m_iris_shadow_mats.find(id);
+    if (it != m_iris_shadow_mats.end())
+        return it->second;
+    Ref<Shader> shadow;
+    if (sm.is_valid() && sm->get_shader().is_valid()) {
+        // Which of the pack's surfaces the base is, by its shader; the
+        // shadow program was translated for each of them.
+        for (int s : {GoannaIrisGbuffers::SURFACE_TERRAIN, GoannaIrisGbuffers::SURFACE_CUTOUT,
+                     GoannaIrisGbuffers::SURFACE_FOLIAGE})
+            if (sm->get_shader() == m_iris_gbuffers->shader(s)) {
+                shadow = m_iris_gbuffers->shadow_shader(s);
+                break;
+            }
+    }
+    Ref<Material> out;
+    if (shadow.is_valid()) {
+        Ref<ShaderMaterial> m;
+        m.instantiate();
+        m->set_shader(shadow);
+        // Its uniforms are the shell's, which the base already has set: the
+        // texture array or texture, the animation table, the block numbers.
+        TypedArray<Dictionary> uniforms = shadow->get_shader_uniform_list();
+        for (int i = 0; i < uniforms.size(); ++i) {
+            StringName name = Dictionary(uniforms[i])["name"];
+            Variant v = sm->get_shader_parameter(name);
+            if (v.get_type() != Variant::NIL)
+                m->set_shader_parameter(name, v);
+        }
+        out = m;
+    } else {
+        if (m_iris_shadow_none.is_null()) {
+            Ref<Shader> none;
+            none.instantiate();
+            none->set_code("shader_type spatial;\nrender_mode unshaded, cull_disabled;\n"
+                           "void vertex() { POSITION = vec4(2.0, 2.0, 2.0, 1.0); }\n"
+                           "void fragment() { ALBEDO = vec3(1.0); }\n");
+            Ref<ShaderMaterial> m;
+            m.instantiate();
+            m->set_shader(none);
+            m_iris_shadow_none = m;
+        }
+        out = m_iris_shadow_none;
+    }
+    m_iris_shadow_mats[id] = out;
+    return out;
+}
+
+void GoannaClient::irisShadowTwin(MeshInstance3D *node) {
+    if (!node || m_iris_gbuffers.is_null() || !m_iris_gbuffers->has_shadow())
+        return;
+    MeshInstance3D *twin = Object::cast_to<MeshInstance3D>(node->get_node_or_null(NodePath("iris_shadow")));
+    Ref<Mesh> mesh = node->get_mesh();
+    if (mesh.is_null() || mesh->get_surface_count() == 0) {
+        if (twin)
+            twin->set_mesh(Ref<Mesh>());
+        return;
+    }
+    if (!twin) {
+        twin = memnew(MeshInstance3D);
+        twin->set_name("iris_shadow");
+        // The shadow layer alone: only main.gd's shadow camera sees it, and
+        // it casts nothing into Godot's own shadow maps or GI.
+        twin->set_layer_mask(GoannaIrisGbuffers::SHADOW_LAYER);
+        twin->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+        twin->set_gi_mode(GeometryInstance3D::GI_MODE_DISABLED);
+        node->add_child(twin);
+    }
+    twin->set_custom_aabb(node->get_custom_aabb());
+    twin->set_extra_cull_margin(node->get_extra_cull_margin());
+    twin->set_mesh(mesh);
+    for (int i = 0; i < mesh->get_surface_count(); ++i)
+        twin->set_surface_override_material(i, irisShadowMaterial(node->get_active_material(i)));
+}
+
 void GoannaClient::set_flame_material(bool on) {
     if (on == m_flame_material)
         return;

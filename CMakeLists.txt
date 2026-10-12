@@ -111,6 +111,8 @@ add_library(goanna SHARED
     src/iris/iris_glsl_ast.cpp
     src/iris/iris_gbuffers.cpp
     src/iris/goanna_iris_gbuffers.cpp
+    src/iris/iris_shadow.cpp
+    src/iris/goanna_iris_shadow.cpp
     src/transplant/collision.cpp
     src/transplant/environment_raycast.cpp
     src/transplant/localplayer.cpp
@@ -147,6 +149,19 @@ add_executable(goanna_iris_gbuffers_test EXCLUDE_FROM_ALL
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp)
 target_include_directories(goanna_iris_gbuffers_test PRIVATE src)
+
+# A pack's own shadow map, offline: the settings read from its const
+# directives, the shadow matrices, and the shadow program's translation.
+add_executable(goanna_iris_shadow_test EXCLUDE_FROM_ALL
+    src/goanna_iris_shadow_test.cpp
+    src/iris/iris_shadow.cpp
+    src/iris/iris_gbuffers.cpp
+    src/iris/iris_glsl_ast.cpp
+    src/iris/iris_preproc.cpp
+    src/iris/iris_expr.cpp
+    src/iris/iris_glsl.cpp
+    src/iris/iris_pack.cpp)
+target_include_directories(goanna_iris_shadow_test PRIVATE src)
 
 # Coarse voxel topology: recursive XYZ mips and exposed lower faces.
 add_executable(goanna_lod_test EXCLUDE_FROM_ALL src/goanna_lod_test.cpp)
@@ -336,6 +351,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_horizon_test
     goanna_iris_gbuffers_test
     goanna_iris_pack_test
+    goanna_iris_shadow_test
     goanna_item_icon_test
     goanna_light_test
     goanna_limbs_test

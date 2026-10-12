@@ -388,6 +388,8 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
                 if (group.glow == glow && !group.verts.is_empty() && !group.idx.is_empty())
                     node->set_surface_override_material(surface++, materialFor(group.key));
         }
+        if (!glow)
+            irisShadowTwin(node);
     };
     apply(region.node, mesh, false);
     apply(region.glow_node, glow_mesh, true);
@@ -1336,8 +1338,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
             add_child(mi);
             near_block.special_node = mi;
         }
-        if (si > 0)
+        if (si > 0) {
             mi->set_mesh(mesh);
+            irisShadowTwin(mi);
+        }
         if (ice_si > 0) {
             MeshInstance3D *ice = memnew(MeshInstance3D);
             ice->set_layer_mask(ICE_LAYER);

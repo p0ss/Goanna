@@ -21,7 +21,9 @@
 #pragma once
 
 #include "iris/iris_gbuffers.h"
+#include "iris/goanna_iris_shadow.h"
 #include "iris/iris_pack.h"
+#include "iris/iris_shadow.h"
 
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
@@ -75,6 +77,31 @@ public:
     // Writes each translated shader to a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
 
+    // The pack's own shadow map (docs/design/iris-compat.md, rung 7). The
+    // shadow program is translated once per surface it can be drawn on
+    // (SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE); GoannaClient
+    // draws a copy of each near terrain mesh with it on SHADOW_LAYER, and
+    // main.gd's shadow camera sees that layer alone. update() works out the
+    // pack's shadow matrices each frame and sets them for every program.
+    // Render layer 13: clear of NODE_SURFACE_LAYER (bit 14) and of the
+    // second output pass bits (iris::kGbuffersPassShift, 15 to 19), which
+    // every camera must keep all set or all clear.
+    static constexpr uint32_t SHADOW_LAYER = 1u << 12;
+    bool has_shadow() const { return m_shadow_shaders[SURFACE_TERRAIN].is_valid(); }
+    godot::Ref<godot::Shader> shadow_shader(int surface) const;
+    int shadow_resolution() const { return m_shadow_settings.resolution; }
+    int shadow_layer() const { return (int)SHADOW_LAYER; }
+    // The capture GoannaIrisShadow, whose textures update() hands the
+    // gbuffers programs as shadowtex0, shadowtex1 and shadowcolor0 once
+    // they exist. Main thread, before the first update().
+    void set_shadow(const godot::Ref<GoannaIrisShadow> &shadow);
+    // This frame's shadow space, after update(): shadow_model_view and
+    // shadow_projection (Projections, for GoannaIrisEffect's
+    // set_world_state), and for main.gd's shadow camera camera_transform
+    // (the light's eye, looking down -z), size (the box's side), near and
+    // far. Empty without a shadow program.
+    godot::Dictionary shadow_state() const;
+
 protected:
     static void _bind_methods();
 
@@ -110,6 +137,17 @@ private:
     iris::CustomUniforms m_custom;
     bool lookupBuiltin(const std::string &name, iris::Value &out) const;
     godot::Vector3 m_prev_cam;
+
+    // Rung 7: the shadow program and its frame state.
+    void loadShadow(const iris::GbuffersOptions &base);
+    void updateShadow(const godot::Vector3 &camera, const godot::Vector3 &light);
+    godot::Ref<godot::Shader> m_shadow_shaders[SURFACE_COUNT];
+    std::string m_shadow_program, m_shadow_error;
+    std::vector<std::string> m_shadow_warnings;
+    iris::ShadowSettings m_shadow_settings;
+    godot::Ref<GoannaIrisShadow> m_shadow;
+    godot::Projection m_shadow_mv, m_shadow_proj;
+    godot::Transform3D m_shadow_eye;
 };
 
 } // namespace goanna

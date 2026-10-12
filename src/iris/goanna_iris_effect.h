@@ -31,6 +31,7 @@
 // GoannaIrisEffect.
 #pragma once
 
+#include "iris/goanna_iris_shadow.h"
 #include "iris/iris_pack.h"
 
 #include <godot_cpp/classes/compositor_effect.hpp>
@@ -86,8 +87,15 @@ public:
     // Main thread, every frame. The keys are sun_direction and
     // moon_direction as a Vector3, time_of_day (0..1, 0 midnight), rain
     // (0..1), in_water as an int, and sky_color and fog_color, which are
-    // colours. Missing keys keep their previous value.
+    // colours. shadow_model_view and shadow_projection, as Projections,
+    // are the pack's shadow matrices (GoannaIrisGbuffers::shadow_state);
+    // without them the shadow matrices are the camera's. Missing keys keep
+    // their previous value.
     void set_world_state(const godot::Dictionary &state);
+    // Main thread, before the effect is attached: the pack's own shadow map
+    // (rung 7), bound as shadowtex0, shadowtex1 and shadowcolor0 once it
+    // has been drawn. Without one they are the lit dummies.
+    void set_shadow(const godot::Ref<GoannaIrisShadow> &shadow);
     // Dump the translated GLSL for each pass into a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
     // Colour bridge, on by default: colortex0 receives Godot's colour encoded
@@ -133,6 +141,8 @@ private:
         float tod = 0.5f, rain = 0.0f;
         int in_water = 0;
         godot::Color sky{0.5f, 0.7f, 1.0f}, fog{0.7f, 0.8f, 0.9f};
+        bool has_shadow = false;
+        godot::Projection shadow_mv, shadow_proj;
     };
 
     struct CustomTexture {
@@ -183,6 +193,8 @@ private:
     std::string m_dump_dir;
     bool m_labpbr = false;
     bool m_bridge_colour = true;
+    // Set before the effect is attached, then only read.
+    godot::Ref<GoannaIrisShadow> m_shadow;
 
     // GPU state, render thread only, except that report() reads m_gpu_ready,
     // m_dead and each pass's error and shader from the main thread. Those
