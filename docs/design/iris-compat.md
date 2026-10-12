@@ -75,6 +75,16 @@ a `PackedByteArray`, which reads as the centre depth readback arriving
 after the effect is gone; the frames had already been taken. How the
 chain looks was not judged.
 
+On 2026-10-13 a probe pack (a `final` that paints `near`, `far` and the
+distance rebuilt from `depthtex0`) showed that until commit `0fce1c1b` the
+chain's projection was wrong for every pack: `RenderSceneData` hands a
+compositor effect the projection Godot renders with, its depth already in
+Vulkan's reversed [0, 1], and `near` and `far` read off it came out as
+-0.05. The effect now undoes the z row to OpenGL's form (the y flip stays,
+because the chain's texture coordinates run top down). That was the whole
+of Mellow's pale haze, and part of Eclipse's darkness; see "What was
+observed" below.
+
 The rest of this section is the state of 2026-08-21, kept because it is
 still true unless a line above says otherwise.
 
@@ -385,6 +395,11 @@ So: most packs mostly work, a pack with an unusual G buffer layout does not,
 and the failure is legible rather than mysterious once the DRAWBUFFERS
 declaration is parsed and compared against what can be expressed.
 
+What was built (2026-10-12) is the extra geometry pass per target, drawn
+by a camera of its own into a target of its own rather than by
+`set_next_pass`, and with every output kept rather than mapped onto
+Godot's built ins; see "Second outputs" below.
+
 ### The LOD terrain has to be the same terrain
 
 `docs/systems/far-rendering.md` draws distant terrain as coarse tiers. If those
@@ -429,9 +444,11 @@ rather than a preference.
 6. **`gbuffers_water`, then the rest.** Water is the one whose absence is
    most obvious, and it exercises vertex displacement. Base has no water
    program, so this rung is measured against Eclipse. The translation runs,
-   displacement included, but Eclipse draws its water in `composite` from
-   targets only a second output can reach, so on the GPU its water surface
-   is transparent; see below.
+   displacement included. Eclipse draws its water in `composite` from
+   targets only a second output can reach, so until 2026-10-12 its water
+   surface was transparent; the second outputs now reach them, and on the
+   GPU its water is drawn, tinted and reflecting the stage. See "Second
+   outputs" below.
 7. **Shadow.** Godot already runs a shadow pass, so a translated shadow
    program mostly needs vertex displacement to agree with the terrain
    program, or waving grass casts unwaving shadows. Base has no shadow
@@ -513,6 +530,59 @@ depth precision went, would move a vertex at a thousand nodes by about half
 a node (worked out, not measured). Plain `ftransform()` leaves `VERTEX`
 alone.
 
+### Second outputs
+
+Built 2026-10-12 (commit `e6c842a1`). A program writes more than its
+colour: Eclipse's water puts a water mask in `colortex4`, its normal in
+`colortex1` and its sky light in `colortex3`, and its terrain its normal
+in `colortex1`, and the chain reads all of them. Godot's spatial shader
+has one colour output, so each target is drawn by a pass of its own.
+
+- The translator keeps every output (`GbuffersResult::second`): each
+  `colortex` from 1 to 15 a program writes, and the colour's own target
+  when that is not `colortex0`, so a pack keeping its colour in
+  `colortex1` finds it there. `fragment()` ends in a branch on
+  `CAMERA_VISIBLE_LAYERS`: the five cull mask bits from bit 15
+  (`iris::kGbuffersPassShift`) hold the colortex plus one under a second
+  output camera, and there the program writes that output raw to `ALBEDO`
+  (and `ALPHA` where blended). A target the program does not write gets 0,
+  or alpha 0 where blended, so an opaque surface still hides what is
+  behind it. Every ordinary camera, and the shadow pass, has all five bits
+  or none, and gets the colour as before.
+- `game/effects/iris_targets.gd` makes one `SubViewport` per target some
+  program writes and the chain samples (`GoannaIrisEffect::reads_colortex`),
+  up to eight. Each shares the world, renders HDR with a transparent
+  background, an environment with no sky, fog, glow or exposure and a
+  linear tonemap, and an empty `Compositor` so the chain does not run in it
+  too. Its camera follows the player's every frame, at the main view's 3D
+  resolution, and sees only layer 15 (`NODE_SURFACE_LAYER`, which the node
+  meshes near and far carry beside layer 1) plus its marker bits.
+- `GoannaIrisEffect::set_gbuffers_target` takes each viewport's texture
+  every frame, and the chain copies it into the colortex at its start in
+  place of the clear.
+- Translated water writes depth when the pack has a screen space chain, as
+  Minecraft's does, so `depthtex0` holds the water surface and `depthtex1`
+  does not, which is how Eclipse measures the water it looks through. Not
+  without a chain, which is the only reader: written depth also hides any
+  translucent surface Godot sorts after the water. Base-Shader's frames on
+  `r1tod1` were the same with and without it (0.8 per cent of pixels
+  differing by more than 15 levels, looking down on a lake).
+
+`GOANNA_SHADERPACK_SECOND=0` leaves the targets cleared, for comparison.
+What it costs and where it stops:
+
+- A whole geometry pass per target: four for Eclipse (`colortex1`, 3, 4
+  and 6). Not measured.
+- Values pass through a half float target, so a pack packing bits into a
+  16 bit target (Photon keeps its material data in `colortex1` and 2 as
+  `RGBA16`) loses them.
+- Only node surfaces are in these views. What else is in a node mesh
+  (Goanna's own grass) draws there with its own shader, which no light
+  reaches, so near black; entities, the sky and particles are absent and
+  hide nothing.
+- Whether Godot renders the subviewports before the main view in the same
+  frame, or a frame late, was not checked; a still camera cannot show it.
+
 ### What was observed
 
 Offline, no GPU, Godot 4.5.1, 2026-10-11: `goanna_iris_gbuffers_test` (in
@@ -562,20 +632,80 @@ Godot 4.5.1, the branch clean at the commit named:
   frame is a pale haze over faint shapes. Its chain runs over the result,
   and which half makes the haze was not traced.
 
+On 2026-10-12 and 13, the same card, server, game and Godot, through
+`tools/goanna-render` on the fixture's stage (grass, stone bricks, gold,
+oak leaves and a water source spreading over the stone floor, noon,
+clear), the branch clean at the commit named; frames compared by eye and
+by averaging regions of the PNGs:
+
+- At `19f48140`, before this work: Base-Shader as on 2026-10-11; Eclipse
+  dark with its water transparent, as above. The client with Eclipse
+  loaded was stopped through the launcher with no signal 11 and no core
+  dump, where on 2026-10-11 both pack clients crashed; that is a stop, not
+  a quit from inside.
+- A debug copy of Eclipse whose `final` shows the targets: `colortex1`
+  holds the normals (the floor (0.5, 1, 0.5), the block faces towards the
+  camera blue, the water's wave normals rippling), and where the water is,
+  `colortex4` and `colortex3` are 1 and the rest 0, edges where they
+  should be; the sky and Goanna's grass are 0. So the second outputs reach
+  the chain, raw and aligned.
+- Eclipse with second outputs, at `e6c842a1`: the water drawn, pale
+  blue-grey with the darker shapes its screen space reflections find,
+  where without them (`GOANNA_SHADERPACK_SECOND=0`) the floor shows
+  through; the rest still dark.
+- Mellow split into its halves: the geometry programs alone (the chain's
+  files removed from a copy) give a lit, recognisable stage; the chain
+  alone (`GOANNA_SHADERPACK_GBUFFERS=0`) gives the haze; with
+  `BORDER_FOG=false` the haze is gone. A probe pack then showed `near` and
+  `far` reading -0.05 in the chain, the projection fault described in the
+  status section, fixed in `0fce1c1b`.
+- At `0fce1c1b` (this run's service had another session's copy of
+  `r1tod1` for its world, so real terrain stands behind the stage): Mellow
+  draws the stage by day under its own sky and fog, the terrain beyond the
+  stage clear. Eclipse is in daylight: a blue
+  sky with clouds, the water blue and reflecting the grass and the blocks
+  in it, the floor a dark blue-grey; its block faces stay dark, which is
+  its own lighting for faces the noon sun does not face (`shadowColor`
+  for a surface edge on to the light), not compared with Iris. Without
+  second outputs the water is a flat dark plane with no reflection.
+  Base-Shader is as before, region by region within a level or two,
+  except Goanna's own grass, which the pack does not draw and whose
+  colour differed in every run, the baseline included. Photon, now
+  translating, draws its terrain magenta under the 15 of its 20 chain
+  passes that compile.
+- At `0fce1c1b` on `r1tod1`, near (110 nodes up, looking down on the lake
+  and along it) and far (240 up, out to the horizon): Eclipse's lake is
+  blue water with fine ripples and the islands reflected dark under them,
+  out to where the far tiers take over; the land and trees are washed
+  white by its fog, which is thick beyond a few tens of nodes; from 240 up
+  only the water and the sky keep their colour. Without second outputs the
+  lake is a flat dark grey under the same fog. Mellow is clear and green
+  near and far, its border fog closing the far tiers at the camera's far
+  plane; its lake reads as the lake bed in pale squares, the water itself
+  nearly clear. Base-Shader is as on 2026-10-11.
+
 Not observed: any displaced vertex (Eclipse's waves, Mellow's waving
 leaves) on the GPU, and so nothing of rung 7's shadow agreement; any pack
 at night, in rain or under water; performance.
 
 ### What is left
 
-- **A second output.** Rung 6 against Eclipse needs it, and so does every
-  popular pack but Base-Shader and Mellow
-  (`docs/design/shaderpack-survey.md`). The translator already knows every
-  output a program writes and to which `colortex`; a second output is the
-  same translation with another output chosen as the colour, drawn into a
-  target the chain reads, so it adds a draw path rather than a rewrite.
-  Choosing which output is the colour is also what the packs that keep it
-  in `colortex1` or `colortex4` need.
+- **The second outputs' cost and precision.** Built (see "Second
+  outputs"), but each target is a whole geometry pass, not yet measured,
+  and values pass through half floats, which loses the bits Photon packs
+  into its 16 bit material targets. One render target per pass would need
+  the geometry drawn through `RenderingDevice`, as the shadow map below
+  will. Of the packs whose terrain programs were checked, BSL and MakeUp
+  write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
+  colour; only Eclipse has been looked at on the GPU with them.
+- **Photon's chain.** Its geometry programs pass Godot's front end since
+  2026-10-12, but five of its twenty chain passes (`deferred`, `deferred1`,
+  `deferred4`, `composite`, `composite1`) still fail on the GPU with the
+  chain translator's own struct varying fault (its varyings are declared
+  ahead of the struct; `docs/develop/shaderpack-status.md`), and its
+  terrain draws magenta under what runs. The chain translator needs the
+  struct ahead of the varying and a location per member, or the flattening
+  the gbuffers translator now does.
 - **The pack's own shadow map.** Under a pack the terrain is unshaded, so
   Godot's shadows land only on what Godot still lights (entities, the
   procedural grass). A pack's shadows come from its `shadow` program drawn

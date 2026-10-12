@@ -25,6 +25,12 @@ So there is no frame, no GPU compile and no pipeline result for any pack,
 and the "Live" column says not run. The proof pack's last live pass is the
 one in [Shader pack testing](shaderpack-testing.md).
 
+Since then, from 2026-10-11 to 2026-10-13, three chains have run on the
+GPU with their geometry programs: Eclipse (3 of 3 passes compiled), Mellow
+(9 of 9) and Photon (15 of 20, the five with struct varyings failing as
+below). The "Live" column is still the offline day's; what those frames
+showed is under "The geometry programs".
+
 Pack versions are the releases named in the survey's table, downloaded
 from Modrinth (Chocapic13 from CurseForge). None is in the repository.
 
@@ -110,33 +116,41 @@ look right; four (MakeUp, Chocapic13, Sildur's Vibrant, Super Duper
 Vanilla) do not even keep their main colour in `colortex0`. A real shadow
 map is the same: 17 of these packs read `shadowtex` in the chain, and the
 map has to come from the pack's own translated `shadow` program, which a
-compositor effect cannot run. Rung 5 now draws one output (below); until a
-second output and a shadow map exist, judge a pack here by whether it
-loads, compiles and runs, not by its look.
+compositor effect cannot run. Rungs 5 and 6 now draw the geometry
+programs and their second outputs (below); until a shadow map exists, judge
+a pack here by whether it loads, compiles and runs, not by its look.
+
+Until commit `0fce1c1b` (2026-10-13) the chain also gave every pack a wrong
+projection: Godot's own, with its depth already in Vulkan's reversed
+[0, 1], so `near` and `far` read -0.05 and every position rebuilt from
+depth was wrong. Any chain result in the table above that depends on depth
+(fog, ambient occlusion, reflections) was taken with that fault.
 
 ## The geometry programs
 
 What `GoannaIrisGbuffers` does with each pack's `gbuffers_terrain`,
 `gbuffers_terrain_cutout`, `gbuffers_water` and the foliage surface (the
-cut-out program on leaves and plants), on 2026-10-11 with Godot 4.5.1.
-"Front end" is `tests/iris_gbuffers.gd` with `GOANNA_IRIS_PACK`: all four
-translate and Godot's shader front end accepts them, headless, with no
-GPU. "GPU" is a frame through `tools/goanna-render` on the RTX 3090
-(Luanti 5.17.0, Mineclonia release 38561); the run details and what each
-frame showed are in `docs/design/iris-compat.md`, "The gbuffers
-translator, as built". "Dropped" lists the `colortex` targets the terrain
-program writes besides its colour, which one output cannot carry.
+cut-out program on leaves and plants), with Godot 4.5.1. "Front end" is
+`tests/iris_gbuffers.gd` with `GOANNA_IRIS_PACK`, on 2026-10-12 at commit
+`e6c842a1`: all four translate and Godot's shader front end accepts them,
+headless, with no GPU. "Second outputs" lists the `colortex` targets the
+programs write besides `colortex0` (terrain; water where it differs),
+each of which the chain reads and so gets a camera of its own (see
+`docs/design/iris-compat.md`, "Second outputs"). "GPU" is a frame through
+`tools/goanna-render` on the RTX 3090 (Luanti 5.17.0, Mineclonia release
+38561); the run details and what each frame showed are in
+`docs/design/iris-compat.md`, "What was observed".
 
-| Pack | Terrain program | Front end | Dropped | GPU |
+| Pack | Terrain program | Front end | Second outputs | GPU |
 | --- | --- | --- | --- | --- |
 | Base-Shader 3.0 | `gbuffers_terrain` | all four | none | drawn, near and far, in its flat vanilla look |
-| Eclipse 1.0 | `gbuffers_textured_lit` | all four | 1, 4, 6 (water: 4, 1, 3) | drawn dark; water transparent |
-| Mellow 3.4.1a | `gbuffers_terrain` | all four | none | drawn; the frame is a pale haze, not traced |
-| BSL 10.1.8 | `gbuffers_terrain` | all four | not recorded | not run |
-| Complementary Reimagined r5.9.3 | `gbuffers_terrain` | all four | not recorded | not run |
-| MakeUp Ultra Fast 9.5g | `gbuffers_terrain` | all four | not recorded | not run |
+| Eclipse 1.0 | `gbuffers_textured_lit` | all four | 1, 4, 6 (water: 1, 3, 4) | drawn by day, near and far; water blue, rippled and reflecting; land under its thick fog |
+| Mellow 3.4.1a | `gbuffers_terrain` | all four | none | drawn by day, near and far, under its own sky; the haze was the chain's projection |
+| Photon v1.3b | `gbuffers_terrain` | all four | 1, its only output (water: 3, 13) | drawn magenta; 5 of 20 chain passes fail |
+| BSL 10.1.8 | `gbuffers_terrain` | all four | none (water: 1) | not run |
+| Complementary Reimagined r5.9.3 | `gbuffers_terrain` | all four | 4, 6 (water: 3) | not run |
+| MakeUp Ultra Fast 9.5g | `gbuffers_terrain` | all four | 1, its only output | not run |
 
-Miniature, Sildur's Enhanced Default and Photon's terrain also passed the
-front end earlier the same day, before a reboot and before the later
-translator changes, so they are not in the table; Photon's water did not
-(a struct in a varying).
+Miniature and Sildur's Enhanced Default passed the front end on
+2026-10-11, before a reboot and before the later translator changes, and
+were not run again.
