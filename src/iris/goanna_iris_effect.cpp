@@ -888,6 +888,28 @@ static Projection basisToProjection(const Basis &b) {
     return p;
 }
 
+// The camera projection RenderSceneData gives a compositor effect is the
+// one Godot 4.5 renders with: depth already mapped to Vulkan's [0, 1] and
+// reversed, so z_ndc = (w - z_gl) / 2. A pack expects OpenGL's: its near
+// and far, read off that matrix, came out as -0.05 and every position it
+// rebuilt from depth was wrong (seen on the RTX 3090, 2026-10-13, as
+// Mellow's border fog covering the whole frame). Undone row by row; a
+// projection already in OpenGL's form (w row -1 with a negative z term)
+// is left alone. Its y row is flipped as well, and stays flipped: the
+// chain's texture coordinates run top down, as Vulkan's do
+// (docs/design/iris-compat.md, "Things learnt on the way"), so a pack
+// rebuilding a position from texcoord * 2 - 1 through this inverse gets
+// the right sign only with the flip in it.
+static Projection glProjection(const Projection &p) {
+    bool reversed = p.columns[2][2] > -0.5f && p.columns[2][3] < 0.0f;
+    if (!reversed)
+        return p;
+    Projection g = p;
+    for (int c = 0; c < 4; ++c)
+        g.columns[c][2] = p.columns[c][3] - 2.0f * p.columns[c][2];
+    return g;
+}
+
 void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     World w;
     {
@@ -903,6 +925,7 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     RenderSceneData *sd = rdata->get_render_scene_data();
     Transform3D cam = sd ? sd->get_cam_transform() : Transform3D();
     Projection proj = sd ? sd->get_cam_projection() : Projection();
+    proj = glProjection(proj);
     Basis view = cam.basis.inverse();
     Projection mv = basisToProjection(view);
     Projection mvInv = basisToProjection(cam.basis);
