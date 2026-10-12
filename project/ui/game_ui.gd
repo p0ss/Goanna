@@ -857,8 +857,11 @@ const SETTINGS_CFG := "user://goanna.cfg"
 # Setting kinds whose value is text rather than a number. They are
 # saved and read as strings and never go through _apply_setting. No entry in
 # SETTINGS has the pack or path kind as of 2026-10-10: the texture pack is
-# chosen on the menu's start and join screens, which set GOANNA_PACK.
-const TEXT_SETTING_KINDS := ["path", "pack", "choice"]
+# chosen on the menu's start and join screens, which set GOANNA_PACK. The
+# shaderpack kind is the shader pack row (ui/shader_pack_row.gd), saved as
+# the pack's name and read by main.gd at the next join.
+const TEXT_SETTING_KINDS := ["path", "pack", "choice", "shaderpack"]
+const ShaderPackRow := preload("res://ui/shader_pack_row.gd")
 const RenderFeatures := preload("res://game/render_features.gd")
 # [tab, key, type, label, description, (min, max, step) for sliders,
 # ([[stored value, name shown], ...]) for a choice or steps]. The tab may name
@@ -930,6 +933,7 @@ const SETTINGS := [
 	["Graphics/Sky and clouds", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
 	["Graphics/Sky and clouds", "render_shafts", "toggle", "Screen space light shafts", "Draw rays from the sun across distant ridges. Volumetric fog is controlled separately."],
 	["Graphics/Sky and clouds", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
+	["Graphics/Shader pack", "shader_pack", "shaderpack", "Shader pack", "An Iris or OptiFine shader pack, as made for Minecraft, drawn in place of Goanna's own look. Only part of what packs do is supported yet, so most look different from their screenshots, and some will not load. Applies the next time you join a world."],
 	["Graphics/Water, ice and lava", "render_water_waves", "toggle", "Water waves", "Generate detailed wave normals on water."],
 	["Graphics/Water, ice and lava", "render_water_reflections", "toggle", "Water screen reflections", "Reflect visible scenery in water. Off keeps the inexpensive sky reflection."],
 	["Graphics/Water, ice and lava", "render_underwater_volume", "toggle", "Underwater volumetrics", "Draw volumetric scattering underwater. Off keeps ordinary underwater murk."],
@@ -1666,6 +1670,9 @@ func _build_setting_row(page: VBoxContainer, entry: Array) -> void:
 			edit.text = str(md)
 			_save_setting_text(key, str(md))
 			note.visible = true)
+	elif kind == "shaderpack":
+		ShaderPackRow.build(row, entry[4])
+		return
 	elif kind == "choice":
 		_build_choice_row(row, entry)
 	elif kind == "steps":

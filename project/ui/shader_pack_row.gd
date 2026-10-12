@@ -1,0 +1,205 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+## The Shader pack row of the Graphics settings, built the same way by the
+## main menu (menu/menu.gd) and the in-game panel (ui/game_ui.gd) for the
+## "shaderpack" kind of their shared SETTINGS table: a picker of Off and
+## the packs in the shader pack folder, the folder's path with a button to
+## open it, how the pack did at the last join, and the selected pack's
+## options. Everything is saved to goanna.cfg through game/shader_packs.gd
+## and applies at the next join, when main.gd loads the pack; nothing here
+## touches a running world. Static only.
+extends RefCounted
+
+const ShaderPacks := preload("res://game/shader_packs.gd")
+const PanelFit := preload("res://ui/panel_fit.gd")
+const GlassStyle := preload("res://ui/glass_style.gd")
+
+const NOTE := "Saved. Applies the next time you join a world."
+
+## Fills `row` (from PanelFit.row) under the setting's name. `description`
+## is the SETTINGS entry's text.
+static func build(row: VBoxContainer, description: String) -> void:
+	var picker := OptionButton.new()
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(picker)
+	var note := _small(row, NOTE, Color(1, 0.85, 0.4))
+	note.visible = false
+	var status := _small(row, "", Color(1, 1, 1, 0.8))
+	PanelFit.describe(row, description, 0.5)
+	# The folder, as selectable text and a button: on a desktop the button
+	# opens a file manager, and where nothing answers it (a console session)
+	# the path is still there to read or copy.
+	var folder := ShaderPacks.folder()
+	var where := HBoxContainer.new()
+	where.add_theme_constant_override("separation", 8)
+	var path := LineEdit.new()
+	path.text = folder
+	path.editable = false
+	path.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	path.tooltip_text = "Put shader pack zips or folders here"
+	where.add_child(path)
+	var open_button := Button.new()
+	open_button.text = "Open folder"
+	open_button.pressed.connect(func() -> void: OS.shell_open(folder))
+	where.add_child(open_button)
+	var rescan := Button.new()
+	rescan.text = "Look again"
+	where.add_child(rescan)
+	row.add_child(where)
+	_small(row, "Shader pack folder. Put a pack's zip, as downloaded, or its folder here.",
+			Color(1, 1, 1, 0.5))
+	var options := VBoxContainer.new()
+	options.add_theme_constant_override("separation", 10)
+	row.add_child(options)
+
+	var fill := func() -> void:
+		picker.clear()
+		picker.add_item("Off")
+		picker.set_item_metadata(0, "")
+		var current := ShaderPacks.chosen()
+		var packs := ShaderPacks.scan()
+		var shown := {}
+		for p in packs:
+			var label := ShaderPacks.display_name(str(p["name"]))
+			if shown.has(label):
+				label = str(p["name"])
+			shown[label] = true
+			picker.add_item(label)
+			picker.set_item_metadata(picker.item_count - 1, str(p["name"]))
+		var selected := 0
+		for i in picker.item_count:
+			if str(picker.get_item_metadata(i)) == current:
+				selected = i
+		if current != "" and selected == 0:
+			# Saved, but gone from the folder: say so rather than show Off,
+			# which would claim the next join runs without one.
+			picker.add_item("%s (not in the folder)" % current)
+			picker.set_item_metadata(picker.item_count - 1, current)
+			selected = picker.item_count - 1
+		picker.select(selected)
+		_show_status(status, current)
+		_build_options(options, current, note)
+	fill.call()
+	rescan.pressed.connect(fill)
+	picker.item_selected.connect(func(i: int) -> void:
+		var name := str(picker.get_item_metadata(i))
+		ShaderPacks.set_chosen(name)
+		note.visible = true
+		_show_status(status, name)
+		_build_options(options, name, note))
+
+static func _small(row: VBoxContainer, text: String, colour: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 13)
+	GlassStyle.tint_text(l, colour)
+	row.add_child(l)
+	return l
+
+# How the pack did at the last join that loaded it from this setting.
+static func _show_status(status: Label, name: String) -> void:
+	var last := ShaderPacks.last_status()
+	if name == "" or last.is_empty() or str(last.get("pack", "")) != name:
+		status.text = ""
+		status.visible = false
+		return
+	status.text = "Last join: %s" % str(last["text"])
+	status.visible = true
+
+# The selected pack's options, folded away and read only when opened: a
+# zipped pack is unpacked to read them, and a large pack has hundreds.
+static func _build_options(box: VBoxContainer, name: String, note: Label) -> void:
+	for c in box.get_children():
+		c.queue_free()
+	if name == "":
+		return
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 8)
+	var header := Button.new()
+	header.toggle_mode = true
+	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	header.custom_minimum_size = Vector2(0, 40)
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.text = "▸  Pack options"
+	bar.add_child(header)
+	var reset := Button.new()
+	reset.text = "Pack defaults"
+	reset.tooltip_text = "Forget the options changed for this pack"
+	bar.add_child(reset)
+	box.add_child(bar)
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 12)
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.visible = false
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(body)
+	box.add_child(pad)
+	var populate := func() -> void:
+		for c in body.get_children():
+			c.queue_free()
+		_fill_options(body, name, note)
+	header.toggled.connect(func(on: bool) -> void:
+		header.text = ("▾" if on else "▸") + "  Pack options"
+		pad.visible = on
+		if on and body.get_child_count() == 0:
+			populate.call())
+	reset.pressed.connect(func() -> void:
+		ShaderPacks.clear_options(name)
+		note.visible = true
+		if pad.visible:
+			populate.call())
+
+static func _fill_options(body: VBoxContainer, name: String, note: Label) -> void:
+	var r := ShaderPacks.resolve(name)
+	if r.has("error"):
+		_small(body, "Cannot read this pack: %s" % str(r["error"]), Color(1, 0.6, 0.5))
+		return
+	var read := ShaderPacks.read_options(str(r["path"]))
+	var opts: Dictionary = read["options"]
+	var layout: Array = read["layout"]
+	if layout.is_empty():
+		_small(body, "This pack has no options Goanna can set.", Color(1, 1, 1, 0.6))
+		return
+	_small(body, "Switches and lists only: options that are numbers set in the pack's "
+			+ "own code (const lines) and option profiles are not offered.",
+			Color(1, 1, 1, 0.5))
+	var saved := ShaderPacks.saved_options(name)
+	for item in layout:
+		if item.has("heading"):
+			PanelFit.heading(body, str(item["heading"]))
+			continue
+		var opt := str(item["option"])
+		var o: Dictionary = opts[opt]
+		var default := str(o["default"])
+		var value := str(saved.get(opt, default))
+		var shell: Array = PanelFit.row(body, str(o["label"]))
+		var orow: VBoxContainer = shell[0]
+		var head: HBoxContainer = shell[1]
+		if o["kind"] == "bool":
+			var check := CheckButton.new()
+			check.button_pressed = value == "true"
+			check.toggled.connect(func(on: bool) -> void:
+				ShaderPacks.save_option(name, opt, "true" if on else "false", default)
+				note.visible = true)
+			head.add_child(check)
+		else:
+			var pick := OptionButton.new()
+			pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var labels: Dictionary = o["value_labels"]
+			for v in o["values"]:
+				var shown := str(labels.get(v, v))
+				if v == default:
+					shown += "  (pack default)"
+				pick.add_item(shown)
+				pick.set_item_metadata(pick.item_count - 1, str(v))
+				if str(v) == value:
+					pick.select(pick.item_count - 1)
+			pick.item_selected.connect(func(i: int) -> void:
+				ShaderPacks.save_option(name, opt, str(pick.get_item_metadata(i)), default)
+				note.visible = true)
+			orow.add_child(pick)
+		var comment := str(o["comment"])
+		PanelFit.describe(orow, opt if comment == "" else "%s  (%s)" % [comment, opt], 0.45)

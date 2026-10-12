@@ -369,8 +369,10 @@ Vulkan ([`iris_glsl.h`](../../src/iris/iris_glsl.h)), and runs its screen
 space programs as a `CompositorEffect`
 ([`goanna_iris_effect.h`](../../src/iris/goanna_iris_effect.h)). The
 gbuffers programs are not run. `main.gd` loads a pack when
-`GOANNA_SHADERPACK` names one. See [Iris shader packs](../design/iris-compat.md)
-and [shader pack testing](shaderpack-testing.md).
+`GOANNA_SHADERPACK` names one, or else the one the Shader pack setting
+chose from `user://shaderpacks` (`project/game/shader_packs.gd`). See
+[Iris shader packs](../design/iris-compat.md) and
+[shader pack testing](shaderpack-testing.md).
 
 ### Transplanted Luanti code
 

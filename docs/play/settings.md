@@ -72,3 +72,32 @@ ground that bend round players and in the wind. It is off by default, off at
 Lowest and Low, and on at Medium and above, with density, draw distance and
 interaction settings of its own. It changes nothing on the server. How it
 works is in [procedural grass](../systems/procedural-grass.md).
+
+## Shader packs
+
+Settings, Graphics, Shader pack runs an Iris or OptiFine shader pack, the
+kind made for Minecraft, in place of Goanna's own look. Only part of what
+packs do is supported so far, so most packs look different from their
+screenshots and some will not load at all; what each popular pack does is
+in [shader pack status](../develop/shaderpack-status.md).
+
+Packs go in the shader pack folder, which the row shows as text with an
+Open folder button beside it. On Linux it is
+`~/.local/share/godot/app_userdata/Goanna/shaderpacks`. Put a pack there
+as it was downloaded from Modrinth or CurseForge, still zipped, or unzipped
+as a folder holding `shaders/`. A zip is unpacked once, the first time it
+is used, into `shaderpack_cache` beside the folder, and again only if the
+zip is replaced. Look again lists the folder afresh after adding a pack.
+
+The picker offers Off and every pack in the folder by name. Under it, Pack
+options lists the selected pack's switches and lists of values, under the
+pack's own headings and names, as Iris shows them; Pack defaults forgets
+every change made to that pack. Options that are numbers written into the
+pack's code, and option profiles, are not offered yet. Each pack keeps its
+own options.
+
+A pack, and any option, applies the next time you join a world: a world
+that is already open keeps what it started with. After a join the row
+says in one line how the pack did, for example how many of its screen
+passes compiled, whether its own terrain and water shading is in use, or
+why it did not load.

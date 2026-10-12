@@ -144,6 +144,15 @@ GOANNA_TEST_TERRAIN_ID=tdl-default-1m-v4 \
 godot --headless --path project --script res://tests/terrain_catalogue.gd
 ```
 
+The shader pack folder and setting (`project/game/shader_packs.gd`): which
+entries count as packs, unpacking a zip once and again when it changes, the
+options a pack offers and saving each pack's overrides, is checked in a
+scratch folder of its own with:
+
+```sh
+godot --headless --path project --script res://tests/shader_packs.gd
+```
+
 Use `git diff --check` and the style checker before submitting.
 Deterministic visual fixtures and capture conventions are described in
 [building and running](building.md#deterministic-visual-fixtures) and

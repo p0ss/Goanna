@@ -17,6 +17,14 @@ extends Node3D
 
 const PlayerContext := preload("res://game/player_context.gd")
 const RenderFeatures := preload("res://game/render_features.gd")
+const ShaderPacks := preload("res://game/shader_packs.gd")
+# The Shader pack setting's pack when this join loaded one from it, so its
+# result is noted for the settings row; "" when it came from
+# GOANNA_SHADERPACK or there is none.
+var shaderpack_from_setting := ""
+# The loader's reports for a half that failed to load, for that note.
+var shaderpack_failed_chain := {}
+var shaderpack_failed_gbuffers := {}
 var render_features: Dictionary = RenderFeatures.DEFAULTS.duplicate()
 var cloud_body_texture: NoiseTexture3D
 # Defer expensive allocation until saved settings and the local preset agree.
@@ -786,7 +794,24 @@ func _ready() -> void:
 	# screen space chain (deferred, composite, final) as a CompositorEffect,
 	# and its gbuffers terrain and water programs, translated into Godot
 	# shaders, on the node meshes; see docs/design/iris-compat.md.
+	#
+	# Without the variable, the Shader pack setting picks one from the
+	# player's shader pack folder (game/shader_packs.gd, ui/shader_pack_row.gd):
+	# a zip is unpacked once into a cache, the pack's saved options go in
+	# through GOANNA_SHADERPACK_OPTIONS, and how it went is noted for the
+	# settings row. The variable wins, as the render service and tests use it.
 	var shaderpack := OS.get_environment("GOANNA_SHADERPACK")
+	shaderpack_from_setting = ""
+	if shaderpack == "":
+		var chosen := ShaderPacks.prepare_join()
+		if chosen.has("error"):
+			print("shader pack setting: ", chosen["name"], " not loaded: ", chosen["error"])
+			ShaderPacks.save_status(str(chosen["name"]), "Not loaded: %s" % chosen["error"])
+		elif chosen.has("path"):
+			shaderpack = str(chosen["path"])
+			shaderpack_from_setting = str(chosen["name"])
+			print("shader pack setting: ", shaderpack_from_setting, " from ", shaderpack,
+					" options ", chosen.get("options", ""))
 	if shaderpack != "" and OS.get_environment("GOANNA_SHADERPACK_GBUFFERS") != "0":
 		iris_gbuffers = GoannaIrisGbuffers.new()
 		if OS.get_environment("GOANNA_SHADERPACK_DUMP") != "":
@@ -796,6 +821,7 @@ func _ready() -> void:
 			print("shader pack gbuffers ", iris_gbuffers.report())
 		else:
 			print("shader pack gbuffers not loaded: ", iris_gbuffers.report())
+			shaderpack_failed_gbuffers = iris_gbuffers.report()
 			iris_gbuffers = null
 	if shaderpack != "":
 		iris = GoannaIrisEffect.new()
@@ -821,6 +847,7 @@ func _ready() -> void:
 			print("shader pack ", iris.pack_name(), " ", iris.report())
 		else:
 			print("shader pack failed to load: ", iris.report())
+			shaderpack_failed_chain = iris.report()
 			iris = null
 	_setup_iris_shadow()
 	# A pack with terrain but no screen space chain (Base-Shader) still owns
@@ -837,6 +864,8 @@ func _ready() -> void:
 		add_child(iris_targets)
 		iris_targets.initialise(cam, iris, iris_gbuffers)
 		print("shader pack second outputs: colortex ", iris_targets.colortex_list())
+	if shaderpack_from_setting != "":
+		_note_shaderpack_status.call_deferred()
 
 	# GOANNA_MAT="channel=value,channel=value": set material strength channels
 	# at startup, so a headless run can put one of them in a state the settings
@@ -4227,6 +4256,30 @@ func _setup_iris_shadow() -> void:
 				func() -> void: print("shader pack shadow capture ", iris_shadow.report()))
 	print("shader pack shadow map ", res, " square, ", st.get("size", 0.0), " nodes across")
 
+
+# Notes how the setting's pack did, in a line the Shader pack row shows:
+# what loaded at once, then again when the chain has compiled on the GPU
+# (or after a minute, if it never says).
+func _note_shaderpack_status() -> void:
+	var name := shaderpack_from_setting
+	var note := func() -> String:
+		return ShaderPacks.summary(iris.report() if iris != null else shaderpack_failed_chain,
+				iris_gbuffers.report() if iris_gbuffers != null else shaderpack_failed_gbuffers)
+	var line: String = note.call()
+	ShaderPacks.save_status(name, line)
+	print("shader pack setting: ", name, ": ", line)
+	if iris == null:
+		return
+	for i in 60:
+		await get_tree().create_timer(1.0).timeout
+		if not is_inside_tree() or iris == null:
+			return
+		var r: Dictionary = iris.report()
+		if bool(r.get("gpu_ready", false)) or bool(r.get("dead", false)):
+			break
+	line = note.call()
+	ShaderPacks.save_status(name, line)
+	print("shader pack setting: ", name, ": ", line)
 
 # Whether a shader pack's output is the finished colour, so Godot's tonemap
 # and grade must step aside: it has a final program (and the colour bridge

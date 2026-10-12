@@ -1072,6 +1072,7 @@ func _setup_failed(reason: String) -> void:
 # game_ui reloads and applies on the next connect. That is the same file and
 # the same section it writes to itself.
 const GameUI := preload("res://ui/game_ui.gd")
+const ShaderPackRow := preload("res://ui/shader_pack_row.gd")
 
 var menu_groups_open := {}   # which Graphics groups are open, kept across reopens
 const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
@@ -1194,6 +1195,11 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var shell: Array = PanelFit.row(box, str(row[3]))
 	var head: HBoxContainer = shell[1]
 	box = shell[0]
+	if kind == "shaderpack":
+		# The same row the in-game panel builds; it reads and writes goanna.cfg
+		# itself and applies at the next join either way.
+		ShaderPackRow.build(box, str(row[4]))
+		return
 	if kind == "choice":
 		# One of a few named values, stored as text. The interface style is the
 		# only one, and it applies straight away, here as in game.

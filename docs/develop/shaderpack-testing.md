@@ -144,6 +144,52 @@ pack's option defaults, as an Iris options file would.
 None has been run this way yet; see
 [Shader pack status](shaderpack-status.md).
 
+## The Shader pack setting
+
+Players, and anyone trying packs by hand, choose a pack in Settings,
+Graphics, Shader pack (`project/ui/shader_pack_row.gd`, built by both the
+main menu and the in-game panel) from the packs in `user://shaderpacks`.
+`project/game/shader_packs.gd` does the rest:
+
+- A pack is a directory holding `shaders/`, or a `.zip` with `shaders/` at
+  its top or one directory down (some downloads wrap the pack in a folder).
+  A zip is unpacked once into `user://shaderpack_cache/<name>-<mtime>/`,
+  under a directory named after the zip, so the loader and its log lines
+  name the pack as the player does; a replaced zip unpacks afresh and the
+  old copy is removed. Entries that would land outside the cache are
+  skipped.
+- The choice is saved by name as `shader_pack` in the `settings` section
+  of `goanna.cfg`. Each pack's option overrides are saved in a section of
+  their own, `shaderpack_options/<name>`, only where they differ from the
+  pack's default.
+- Options are found as Iris finds them: a value-less `#define` (on) or a
+  commented one (off) that some source tests with `#ifdef`, `#ifndef` or
+  `defined`, and a `#define NAME value` whose comment lists its allowed
+  values in brackets. Where `shaders.properties` has `screen` lines, the
+  list follows them, headings and all, and shows only what they show; the
+  names come from `shaders/lang/en_US.lang` where the pack has one. The
+  conditionals around screen lines are not run, `const` options and
+  `<profile>` are not offered, and sliders are shown as lists.
+- At each join `main.gd` asks for the chosen pack only when
+  `GOANNA_SHADERPACK` is unset, so the render service, this document's
+  scripts and any run that sets the variable are unaffected. The pack's
+  saved overrides reach both halves of the loader by setting
+  `GOANNA_SHADERPACK_OPTIONS` in the process, with any value the variable
+  held at start winning name by name.
+- `main.gd` prints `shader pack setting: NAME from PATH options ...`, then
+  a one line summary of `report()` at load and again once the chain has
+  compiled on the GPU, and saves that line in the `shaderpack_status`
+  section, which the settings row shows under the picker.
+
+The game scene is built afresh at each join (`menu.gd` and `game_ui.gd`
+change to `main.tscn`), so a change applies at the next join; nothing
+switches packs in a running world.
+
+To try a pack this way in a headless client, write the pack into
+`$XDG_DATA_HOME/godot/app_userdata/Goanna/shaderpacks` and the setting
+into `goanna.cfg` beside it before starting it through `tools/goanna-headless`
+with `--env XDG_DATA_HOME=...`.
+
 ## What it does not prove
 
 - Only the screen space chain is exercised: `composite` and `final`. There
