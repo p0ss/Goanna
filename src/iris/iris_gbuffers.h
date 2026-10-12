@@ -70,8 +70,9 @@ struct GbuffersOptions {
     // Whether the translucent program writes depth, as Minecraft's water
     // does, so a screen space chain finds the water surface in depthtex0
     // and not in depthtex1. GoannaIrisGbuffers turns it on only for a pack
-    // with such a chain: written depth also hides the translucent surfaces
-    // Godot sorts after the water (ice on a lake, seen on Base-Shader).
+    // with such a chain, which is the one reader: written depth also hides
+    // whatever translucent surface Godot sorts after the water, so without
+    // a reader Goanna's own order is kept.
     bool translucent_depth = false;
     // A label for the header comment, usually pack/program.
     std::string label;
