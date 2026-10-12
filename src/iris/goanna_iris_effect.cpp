@@ -201,6 +201,8 @@ void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_bridge_colour", "on"), &GoannaIrisEffect::set_bridge_colour);
     ClassDB::bind_method(D_METHOD("get_bridge_colour"), &GoannaIrisEffect::get_bridge_colour);
     ClassDB::bind_method(D_METHOD("has_final"), &GoannaIrisEffect::has_final);
+    ClassDB::bind_method(D_METHOD("reads_colortex", "index"), &GoannaIrisEffect::reads_colortex);
+    ClassDB::bind_method(D_METHOD("set_gbuffers_target", "index", "texture"), &GoannaIrisEffect::set_gbuffers_target);
 }
 
 // ---------------------------------------------------------------------------
@@ -273,8 +275,11 @@ bool GoannaIrisEffect::load_pack(const String &path) {
             if (!customNames.count(m.name) && !knownExtra(m.name))
                 pass.zero_uniforms.push_back(m.name);
         for (auto &s : pass.tr.samplers)
-            if (s.name.rfind("colortex", 0) == 0)
-                m_ct_used[std::atoi(s.name.c_str() + 8)] = true;
+            if (s.name.rfind("colortex", 0) == 0) {
+                int i = std::atoi(s.name.c_str() + 8);
+                if (i >= 0 && i < 16)
+                    m_ct_used[i] = m_ct_read[i] = true;
+            }
         for (int d : pass.tr.drawbuffers)
             if (d >= 0 && d < 16)
                 m_ct_used[d] = true;
@@ -1141,13 +1146,25 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     std::array<int, 16> side{};
     TypedArray<RDFramebufferPass> nopasses;
 
-    // colortex0 starts as the scene colour; the rest start cleared.
+    // colortex0 starts as the scene colour; the rest start cleared, or as
+    // the pack's geometry programs left them where a second output draws
+    // them (set_gbuffers_target).
+    std::array<RID, 16> gb_source;
+    {
+        std::lock_guard<std::mutex> lk(m_world_mutex);
+        gb_source = m_gb_source;
+    }
     for (int i = 0; i < 16; ++i) {
         if (!m_ct_used[i])
             continue;
         RID a = colortex(rb.ptr(), i, 0, size);
         RID b = colortex(rb.ptr(), i, 1, size);
-        if (i == 0) {
+        if (i > 0 && gb_source[i].is_valid() && rd->texture_is_valid(gb_source[i])) {
+            TypedArray<RID> t;
+            t.push_back(a);
+            RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
+            blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 0);
+        } else if (i == 0) {
             TypedArray<RID> t;
             t.push_back(a);
             RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
@@ -1257,6 +1274,17 @@ void GoannaIrisEffect::set_bridge_colour(bool on) {
 
 bool GoannaIrisEffect::get_bridge_colour() const {
     return m_bridge_colour;
+}
+
+bool GoannaIrisEffect::reads_colortex(int index) const {
+    return index >= 0 && index < 16 && m_ct_read[index];
+}
+
+void GoannaIrisEffect::set_gbuffers_target(int index, const RID &texture) {
+    if (index < 1 || index >= 16)
+        return;
+    std::lock_guard<std::mutex> lk(m_world_mutex);
+    m_gb_source[index] = texture;
 }
 
 bool GoannaIrisEffect::has_final() const {

@@ -17,8 +17,11 @@
 // the node mesh contract in docs/systems/mesh-attributes.md: gl_Color is
 // the tile tint times occlusion and face shading, gl_MultiTexCoord1 is
 // CUSTOM0's block and sky light, mc_Entity.x is the pack's own number for
-// the block in UV2.y. The program is unshaded and its first colour output
-// is ALBEDO; any other target it writes cannot be expressed and is listed.
+// the block in UV2.y. The program is unshaded and its colortex0 output is
+// ALBEDO. Its other outputs are second outputs: the same shader draws one
+// of them as its colour instead when the camera's cull mask says so
+// (kGbuffersPassShift below), and a camera of that kind renders into a
+// target the screen space chain reads as that colortex.
 //
 // Written from the shader pack format and the GLSL specification as
 // documented, not from any loader's source. Pure string work with no Godot
@@ -45,6 +48,17 @@ enum class GbuffersSurface {
     SingleCutout, // waving_leaves and waving_plants: one texture, alpha tested, both sides
 };
 
+// The second outputs. A camera drawing a translated program's colortex N
+// output for the screen space chain carries N + 1 in the five cull mask
+// bits from this one (Godot has 20 render layers; no instance is on these
+// five, so they change nothing it culls). The generated fragment() reads
+// CAMERA_VISIBLE_LAYERS: 2 to 16 there picks that output, raw, in place of
+// the colour; 0 or 31 (every ordinary camera's full mask) draws the colour
+// as before, and so does the shadow pass. project/game/effects/
+// iris_targets.gd makes those cameras.
+constexpr int kGbuffersPassShift = 15;
+constexpr int kGbuffersPassBits = 31;
+
 struct GbuffersOptions {
     GbuffersSurface surface = GbuffersSurface::ArrayOpaque;
     // Macros defined before each stage, after the translator's own
@@ -53,6 +67,12 @@ struct GbuffersOptions {
     // Minecraft's directional face shading in gl_Color (shaders.properties
     // oldLighting). On unless the pack turns it off.
     bool old_lighting = true;
+    // Whether the translucent program writes depth, as Minecraft's water
+    // does, so a screen space chain finds the water surface in depthtex0
+    // and not in depthtex1. GoannaIrisGbuffers turns it on only for a pack
+    // with such a chain: written depth also hides the translucent surfaces
+    // Godot sorts after the water (ice on a lake, seen on Base-Shader).
+    bool translucent_depth = false;
     // A label for the header comment, usually pack/program.
     std::string label;
     // The pack's custom uniforms (uniform.* in shaders.properties), by name.
@@ -64,6 +84,9 @@ struct GbuffersOptions {
 struct GbuffersResult {
     std::string code;           // the complete Godot shader
     std::vector<int> drawbuffers; // colortex per fragment output, as declared
+    // colortex targets written that a second output camera can draw (1 to
+    // 15, and whichever the colour is when it is not colortex0), ascending
+    std::vector<int> second;
     std::vector<int> dropped;   // colortex targets written that cannot be expressed
     // Godot global shader parameters the code reads, each with its Godot
     // type name (float, vec3, mat4, sampler2D ...). They must exist before

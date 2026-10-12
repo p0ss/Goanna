@@ -26,7 +26,8 @@
 // render thread writes in ensureGpu. Whether the rendering thread is the
 // main thread depends on Godot's thread model; when it is not, the lock is
 // what keeps report() from reading a pass's error string while it is
-// assigned. Main type:
+// assigned. The second output textures (set_gbuffers_target) share the
+// world state's lock. Main type:
 // GoannaIrisEffect.
 #pragma once
 
@@ -96,6 +97,15 @@ public:
     void set_bridge_colour(bool on);
     bool get_bridge_colour() const;
     bool has_final() const;
+    // Whether any pass samples colortex `index`, so a geometry program's
+    // output to it is worth drawing (project/game/effects/iris_targets.gd).
+    bool reads_colortex(int index) const;
+    // Main thread, every frame. A RenderingDevice texture holding what the
+    // pack's geometry programs wrote to colortex `index` (a second output,
+    // docs/design/iris-compat.md rung 6), copied into that colortex at the
+    // start of the chain in place of the clear. An invalid RID goes back
+    // to clearing.
+    void set_gbuffers_target(int index, const godot::RID &texture);
 
     void _render_callback(int32_t p_effect_callback_type, godot::RenderData *p_render_data) override;
 
@@ -206,6 +216,11 @@ private:
     std::array<godot::RenderingDevice::DataFormat, 16> m_ct_format{};
     std::array<bool, 16> m_ct_used{};
     std::array<bool, 16> m_ct_clear{};
+    // colortex a pass samples (not only writes)
+    std::array<bool, 16> m_ct_read{};
+    // The second outputs, set on the main thread by set_gbuffers_target and
+    // read on the render thread, under m_world_mutex.
+    std::array<godot::RID, 16> m_gb_source{};
     uint64_t m_t0 = 0, m_last_us = 0;
     int m_frame = 0;
     // rainStrength ramps toward the world's precipitation and wetness

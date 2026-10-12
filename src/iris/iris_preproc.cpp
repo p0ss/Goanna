@@ -7,6 +7,7 @@
 
 #include "iris_glsl.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstring>
@@ -78,6 +79,34 @@ size_t collectArgs(const std::string &s, size_t i, std::vector<std::string> &arg
 }
 
 std::string expand(const std::string &s, const MacroTable &macros, std::set<std::string> &disabled, int depth);
+
+// Whether a line calls a function-like macro whose argument list it does
+// not close, so the call goes on over the next lines (Photon writes
+// clamp01(, a line of arguments, then the closing parenthesis, that way).
+// Comments are already stripped.
+bool openMacroCall(const std::string &s, const MacroTable &macros) {
+    for (size_t i = 0; i < s.size();) {
+        if (!identStart(s[i])) {
+            i += startsNumber(s, i) ? std::max<size_t>(numberLength(s, i), 1) : 1;
+            continue;
+        }
+        size_t j = i;
+        while (j < s.size() && identChar(s[j])) ++j;
+        auto m = macros.find(s.substr(i, j - i));
+        i = j;
+        if (m == macros.end() || !m->second.function) continue;
+        while (j < s.size() && std::isspace((unsigned char)s[j])) ++j;
+        if (j >= s.size() || s[j] != '(') continue;
+        int depth = 0;
+        for (; j < s.size(); ++j) {
+            if (s[j] == '(') ++depth;
+            else if (s[j] == ')' && --depth == 0) break;
+        }
+        if (depth > 0) return true;
+        i = j;
+    }
+    return false;
+}
 
 std::string substitute(const Macro &m, const std::vector<std::string> &raw,
         const std::vector<std::string> &expanded) {
@@ -436,7 +465,8 @@ void runDirectives(const std::string &src, MacroTable &macros, bool full, bool k
     };
     std::ostringstream o;
     int lineno = 0;
-    for (auto &raw : lines) {
+    for (size_t li = 0; li < lines.size(); ++li) {
+        std::string &raw = lines[li];
         ++lineno;
         std::string t = trim(raw);
         bool commented = false;
@@ -447,8 +477,22 @@ void runDirectives(const std::string &src, MacroTable &macros, bool full, bool k
         if (t.empty() || t[0] != '#' || commented) {
             if (active() && (!t.empty() || !full)) {
                 if (full) {
+                    // A macro call left open takes the following plain lines
+                    // with it, and each one taken leaves a blank line so the
+                    // line numbers still match the pack's.
+                    std::string joined = raw;
+                    int taken = 0;
+                    while (openMacroCall(joined, macros) && li + 1 < lines.size() &&
+                            trim(lines[li + 1]).compare(0, 1, "#") != 0 && taken < 64) {
+                        joined += " " + lines[++li];
+                        ++taken;
+                    }
                     std::set<std::string> disabled;
-                    o << expand(raw, macros, disabled, 0);
+                    o << expand(joined, macros, disabled, 0);
+                    for (; taken > 0; --taken) {
+                        o << "\n";
+                        ++lineno;
+                    }
                 } else {
                     o << raw;
                 }

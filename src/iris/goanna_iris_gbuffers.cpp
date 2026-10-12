@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <fstream>
 #include <regex>
+#include <set>
 #include <sstream>
 
 using namespace godot;
@@ -93,6 +94,7 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("block_id", "name"), &GoannaIrisGbuffers::block_id);
     ClassDB::bind_method(D_METHOD("update", "camera", "state"), &GoannaIrisGbuffers::update);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisGbuffers::report);
+    ClassDB::bind_method(D_METHOD("second_targets"), &GoannaIrisGbuffers::second_targets);
     ClassDB::bind_method(D_METHOD("set_dump_dir", "dir"), &GoannaIrisGbuffers::set_dump_dir);
 }
 
@@ -182,6 +184,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         for (auto &d : m_pack.customUniforms().defs())
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
+        // Only a pack with a screen space chain reads the water's depth.
+        o.translucent_depth = !m_pack.compositeChain().empty();
         o.label = m_pack.name() + "/" + chosen;
         iris::GbuffersResult r;
         std::string terr;
@@ -194,6 +198,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         m_warnings[s] = pwarn;
         m_warnings[s].insert(m_warnings[s].end(), r.warnings.begin(), r.warnings.end());
         m_dropped[s] = r.dropped;
+        m_second[s] = r.second;
         m_moves[s] = r.moves_vertices;
         // The globals must exist before Godot parses the shader.
         for (auto &g : r.globals) registerGlobal(g.first, g.second);
@@ -556,6 +561,16 @@ bool GoannaIrisGbuffers::lookupBuiltin(const std::string &name, iris::Value &out
     }
 }
 
+PackedInt32Array GoannaIrisGbuffers::second_targets() const {
+    std::set<int> all;
+    for (int s = 0; s < SURFACE_COUNT; ++s)
+        if (m_shaders[s].is_valid())
+            all.insert(m_second[s].begin(), m_second[s].end());
+    PackedInt32Array out;
+    for (int ct : all) out.push_back(ct);
+    return out;
+}
+
 Dictionary GoannaIrisGbuffers::report() const {
     Dictionary d;
     d["pack"] = String(m_pack.name().c_str());
@@ -572,6 +587,9 @@ Dictionary GoannaIrisGbuffers::report() const {
         PackedInt32Array dr;
         for (int x : m_dropped[s]) dr.push_back(x);
         e["dropped_colortex"] = dr;
+        PackedInt32Array so;
+        for (int x : m_second[s]) so.push_back(x);
+        e["second_colortex"] = so;
         e["moves_vertices"] = m_moves[s];
         d[names[s]] = e;
     }

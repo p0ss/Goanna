@@ -95,6 +95,12 @@ const uint64_t kNodeSurfaceFlags =
 // still sees this layer.
 const uint32_t GLOW_LAYER = 1u << 1;
 const uint32_t ICE_LAYER = 1u << 2;
+// Every node surface a shader pack's geometry programs draw, near and far,
+// beside layer 1, so the cameras that draw a pack's second outputs
+// (project/game/effects/iris_targets.gd, NODE_LAYER) see the terrain and
+// water and none of the entities, sky or particles. Ordinary cameras see
+// every layer and do not notice it.
+const uint32_t NODE_SURFACE_LAYER = 1u << 14;
 } // namespace
 
 namespace goanna {

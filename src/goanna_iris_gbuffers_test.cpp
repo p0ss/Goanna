@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <vector>
 
 using namespace goanna::iris;
 
@@ -62,6 +63,15 @@ static void testPreprocessor() {
     preprocess("#define SHADOW_DISTORT 0.10 // [0.0 0.1]\n/* a\nb */\n#if SHADOW_DISTORT > 0.05\nyes\n#endif\n", m2, out,
             errs);
     check(contains(out, "yes"), "float comparison in #if");
+    // A macro call whose arguments run over several lines (Photon's).
+    MacroTable m3;
+    preprocess("#define clamp01(x) clamp(x, 0.0, 1.0)\nfloat a = clamp01(\n    1.0 - b\n);\nfloat c;\n", m3, out,
+            errs);
+    check(contains(out, "float a = clamp( 1.0 - b , 0.0, 1.0);") || contains(out, "clamp(1.0 - b, 0.0, 1.0)"),
+            "macro call over lines expands: " + out);
+    lines = 0;
+    for (char c : out) lines += c == '\n';
+    check(lines == 5 && contains(out, "\nfloat c;"), "and keeps the line count: " + out);
 
     // The pack loader's conditional pass is the same engine: a function-like
     // macro in a condition, which the loader's own evaluator could not do,
@@ -78,7 +88,7 @@ static void testPreprocessor() {
 }
 
 static std::string translateOne(const std::string &vsh, const std::string &fsh, GbuffersSurface s,
-        GbuffersResult &r, std::string &err) {
+        GbuffersResult &r, std::string &err, bool translucent_depth = false) {
     Program p;
     p.name = "test";
     p.vsh = vsh;
@@ -86,6 +96,7 @@ static std::string translateOne(const std::string &vsh, const std::string &fsh, 
     GbuffersOptions o;
     o.surface = s;
     o.label = "test";
+    o.translucent_depth = translucent_depth;
     if (!translateGbuffers(p, o, r, err)) return "";
     return r.code;
 }
@@ -147,14 +158,77 @@ static void testTranslator() {
             GbuffersSurface::ArrayOpaque, r, err);
     check(err.empty() && contains(code, "goanna_out_1 = vec4(0.5)"), "unlocated output after a located one: " + code);
 
-    // Extra targets are reported, not silently lost.
+    // Extra targets are second outputs: the camera's cull mask picks one
+    // in place of the colour (Eclipse's water, in its shape).
     code = translateOne("void main() { gl_Position = ftransform(); }\n",
             "/* DRAWBUFFERS:0413 */\nvoid main() { gl_FragData[0] = vec4(1.0); gl_FragData[1] = vec4(0.5);\n"
             " gl_FragData[2] = vec4(0.2); }\n",
             GbuffersSurface::Translucent, r, err);
     check(err.empty(), "mrt translates: " + err);
-    check(r.dropped.size() == 2 && r.dropped[0] == 4 && r.dropped[1] == 1, "dropped targets are colortex4 and 1");
+    check(r.dropped.empty(), "nothing dropped");
+    check(r.second == std::vector<int>({1, 4}), "second outputs are colortex1 and 4");
+    check(contains(code, "uint goanna_pass = (CAMERA_VISIBLE_LAYERS >> 15u) & 31u;"),
+            "pass read from the cull mask: " + code);
+    check(contains(code, "if (goanna_pass == 5u)\n\t\t\tgoanna_second = goanna_out_1;"), "colortex4 is output 1");
+    check(contains(code, "if (goanna_pass == 2u)\n\t\t\tgoanna_second = goanna_out_2;"), "colortex1 is output 2");
+    check(contains(code, "\t\tALBEDO = goanna_second.rgb;"), "a second output is written raw");
+    check(contains(code, "ALPHA = clamp(goanna_second.a"), "a blended second output keeps its alpha");
+    check(contains(code, "\t\tALBEDO = goanna_to_linear(goanna_out_0.rgb);"), "the colour is drawn otherwise");
     check(contains(code, "ALPHA = clamp(goanna_out_0.a"), "translucent writes alpha");
+    check(contains(code, "depth_draw_opaque"), "translucent writes no depth without a chain to read it");
+    code = translateOne("void main() { gl_Position = ftransform(); }\n", "void main() { gl_FragData[0] = vec4(1.0); }\n",
+            GbuffersSurface::Translucent, r, err, true);
+    check(contains(code, "depth_draw_always"), "translucent writes depth for a chain, as in Minecraft");
+
+    // A struct varying (Photon's water) is flattened into a varying per
+    // field, written from a local at the end of vertex() and built again
+    // where the fragment stage reads it.
+    code = translateOne("struct P { vec3 a; float b; };\nflat out P params;\n"
+                        "void main() { params = P(vec3(1.0), 2.0); gl_Position = ftransform(); }\n",
+            "struct P { vec3 a; float b; };\nflat in P params;\n"
+            "void main() { gl_FragData[0] = vec4(params.a * params.b, 1.0); }\n",
+            GbuffersSurface::ArrayOpaque, r, err);
+    check(err.empty(), "struct varying translates: " + err);
+    check(contains(code, "varying flat vec3 params_a;") && contains(code, "varying flat float params_b;"),
+            "a varying per field: " + code);
+    check(!contains(code, "varying flat P"), "no struct varying left");
+    check(contains(code, "\tP goanna_vx_params;") && contains(code, "params_a = goanna_vx_params.a;"),
+            "vertex() writes a local and copies its fields");
+    check(contains(code, "P(params_a, params_b).a"), "the fragment stage builds it again");
+
+    // Non-square matrices are square in Godot: mat2x3 is a padded mat3.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "void main() { mat2x3 m = mat2x3(vec3(1.0), vec3(0.5)); vec3 v = m * vec2(1.0, 2.0);\n"
+            " vec2 w = vec3(1.0) * m; gl_FragData[0] = vec4(v + m[1], w.x); }\n",
+            GbuffersSurface::ArrayOpaque, r, err);
+    check(err.empty(), "mat2x3 translates: " + err);
+    check(contains(code, "mat3 m = mat3(vec3(1.0), vec3(0.5), vec3(0.0));"), "mat2x3 built padded: " + code);
+    check(contains(code, "(m * vec3(vec2(1.0, 2.0), 0.0))"), "the vector padded to the product");
+    check(contains(code, "(vec3(1.0) * m).xy"), "a row product cut back to two");
+
+    // An integer vector meets a scalar in a bitwise operator, and an
+    // attribute is declared narrower than GL supplies it (both Photon's).
+    code = translateOne("attribute vec2 mc_midTexCoord;\nvarying vec2 mid;\n"
+                        "void main() { mid = mc_midTexCoord; gl_Position = ftransform(); }\n",
+            "varying vec2 mid;\nvoid main() { ivec2 p = ivec2(mid * 16.0) & 15; gl_FragData[0] = vec4(p, 0.0, 1.0); }\n",
+            GbuffersSurface::ArrayOpaque, r, err);
+    check(err.empty() && contains(code, "& ivec2(15)"), "scalar widened for &: " + code);
+    check(contains(code, "= vec2(0.5, 0.5);"), "mc_midTexCoord as a vec2");
+
+    // A program writing only colortex0 has no second output and no branch.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "void main() { gl_FragData[0] = vec4(1.0); }\n", GbuffersSurface::ArrayOpaque, r, err);
+    check(r.second.empty() && !contains(code, "CAMERA_VISIBLE_LAYERS"), "colour only, no second output");
+
+    // A pack that keeps its colour in colortex1 draws it as the colour and
+    // as colortex1's second output, where its chain looks for it.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "/* DRAWBUFFERS:1 */\nvoid main() { gl_FragData[0] = vec4(0.25); }\n", GbuffersSurface::ArrayOpaque,
+            r, err);
+    check(err.empty() && r.second == std::vector<int>({1}), "colortex1 colour is a second output");
+    check(contains(code, "if (goanna_pass == 2u)\n\t\t\tgoanna_second = goanna_out_0;") &&
+                    contains(code, "ALBEDO = goanna_to_linear(goanna_out_0.rgb);"),
+            "and the colour too");
 
     // A cutout tests alpha at alphaTestRef.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",

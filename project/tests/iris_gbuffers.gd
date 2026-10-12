@@ -60,10 +60,32 @@ func _initialize() -> void:
 		check(not names.is_empty(), name + " does not compile in Godot")
 		for u in (ARRAY_UNIFORMS if surface < 2 else SINGLE_UNIFORMS[surface]):
 			check(names.has(u), name + " has no uniform " + u)
+	# second_targets() is every surface's second outputs together, the
+	# colortex numbers game/effects/iris_targets.gd may draw.
+	var union := {}
+	for name in ["terrain", "cutout", "water", "foliage"]:
+		if report[name]["translated"]:
+			for ct in report[name]["second_colortex"]:
+				check(ct >= 1 and ct <= 15, name + " has a second output outside colortex1 to 15")
+				union[ct] = true
+	var keys := union.keys()
+	keys.sort()
+	check(Array(g.second_targets()) == keys, "second_targets() is not the surfaces' union")
+	# The chain half says which of them it reads; only those get a camera.
+	# Base-Shader has no chain.
+	var effect := GoannaIrisEffect.new()
+	if not bundled and effect.load_pack(path):
+		var read := []
+		for ct in g.second_targets():
+			if effect.reads_colortex(ct):
+				read.push_back(ct)
+		print("iris_gbuffers: second outputs ", g.second_targets(), ", read by the chain ", read)
+	check(not effect.reads_colortex(16), "colortex16 is out of range")
 	if bundled:
 		# Base-Shader's three programs, as the plan reads them: terrain and its
 		# cutout have their own, water falls back to terrain, and none writes
 		# a second target.
+		check(g.second_targets().is_empty(), "Base-Shader has a second output")
 		check(String(report["terrain"]["program"]) == "gbuffers_terrain", "terrain program")
 		check(String(report["cutout"]["program"]) == "gbuffers_terrain_cutout", "cutout program")
 		check(String(report["water"]["program"]) == "gbuffers_terrain", "water falls back to terrain")

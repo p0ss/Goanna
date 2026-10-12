@@ -789,6 +789,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         // healthy, 0.1 per cent lows above 100 ms, GPU bound, only while
         // the world arrives) is the tail this is aimed at.
         r.node->set_gi_mode(GeometryInstance3D::GI_MODE_DISABLED);
+        r.node->set_layer_mask(1u | NODE_SURFACE_LAYER);
         // The region mesher builds a cell for node k across [k, k+1] on every
         // axis, while the near mesh centres node k on k, spanning [k-0.5,
         // k+0.5]; Luanti Z is mirrored into Godot, which flips that axis's

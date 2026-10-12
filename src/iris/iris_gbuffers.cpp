@@ -152,7 +152,7 @@ const std::set<std::string> &godotReserved() {
             "filter_nearest_mipmap_anisotropic", "filter_linear_mipmap_anisotropic", "repeat_enable",
             "repeat_disable", "instance_index", "PI", "TAU", "E", "VERTEX", "NORMAL", "TANGENT", "BINORMAL",
             "UV", "UV2", "COLOR", "ALBEDO", "ALPHA", "EMISSION", "ROUGHNESS", "METALLIC", "SPECULAR", "TIME",
-            "VIEW", "FRAGCOORD", "POSITION", "CUSTOM0", "CUSTOM1", "CUSTOM2", "CUSTOM3", "MODEL_MATRIX",
+            "CAMERA_VISIBLE_LAYERS", "VIEW", "FRAGCOORD", "POSITION", "CUSTOM0", "CUSTOM1", "CUSTOM2", "CUSTOM3", "MODEL_MATRIX",
             "VIEW_MATRIX", "PROJECTION_MATRIX", "INV_VIEW_MATRIX", "INV_PROJECTION_MATRIX", "MODELVIEW_MATRIX",
             "NODE_POSITION_WORLD", "CAMERA_POSITION_WORLD", "SCREEN_UV", "DEPTH", "AO", "LIGHT", "ATTENUATION",
             "OUTPUT_IS_SRGB", "FRONT_FACING", "POINT_SIZE", "POINT_COORD", "INSTANCE_ID", "VERTEX_ID",
@@ -322,9 +322,13 @@ private:
     std::map<int, std::string> m_outs;
     std::map<std::string, int> m_out_names; // pack name -> location
     std::set<int> m_out_written;
+    // Struct varyings flattened into a varying per field: pack name ->
+    // each field's name and type, for the copy at the end of vertex().
+    std::map<std::string, std::vector<std::pair<std::string, Ty>>> m_struct_varyings;
     bool m_layer_needed = false;
     bool m_texmat1 = false;
     std::string m_mc_entity_type = "vec4";
+    std::string m_mc_midtex_type = "vec4";
 
     // Emission state
     Stage m_stage = Stage::Vertex;
@@ -351,6 +355,18 @@ private:
             n = base + "_" + std::to_string(k++);
         m_used_names.insert(n);
         return n;
+    }
+    // A vector of width n widened to m with zeros, and a vector of width m
+    // cut back to its first n, for the padded non-square matrices.
+    static std::string padVec(const std::string &code, int n, int m) {
+        if (n >= m) return code;
+        std::string s = "vec" + std::to_string(m) + "(" + code;
+        for (int k = n; k < m; ++k) s += ", 0.0";
+        return s + ")";
+    }
+    static std::string cutVec(const std::string &code, int m, int n) {
+        if (n >= m) return code;
+        return code + "." + std::string("xyzw").substr(0, n);
     }
     void addDecl(const std::string &line) {
         if (m_decl_seen.insert(line).second)
@@ -589,8 +605,13 @@ Val Translator::builtinIdent(const std::string &n, bool &found) {
             return v;
         }
         if (n == "mc_midTexCoord") {
-            v.code = "vec4(0.5, 0.5, 0.0, 1.0)";
-            v.t = Ty::vec(Ty::Float, 4);
+            // Declared as narrow as the pack likes (Photon's vec2), as GL
+            // drops an attribute's trailing components.
+            Ty t = tyFromName(m_mc_midtex_type, m_structs);
+            static const char *mid[] = {"0.5", "vec2(0.5, 0.5)", "vec3(0.5, 0.5, 0.0)", "vec4(0.5, 0.5, 0.0, 1.0)"};
+            int k = t.b == Ty::Float && t.n >= 1 && t.n <= 4 && !t.isMatrix() ? t.n : 4;
+            v.code = mid[k - 1];
+            v.t = Ty::vec(Ty::Float, k);
             return v;
         }
         if (n == "at_tangent") return input("goanna_gl_Tangent", Ty::vec(Ty::Float, 4));
@@ -1008,8 +1029,28 @@ Val Translator::call(const Expr &e) {
         }
         if (!ct.isMatrix() && ct.n == 1 && args.size() == 1 && args[0].t == ct)
             return {"(" + args[0].code + ")", ct, false};
-        if (ct.isMatrix() && ct.cols != ct.rows)
-            warn("non-square matrix " + fn + " is not supported by Godot");
+        if (ct.isMatrix() && ct.cols != ct.rows) {
+            // Godot has square matrices only. A CxR matrix becomes the
+            // square one of the larger size, its columns padded with zeros
+            // and any missing columns zero, which keeps indexing and the
+            // products below (padded and cut back) right. Photon carries
+            // pairs of vec3 as mat2x3 this way.
+            int m = std::max(ct.cols, ct.rows);
+            bool cols_given = (int)args.size() == ct.cols &&
+                    std::all_of(args.begin(), args.end(), [&](const Val &a) {
+                        return !a.t.isMatrix() && !a.t.array && a.t.n == ct.rows;
+                    });
+            if (cols_given) {
+                std::string sq;
+                for (int i = 0; i < m; ++i) {
+                    std::string c = i < ct.cols ? padVec(args[i].code, ct.rows, m) : "vec" + std::to_string(m) + "(0.0)";
+                    sq += (i ? ", " : "") + c;
+                }
+                return {ct.godot() + "(" + sq + ")", ct, false};
+            }
+            if (!(args.size() == 1 && args[0].t.isScalar()))
+                warn("non-square matrix " + fn + " built from anything but its columns is not supported by Godot");
+        }
         if (ct.isMatrix() && ct.cols == ct.rows && args.size() > 1) {
             // Godot builds a matrix from whole columns only: gather
             // consecutive scalars and vectors into vecN columns.
@@ -1172,6 +1213,17 @@ Val Translator::expr(const ExprP &ep) {
                 return {"mod(" + l.code + ", " + r.code + ")", l.t.n >= r.t.n ? l.t : r.t, false};
             }
             if (op != "<<" && op != ">>") promote(l, r);
+            // GLSL lets an integer vector meet a scalar here; Godot wants
+            // the scalar widened (Photon's ivec2 & int).
+            auto widen = [](Val &s, const Ty &v) {
+                if (!s.t.numericInt() || s.t.n != 1 || v.n < 2 || v.isMatrix() || v.array) return;
+                Ty to = Ty::vec(v.b, v.n);
+                s = {to.godot() + "(" + s.code + ")", to, false};
+            };
+            if (l.t.known() && r.t.known()) {
+                widen(r, l.t);
+                widen(l, r.t);
+            }
             return {"(" + l.code + " " + op + " " + r.code + ")", l.t.n >= r.t.n ? l.t : r.t, false};
         }
         // + - * /
@@ -1180,6 +1232,23 @@ Val Translator::expr(const ExprP &ep) {
         // crashes the editor and the client alike (seen on Complementary).
         if (op == "*" && l.code == "mat4(1.0)" && r.t.n == 4 && !r.t.isMatrix())
             return r;
+        // A non-square matrix is square in Godot (see the constructor): the
+        // vector is padded to its size and the product cut back to the
+        // width GLSL gives.
+        if (op == "*" && l.t.isMatrix() && l.t.cols != l.t.rows && !r.t.isMatrix() && r.t.n == l.t.cols) {
+            int m = std::max(l.t.cols, l.t.rows);
+            Val rf = r;
+            if (rf.t.numericInt()) rf = conv(rf, Ty::vec(Ty::Float, rf.t.n));
+            return {cutVec("(" + l.code + " * " + padVec(rf.code, l.t.cols, m) + ")", m, l.t.rows),
+                    Ty::vec(Ty::Float, l.t.rows), false};
+        }
+        if (op == "*" && r.t.isMatrix() && r.t.cols != r.t.rows && !l.t.isMatrix() && l.t.n == r.t.rows) {
+            int m = std::max(r.t.cols, r.t.rows);
+            Val lf = l;
+            if (lf.t.numericInt()) lf = conv(lf, Ty::vec(Ty::Float, lf.t.n));
+            return {cutVec("(" + padVec(lf.code, r.t.rows, m) + " * " + r.code + ")", m, r.t.cols),
+                    Ty::vec(Ty::Float, r.t.cols), false};
+        }
         promote(l, r);
         Ty t;
         if (l.t.known() && r.t.known()) {
@@ -1249,6 +1318,9 @@ Val Translator::expr(const ExprP &ep) {
         else if (o.t.isMatrix()) t = Ty::vec(Ty::Float, o.t.rows);
         else if (o.t.known()) t = Ty::scalar(o.t.b);
         if (i.t.b == Ty::Uint) i.code = "int(" + i.code + ")";
+        // A column of a padded non-square matrix, cut back to its rows.
+        if (!o.t.array && o.t.isMatrix() && o.t.rows < o.t.cols)
+            return {cutVec(o.code + "[" + i.code + "]", o.t.cols, o.t.rows), t, false};
         return {o.code + "[" + i.code + "]", t, false};
     }
     case Expr::Comma: {
@@ -1707,6 +1779,45 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 if (t.b == Ty::Bool) {
                     warn("bool varying '" + d.name + "' is not allowed in Godot");
                 }
+                // A struct varying (Photon's water carries its fog
+                // parameters in one), which Godot refuses, is flattened: a
+                // varying per field, named <varying>_<field>. The vertex
+                // stage writes a local of the struct and copies its fields
+                // out at the end of vertex(); the fragment stage reads the
+                // struct built again from the fields.
+                if (t.b == Ty::Struct && !d.array && m_struct_defs.count(t.name)) {
+                    const StructDef &sd = *m_struct_defs.at(t.name);
+                    std::vector<std::pair<std::string, Ty>> fields;
+                    bool flat_ok = true;
+                    for (auto &f : sd.fields) {
+                        Ty ft = specTy(f.type);
+                        if (f.array || ft.b == Ty::Struct || ft.b == Ty::Bool || ft.b == Ty::Sampler || !ft.known())
+                            flat_ok = false;
+                        fields.push_back({f.name, ft});
+                    }
+                    if (flat_ok && !fields.empty()) {
+                        std::string ctor = t.name + "(";
+                        for (size_t i = 0; i < fields.size(); ++i) {
+                            const Ty &ft = fields[i].second;
+                            std::string fname = name + "_" + fields[i].first;
+                            m_used_names.insert(fname);
+                            std::string fi = interp;
+                            if ((ft.b == Ty::Int || ft.b == Ty::Uint) && fi.find("flat") == std::string::npos)
+                                fi = "flat";
+                            addDecl("varying " + (fi.empty() ? "" : fi + " ") + ft.godot() + " " + fname + ";");
+                            ctor += (i ? ", " : "") + fname;
+                        }
+                        ctor += ")";
+                        if (st == Stage::Vertex) {
+                            globals[d.name] = {name, t, 1};
+                            m_struct_varyings[d.name] = fields;
+                        } else {
+                            globals[d.name] = {ctor, t, 0};
+                        }
+                        continue;
+                    }
+                    warn("struct varying '" + d.name + "' has a field Godot cannot carry in a varying");
+                }
                 std::string size = d.array ? "[" + (d.size ? expr(d.size).code : "") + "]" : "";
                 addDecl("varying " + (interp.empty() ? "" : interp + " ") + t.elem().godot() + " " + name + size + ";");
                 globals[d.name] = {name, t, st == Stage::Vertex ? 1 : 0};
@@ -1715,6 +1826,7 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
             if (st == Stage::Vertex && (st_ == "attribute" || st_ == "in")) {
                 bool found = false;
                 if (d.name == "mc_Entity") m_mc_entity_type = g.type.name;
+                if (d.name == "mc_midTexCoord") m_mc_midtex_type = g.type.name;
                 // Known attributes resolve through builtinIdent on use.
                 static const std::set<std::string> known = {"mc_Entity", "mc_midTexCoord", "at_tangent",
                         "at_midBlock", "vaPosition", "vaNormal", "vaColor", "vaUV0", "vaUV1", "vaUV2"};
@@ -1923,6 +2035,10 @@ bool Translator::run(const Program &p, std::string &err) {
 
     route(Stage::Vertex);
     route(Stage::Fragment);
+    // A flattened struct varying is always a local of vertex(), copied out
+    // field by field at its end.
+    for (auto &kv : m_struct_varyings)
+        m_routed_all[0].insert(kv.first);
     std::string vbody = emitMain(Stage::Vertex, err);
     if (!err.empty()) return false;
     std::string fbody = emitMain(Stage::Fragment, err);
@@ -1958,7 +2074,15 @@ bool Translator::run(const Program &p, std::string &err) {
     vo << vbody;
     for (auto &r : m_routed_all[0]) {
         const VarSym &v = m_globals[0].at(r);
-        if (v.kind == 1) vo << "\t" << v.emitted << " = " << routedName(r, Stage::Vertex) << ";\n";
+        if (v.kind != 1) continue;
+        auto sv = m_struct_varyings.find(r);
+        if (sv == m_struct_varyings.end()) {
+            vo << "\t" << v.emitted << " = " << routedName(r, Stage::Vertex) << ";\n";
+            continue;
+        }
+        for (auto &f : sv->second)
+            vo << "\t" << v.emitted << "_" << f.first << " = " << routedName(r, Stage::Vertex) << "." << f.first
+               << ";\n";
     }
     // gl_Position. Plain ftransform() leaves VERTEX alone. Anything else is
     // taken back to a world position through the player camera matrices it
@@ -2026,7 +2150,7 @@ bool Translator::run(const Program &p, std::string &err) {
         fo << "\tvec4 goanna_out_" << k << " = vec4(0.0, 0.0, 0.0, 1.0);\n";
     fo << fbody;
     // The colour target: whichever output DRAWBUFFERS sends to colortex0,
-    // else the first written. The rest cannot be expressed (the MRT limit).
+    // else the first written.
     int colour = -1;
     for (int k : m_out_written)
         if (k < (int)db.size() && db[k] == 0) colour = k;
@@ -2035,25 +2159,58 @@ bool Translator::run(const Program &p, std::string &err) {
         warn("no output goes to colortex0; output " + std::to_string(colour) + " (colortex" +
                 std::to_string(colour < (int)db.size() ? db[colour] : colour) + ") is drawn as the colour");
     }
+    // Every other target written is a second output: a camera drawing that
+    // colortex for the chain (kGbuffersPassShift) gets it in place of the
+    // colour, which is how a pack's normals, masks and lightmap reach its
+    // composite programs past Godot's one colour output. The colour's own
+    // target is one too when it is not colortex0, so a pack that keeps its
+    // colour in colortex1 finds it there.
+    std::map<int, int> second; // colortex -> output
     for (int k : m_out_written) {
-        if (k == colour) continue;
         int ct = k < (int)db.size() ? db[k] : k;
-        m_r.dropped.push_back(ct);
+        if (ct >= 1 && ct <= 15)
+            second[ct] = k;
+        else if (k != colour)
+            m_r.dropped.push_back(ct);
     }
+    for (auto &kv : second)
+        m_r.second.push_back(kv.first);
     if (!m_r.dropped.empty()) {
         std::string list;
         for (int ct : m_r.dropped) list += (list.empty() ? "" : ", ") + std::string("colortex") + std::to_string(ct);
         warn("outputs to " + list + " cannot be expressed and are dropped");
     }
+    const bool blended = m_o.surface == GbuffersSurface::Translucent;
     if (colour >= 0) {
         std::string c = "goanna_out_" + std::to_string(colour);
         if (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }
-        fo << "\tALBEDO = goanna_to_linear(" << c << ".rgb);\n";
-        if (m_o.surface == GbuffersSurface::Translucent)
-            fo << "\tALPHA = clamp(" << c << ".a, 0.0, 1.0);\n";
+        std::string ind;
+        if (!second.empty()) {
+            // A target this program does not write keeps what is under it,
+            // as GL's masked write does: alpha 0 where blended, and where
+            // opaque the clear value, so the surface still hides what is
+            // behind it in that target.
+            fo << "\tuint goanna_pass = (CAMERA_VISIBLE_LAYERS >> " << kGbuffersPassShift << "u) & "
+               << kGbuffersPassBits << "u;\n";
+            fo << "\tif (goanna_pass >= 2u && goanna_pass <= 16u) {\n";
+            fo << "\t\tvec4 goanna_second = vec4(0.0);\n";
+            for (auto &kv : second)
+                fo << "\t\tif (goanna_pass == " << kv.first + 1 << "u)\n\t\t\tgoanna_second = goanna_out_"
+                   << kv.second << ";\n";
+            fo << "\t\tALBEDO = goanna_second.rgb;\n";
+            if (blended)
+                fo << "\t\tALPHA = clamp(goanna_second.a, 0.0, 1.0);\n";
+            fo << "\t} else {\n";
+            ind = "\t";
+        }
+        fo << "\t" << ind << "ALBEDO = goanna_to_linear(" << c << ".rgb);\n";
+        if (blended)
+            fo << "\t" << ind << "ALPHA = clamp(" << c << ".a, 0.0, 1.0);\n";
+        if (!second.empty())
+            fo << "\t}\n";
     } else {
         warn("the fragment stage writes no colour");
         fo << "\tALBEDO = vec3(1.0, 0.0, 1.0);\n";
@@ -2066,8 +2223,13 @@ bool Translator::run(const Program &p, std::string &err) {
     o << "// Translated at load; see src/iris/iris_gbuffers.cpp and docs/design/iris-compat.md.\n";
     o << "shader_type spatial;\n";
     o << "render_mode unshaded, fog_disabled, ";
+    // Translucent geometry writes depth in Minecraft, so a pack finds its
+    // water in depthtex0 and not in depthtex1 and measures the water's
+    // depth from the two (GbuffersOptions::translucent_depth). Godot's own
+    // water writes none.
     if (m_o.surface == GbuffersSurface::Translucent)
-        o << "blend_mix, cull_disabled, depth_draw_opaque;\n";
+        o << "blend_mix, cull_disabled, " << (m_o.translucent_depth ? "depth_draw_always" : "depth_draw_opaque")
+          << ";\n";
     else if (m_o.surface == GbuffersSurface::SingleCutout)
         o << "cull_disabled;\n";
     else

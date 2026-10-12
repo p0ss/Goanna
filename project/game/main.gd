@@ -333,6 +333,9 @@ var iris: GoannaIrisEffect
 # and water with them. Null without a pack, or with
 # GOANNA_SHADERPACK_GBUFFERS=0.
 var iris_gbuffers: GoannaIrisGbuffers
+# The cameras drawing the geometry programs' second outputs for the chain
+# (game/effects/iris_targets.gd); null without both halves of a pack.
+var iris_targets: Node
 var test_started := 0.0
 var showcase_mode := false
 var showcase_placed := false
@@ -818,6 +821,14 @@ func _ready() -> void:
 		env.environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 		env.environment.tonemap_white = 1.0
 		env.environment.tonemap_exposure = 1.0
+	# The geometry programs' other outputs (normals, masks, the lightmap),
+	# drawn for the chain by a camera per colortex it reads.
+	# GOANNA_SHADERPACK_SECOND=0 leaves them cleared, for comparison.
+	if iris and iris_gbuffers and OS.get_environment("GOANNA_SHADERPACK_SECOND") != "0":
+		iris_targets = preload("res://game/effects/iris_targets.gd").new()
+		add_child(iris_targets)
+		iris_targets.initialise(cam, iris, iris_gbuffers)
+		print("shader pack second outputs: colortex ", iris_targets.colortex_list())
 
 	# GOANNA_MAT="channel=value,channel=value": set material strength channels
 	# at startup, so a headless run can put one of them in a state the settings

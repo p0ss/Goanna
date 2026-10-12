@@ -370,8 +370,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
         }
         if (!node) {
             node = memnew(MeshInstance3D);
-            if (glow)
-                node->set_layer_mask(GLOW_LAYER);
+            node->set_layer_mask(glow ? GLOW_LAYER : 1u | NODE_SURFACE_LAYER);
             add_child(node);
         }
         // A regional mesh is deliberately culled as a region. Use its full
@@ -1333,6 +1332,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
         if (si > 0 || gsi > 0 || ice_si > 0 || csi > 0 || fsi > 0) {
             mi = memnew(MeshInstance3D);
             mi->set_extra_cull_margin(0.2f);
+            mi->set_layer_mask(1u | NODE_SURFACE_LAYER);
             add_child(mi);
             near_block.special_node = mi;
         }

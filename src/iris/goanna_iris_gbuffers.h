@@ -68,6 +68,10 @@ public:
     // drawn distance the pack's fog should close at.
     void update(godot::Camera3D *camera, const godot::Dictionary &state);
     godot::Dictionary report() const;
+    // Every colortex some translated program writes as a second output
+    // (iris::GbuffersResult::second), ascending: the targets
+    // project/game/effects/iris_targets.gd may draw for the chain.
+    godot::PackedInt32Array second_targets() const;
     // Writes each translated shader to a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
 
@@ -86,6 +90,7 @@ private:
     std::string m_program[SURFACE_COUNT];
     std::vector<std::string> m_warnings[SURFACE_COUNT];
     std::vector<int> m_dropped[SURFACE_COUNT];
+    std::vector<int> m_second[SURFACE_COUNT];
     std::string m_error[SURFACE_COUNT];
     bool m_moves[SURFACE_COUNT] = {false, false, false, false};
     std::string m_load_error, m_dump_dir;
