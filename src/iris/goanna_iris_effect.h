@@ -41,8 +41,10 @@
 #include <godot_cpp/variant/string.hpp>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -57,6 +59,13 @@ class GoannaIrisEffect : public godot::CompositorEffect {
     GDCLASS(GoannaIrisEffect, godot::CompositorEffect)
 
 public:
+    // The centre depth readback's state, shared with its callback (see
+    // m_center below).
+    struct CenterDepth {
+        std::atomic<float> raw{1.0f};
+        std::atomic<bool> pending{false};
+    };
+
     GoannaIrisEffect();
     ~GoannaIrisEffect() override;
 
@@ -129,7 +138,6 @@ private:
     void captureDepth(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb);
     godot::RID depthCopy(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb, const char *name,
             const godot::RID &src, const godot::Vector2i &size);
-    void onCenterDepth(const godot::PackedByteArray &data);
     bool lookupBuiltin(const std::string &name, iris::Value &out) const;
     void evaluateCustom();
     void fillExtra(godot::RenderingDevice *rd, Pass &p);
@@ -182,11 +190,14 @@ private:
     godot::RID m_sampler_linear, m_sampler_nearest, m_sampler_repeat, m_sampler_nearest_repeat, m_sampler_shadow;
     godot::RID m_dummy_black, m_dummy_white, m_dummy_depth, m_dummy_shadow_depth, m_noise;
     // centerDepthSmooth: the centre pixel of depthtex0, copied to a 1x1
-    // texture and read back asynchronously, then smoothed. The callback
-    // runs on the render thread.
+    // texture and read back asynchronously, then smoothed. Godot runs the
+    // readback's callback on the main thread a frame or more later, by
+    // which time the effect may be freed, so the callback holds this
+    // shared state rather than the effect, and the two threads meet only
+    // in its atomics.
+    std::shared_ptr<CenterDepth> m_center = std::make_shared<CenterDepth>();
     godot::RID m_center_tex;
-    bool m_center_pending = false;
-    float m_center_raw = 1.0f, m_center_smooth = 1.0f;
+    float m_center_smooth = 1.0f;
     float m_dt = 0.0f;
     godot::RID m_blit_shader;
     std::map<int64_t, godot::RID> m_blit_pipelines;

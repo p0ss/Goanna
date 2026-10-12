@@ -50,6 +50,14 @@ What is new since 2026-08-21, all in `src/iris/` and checked by
   will notice. `depthtex2` is `depthtex1`: the hand is drawn with the
   opaque pass. `centerDepthSmooth` is the centre pixel of `depthtex0`, read
   back asynchronously and smoothed with the pack's `centerDepthHalflife`.
+  The readback's callback arrives on the main thread a frame or two later
+  and may outlive the effect, so it holds a small shared state, never the
+  effect itself. Bound to the effect, it crashed a client that freed the
+  effect with a readback in flight (two core dumps on 2026-10-11,
+  reproduced on 2026-10-12 with Godot 4.5.1 on the RTX 3090).
+  `tests/iris_teardown.tscn` frees the effect at that moment, through
+  `tools/goanna-headless fixture`; it needs the GPU, because lavapipe
+  crashes earlier, clearing one of the pack's colour targets.
 - `texture.noise` and `texture.deferred.*` and `texture.composite.*` image
   files are loaded and bound in place of the named sampler; raw (`.dat`)
   and resource textures are reported and skipped.

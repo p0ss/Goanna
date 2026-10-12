@@ -29,6 +29,7 @@
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/uniform_set_cache_rd.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/variant/callable_custom.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
@@ -37,12 +38,49 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 using namespace godot;
 
 namespace goanna {
 
 namespace {
+
+// The callback for the centre depth readback. A callable_mp on the effect
+// would leave Godot holding a pointer to it, and checking that callable's
+// validity after the effect is freed reads the freed object (crashes seen
+// on 2026-10-11; tests/iris_teardown.tscn). This one owns its share of the
+// state, so it is always safe to call.
+class CenterDepthCallable : public CallableCustom {
+public:
+    explicit CenterDepthCallable(std::shared_ptr<GoannaIrisEffect::CenterDepth> state) : m_state(std::move(state)) {}
+
+    uint32_t hash() const override { return (uint32_t)(uintptr_t)m_state.get(); }
+    String get_as_text() const override { return "GoannaIrisEffect::CenterDepth"; }
+    static bool equal(const CallableCustom *a, const CallableCustom *b) { return a == b; }
+    static bool less(const CallableCustom *a, const CallableCustom *b) { return a < b; }
+    CompareEqualFunc get_compare_equal_func() const override { return &equal; }
+    CompareLessFunc get_compare_less_func() const override { return &less; }
+    bool is_valid() const override { return true; }
+    ObjectID get_object() const override { return ObjectID(); }
+
+    void call(const Variant **args, int argc, Variant &ret, GDExtensionCallError &err) const override {
+        err.error = GDEXTENSION_CALL_OK;
+        if (argc >= 1 && args[0]->get_type() == Variant::PACKED_BYTE_ARRAY) {
+            PackedByteArray data = *args[0];
+            if (data.size() >= 4) {
+                float v;
+                std::memcpy(&v, data.ptr(), 4);
+                if (std::isfinite(v))
+                    m_state->raw.store(v);
+            }
+        }
+        m_state->pending.store(false);
+    }
+
+private:
+    std::shared_ptr<GoannaIrisEffect::CenterDepth> m_state;
+};
 
 RenderingDevice::DataFormat formatFromIris(const std::string &name, RenderingDevice::DataFormat dflt) {
     static const std::pair<const char *, RenderingDevice::DataFormat> table[] = {
@@ -967,10 +1005,11 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
         auto it = m_pack.consts().find("centerDepthHalflife");
         if (it != m_pack.consts().end())
             half = std::max(0.01f, (float)std::atof(it->second.c_str()));
+        float raw = m_center->raw.load();
         if (m_frame == 0)
-            m_center_smooth = m_center_raw;
+            m_center_smooth = raw;
         else
-            m_center_smooth += (m_center_raw - m_center_smooth) * (1.0f - std::pow(0.5f, dt / half));
+            m_center_smooth += (raw - m_center_smooth) * (1.0f - std::pow(0.5f, dt / half));
         putFloat("centerDepthSmooth", m_center_smooth);
     }
     putFloat("fogStart", (float)proj.get_z_far() * 0.8f);
@@ -1031,16 +1070,6 @@ void GoannaIrisEffect::captureDepth(RenderingDevice *rd, RenderSceneBuffersRD *r
         depthCopy(rd, rb, "depth_before_translucent", depth, rb->get_internal_size());
 }
 
-void GoannaIrisEffect::onCenterDepth(const PackedByteArray &data) {
-    if (data.size() >= 4) {
-        float v;
-        std::memcpy(&v, data.ptr(), 4);
-        if (std::isfinite(v))
-            m_center_raw = v;
-    }
-    m_center_pending = false;
-}
-
 Ref<GoannaIrisEffect> GoannaIrisEffect::make_depth_capture() const {
     Ref<GoannaIrisEffect> e;
     e.instantiate();
@@ -1089,14 +1118,15 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     RID depth0 = depth.is_valid() ? depthCopy(rd, rb.ptr(), "depth_gl", depth, size) : m_dummy_depth;
     RID depth1 = rb->has_texture("goanna_iris", "depth_before_translucent")
             ? rb->get_texture("goanna_iris", "depth_before_translucent") : depth0;
-    if (!m_center_pending && depth.is_valid()) {
+    if (!m_center->pending.load() && depth.is_valid()) {
         TypedArray<RID> t;
         t.push_back(m_center_tex);
         TypedArray<RDFramebufferPass> np;
         RID cfb = FramebufferCacheRD::get_cache_multipass(t, np, 1);
         blit(rd, depth0, cfb, rd->framebuffer_get_format(cfb), 0);
-        if (rd->texture_get_data_async(m_center_tex, 0, callable_mp(this, &GoannaIrisEffect::onCenterDepth)) == OK)
-            m_center_pending = true;
+        m_center->pending.store(true);
+        if (rd->texture_get_data_async(m_center_tex, 0, Callable(memnew(CenterDepthCallable(m_center)))) != OK)
+            m_center->pending.store(false);
     }
 
     fillUniforms(p_render_data, size);
