@@ -180,21 +180,52 @@ static void testTranslator() {
             GbuffersSurface::Translucent, r, err, true);
     check(contains(code, "depth_draw_always"), "translucent writes depth for a chain, as in Minecraft");
 
-    // A struct varying (Photon's water) is flattened into a varying per
-    // field, written from a local at the end of vertex() and built again
-    // where the fragment stage reads it.
+    // A struct varying (Photon's water) is carried field by field, written
+    // from a local at the end of vertex() and built again at the start of
+    // fragment().
     code = translateOne("struct P { vec3 a; float b; };\nflat out P params;\n"
                         "void main() { params = P(vec3(1.0), 2.0); gl_Position = ftransform(); }\n",
             "struct P { vec3 a; float b; };\nflat in P params;\n"
             "void main() { gl_FragData[0] = vec4(params.a * params.b, 1.0); }\n",
             GbuffersSurface::ArrayOpaque, r, err);
     check(err.empty(), "struct varying translates: " + err);
-    check(contains(code, "varying flat vec3 params_a;") && contains(code, "varying flat float params_b;"),
-            "a varying per field: " + code);
+    check(contains(code, "varying flat vec4 goanna_pk0;"), "its fields share one flat slot: " + code);
     check(!contains(code, "varying flat P"), "no struct varying left");
-    check(contains(code, "\tP goanna_vx_params;") && contains(code, "params_a = goanna_vx_params.a;"),
-            "vertex() writes a local and copies its fields");
-    check(contains(code, "P(params_a, params_b).a"), "the fragment stage builds it again");
+    check(contains(code, "\tP goanna_vx_params;") &&
+                    contains(code, "goanna_pk0 = vec4(goanna_vx_params.a, goanna_vx_params.b);"),
+            "vertex() writes a local and packs its fields");
+    check(contains(code, "P params = P(goanna_pk0.xyz, goanna_pk0.w);"), "the fragment stage builds it again");
+
+    // Varyings packed into as few slots as fit (MakeUp's terrain used 33
+    // against Godot's 32): scalars beside vectors, flat apart from smooth,
+    // ints apart from floats, a bool as a flat int, a matrix by columns, and
+    // a varying the fragment stage never reads left out.
+    code = translateOne("out vec3 a; out vec3 b; out float c; out float d; out vec2 e; out float unread;\n"
+                        "flat out int id; flat out bool lit; out mat3 tbn;\n"
+                        "void main() { a = vec3(1.0); b = vec3(2.0); c = 3.0; d = 4.0; e = vec2(5.0);\n"
+                        " unread = 6.0; id = 7; lit = true; tbn = mat3(1.0); gl_FogFragCoord = 8.0;\n"
+                        " gl_Position = ftransform(); }\n",
+            "in vec3 a; in vec3 b; in float c; in float d; in vec2 e; in float unread;\n"
+            "flat in int id; flat in bool lit; in mat3 tbn;\n"
+            "float f() { return c + gl_FogFragCoord; }\n"
+            "void main() { gl_FragData[0] = vec4(a + b + tbn[0] * d + vec3(e, f()) + float(id), lit ? 1.0 : 0.0); }\n",
+            GbuffersSurface::ArrayOpaque, r, err);
+    check(err.empty(), "packed varyings translate: " + err);
+    auto count = [&](const std::string &s, const std::string &w) {
+        size_t n = 0;
+        for (size_t k = s.find(w); k != std::string::npos; k = s.find(w, k + 1)) ++n;
+        return n;
+    };
+    // smooth floats: a, b, three tbn columns (3 each), c, d, e, fog: 17
+    // components in five slots; then one flat int slot for id and lit.
+    check(count(code, "\nvarying vec") + count(code, "\nvarying float") == 5, "smooth floats in five slots: " + code);
+    check(contains(code, "varying flat ivec2 goanna_pk"), "id and lit share a flat int slot");
+    check(count(code, "unread") == 2, "an unread varying is a vertex local only, with no slot");
+    check(contains(code, "mat3 tbn = mat3(goanna_pk"), "a matrix is rebuilt from its columns");
+    check(contains(code, "(goanna_vx_lit ? 1 : 0)") && contains(code, "bool lit = (goanna_pk"),
+            "a bool goes as an int");
+    check(contains(code, "inout float c") || contains(code, "inout float goanna_v_FogFragCoord"),
+            "a helper reading a varying takes the unpacked local");
 
     // Non-square matrices are square in Godot: mat2x3 is a padded mat3.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",

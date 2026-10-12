@@ -351,10 +351,40 @@ private:
     // Fragment outputs by location: the local that holds it.
     std::map<int, std::string> m_outs;
     std::map<std::string, int> m_out_names; // pack name -> location
+    std::map<int, Ty> m_out_types;          // location -> declared type; vec4 when undeclared
+    Ty outType(int k) const {
+        auto it = m_out_types.find(k);
+        return it == m_out_types.end() ? Ty::vec(Ty::Float, 4) : it->second;
+    }
+    // An output as the vec4 its target receives: missing components filled
+    // as GL fills them (0, 0, 1), integers converted.
+    std::string outVec4(int k) const {
+        Ty t = outType(k);
+        std::string n = "goanna_out_" + std::to_string(k);
+        if (t.b != Ty::Float)
+            n = (t.n == 1 ? std::string("float") : "vec" + std::to_string(t.n)) + "(" + n + ")";
+        static const char *pad[] = {"", ", 0.0, 0.0, 1.0", ", 0.0, 1.0", ", 1.0", ""};
+        return t.n == 4 ? n : "vec4(" + n + pad[t.n] + ")";
+    }
     std::set<int> m_out_written;
-    // Struct varyings flattened into a varying per field: pack name ->
-    // each field's name and type, for the copy at the end of vertex().
-    std::map<std::string, std::vector<std::pair<std::string, Ty>>> m_struct_varyings;
+    // Varyings carried in packed slots (packVaryings), per stage, by pack
+    // name. A struct varying lists its fields.
+    struct Carried {
+        std::string emitted;
+        Ty t;
+        bool flat = false;
+        std::vector<std::pair<std::string, Ty>> fields;
+    };
+    std::map<std::string, Carried> m_carried[2];
+    // A type a packed slot can carry: a float, int, uint or bool scalar or
+    // vector, or a float matrix (by its columns).
+    static bool carriable(const Ty &t) {
+        if (t.array) return false;
+        if (t.isMatrix()) return t.b == Ty::Float;
+        if (t.b == Ty::Bool) return t.n == 1;
+        return (t.b == Ty::Float || t.b == Ty::Int || t.b == Ty::Uint) && t.n >= 1 && t.n <= 4;
+    }
+    void packVaryings(const std::string &fragment_code, std::string &vertex_out, std::string &fragment_in);
     bool m_layer_needed = false;
     bool m_texmat1 = false;
     std::string m_mc_entity_type = "vec4";
@@ -1179,6 +1209,16 @@ Val Translator::call(const Expr &e) {
         withFloats();
         return {fn + "(" + join(args) + ")", Ty::scalar(Ty::Float), false};
     }
+    if (fn == "modf" && args.size() == 2) {
+        // Godot has it, with the whole part an out parameter as in GLSL;
+        // the second argument is a variable, so it is passed unconverted.
+        if (args[0].t.numericInt()) {
+            Ty to = args[0].t;
+            to.b = Ty::Float;
+            args[0] = conv(args[0], to);
+        }
+        return {fn + "(" + join(args) + ")", args[0].t, false};
+    }
     if (fn == "cross") {
         withFloats();
         return {fn + "(" + join(args) + ")", Ty::vec(Ty::Float, 3), false};
@@ -1724,6 +1764,11 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
         globals["gl_Position"] = {"goanna_gl_Position", Ty::vec(Ty::Float, 4), 3};
         m_vin.insert("goanna_gl_Position");
     }
+    // gl_FogFragCoord is carried like a pack's own varying, so it shares a
+    // slot and costs nothing where the fragment stage does not read it.
+    m_used_names.insert("goanna_v_FogFragCoord");
+    globals["gl_FogFragCoord"] = {"goanna_v_FogFragCoord", Ty::scalar(Ty::Float), st == Stage::Vertex ? 1 : 3};
+    m_carried[si(st)]["gl_FogFragCoord"] = {"goanna_v_FogFragCoord", Ty::scalar(Ty::Float), false, {}};
     for (auto &it : u.items) {
         if (it.kind == Item::FunctionItem) {
             const Function &f = it.function;
@@ -1826,48 +1871,36 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 if (interp.find("centroid") != std::string::npos || interp.find("noperspective") != std::string::npos ||
                         interp.find("sample") != std::string::npos)
                     interp = interp.find("flat") != std::string::npos ? "flat" : "";
-                if (t.b == Ty::Bool) {
-                    warn("bool varying '" + d.name + "' is not allowed in Godot");
-                }
-                // A struct varying (Photon's water carries its fog
-                // parameters in one), which Godot refuses, is flattened: a
-                // varying per field, named <varying>_<field>. The vertex
-                // stage writes a local of the struct and copies its fields
-                // out at the end of vertex(); the fragment stage reads the
-                // struct built again from the fields.
+                // A varying is carried packed (packVaryings): the vertex
+                // stage writes a local, copied into a shared slot at the
+                // end of vertex(); the fragment stage reads a local of
+                // fragment() unpacked from the slot. Several scalars then
+                // share one interpolator, which matters because Godot counts
+                // varyings one per declaration, its own included, against a
+                // limit of 32 (MakeUp's terrain needed 33), and a varying
+                // the fragment stage never reads costs nothing. A struct
+                // varying (Photon's water carries its fog parameters in
+                // one), which Godot refuses, goes field by field, and a bool
+                // as a flat int.
+                std::vector<std::pair<std::string, Ty>> fields;
+                bool carry = !d.array && carriable(t);
                 if (t.b == Ty::Struct && !d.array && m_struct_defs.count(t.name)) {
-                    const StructDef &sd = *m_struct_defs.at(t.name);
-                    std::vector<std::pair<std::string, Ty>> fields;
-                    bool flat_ok = true;
-                    for (auto &f : sd.fields) {
+                    carry = true;
+                    for (auto &f : m_struct_defs.at(t.name)->fields) {
                         Ty ft = specTy(f.type);
-                        if (f.array || ft.b == Ty::Struct || ft.b == Ty::Bool || ft.b == Ty::Sampler || !ft.known())
-                            flat_ok = false;
+                        if (f.array || !carriable(ft)) carry = false;
                         fields.push_back({f.name, ft});
                     }
-                    if (flat_ok && !fields.empty()) {
-                        std::string ctor = t.name + "(";
-                        for (size_t i = 0; i < fields.size(); ++i) {
-                            const Ty &ft = fields[i].second;
-                            std::string fname = name + "_" + fields[i].first;
-                            m_used_names.insert(fname);
-                            std::string fi = interp;
-                            if ((ft.b == Ty::Int || ft.b == Ty::Uint) && fi.find("flat") == std::string::npos)
-                                fi = "flat";
-                            addDecl("varying " + (fi.empty() ? "" : fi + " ") + ft.godot() + " " + fname + ";");
-                            ctor += (i ? ", " : "") + fname;
-                        }
-                        ctor += ")";
-                        if (st == Stage::Vertex) {
-                            globals[d.name] = {name, t, 1};
-                            m_struct_varyings[d.name] = fields;
-                        } else {
-                            globals[d.name] = {ctor, t, 0};
-                        }
-                        continue;
-                    }
-                    warn("struct varying '" + d.name + "' has a field Godot cannot carry in a varying");
+                    if (fields.empty()) carry = false;
+                    if (!carry) warn("struct varying '" + d.name + "' has a field Godot cannot carry in a varying");
                 }
+                if (carry) {
+                    globals[d.name] = {name, t, st == Stage::Vertex ? 1 : 3};
+                    m_carried[si(st)][d.name] = {name, t, interp.find("flat") != std::string::npos, fields};
+                    continue;
+                }
+                if (t.b == Ty::Bool)
+                    warn("bool varying '" + d.name + "' is not allowed in Godot");
                 std::string size = d.array ? "[" + (d.size ? expr(d.size).code : "") + "]" : "";
                 addDecl("varying " + (interp.empty() ? "" : interp + " ") + t.elem().godot() + " " + name + size + ";");
                 globals[d.name] = {name, t, st == Stage::Vertex ? 1 : 0};
@@ -1895,8 +1928,15 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                     loc = out_loc++;
                 }
                 std::string name = "goanna_out_" + std::to_string(loc);
-                globals[d.name] = {name, Ty::vec(Ty::Float, 4), 2};
+                // An output keeps the type the pack gave it (Photon's
+                // shadow program writes a vec3), widened to a vec4 where
+                // it is drawn (outVec4).
+                Ty ot = Ty::vec(Ty::Float, 4);
+                if (!t.array && !t.isMatrix() && (t.b == Ty::Float || t.b == Ty::Int || t.b == Ty::Uint))
+                    ot = t;
+                globals[d.name] = {name, ot, 2};
                 m_out_names[d.name] = loc;
+                m_out_types[loc] = ot;
                 continue;
             }
             bool promote_const = st_.empty() && (d.init || d.has_list) && !assigned(d.name) &&
@@ -1940,7 +1980,20 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 // initialiser that is never assigned becomes a function
                 // returning the initialiser; anything else a local of each
                 // main body, which holds only if no other function writes it.
-                if (d.init && !d.array && !assigned(d.name)) {
+                // An initialiser reading a local of main (a carried varying,
+                // Mellow's dFdx(texcoord)) makes a local too: a function
+                // could not see it.
+                std::function<bool(const ExprP &)> readsLocal = [&](const ExprP &e) {
+                    if (!e) return false;
+                    if (e->kind == Expr::Ident) {
+                        auto it = globals.find(e->text);
+                        if (it != globals.end() && it->second.kind != 0) return true;
+                    }
+                    for (auto &x : e->a)
+                        if (readsLocal(x)) return true;
+                    return readsLocal(e->method_of);
+                };
+                if (d.init && !d.array && !assigned(d.name) && !readsLocal(d.init)) {
                     std::string fname = uniqueGlobal("goanna_global_" + d.name);
                     m_scopes.emplace_back();
                     FuncSym lazy;
@@ -2043,6 +2096,200 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
     return "";
 }
 
+// Whether code names an identifier: a whole word, not a member after a dot.
+static bool mentions(const std::string &code, const std::string &name) {
+    auto word = [](char c) { return std::isalnum((unsigned char)c) || c == '_'; };
+    for (size_t k = code.find(name); k != std::string::npos; k = code.find(name, k + 1)) {
+        if (k > 0 && (word(code[k - 1]) || code[k - 1] == '.')) continue;
+        size_t e = k + name.size();
+        if (e < code.size() && word(code[e])) continue;
+        return true;
+    }
+    return false;
+}
+
+// The carried varyings (see collectGlobals) into as few slots as they fit:
+// each value split into float, int or uint runs of one to four components,
+// grouped by base type and by flat or smooth interpolation, and packed
+// largest first into four component slots. A varying the fragment stage
+// never names gets no slot. vertex_out copies the vertex locals into the
+// slots at the end of vertex(); fragment_in rebuilds the fragment's locals
+// at the start of fragment().
+void Translator::packVaryings(const std::string &reads, std::string &vertex_out, std::string &fragment_in) {
+    struct Item {
+        std::string from; // the vertex expression
+        int n = 1;
+        int group = 0; // 0 smooth float, 1 flat float, 2 flat int, 3 flat uint
+        bool zero = false; // the vertex stage does not write it
+    };
+    std::vector<Item> items;
+    auto groupOf = [](Ty::B b, bool flat) { return b == Ty::Float ? (flat ? 1 : 0) : b == Ty::Uint ? 3 : 2; };
+    auto zero = [](int group, int n) {
+        std::string s = group == 3 ? "0u" : group == 2 ? "0" : "0.0";
+        if (n == 1) return s;
+        return std::string(group == 3 ? "u" : group == 2 ? "i" : "") + "vec" + std::to_string(n) + "(" + s + ")";
+    };
+    // Items for one value of type t, from the vertex expression from (empty
+    // when the vertex stage does not write it: zeros).
+    std::function<void(const std::string &, const Ty &, bool, std::vector<int> &)> parts =
+            [&](const std::string &from, const Ty &t, bool flat, std::vector<int> &out) {
+                Item it;
+                it.zero = from.empty();
+                if (t.isMatrix()) {
+                    int d = std::max(t.cols, t.rows);
+                    for (int c = 0; c < d; ++c) {
+                        it.n = d;
+                        it.group = groupOf(Ty::Float, flat);
+                        it.from = from.empty() ? zero(it.group, d) : from + "[" + std::to_string(c) + "]";
+                        out.push_back((int)items.size());
+                        items.push_back(it);
+                    }
+                    return;
+                }
+                it.n = t.b == Ty::Bool ? 1 : t.n;
+                it.group = t.b == Ty::Bool ? 2 : groupOf(t.b, flat || t.b != Ty::Float);
+                it.from = from.empty() ? zero(it.group, it.n)
+                        : t.b == Ty::Bool ? "(" + from + " ? 1 : 0)" : from;
+                out.push_back((int)items.size());
+                items.push_back(it);
+            };
+    struct Use {
+        const Carried *c;
+        std::vector<int> items;
+    };
+    std::vector<Use> uses;
+    for (auto &kv : m_carried[1]) {
+        const Carried &c = kv.second;
+        if (!mentions(reads, c.emitted)) continue;
+        auto v = m_carried[0].find(kv.first);
+        std::string from = v == m_carried[0].end() ? "" : routedName(kv.first, Stage::Vertex);
+        Use u{&c, {}};
+        if (c.fields.empty()) {
+            parts(from, c.t, c.flat, u.items);
+        } else {
+            for (auto &f : c.fields)
+                parts(from.empty() ? "" : from + "." + f.first, f.second, c.flat, u.items);
+        }
+        uses.push_back(u);
+    }
+    // First fit, largest first, within each group. An item that fits whole
+    // in no open slot is split over the room the open slots have left, when
+    // that is enough, so a group takes as few slots as its components need.
+    std::vector<int> order(items.size());
+    for (size_t i = 0; i < order.size(); ++i) order[i] = (int)i;
+    std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return items[a].n > items[b].n; });
+    struct Piece {
+        int item, from, n; // components [from, from + n) of the item
+    };
+    struct Slot {
+        int group, used;
+        std::vector<Piece> pieces;
+        std::string name;
+    };
+    std::vector<Slot> slots;
+    // Where each item's components went, in order: slot and component.
+    std::vector<std::vector<std::pair<int, int>>> placed(items.size());
+    auto put = [&](int i, int s, int from, int n) {
+        for (int c = 0; c < n; ++c) placed[i].push_back({s, slots[s].used + c});
+        slots[s].pieces.push_back({i, from, n});
+        slots[s].used += n;
+    };
+    for (int i : order) {
+        const Item &it = items[i];
+        int s = -1, room = 0;
+        for (size_t k = 0; k < slots.size(); ++k) {
+            if (slots[k].group != it.group) continue;
+            if (s < 0 && slots[k].used + it.n <= 4) s = (int)k;
+            room += 4 - slots[k].used;
+        }
+        if (s >= 0) {
+            put(i, s, 0, it.n);
+        } else if (room >= it.n) {
+            int from = 0;
+            for (size_t k = 0; k < slots.size() && from < it.n; ++k) {
+                if (slots[k].group != it.group || slots[k].used == 4) continue;
+                int n = std::min(4 - slots[k].used, it.n - from);
+                put(i, (int)k, from, n);
+                from += n;
+            }
+        } else {
+            slots.push_back({it.group, 0, {}, ""});
+            put(i, (int)slots.size() - 1, 0, it.n);
+        }
+    }
+    auto typeOf = [](int group, int n) {
+        if (n == 1) return std::string(group == 3 ? "uint" : group == 2 ? "int" : "float");
+        return std::string(group == 3 ? "u" : group == 2 ? "i" : "") + "vec" + std::to_string(n);
+    };
+    std::ostringstream vo, fo;
+    for (size_t k = 0; k < slots.size(); ++k) {
+        Slot &s = slots[k];
+        s.name = uniqueGlobal("goanna_pk" + std::to_string(k));
+        std::string type = typeOf(s.group, s.used);
+        addDecl("varying " + std::string(s.group == 0 ? "" : "flat ") + type + " " + s.name + ";");
+        std::vector<std::string> parts_of;
+        for (auto &p : s.pieces) {
+            const Item &it = items[p.item];
+            if (p.n == it.n)
+                parts_of.push_back(it.from);
+            else if (it.zero)
+                parts_of.push_back(zero(it.group, p.n));
+            else
+                parts_of.push_back(it.from + "." + std::string("xyzw").substr(p.from, p.n));
+        }
+        std::string value = parts_of.size() == 1 ? parts_of[0] : type + "(";
+        if (parts_of.size() > 1) {
+            for (size_t j = 0; j < parts_of.size(); ++j) value += (j ? ", " : "") + parts_of[j];
+            value += ")";
+        }
+        vo << "\t" << s.name << " = " << value << ";\n";
+    }
+    // An item read back: its components from their slots, joined into one
+    // vector when they lie apart.
+    auto access = [&](int i) {
+        const auto &pl = placed[i];
+        std::vector<std::string> runs;
+        for (size_t c = 0; c < pl.size();) {
+            const Slot &s = slots[pl[c].first];
+            size_t e = c + 1;
+            while (e < pl.size() && pl[e].first == pl[c].first && pl[e].second == pl[e - 1].second + 1) ++e;
+            bool whole = pl[c].second == 0 && (int)(e - c) == s.used;
+            runs.push_back(whole ? s.name : s.name + "." + std::string("xyzw").substr(pl[c].second, e - c));
+            c = e;
+        }
+        if (runs.size() == 1) return runs[0];
+        std::string v = typeOf(items[i].group, items[i].n) + "(";
+        for (size_t j = 0; j < runs.size(); ++j) v += (j ? ", " : "") + runs[j];
+        return v + ")";
+    };
+    // The value of type t rebuilt from its items, taken in order from k.
+    auto rebuild = [&](const Ty &t, const std::vector<int> &its, size_t &k) {
+        if (t.isMatrix()) {
+            int d = std::max(t.cols, t.rows);
+            std::string m = "mat" + std::to_string(d) + "(";
+            for (int c = 0; c < d; ++c) m += (c ? ", " : "") + access(its[k++]);
+            return m + ")";
+        }
+        if (t.b == Ty::Bool) return "(" + access(its[k++]) + " != 0)";
+        return access(its[k++]);
+    };
+    for (auto &u : uses) {
+        size_t k = 0;
+        std::string value;
+        if (u.c->fields.empty()) {
+            value = rebuild(u.c->t, u.items, k);
+        } else {
+            value = u.c->t.name + "(";
+            for (size_t j = 0; j < u.c->fields.size(); ++j)
+                value += (j ? ", " : "") + rebuild(u.c->fields[j].second, u.items, k);
+            value += ")";
+        }
+        fo << "\t" << u.c->t.godot() << " " << u.c->emitted << " = " << value << ";\n";
+    }
+    vertex_out = vo.str();
+    fragment_in = fo.str();
+}
+
 bool Translator::run(const Program &p, std::string &err) {
     // ---- preprocess and parse both stages
     MacroTable base;
@@ -2085,14 +2332,24 @@ bool Translator::run(const Program &p, std::string &err) {
 
     route(Stage::Vertex);
     route(Stage::Fragment);
-    // A flattened struct varying is always a local of vertex(), copied out
-    // field by field at its end.
-    for (auto &kv : m_struct_varyings)
+    // A carried varying is always a local of vertex(), packed into its slot
+    // at the end.
+    for (auto &kv : m_carried[0])
         m_routed_all[0].insert(kv.first);
     std::string vbody = emitMain(Stage::Vertex, err);
     if (!err.empty()) return false;
     std::string fbody = emitMain(Stage::Fragment, err);
     if (!err.empty()) return false;
+    std::string pack_out, unpack_in;
+    {
+        // What the fragment stage can read: its main body, its main's
+        // locals and every function emitted (a superset, which only costs
+        // a slot).
+        std::string reads = fbody;
+        for (auto &g : m_main_locals[1]) reads += "\n" + g;
+        for (auto &f : m_func_order) reads += "\n" + f;
+        packVaryings(reads, pack_out, unpack_in);
+    }
 
     // ---- the vertex stage around the pack's body
     std::ostringstream vo, fo;
@@ -2112,28 +2369,22 @@ bool Translator::run(const Program &p, std::string &err) {
             vo << "\t" << stageBuiltin("goanna_gl_Color", Stage::Vertex) << "\n";
         vo << "\tgoanna_v_FrontColor = goanna_gl_Color;\n";
     }
+    for (auto &r : m_routed_all[0]) {
+        const VarSym &v = m_globals[0].at(r);
+        if (v.kind == 1) vo << "\t" << v.t.elem().godot() << " " << routedName(r, Stage::Vertex) << ";\n";
+    }
     for (auto &g : m_main_locals[0]) vo << "\t" << g << ";\n";
     if (m_layer_needed) {
         addDecl("varying flat int goanna_layer;");
         vo << "\tgoanna_layer = " << "goanna_anim_layer(int(round(UV2.x)))" << ";\n";
     }
-    for (auto &r : m_routed_all[0]) {
-        const VarSym &v = m_globals[0].at(r);
-        if (v.kind == 1) vo << "\t" << v.t.elem().godot() << " " << routedName(r, Stage::Vertex) << ";\n";
-    }
     vo << vbody;
     for (auto &r : m_routed_all[0]) {
         const VarSym &v = m_globals[0].at(r);
-        if (v.kind != 1) continue;
-        auto sv = m_struct_varyings.find(r);
-        if (sv == m_struct_varyings.end()) {
-            vo << "\t" << v.emitted << " = " << routedName(r, Stage::Vertex) << ";\n";
-            continue;
-        }
-        for (auto &f : sv->second)
-            vo << "\t" << v.emitted << "_" << f.first << " = " << routedName(r, Stage::Vertex) << "." << f.first
-               << ";\n";
+        if (v.kind != 1 || m_carried[0].count(r)) continue;
+        vo << "\t" << v.emitted << " = " << routedName(r, Stage::Vertex) << ";\n";
     }
+    vo << pack_out;
     // gl_Position. Plain ftransform() leaves VERTEX alone. Anything else is
     // taken back to a world position through the player camera matrices it
     // was made with, so every pass Godot draws (the shadow pass too) puts
@@ -2200,11 +2451,16 @@ bool Translator::run(const Program &p, std::string &err) {
 
     }
     if (m_fin.count("goanna_gl_FragDepth")) fo << "\t" << stageBuiltin("goanna_gl_FragDepth", Stage::Fragment) << "\n";
+    fo << unpack_in;
     for (auto &g : m_main_locals[1]) fo << "\t" << g << ";\n";
     std::vector<int> db = m_r.drawbuffers;
     if (db.empty()) db.push_back(0);
-    for (int k : m_out_written)
-        fo << "\tvec4 goanna_out_" << k << " = vec4(0.0, 0.0, 0.0, 1.0);\n";
+    for (int k : m_out_written) {
+        Ty ot = outType(k);
+        std::string init = ot.b == Ty::Float && ot.n == 4 ? "vec4(0.0, 0.0, 0.0, 1.0)"
+                : ot.godot() + (ot.b == Ty::Float ? "(0.0)" : ot.b == Ty::Uint ? "(0u)" : "(0)");
+        fo << "\t" << ot.godot() << " goanna_out_" << k << " = " << init << ";\n";
+    }
     fo << fbody;
     // The colour target: whichever output DRAWBUFFERS sends to colortex0,
     // else the first written.
@@ -2239,7 +2495,7 @@ bool Translator::run(const Program &p, std::string &err) {
     }
     const bool blended = m_o.surface == GbuffersSurface::Translucent;
     if (colour >= 0) {
-        std::string c = "goanna_out_" + std::to_string(colour);
+        std::string c = outVec4(colour);
         if (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
@@ -2257,8 +2513,8 @@ bool Translator::run(const Program &p, std::string &err) {
             fo << "\tif (goanna_pass >= 2u && goanna_pass <= 16u) {\n";
             fo << "\t\tvec4 goanna_second = vec4(0.0);\n";
             for (auto &kv : second)
-                fo << "\t\tif (goanna_pass == " << kv.first + 1 << "u)\n\t\t\tgoanna_second = goanna_out_"
-                   << kv.second << ";\n";
+                fo << "\t\tif (goanna_pass == " << kv.first + 1 << "u)\n\t\t\tgoanna_second = " << outVec4(kv.second)
+                   << ";\n";
             fo << "\t\tALBEDO = goanna_second.rgb;\n";
             if (blended)
                 fo << "\t\tALPHA = clamp(goanna_second.a, 0.0, 1.0);\n";
