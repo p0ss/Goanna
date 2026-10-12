@@ -310,7 +310,16 @@ struct Decl {
     std::string type;
     std::string name;
     int array = 0; // 0 = not an array
+    // A varying of a struct type (Photon's clouds_params), left where the
+    // pack declared it, after its struct, and located there (locateInPlace).
+    bool inplace = false;
 };
+
+// A type GLSL has built in, as opposed to a pack's struct.
+bool isBuiltinType(const std::string &t) {
+    static const std::regex re(R"(^(float|double|int|uint|bool|[biud]?vec[234]|d?mat[234](x[234])?)$)");
+    return std::regex_match(t, re);
+}
 
 const char *kQualifiers[] = {"flat", "smooth", "noperspective", "centroid", "invariant", "highp",
         "mediump", "lowp", "sample", "patch"};
@@ -389,6 +398,10 @@ void extractDecls(std::string &text, std::vector<Decl> &decls) {
                 size_t lb = text.find('{', j);
                 if (lb != std::string::npos && lb < end) { stmtStart = false; ++i; continue; }
                 std::string rest = text.substr(j, end - j);
+                // A struct typed varying stays in place: declared in the
+                // prelude it would come before its struct.
+                bool inplace = keyword != "uniform" && keyword != "attribute" && !isBuiltinType(type) &&
+                        type.find("sampler") == std::string::npos && type.find("image") == std::string::npos;
                 // split names on commas, each "name", "name[N]", "name = init"
                 std::stringstream ss(rest);
                 std::string item;
@@ -398,6 +411,7 @@ void extractDecls(std::string &text, std::vector<Decl> &decls) {
                     if (name.empty()) continue;
                     Decl d;
                     d.keyword = keyword; d.quals = quals; d.type = type; d.name = name;
+                    d.inplace = inplace;
                     while (k < item.size() && std::isspace((unsigned char)item[k])) ++k;
                     if (k < item.size() && item[k] == '[') {
                         size_t rb = item.find(']', k);
@@ -406,8 +420,9 @@ void extractDecls(std::string &text, std::vector<Decl> &decls) {
                     }
                     decls.push_back(d);
                 }
-                for (size_t k = i; k <= end && k < n; ++k)
-                    if (text[k] != '\n') text[k] = ' ';
+                if (!inplace)
+                    for (size_t k = i; k <= end && k < n; ++k)
+                        if (text[k] != '\n') text[k] = ' ';
                 i = end + 1;
                 stmtStart = true;
                 continue;
@@ -429,12 +444,54 @@ int varyingSlots(const std::string &type, int array) {
     return s * std::max(1, array);
 }
 
+// The locations a struct takes as a varying: its members' in turn, nested
+// structs included, read from the struct's definition in text.
+int structSlots(const std::string &type, const std::string &text, int depth = 0) {
+    if (depth > 8) return 1;
+    std::smatch m;
+    std::regex re("\\bstruct\\s+" + type + "\\s*\\{([^}]*)\\}");
+    if (!std::regex_search(text, m, re)) return 1;
+    std::string body = m[1].str();
+    int slots = 0;
+    std::stringstream ss(body);
+    std::string member;
+    while (std::getline(ss, member, ';')) {
+        size_t k = 0;
+        std::string t = readWord(member, k);
+        while (t == "highp" || t == "mediump" || t == "lowp" || isQualifier(t)) t = readWord(member, k);
+        if (t.empty()) continue;
+        int each = isBuiltinType(t) ? varyingSlots(t, 0) : structSlots(t, text, depth + 1);
+        std::stringstream names(member.substr(k));
+        std::string nm;
+        while (std::getline(names, nm, ',')) {
+            size_t a = 0;
+            if (readWord(nm, a).empty()) continue;
+            int count = 1;
+            size_t lb = nm.find('[', a);
+            if (lb != std::string::npos) count = std::max(1, std::atoi(nm.c_str() + lb + 1));
+            slots += each * count;
+        }
+    }
+    return std::max(1, slots);
+}
+
 struct Varying {
     std::string type, quals;
     int array = 0;
     bool inVertex = false, inFragment = false;
+    bool inplace = false;
     int location = -1;
 };
+
+// A struct typed varying's own declaration, left in the pack's text, given
+// its location: "flat out T name;" becomes "layout(location = N) flat out T
+// name;" on the same line, with dir (in or out) for the legacy varying.
+void locateInPlace(std::string &text, const std::string &name, const std::string &type, int location,
+        const char *dir) {
+    std::regex re("((?:\\b(?:flat|smooth|noperspective|centroid)[ \\t]+)*)\\b(?:varying|out|in)([ \\t]+" + type +
+            "[ \\t]+" + name + "[ \\t]*(?:\\[[^\\]]*\\])?[ \\t]*;)");
+    text = std::regex_replace(text, re, "layout(location = " + std::to_string(location) + ") $1" + dir + "$2");
+}
 
 void stripDirectives(std::string &text) {
     // #version and #extension lines go; glslang is told what we are.
@@ -528,7 +585,17 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
                     }
 
     // ---- identifier rewrites, stage aware
-    auto rewriteCommon = [](std::string s) {
+    // A legacy sampler name (shadow, gaux1, composite) is the target's only
+    // where the pack declared a sampler by it. Photon has a local float
+    // called shadow beside its own shadowtex0, and renaming that made a
+    // second shadowtex0 that hid the sampler.
+    std::set<std::string> declaredAliases;
+    for (auto *decls : {&vdecl, &fdecl})
+        for (auto &d : *decls)
+            if (d.keyword == "uniform" && d.type.find("sampler") != std::string::npos)
+                for (auto &a : kSamplerAliases)
+                    if (d.name == a.first) declaredAliases.insert(d.name);
+    auto rewriteCommon = [&declaredAliases](std::string s) {
         static const std::pair<const char *, const char *> table[] = {
             {"texture2DLod", "textureLod"}, {"texture2DProjLod", "textureProjLod"},
             {"texture2DGrad", "textureGrad"}, {"texture2DProj", "textureProj"},
@@ -547,7 +614,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         for (auto &e : table)
             s = replaceWord(s, e.first, e.second);
         for (auto &a : kSamplerAliases)
-            s = replaceWord(s, a.first, a.second);
+            if (declaredAliases.count(a.first)) s = replaceWord(s, a.first, a.second);
         static const std::regex texmat(R"(gl_TextureMatrix\s*\[\s*(\d+)\s*\])");
         s = std::regex_replace(s, texmat, "goanna_texmat$1");
         static const std::regex texcoord(R"(gl_TexCoord\s*\[\s*(\d+)\s*\])");
@@ -583,6 +650,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         Varying &v = varyings[d.name];
         v.type = d.type;
         v.array = d.array;
+        v.inplace = v.inplace || d.inplace;
         if (!d.quals.empty() && v.quals.find(d.quals) == std::string::npos) {
             if (!v.quals.empty()) v.quals += ' ';
             v.quals += d.quals;
@@ -646,13 +714,13 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     for (auto &d : vdecl) {
         if (d.keyword == "uniform") handleUniform(d);
         else if (d.keyword == "varying" || d.keyword == "out") addVarying(d, true);
-        else if (d.keyword == "attribute" || d.keyword == "in") attributes.push_back(d);
+        else if ((d.keyword == "attribute" || d.keyword == "in") && !d.inplace) attributes.push_back(d);
     }
     std::vector<Decl> fragOuts; // unlocated, given locations below
     for (auto &d : fdecl) {
         if (d.keyword == "uniform") handleUniform(d);
         else if (d.keyword == "varying" || d.keyword == "in") addVarying(d, false);
-        else if (d.keyword == "out") fragOuts.push_back(d);
+        else if (d.keyword == "out" && !d.inplace) fragOuts.push_back(d);
     }
     // samplers referenced through an alias or declared nowhere (some packs
     // rely on Iris declaring colortex for them): pick them up from use
@@ -690,7 +758,8 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     }
     int loc = 0;
     for (auto &kv : varyings) {
-        int slots = varyingSlots(kv.second.type, kv.second.array);
+        int slots = kv.second.inplace ? structSlots(kv.second.type, vs + fs) * std::max(1, kv.second.array)
+                                     : varyingSlots(kv.second.type, kv.second.array);
         for (;;) {
             bool clash = false;
             for (int k = loc; k < loc + slots; ++k)
@@ -700,6 +769,11 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         }
         kv.second.location = loc;
         loc += slots;
+    }
+    for (auto &kv : varyings) {
+        if (!kv.second.inplace) continue;
+        locateInPlace(vs, kv.first, kv.second.type, kv.second.location, "out");
+        locateInPlace(fs, kv.first, kv.second.type, kv.second.location, "in");
     }
 
     // ---- prelude
@@ -767,7 +841,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         if (containsWord(vs, s.name))
             v << "layout(set = 0, binding = " << s.binding << ") uniform " << s.type << " " << s.name << ";\n";
     for (auto &kv : varyings)
-        if (kv.second.inVertex)
+        if (kv.second.inVertex && !kv.second.inplace)
             v << "layout(location = " << kv.second.location << ") " << kv.second.quals << (kv.second.quals.empty() ? "" : " ")
               << "out " << kv.second.type << " " << kv.first << (kv.second.array ? "[" + std::to_string(kv.second.array) + "]" : "") << ";\n";
     v << "vec4 goanna_gl_Vertex = vec4(0.0);\nvec4 goanna_gl_MultiTexCoord0 = vec4(0.0);\n"
@@ -802,7 +876,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
         if (containsWord(fs, s.name))
             f << "layout(set = 0, binding = " << s.binding << ") uniform " << s.type << " " << s.name << ";\n";
     for (auto &kv : varyings)
-        if (kv.second.inFragment)
+        if (kv.second.inFragment && !kv.second.inplace)
             f << "layout(location = " << kv.second.location << ") " << kv.second.quals << (kv.second.quals.empty() ? "" : " ")
               << "in " << kv.second.type << " " << kv.first << (kv.second.array ? "[" + std::to_string(kv.second.array) + "]" : "") << ";\n";
     // outputs: gl_FragData[n] is the n-th entry of the DRAWBUFFERS list, so

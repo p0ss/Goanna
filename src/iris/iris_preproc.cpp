@@ -500,6 +500,18 @@ void runDirectives(const std::string &src, MacroTable &macros, bool full, bool k
             o << "\n";
             continue;
         }
+        // A directive continued with a backslash (Photon's long #if lines):
+        // full mode joined the lines above; conditional mode joins them
+        // here, so the condition is read whole and the continuation lines
+        // are not left behind as text. Each line taken is put back as a
+        // blank one, or as itself in a kept #define, so line numbers hold.
+        std::vector<std::string> cont;
+        if (!full) {
+            while (!t.empty() && t.back() == '\\' && li + 1 < lines.size()) {
+                cont.push_back(lines[++li]);
+                t = trim(t.substr(0, t.size() - 1) + " " + cont.back());
+            }
+        }
         std::string d = trim(t.substr(1));
         size_t k = 0;
         while (k < d.size() && identChar(d[k])) ++k;
@@ -599,6 +611,11 @@ void runDirectives(const std::string &src, MacroTable &macros, bool full, bool k
         // in full mode #version, #extension, #pragma and #line are dropped
         if (keep) o << raw;
         o << "\n";
+        for (auto &c : cont) {
+            ++lineno;
+            if (keep) o << c;
+            o << "\n";
+        }
     }
     if (!stack.empty())
         errors.push_back("unterminated #if at end of source");

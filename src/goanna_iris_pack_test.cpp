@@ -97,6 +97,25 @@ void testConditionals() {
     check(errs.empty() && out.find("e=5") != std::string::npos, "directives inside a block comment are ignored");
     check(std::count(out.begin(), out.end(), '\n') == std::count(text, text + std::strlen(text), '\n'),
             "line count is kept");
+
+    // A condition continued over lines with a backslash, as Photon writes
+    // them: read whole, and the continuation not left behind as text.
+    std::map<std::string, std::string> m2;
+    const char *cont = "#define A\n"
+                       "#if !defined B && \\\n"
+                       "    defined A\n"
+                       "f=yes\n"
+                       "#else\n"
+                       "f=no\n"
+                       "#endif\n";
+    std::vector<std::string> errs2;
+    std::string out2 = runConditionals(cont, m2, &errs2);
+    check(errs2.empty(), "a continued #if parses");
+    check(out2.find("f=yes") != std::string::npos && out2.find("f=no") == std::string::npos,
+            "a continued #if is evaluated whole");
+    check(out2.find("defined A") == std::string::npos, "the continuation line is not left as text");
+    check(std::count(out2.begin(), out2.end(), '\n') == std::count(cont, cont + std::strlen(cont), '\n'),
+            "line count is kept across a continuation");
 }
 
 void testCustomUniforms() {
@@ -252,6 +271,41 @@ void testProofPack() {
     }
 }
 
+// The chain translator on two of Photon's constructs: a varying of struct
+// type, which has to be declared after its struct and takes a location per
+// member, and a local named like a legacy sampler alias.
+void testChainVaryings() {
+    Program prog;
+    prog.name = "composite";
+    prog.vsh = "#version 330\n"
+               "struct P { vec3 a; vec2 b[2]; float c; };\n"
+               "flat out P params;\n"
+               "out vec2 uv;\n"
+               "void main() { params = P(vec3(1.0), vec2[2](vec2(0.0), vec2(1.0)), 2.0); uv = vec2(0.0);\n"
+               "    gl_Position = vec4(0.0); }\n";
+    prog.fsh = "#version 330\n"
+               "struct P { vec3 a; vec2 b[2]; float c; };\n"
+               "flat in P params;\n"
+               "in vec2 uv;\n"
+               "uniform sampler2D shadowtex0;\n"
+               "float f() { float shadow = 1.0; return shadow * texelFetch(shadowtex0, ivec2(0), 0).x; }\n"
+               "void main() { gl_FragData[0] = vec4(params.a * params.c * f(), 1.0); }\n";
+    Translated tr;
+    std::string e;
+    check(translate(prog, TranslateOptions(), tr, e), "struct varying program translates");
+    // Sorted by name, params comes first at 0 and takes 1 + 2 + 1 = 4
+    // locations, so uv is at 4.
+    check(tr.vertex.find("layout(location = 0) flat out P params;") != std::string::npos,
+            "the struct varying is located where it was declared");
+    check(tr.vertex.find("struct P") < tr.vertex.find("flat out P params"), "after its struct");
+    check(tr.fragment.find("layout(location = 0) flat in P params;") != std::string::npos,
+            "and in the fragment stage alike");
+    check(tr.vertex.find("layout(location = 4) out vec2 uv;") != std::string::npos,
+            "the next varying is past every member's location");
+    check(tr.fragment.find("float shadow = 1.0") != std::string::npos,
+            "a local named like a sampler alias the pack did not declare keeps its name");
+}
+
 // --dump PACK OUTDIR [NAME=VALUE ...]
 int dump(int argc, char **argv) {
     std::string packDir = argv[2], outDir = argv[3];
@@ -343,6 +397,7 @@ int main(int argc, char **argv) {
     testCustomUniforms();
     testPackOptions();
     testProofPack();
+    testChainVaryings();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);
         return 1;
