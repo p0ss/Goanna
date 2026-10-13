@@ -148,13 +148,19 @@ private:
     struct CustomTexture {
         std::string key; // "noise", or "<stage>:<sampler>"
         int w = 0, h = 0;
-        godot::PackedByteArray rgba;
+        int depth = 0; // a 3D texture's depth; 0 for 2D
+        godot::RenderingDevice::DataFormat format = godot::RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM;
+        godot::PackedByteArray rgba; // the texels, in format
         godot::RID tex;
+        // Whether it answers a sampler of this GLSL type: a 3D texture only
+        // a sampler3D, a 2D one any other.
+        bool fits(const std::string &type) const { return (depth > 0) == (type.find("3D") != std::string::npos); }
     };
 
     bool ensureGpu(godot::RenderingDevice *rd);
     bool ensureBlit(godot::RenderingDevice *rd);
     void loadCustomTextures();
+    bool loadRawTexture(const std::string &value, CustomTexture &c, std::string &why) const;
     void captureDepth(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb);
     godot::RID depthCopy(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb, const char *name,
             const godot::RID &src, const godot::Vector2i &size);
@@ -228,6 +234,14 @@ private:
     std::array<godot::RenderingDevice::DataFormat, 16> m_ct_format{};
     std::array<bool, 16> m_ct_used{};
     std::array<bool, 16> m_ct_clear{};
+    // size.buffer.colortexN from shaders.properties: a scale of the screen
+    // (relative) or pixels, per axis; 0 means the screen's own size.
+    struct BufferSize {
+        bool relative = true;
+        float x = 1.0f, y = 1.0f;
+    };
+    std::array<BufferSize, 16> m_ct_size{};
+    godot::Vector2i colortexSize(int index, const godot::Vector2i &screen) const;
     // colortex a pass samples (not only writes)
     std::array<bool, 16> m_ct_read{};
     // The second outputs, set on the main thread by set_gbuffers_target and

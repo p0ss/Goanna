@@ -132,13 +132,19 @@ const char *kBlitFragment =
         "    o = c;\n"
         "}\n";
 
-RID makeTexture(RenderingDevice *rd, int w, int h, RenderingDevice::DataFormat fmt, const PackedByteArray &data) {
+RID makeTexture(RenderingDevice *rd, int w, int h, RenderingDevice::DataFormat fmt, const PackedByteArray &data,
+        int depth = 0) {
     Ref<RDTextureFormat> tf;
     tf.instantiate();
     tf->set_width(w);
     tf->set_height(h);
     tf->set_format(fmt);
-    tf->set_texture_type(RenderingDevice::TEXTURE_TYPE_2D);
+    if (depth > 0) {
+        tf->set_depth(depth);
+        tf->set_texture_type(RenderingDevice::TEXTURE_TYPE_3D);
+    } else {
+        tf->set_texture_type(RenderingDevice::TEXTURE_TYPE_2D);
+    }
     tf->set_usage_bits(RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice::TEXTURE_USAGE_CAN_UPDATE_BIT |
             RenderingDevice::TEXTURE_USAGE_CAN_COPY_TO_BIT);
     Ref<RDTextureView> tv;
@@ -251,6 +257,26 @@ bool GoannaIrisEffect::load_pack(const String &path) {
         auto c = m_pack.consts().find("colortex" + std::to_string(i) + "Clear");
         if (c != m_pack.consts().end())
             m_ct_clear[i] = c->second != "false";
+        // size.buffer.colortexN = W H: a fraction of the screen when written
+        // with a decimal point (Photon's fog and AO at 0.5 0.5), else pixels
+        // (its sky map at 192 108). A pass drawing into such a buffer covers
+        // it whole, as Iris sets the viewport to the target, and a pack
+        // reading it by texel (texelFetch at half the screen coordinate)
+        // finds what it wrote there; at screen size it read a quarter of
+        // the picture, and Photon drew its fog over the scene at half scale.
+        m_ct_size[i] = BufferSize();
+        auto s = m_pack.properties().find("size.buffer.colortex" + std::to_string(i));
+        if (s != m_pack.properties().end()) {
+            std::istringstream in(s->second);
+            std::string w, h;
+            in >> w >> h;
+            float fw = std::strtof(w.c_str(), nullptr), fh = std::strtof(h.c_str(), nullptr);
+            if (!w.empty() && !h.empty() && fw > 0.0f && fh > 0.0f) {
+                m_ct_size[i].relative = w.find('.') != std::string::npos || h.find('.') != std::string::npos;
+                m_ct_size[i].x = fw;
+                m_ct_size[i].y = fh;
+            }
+        }
     }
     iris::TranslateOptions opts;
     opts.kind = iris::ProgramKind::Composite;
@@ -424,6 +450,7 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
     sr->set_min_filter(RenderingDevice::SAMPLER_FILTER_LINEAR);
     sr->set_repeat_u(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
     sr->set_repeat_v(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
+    sr->set_repeat_w(RenderingDevice::SAMPLER_REPEAT_MODE_REPEAT);
     m_sampler_repeat = rd->sampler_create(sr);
     Ref<RDSamplerState> snr;
     snr.instantiate();
@@ -473,7 +500,7 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
         m_center_tex = rd->texture_create(tf, tv);
     }
     for (auto &c : m_custom_tex)
-        c.tex = makeTexture(rd, c.w, c.h, RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM, c.rgba);
+        c.tex = makeTexture(rd, c.w, c.h, c.format, c.rgba, c.depth);
 
     PackedByteArray black;
     black.resize(4);
@@ -616,6 +643,13 @@ void GoannaIrisEffect::blit(RenderingDevice *rd, const RID &src, const RID &fb, 
     rd->draw_list_end();
 }
 
+Vector2i GoannaIrisEffect::colortexSize(int index, const Vector2i &screen) const {
+    const BufferSize &s = m_ct_size[index];
+    if (s.relative)
+        return Vector2i(std::max(1, (int)std::lround(screen.x * s.x)), std::max(1, (int)std::lround(screen.y * s.y)));
+    return Vector2i(std::max(1, (int)s.x), std::max(1, (int)s.y));
+}
+
 RID GoannaIrisEffect::colortex(RenderSceneBuffersRD *rb, int index, int side, const Vector2i &size) {
     StringName ctx("goanna_iris");
     StringName name(String("colortex") + String::num_int64(index) + (side ? "_b" : "_a"));
@@ -623,7 +657,8 @@ RID GoannaIrisEffect::colortex(RenderSceneBuffersRD *rb, int index, int side, co
         return rb->get_texture(ctx, name);
     uint32_t usage = RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT |
             RenderingDevice::TEXTURE_USAGE_CAN_COPY_TO_BIT | RenderingDevice::TEXTURE_USAGE_CAN_COPY_FROM_BIT;
-    return rb->create_texture(ctx, name, m_ct_format[index], usage, RenderingDevice::TEXTURE_SAMPLES_1, size, 1, 1, true, false);
+    return rb->create_texture(ctx, name, m_ct_format[index], usage, RenderingDevice::TEXTURE_SAMPLES_1,
+            colortexSize(index, size), 1, 1, true, false);
 }
 
 // Whether `name` is a uniform this effect answers outside the standard block:
@@ -639,9 +674,12 @@ RID GoannaIrisEffect::textureFor(const Pass &p, const iris::Translated::Sampler 
         const RID &depth0, const RID &depth1, const std::array<int, 16> &side) {
     const std::string &name = s.name;
     // texture.<stage>.<sampler> from the pack's properties wins over the
-    // built in binding of the same name.
+    // built in binding of the same name, where the sampler's type fits it:
+    // Photon gives its composite stage a 3D noise as colortex0, which its
+    // sampler3D colortex0 reads while the sampler2D ones read the scene.
     for (auto &c : m_custom_tex)
-        if (c.tex.is_valid() && (c.key == p.stage + ":" + name || (name == "noisetex" && c.key == "noise")))
+        if (c.tex.is_valid() && c.fits(s.type) &&
+                (c.key == p.stage + ":" + name || (name == "noisetex" && c.key == "noise")))
             return c.tex;
     if (name.rfind("colortex", 0) == 0) {
         int i = std::atoi(name.c_str() + 8);
@@ -677,13 +715,84 @@ RID GoannaIrisEffect::samplerFor(const Pass &p, const iris::Translated::Sampler 
     if (s.type.find("Shadow") != std::string::npos)
         return m_sampler_shadow;
     for (auto &c : m_custom_tex)
-        if (c.tex.is_valid() && (c.key == p.stage + ":" + s.name || (s.name == "noisetex" && c.key == "noise")))
-            return m_sampler_nearest_repeat;
+        if (c.tex.is_valid() && c.fits(s.type) &&
+                (c.key == p.stage + ":" + s.name || (s.name == "noisetex" && c.key == "noise")))
+            return c.depth > 0 ? m_sampler_repeat : m_sampler_nearest_repeat;
     if (s.name == "noisetex")
         return m_sampler_repeat;
     if (s.name.rfind("depthtex", 0) == 0 || s.name.rfind("shadowtex", 0) == 0)
         return m_sampler_nearest;
     return m_sampler_linear;
+}
+
+// A raw texture line: "path TEXTURE_3D RGB16F 32 64 32 RGB HALF_FLOAT", the
+// file's texels with no header in the layout the last two words give (the
+// internal format is not needed: the data's own layout picks the GPU
+// format). Three components are widened to four, alpha 1, since Vulkan
+// cards seldom sample three component formats. Photon's atmosphere LUT and
+// cloud and fog noises are such files; without the LUT its sun and sky
+// read black and its terrain went unlit.
+bool GoannaIrisEffect::loadRawTexture(const std::string &value, CustomTexture &c, std::string &why) const {
+    namespace fs = std::filesystem;
+    std::istringstream in(value);
+    std::vector<std::string> t;
+    for (std::string w; in >> w;) t.push_back(w);
+    if (t.size() < 2) { why = "raw texture line not understood"; return false; }
+    int dims = t[1] == "TEXTURE_3D" ? 3 : (t[1] == "TEXTURE_2D" || t[1] == "TEXTURE_RECTANGLE") ? 2
+            : t[1] == "TEXTURE_1D" ? 1 : 0;
+    if (dims == 0 || t.size() != (size_t)(3 + dims + 2)) { why = "raw " + t[1] + " not supported"; return false; }
+    int size[3] = {1, 1, 1};
+    for (int k = 0; k < dims; ++k) size[k] = std::atoi(t[3 + k].c_str());
+    const std::string &pf = t[3 + dims], &pt = t[4 + dims];
+    int comps = pf == "RED" || pf == "RED_INTEGER" ? 1 : pf == "RG" ? 2 : pf == "RGB" ? 3 : pf == "RGBA" ? 4 : 0;
+    int bytes = pt == "UNSIGNED_BYTE" ? 1 : pt == "HALF_FLOAT" || pt == "UNSIGNED_SHORT" ? 2 : pt == "FLOAT" ? 4 : 0;
+    if (comps == 0 || bytes == 0 || size[0] <= 0 || size[1] <= 0 || size[2] <= 0) {
+        why = "raw texture layout " + pf + " " + pt + " not supported";
+        return false;
+    }
+    using RD = RenderingDevice;
+    static const RD::DataFormat byFormat[3][4] = {
+        {RD::DATA_FORMAT_R8_UNORM, RD::DATA_FORMAT_R8G8_UNORM, RD::DATA_FORMAT_R8G8B8A8_UNORM, RD::DATA_FORMAT_R8G8B8A8_UNORM},
+        {RD::DATA_FORMAT_R16_SFLOAT, RD::DATA_FORMAT_R16G16_SFLOAT, RD::DATA_FORMAT_R16G16B16A16_SFLOAT,
+                RD::DATA_FORMAT_R16G16B16A16_SFLOAT},
+        {RD::DATA_FORMAT_R32_SFLOAT, RD::DATA_FORMAT_R32G32_SFLOAT, RD::DATA_FORMAT_R32G32B32A32_SFLOAT,
+                RD::DATA_FORMAT_R32G32B32A32_SFLOAT},
+    };
+    int kind = pt == "UNSIGNED_BYTE" ? 0 : pt == "FLOAT" ? 2 : 1;
+    RD::DataFormat fmt = byFormat[kind][comps - 1];
+    if (pt == "UNSIGNED_SHORT")
+        fmt = comps == 1 ? RD::DATA_FORMAT_R16_UNORM : comps == 2 ? RD::DATA_FORMAT_R16G16_UNORM
+                                                       : RD::DATA_FORMAT_R16G16B16A16_UNORM;
+    std::string rel = t[0][0] == '/' ? t[0].substr(1) : t[0];
+    std::ifstream f((fs::path(m_pack.shadersDir()) / rel).string(), std::ios::binary);
+    std::vector<uint8_t> raw((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    size_t texels = (size_t)size[0] * size[1] * size[2];
+    if (raw.size() < texels * comps * bytes) {
+        why = "cannot read " + t[0] + " (" + std::to_string(raw.size()) + " bytes, " +
+                std::to_string(texels * comps * bytes) + " wanted)";
+        return false;
+    }
+    int outComps = comps == 3 ? 4 : comps;
+    c.rgba.resize(texels * outComps * bytes);
+    uint8_t *o = c.rgba.ptrw();
+    if (comps == 3) {
+        // the one, as each layout spells it
+        uint8_t one[4] = {0xff, 0, 0, 0};
+        if (pt == "HALF_FLOAT") { one[0] = 0x00; one[1] = 0x3c; }
+        if (pt == "UNSIGNED_SHORT") { one[0] = 0xff; one[1] = 0xff; }
+        if (pt == "FLOAT") { float f1 = 1.0f; std::memcpy(one, &f1, 4); }
+        for (size_t i = 0; i < texels; ++i) {
+            std::memcpy(o + i * 4 * bytes, raw.data() + i * 3 * bytes, 3 * bytes);
+            std::memcpy(o + i * 4 * bytes + 3 * bytes, one, bytes);
+        }
+    } else {
+        std::memcpy(o, raw.data(), texels * comps * bytes);
+    }
+    c.format = fmt;
+    c.w = size[0];
+    c.h = size[1];
+    c.depth = dims == 3 ? size[2] : 0;
+    return true;
 }
 
 // texture.noise and texture.<stage>.<sampler> lines naming an image file in
@@ -704,6 +813,13 @@ void GoannaIrisEffect::loadCustomTextures() {
             if (dot == std::string::npos)
                 continue;
             std::string stage = rest.substr(0, dot), name = rest.substr(dot + 1);
+            // colortex6.1: a trailing number only tells two textures for
+            // one sampler name apart (Photon's two cloud noises); the type
+            // of the sampler picks which binds.
+            size_t sfx = name.rfind('.');
+            if (sfx != std::string::npos && sfx + 1 < name.size() &&
+                    name.find_first_not_of("0123456789", sfx + 1) == std::string::npos)
+                name = name.substr(0, sfx);
             if (stage != "deferred" && stage != "composite") {
                 m_texture_notes.push_back(key + ": stage not run here");
                 continue;
@@ -712,8 +828,20 @@ void GoannaIrisEffect::loadCustomTextures() {
             id = stage + ":" + (canon.empty() ? name : canon);
         }
         std::string value = kv.second;
-        if (value.find(' ') != std::string::npos || value.find(':') != std::string::npos) {
-            m_texture_notes.push_back(key + ": raw or resource textures are not read yet");
+        if (value.find(':') != std::string::npos) {
+            m_texture_notes.push_back(key + ": resource textures are not read yet");
+            continue;
+        }
+        if (value.find(' ') != std::string::npos) {
+            CustomTexture c;
+            std::string why;
+            if (loadRawTexture(value, c, why)) {
+                c.key = id;
+                m_custom_tex.push_back(c);
+                m_texture_notes.push_back(key + ": " + value + " loaded");
+            } else {
+                m_texture_notes.push_back(key + ": " + why);
+            }
             continue;
         }
         std::string rel = !value.empty() && value[0] == '/' ? value.substr(1) : value;
@@ -727,6 +855,7 @@ void GoannaIrisEffect::loadCustomTextures() {
         img->convert(Image::FORMAT_RGBA8);
         CustomTexture c;
         c.key = id;
+        c.format = RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM;
         c.w = img->get_width();
         c.h = img->get_height();
         c.rgba = img->get_data();
