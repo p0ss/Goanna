@@ -12,6 +12,19 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Refine native water reflections, 13 October 2026. Replace growing
+  world-space ray steps with evenly spaced screen samples, refine depth
+  crossings and reject hits behind unrelated silhouettes. Extend the
+  reflection reach to 2048 nodes, soften distant wave slopes and avoid
+  adding a second environment reflection over the shader's own answer.
+  A cold shore capture on local Luanti 5.17.0, Mineclonia 38561, Godot
+  4.5.1 and RTX 3090 showed less of the broad white water band and calmer
+  reflections. Moving clouds and terrain refinement still differ between
+  captures; this is a visual observation, not a quantitative comparison.
+  The headless water-optics checks pass. Night, underwater views and GPU
+  cost were not rechecked. Screen-space limitations remain, described in
+  [water optics](../systems/water-optics.md#surface-reflections).
+
 - Correct shader water inputs, prepared sky and clear glass, 13 October
   2026. Preserve actual pack buffer values instead of replacing likely
   scene copies with native colour, run fragment prepare programs and send

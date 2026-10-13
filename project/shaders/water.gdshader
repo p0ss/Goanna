@@ -68,11 +68,9 @@ uniform float wave_relief = 0.75;
 uniform float wave_drag = 0.28;
 // Octaves near the eye; distance drops them to 3 (fragment()).
 uniform int wave_octaves : hint_range(3, 16) = 9;
-// The screen space march stops past this distance and the sky answer stands
-// alone. Out there a reflected bank subtends a few pixels; the march is all
-// cost and no picture, and the far tiers would otherwise pay it across the
-// whole sea.
-uniform float reflect_range : hint_range(0.0, 4096.0) = 512.0;
+// Keep distant shores in the reflection at the same reach as the far terrain.
+// The sky remains the fallback for rays that leave the visible scene.
+uniform float reflect_range : hint_range(0.0, 4096.0) = 2048.0;
 // How far the bed seen through the water shifts where a wave tilts the
 // surface, as a screen offset per unit of tilt, node of depth and node of
 // distance. Through a surface tilted by s over water d deep the bed seen
@@ -201,6 +199,69 @@ float scene_distance(vec2 uv, mat4 inv_proj) {
 	float d = texture(depth_tex, uv).r;
 	vec4 v = inv_proj * vec4(uv * 2.0 - 1.0, d, 1.0);
 	return -(v.z / v.w);
+}
+
+// Traverse evenly in screen space so distant banks are not skipped by large
+// world-space steps. Perspective-correct depth brackets a crossing, then a
+// short binary search rejects hits behind an unrelated silhouette.
+vec4 trace_water_reflection(vec3 origin, vec3 direction, mat4 projection,
+		mat4 inv_projection, float reach) {
+	float distance = max(reach, 0.1);
+	if (direction.z > 0.0)
+		distance = min(distance, max((-0.1 - origin.z) / direction.z, 0.0));
+	vec3 finish = origin + direction * distance;
+	vec4 a = projection * vec4(origin, 1.0);
+	vec4 b = projection * vec4(finish, 1.0);
+	if (a.w <= 0.0 || b.w <= 0.0)
+		return vec4(0.0);
+	vec2 first = a.xy / a.w * 0.5 + 0.5;
+	vec2 delta = b.xy / b.w * 0.5 + 0.5 - first;
+	float limit = 1.0;
+	for (int axis = 0; axis < 2; axis++) {
+		if (delta[axis] > 0.00001)
+			limit = min(limit, (0.998 - first[axis]) / delta[axis]);
+		else if (delta[axis] < -0.00001)
+			limit = min(limit, (0.002 - first[axis]) / delta[axis]);
+	}
+	if (limit <= 0.0)
+		return vec4(0.0);
+	vec2 reciprocal_w = vec2(1.0 / a.w, 1.0 / b.w);
+	vec2 depth_over_w = vec2(-origin.z / a.w, -finish.z / b.w);
+	float previous = 0.0;
+	for (int i = 1; i <= 32; i++) {
+		float t = limit * float(i) / 32.0;
+		vec2 uv = first + delta * t;
+		float ray_depth = mix(depth_over_w.x, depth_over_w.y, t)
+				/ mix(reciprocal_w.x, reciprocal_w.y, t);
+		float surface_depth = scene_distance(uv, inv_projection);
+		if (ray_depth > surface_depth) {
+			float low = previous;
+			float high = t;
+			for (int j = 0; j < 6; j++) {
+				float mid = (low + high) * 0.5;
+				vec2 test_uv = first + delta * mid;
+				float test_depth = mix(depth_over_w.x, depth_over_w.y, mid)
+						/ mix(reciprocal_w.x, reciprocal_w.y, mid);
+				if (test_depth > scene_distance(test_uv, inv_projection))
+					high = mid;
+				else
+					low = mid;
+			}
+			uv = first + delta * high;
+			ray_depth = mix(depth_over_w.x, depth_over_w.y, high)
+					/ mix(reciprocal_w.x, reciprocal_w.y, high);
+			surface_depth = scene_distance(uv, inv_projection);
+			float thickness = max(0.2, surface_depth * 0.005);
+			if (ray_depth - surface_depth <= thickness) {
+				vec2 edge = smoothstep(vec2(0.0), vec2(0.04), uv)
+						* (1.0 - smoothstep(vec2(0.96), vec2(1.0), uv));
+				return vec4(textureLod(screen_tex, uv, 0.0).rgb, edge.x * edge.y);
+			}
+			return vec4(0.0);
+		}
+		previous = t;
+	}
+	return vec4(0.0);
 }
 
 // View-space position of that same geometry.
@@ -357,7 +418,7 @@ void fragment() {
 		// pattern stopped matching the top's. The mirror is now the murk's
 		// own colour (total internal reflection, below), not a sharp image.
 		float detail = wave_strength;
-		detail *= mix(1.0, 0.45, fade);
+		detail *= mix(1.0, 0.15, fade);
 		// And in the deep far field even the longest train is below a pixel,
 		// so the last octaves hand over to the flat face smoothly; the far
 		// tiers run this same ramp, which is what removes the wave seam at
@@ -605,39 +666,10 @@ void fragment() {
 			}
 		}
 
-		// March the reflected ray against the depth buffer. Steps grow, so a
-		// near bank is found precisely and a far one is still reached.
-		if (goanna_render_water_reflections > 0.5 && waving && march_keep > 0.001) {
-			float step_len = 0.3;
-			vec3 p = VERTEX;
-			for (int i = 0; i < 24; i++) {
-				p += dir * step_len;
-				step_len *= 1.32;
-				vec4 clip = PROJECTION_MATRIX * vec4(p, 1.0);
-				if (clip.w <= 0.0)
-					break;
-				vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
-				if (uv.y < 0.0 || uv.y > 1.0)
-					break;
-				float keep = edge_keep(uv.x);
-				if (keep <= 0.0)
-					break;
-				uv.x = clamp(uv.x, 0.002, 0.998);
-				float scene = scene_distance(uv, INV_PROJECTION_MATRIX);
-				float ray = -p.z;
-				// Behind the depth buffer, but not so far behind that the ray
-				// passed through open space in front of something distant.
-				if (ray > scene && ray - scene < step_len * 4.0) {
-					// A hit near the top or bottom of the screen fades to
-					// the sky rather than cutting off; past a side, the
-					// edge column stands in (edge_keep).
-					float fade_y = smoothstep(0.0, 0.1, uv.y)
-							* (1.0 - smoothstep(0.9, 1.0, uv.y));
-					reflected = mix(reflected, texture(screen_tex, uv).rgb,
-							fade_y * keep * march_keep);
-					break;
-				}
-			}
+		if (goanna_render_water_reflections > 0.5 && march_keep > 0.001) {
+			vec4 hit = trace_water_reflection(VERTEX + NORMAL * 0.03, dir,
+					PROJECTION_MATRIX, INV_PROJECTION_MATRIX, reflect_range);
+			reflected = mix(reflected, hit.rgb, hit.a * march_keep);
 		}
 	}
 
@@ -782,10 +814,11 @@ void fragment() {
 	}
 	ALPHA = clamp(0.9 + 0.1 * fres, 0.0, 1.0);
 	METALLIC = 0.0;
-	// Godot's own specular reflects its sky, which is above the surface.
-	// From under it that lit the underside with the sky at every grazing
-	// angle, brighter than any murk it was meant to be mirroring.
-	SPECULAR = FRONT_FACING ? 0.4 + 0.6 * fres : 0.0;
+	// The screen ray and sky fallback already supply reflected environment
+	// light with water's Fresnel weight. Adding Godot's radiance again washes
+	// distant water white. Keep direct lamp highlights at water's F0 of 0.02.
+	RADIANCE = vec4(0.0, 0.0, 0.0, 1.0);
+	SPECULAR = FRONT_FACING ? sqrt(0.02 / 0.16) : 0.0;
 	// a touch rougher from below, again to stop the mirror aliasing
 	ROUGHNESS = FRONT_FACING ? 0.04 : 0.13;
 }

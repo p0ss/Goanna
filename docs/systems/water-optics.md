@@ -79,6 +79,33 @@ column's own light is the tile's colour times the tint. Registered in
 `project.godot` at the beach's values, so a view without the node draws the
 water as before.
 
+## Surface reflections
+
+The surface traces visible scenery in screen space, with the sky as its
+fallback. The trace takes 32 samples evenly along the projected ray and
+interpolates view depth with perspective correction. A depth crossing gets
+six binary refinements and a thickness check; a rejected crossing or a ray
+outside the screen keeps the sky. This replaces the growing world-space
+steps, whose hit tolerance grew with each step and could accept unrelated
+surfaces behind the ray. Screen-edge hits fade into the sky.
+
+The reflection range defaults to 2048 nodes. It limits ray length and fades
+the trace near the range limit, rather than dropping scenery reflections
+at 512 nodes. Both near and far water use the same shader. Distant wave
+slopes ease to 15 percent of the near strength by 200 nodes, before the
+existing far-distance flattening, to keep reflections from breaking into
+broad stripes.
+
+The shader supplies its own environment reflection with water's Fresnel
+weight. `RADIANCE` suppresses Godot's additional environment reflection;
+direct light highlights retain a normal-incidence reflectance of 0.02.
+Absorption, refraction and wake calculations remain shared with the earlier
+water optics.
+
+This still cannot reflect hidden or off-screen scenery. There is no
+temporal reflection history, and thin objects can fall between samples.
+The longer reach and additional depth samples have not been benchmarked.
+
 ## From below
 
 `main.gd`'s `_apply_water_murk` sets the fog every frame while the eye is
