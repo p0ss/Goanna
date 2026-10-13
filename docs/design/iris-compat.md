@@ -150,9 +150,29 @@ Things learnt on the way, recorded so they are not relearnt:
   reads as rain and the OptiFine player flags (`is_on_ground` and the rest)
   read false.
 - Not yet done: compute (`.csh`), `prepare`, `begin`, `setup` and
-  `shadowcomp` programs, custom images and SSBOs, raw custom textures,
-  `size.buffer`, `scale` and `flip` directives, multiview, and varyings of
-  struct type (Photon). The gbuffers translator (rungs 5 to 7) is built
+  `shadowcomp` programs, custom images and SSBOs, resource custom textures
+  (`minecraft:...`), the `scale` and `flip` directives and multiview.
+  Done on 2026-10-13, for Photon:
+  - Varyings of struct type (its `clouds_params`) are left where the pack
+    declared them, after their struct, and located there with a location
+    per member.
+  - `size.buffer.colortexN` sizes the buffer: a fraction of the screen
+    when written with a decimal point (`0.5 0.5`), else pixels (`192
+    108`). A pass drawing into it covers it whole, as Iris sets the
+    viewport to the target.
+  - Raw custom textures (`scattering.dat TEXTURE_3D RGB16F 32 64 32 RGB
+    HALF_FLOAT`) are read as 1D, 2D or 3D textures in the layout the line
+    gives, three components widened to four. A custom texture binds only
+    to a sampler of its own dimension, so Photon's 3D noise named
+    `colortex0` in the composite stage leaves its `sampler2D colortex0`
+    reading the scene, and a trailing `.1` on the name is dropped.
+  - A legacy sampler alias (`shadow`, `gaux1`) is renamed only where the
+    pack declares a sampler by it; Photon's local `float shadow` had been
+    turned into a second `shadowtex0`.
+  - A `#if` continued over lines with a backslash is read whole by the
+    loader's conditional pass.
+
+  The gbuffers translator (rungs 5 to 7) is built
   since 2026-10-11 and the pack's own shadow map since 2026-10-12; see "The
   gbuffers translator, as built".
 
@@ -487,6 +507,23 @@ Built 2026-10-11 by rungs 5 to 7 above. The parts:
   inputs it reads as `in` ones, which costs no interpolator; functions are
   emitted callees first; and a function both stages include is emitted
   once.
+- Varyings are packed (since 2026-10-13). On the GPU Godot counts each
+  varying declaration as one against a limit of 32, with its own spatial
+  varyings included: MakeUp's terrain declared 21 and Godot counted 33. The
+  front end, which does not count, accepted it. Every pack varying is a
+  local of `vertex()`, copied at its end into `goanna_pk` slots of four
+  components, one set per base type and interpolation (smooth float, flat
+  float, flat int, flat uint), filled largest first and split over the
+  room left when that saves a slot; `fragment()` starts by unpacking a
+  local of each, which helpers get as `inout` parameters like any other
+  local of main. A varying the fragment stage never names gets no slot,
+  `gl_FogFragCoord` is carried the same way, a `bool` travels as a flat
+  `int`, a matrix by its columns and a struct field by field. MakeUp's
+  terrain went from 21 declarations to 10, its water from 24 to 15; no
+  translated program of the seven packs checked declares more than 15.
+- Fragment outputs keep the type the pack declared (Photon's shadow
+  program writes a `vec3`) and are widened to a `vec4` where they reach
+  `ALBEDO`, as GL fills missing components.
 - `project/shaders/iris_gbuffers_shell.gdshaderinc`, the hand written
   shell. It answers the pack's inputs from the node mesh contract
   (`docs/systems/mesh-attributes.md`): `gl_Vertex` the world position,
@@ -568,6 +605,15 @@ has one colour output, so each target is drawn by a pass of its own.
   translucent surface Godot sorts after the water. Base-Shader's frames on
   `r1tod1` were the same with and without it (0.8 per cent of pixels
   differing by more than 15 levels, looking down on a lake).
+
+- A target only the water program writes (Photon's translucent layer in
+  `colortex13`, Eclipse's `colortex3`) cannot be left clear by opaque
+  terrain in its pass: the terrain writes zero there and Godot gives an
+  opaque surface alpha 1, so Photon's chain found an opaque black layer
+  over all its land. `GoannaIrisGbuffers::translucent_targets()` names
+  such targets, and the chain copies them only where `depthtex0` (with
+  translucent geometry) is nearer than `depthtex1` (without), leaving the
+  clear elsewhere, as Minecraft's masked write does (since 2026-10-13).
 
 `GOANNA_SHADERPACK_SECOND=0` leaves the targets cleared, for comparison.
 What it costs and where it stops:
@@ -818,6 +864,45 @@ the same with `GOANNA_SHADERPACK_SHADOW=0`:
   far tiers are as without the map. The dark blue grid on the lake behind
   the island is in the frames without the map too.
 
+MakeUp and Photon, 2026-10-13, through `tools/goanna-render` on the RTX
+3090, 1280 by 720, Luanti 5.17.0, Mineclonia, Godot 4.5.1, a copy of
+`r1tod1`, noon, clear, three poses (110 nodes up looking down on the lake
+and along it, and 14 up facing a snowy island); Base-Shader, Eclipse and
+Mellow beside them for regressions:
+
+- Before (main at `5575c88a`), from the client logs of the run that
+  queued this work: MakeUp's frame black, with "Too many varyings used in
+  shader (33 used, maximum supported is 32)" from its geometry programs;
+  Photon magenta, with "Invalid arguments to operator '=': 'vec4,
+  vec3'" (its shadow program's `vec3` output) and 5 of 20 chain passes
+  failing.
+- At `e3848de3` (varyings packed, Photon's chain compiling): no shader
+  errors in either client log, the render service's problems list empty
+  for every job, and the effect reporting MakeUp 5 of 5 and Photon 20 of
+  20 passes compiled. MakeUp draws: its clouds, its terrain dark and
+  fading to black with distance, its water black. Both are its geometry
+  programs reading targets Goanna cannot give them: its terrain fogs
+  towards `gaux4`, the sky colour its `gbuffers_skybasic` would write, and
+  its water refracts `gaux1`, the opaque scene its `deferred` pass copies
+  before Minecraft draws translucent geometry; both read black. Photon drew
+  a quarter size copy of its frame in the top left corner over black,
+  which was `size.buffer` (its debug view of `colortex5` showed the copy
+  already in the history buffer, and turning bloom and TAA off changed
+  nothing).
+- At `b9bffecc` (`size.buffer`, raw textures): Photon fills the frame with
+  its sky, horizon haze and fog over dark land silhouettes. A debug copy
+  of Photon writing its decoded albedo from `deferred4` still showed the
+  land black, which led to the water only second output above.
+- At `c0ecc01d`: Photon draws the land lit in its own palette, warm
+  sandstone and dirt, green and dark spruce canopies, snow on the island
+  and its spruces with soft contact shading, a deep navy sky going hazy
+  at the horizon, and red and white specks where its lake surface meets
+  the lake bed. Its water is near black, and from 14 nodes up the frozen
+  lake reads as its terraced bed, the ice not shown. Eclipse's frames
+  differ from the build before in under 3 per cent of pixels; Base-Shader,
+  Eclipse, Mellow and MakeUp at `b9bffecc` differ from `e3848de3` in
+  under 4 per cent, and each looks as in the entries above.
+
 Not observed: any displaced vertex (Eclipse's waves, Mellow's waving
 leaves) on the GPU; any pack at night, in rain or under water; the shadow
 map at night; performance, the shadow pass's included.
@@ -832,14 +917,19 @@ map at night; performance, the shadow pass's included.
   second outputs nor the shadow map do. Of the packs whose terrain programs were checked, BSL and MakeUp
   write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
   colour; only Eclipse has been looked at on the GPU with them.
-- **Photon's chain.** Its geometry programs pass Godot's front end since
-  2026-10-12, but five of its twenty chain passes (`deferred`, `deferred1`,
-  `deferred4`, `composite`, `composite1`) still fail on the GPU with the
-  chain translator's own struct varying fault (its varyings are declared
-  ahead of the struct; `docs/develop/shaderpack-status.md`), and its
-  terrain draws magenta under what runs. The chain translator needs the
-  struct ahead of the varying and a location per member, or the flattening
-  the gbuffers translator now does.
+- **Photon's water and its approximations.** It runs whole since
+  2026-10-13 (above), but its water is near black and its ice is not
+  shown, not traced. Its sky light comes from a compute pass
+  (`deferred4_a`, `SH_SKYLIGHT`) Goanna does not run, so that ambient term
+  reads zero; its material data loses the low byte of each 16 bit channel
+  in the half float second outputs; its TAA history and `flip` directive
+  are run as Goanna's ping pong has them. Not compared with Iris.
+- **Colortex reads in geometry programs.** A `gbuffers_*` program that
+  samples a colortex reads black: MakeUp's terrain fog (`gaux4`, written
+  by its sky program) and its water's refraction (`gaux1`, the opaque
+  scene its `deferred` copies before translucent geometry) both need it,
+  and its frames are dark and its water black for it. It needs the sky
+  programs and a copy of the opaque scene before the water is drawn.
 - **The rest of the shadow map.** The first slice draws opaque, cut-out
   and foliage near terrain only; see the end of "The shadow map, as
   built" for what it leaves out: translucent casters and so `shadowtex1`

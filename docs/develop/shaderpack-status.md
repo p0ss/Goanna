@@ -25,11 +25,12 @@ So there is no frame, no GPU compile and no pipeline result for any pack,
 and the "Live" column says not run. The proof pack's last live pass is the
 one in [Shader pack testing](shaderpack-testing.md).
 
-Since then, from 2026-10-11 to 2026-10-13, three chains have run on the
+Since then, from 2026-10-11 to 2026-10-13, four chains have run on the
 GPU with their geometry programs: Eclipse (3 of 3 passes compiled), Mellow
-(9 of 9) and Photon (15 of 20, the five with struct varyings failing as
-below). The "Live" column is still the offline day's; what those frames
-showed is under "The geometry programs".
+(9 of 9), MakeUp (5 of 5) and Photon (15 of 20 at first, the five with
+struct varyings failing as below; 20 of 20 since 2026-10-13). The "Live"
+column is still the offline day's; what those frames showed is under "The
+geometry programs".
 
 Pack versions are the releases named in the survey's table, downloaded
 from Modrinth (Chocapic13 from CurseForge). None is in the repository.
@@ -62,7 +63,7 @@ block, a custom uniform nor the effect supplies.
 | Nostalgia 5.1 | 19 of 19 | deferred3 to 9, composite | no | `skyCaptureResolution` | not run |
 | Kappa 5.3 | 28 of 28 | composite1 | no | none | not run |
 | AstraLex 93.0 | 12 of 12 | composite3, 8, 9, 10, 14 | no | none | not run |
-| Photon v1.3b | 15 of 20 | composite2, 3, 15, 17 | no | `clouds_offset` | not run |
+| Photon v1.3b | 20 of 20 (15 before 2026-10-13) | composite2, 3, 15, 17 | no | `clouds_offset` | not run |
 | Noble 1.9.9 | 32 of 33 | none | yes: `SSBO`, `COMPUTE_SHADERS` | `gbufferPreviousModelViewInverse` | not run |
 | Rethinking Voxels r0.1-beta9 | 6 of 8 | composite2 | yes: `CUSTOM_IMAGES`, `SSBO`, `COMPUTE_SHADERS` | several | not run |
 | Shrimple v0.12 | 21 of 28 | deferred14, composite10, 16, 41, 42 | yes: `COMPUTE_SHADERS`, `CUSTOM_IMAGES` | several | not run |
@@ -70,10 +71,11 @@ block, a custom uniform nor the effect supplies.
 Notes on the rows that are not clean:
 
 - **Photon**: five passes declare varyings of struct type
-  (`flat out CloudsParameters clouds_params;`). The translator moves every
-  varying declaration to its prelude, ahead of the struct definition, so
-  they do not parse. Fixing it means declaring such varyings where the pack
-  wrote them; that is translator work not yet done.
+  (`flat out CloudsParameters clouds_params;`), which the translator moved
+  to its prelude, ahead of the struct definition. Since 2026-10-13 such a
+  varying stays where the pack wrote it, and with a sampler alias fault
+  fixed too all 20 compile offline (glslang 16.6.0, commit `cf723467`)
+  and on the GPU.
 - **Noble, Rethinking Voxels, Shrimple** are refused at load, as Iris
   refuses them on a loader without those features, so their compile
   failures (SSBO blocks, custom images) do not matter yet.
@@ -147,10 +149,17 @@ each of which the chain reads and so gets a camera of its own (see
 | Base-Shader 3.0 | `gbuffers_terrain` | all four | none | drawn, near and far, in its flat vanilla look |
 | Eclipse 1.0 | `gbuffers_textured_lit` | all four | 1, 4, 6 (water: 1, 3, 4) | drawn by day, near and far; water blue, rippled and reflecting; land under its thick fog |
 | Mellow 3.4.1a | `gbuffers_terrain` | all four | none | drawn by day, near and far, under its own sky; the haze was the chain's projection |
-| Photon v1.3b | `gbuffers_terrain` | all four | 1, its only output (water: 3, 13) | drawn magenta; 5 of 20 chain passes fail |
+| Photon v1.3b | `gbuffers_terrain` | all four | 1, its only output (water: 3, 13) | 20 of 20 chain passes; land lit in its own palette under its haze, water near black, ice not shown (was magenta, 5 of 20 failing) |
 | BSL 10.1.8 | `gbuffers_terrain` | all four | none (water: 1) | not run |
 | Complementary Reimagined r5.9.3 | `gbuffers_terrain` | all four | 4, 6 (water: 3) | not run |
-| MakeUp Ultra Fast 9.5g | `gbuffers_terrain` | all four | 1, its only output | not run |
+| MakeUp Ultra Fast 9.5g | `gbuffers_terrain` | all four | 1, its only output | drawn, 5 of 5 chain passes; dark, fogging to black, water black: its geometry programs read colortex Goanna cannot give them (was black, too many varyings) |
+
+On 2026-10-13 the front end passed again for all seven packs above at
+`e3848de3`, and for Photon, Eclipse and Base-Shader at `c0ecc01d`, with
+the varyings packed (`docs/design/iris-compat.md`, "The
+gbuffers translator, as built"); the most any translated program now
+declares is 15, MakeUp's water. Its terrain had 21, which Godot counts
+as 33 with its own on a real backend, over the limit of 32.
 
 Miniature and Sildur's Enhanced Default passed the front end on
 2026-10-11, before a reboot and before the later translator changes, and
