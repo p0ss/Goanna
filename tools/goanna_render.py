@@ -476,11 +476,12 @@ def game_info(game):
 
 class Server:
     def __init__(self, game, world_from, stage, floor, logdir, far=False,
-                 view_range=16, far_distance=512):
+                 view_range=16, far_distance=512, occlusion=True):
         self.game = game
         self.far = far
         self.view_range = view_range
         self.far_distance = far_distance
+        self.occlusion = occlusion
         self.world_from = world_from
         self.stage = stage
         self.floor = floor
@@ -549,6 +550,7 @@ class Server:
             # when a job arrives rather than held from the client's start.
             "static_spawnpoint": "(%d,%d,%d)" % tuple(s[i] + HOME_OFFSET[i] for i in range(3)),
             "max_block_send_distance": str(self.view_range),
+            "server_side_occlusion_culling": "true" if self.occlusion else "false",
             # Poses move the player by thousands of nodes a second as far
             # as movement anticheat can tell; it then resets the position
             # and the server streams blocks around the wrong place, which
@@ -997,7 +999,8 @@ class Service:
         self.server = Server(self.opt.game, self.opt.world_from, self.stage, self.floor,
                              self.logdir, far=self.opt.far or bool(self.opt.world_from),
                              view_range=self.opt.server_view_range,
-                             far_distance=self.opt.server_far_distance)
+                             far_distance=self.opt.server_far_distance,
+                             occlusion=not self.opt.no_server_occlusion)
         self.server.start()
         self.client = Client(self.logdir, self.server, self.opt.software, self.lock)
         self.status = "starting the client"
@@ -1781,6 +1784,8 @@ def cmd_serve(args):
                     metavar="BLOCKS", help="server live terrain range in 16-node blocks")
     ap.add_argument("--server-far-distance", type=int, default=512, choices=range(0, 8193),
                     metavar="NODES", help="server far terrain grant; also needs --far or --world-from")
+    ap.add_argument("--no-server-occlusion", action="store_true",
+                    help="send distant terrain without the server's occlusion shortcut")
     ap.add_argument("--software", action="store_true",
                     help="render on lavapipe, for testing the service itself; takes no lock")
     ap.add_argument("--foreground", action="store_true")

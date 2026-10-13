@@ -72,6 +72,7 @@ def command(args):
     ap.add_argument('--game', default='mineclonia')
     ap.add_argument('--server-view-range', type=int, default=40, choices=range(1, 257), metavar='BLOCKS')
     ap.add_argument('--settle-seconds', type=float, default=60)
+    ap.add_argument('--no-server-occlusion', action='store_true')
     opt = ap.parse_args(args)
     job = json.loads(pathlib.Path(opt.job).read_text())
     if job.get('frame') != 'world' or not job.get('poses'):
@@ -97,6 +98,7 @@ def command(args):
             raise render.RenderError('; '.join(busy))
         server = ReferenceServer(opt.game, opt.world_from, render.DEFAULT_STAGE, '', out,
                                  view_range=opt.server_view_range, far=False,
+                                 occlusion=not opt.no_server_occlusion,
                                  poses=job['poses'], tod=job.get('time', 0.5))
         server.start()
         frames = []
@@ -129,6 +131,7 @@ def command(args):
                         'pose': pose, 'frame': 'world', 'size': [width, height],
                         'time': job.get('time', 0.5), 'weather': 'clear',
                         'settings': settings, 'client_config': client.get('config'),
+                        'server_occlusion': not opt.no_server_occlusion,
                         'client_log': client.get('client_log'),
                         'settled': {'quiet': None, 'fixed_wait_s': opt.settle_seconds},
                         'capture': shot}

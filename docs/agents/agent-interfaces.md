@@ -307,6 +307,12 @@ nodes. Match them with the job's `profile.view_range` and
 server's limit. Far terrain also needs `--world-from` or `--far`, and only
 generated terrain is available in a copied world.
 
+Both `serve` and `vanilla` accept `--no-server-occlusion` for landscape
+references. Luanti's distant block culling assumes unloaded blocks behind
+the loaded frontier are hidden. Disabling that optimisation can help a
+wide static view fill, at the cost of sending more blocks. This changes
+only the disposable server's configuration, not the Luanti engine.
+
 #### Vanilla reference frames
 
 After stopping the Goanna render service, `tools/goanna-render vanilla
