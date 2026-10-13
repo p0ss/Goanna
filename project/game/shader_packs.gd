@@ -511,7 +511,9 @@ static func summary(chain: Dictionary, gbuffers: Dictionary) -> String:
 		if e is Dictionary and bool(e.get("translated", false)):
 			surfaces.append(s)
 	if not surfaces.is_empty():
-		bits.append("its own %s shading" % ", ".join(surfaces))
+		var listed := ", ".join(surfaces.slice(0, surfaces.size() - 1))
+		listed = surfaces[0] if surfaces.size() == 1 else listed + " and " + surfaces[surfaces.size() - 1]
+		bits.append("its own %s shading" % listed)
 	var shadow = gbuffers.get("shadow", {})
 	if shadow is Dictionary and bool(shadow.get("translated", false)):
 		bits.append("its shadow map")
@@ -520,7 +522,7 @@ static func summary(chain: Dictionary, gbuffers: Dictionary) -> String:
 		bits.append("%d saved options it does not have" % unknown.size())
 	if bits.is_empty():
 		return "Loaded, but nothing in it could be used."
-	return "Loaded: " + ", ".join(bits) + "."
+	return "Loaded: " + "; ".join(bits) + "."
 
 static func _any_surface(gbuffers: Dictionary) -> bool:
 	for s in ["terrain", "cutout", "water", "foliage"]:

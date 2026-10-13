@@ -209,7 +209,7 @@ func _init() -> void:
 			"Not loaded: no programs (*.fsh) in x", "a load error")
 	_equal(ShaderPacks.summary({"gpu_ready": true, "passes": [{"compiled": true}, {"compiled": false}]},
 			{"terrain": {"translated": true}, "water": {"translated": true}, "shadow": {"translated": true}}),
-			"Loaded: 1 of 2 screen passes compiled, its own terrain, water shading, its shadow map.",
+			"Loaded: 1 of 2 screen passes compiled; its own terrain and water shading; its shadow map.",
 			"what compiled")
 	ShaderPacks.save_status("Alpha", "Loaded: x.", cfg)
 	_equal(ShaderPacks.last_status(cfg)["text"], "Loaded: x.", "the note is saved")

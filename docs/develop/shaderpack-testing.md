@@ -188,7 +188,20 @@ switches packs in a running world.
 To try a pack this way in a headless client, write the pack into
 `$XDG_DATA_HOME/godot/app_userdata/Goanna/shaderpacks` and the setting
 into `goanna.cfg` beside it before starting it through `tools/goanna-headless`
-with `--env XDG_DATA_HOME=...`.
+with `--env XDG_DATA_HOME=...`. Through the render service, write the
+profile the service would (`goanna_render.write_profile`) into a directory
+of your own, add the two keys, and give the job's variant
+`"env": {"XDG_DATA_HOME": "..."}`.
+
+Last run that way: 2026-10-13, Godot 4.5.1 on the RTX 3090 through the
+render service, Mineclonia on a local Luanti 5.17.0 server (a copy of a
+real world). With `GOANNA_SHADERPACK` unset, the setting named
+`Mellow.zip` (Mellow zipped one directory down) with `VIGNETTE_OPACITY`
+saved at 1.5: the client unpacked it into the cache, logged
+`shader pack setting: Mellow.zip from ... options VIGNETTE_OPACITY=1.5`
+and `Goanna Iris: Mellow ready, 9 of 9 passes compiled`, and saved the
+line the row shows. The frame had Mellow's grey sky and grade and a heavy
+vignette, against Goanna's own look in the variant without the setting.
 
 ## What it does not prove
 
