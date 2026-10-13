@@ -114,6 +114,11 @@ public:
     // start of the chain in place of the clear. An invalid RID goes back
     // to clearing.
     void set_gbuffers_target(int index, const godot::RID &texture);
+    // That only translucent geometry writes colortex `index`
+    // (GoannaIrisGbuffers::translucent_targets): the copy keeps it only
+    // where depthtex0 is nearer than depthtex1, and elsewhere leaves the
+    // clear, as a masked GL write would.
+    void set_gbuffers_translucent(int index, bool translucent_only);
 
     void _render_callback(int32_t p_effect_callback_type, godot::RenderData *p_render_data) override;
 
@@ -175,7 +180,8 @@ private:
     godot::RID samplerFor(const Pass &p, const iris::Translated::Sampler &s) const;
     static bool knownExtra(const std::string &name);
     godot::RID colortex(godot::RenderSceneBuffersRD *rb, int index, int side, const godot::Vector2i &size);
-    void blit(godot::RenderingDevice *rd, const godot::RID &src, const godot::RID &fb, int64_t fb_format, int mode);
+    void blit(godot::RenderingDevice *rd, const godot::RID &src, const godot::RID &fb, int64_t fb_format, int mode,
+            const godot::RID &depth0 = godot::RID(), const godot::RID &depth1 = godot::RID());
     godot::RID finalTarget(godot::RenderSceneBuffersRD *rb, const godot::Vector2i &size);
     void put(const char *name, const float *v, int count);
     void putInt(const char *name, const int *v, int count);
@@ -247,6 +253,7 @@ private:
     // The second outputs, set on the main thread by set_gbuffers_target and
     // read on the render thread, under m_world_mutex.
     std::array<godot::RID, 16> m_gb_source{};
+    std::array<bool, 16> m_gb_translucent{};
     uint64_t m_t0 = 0, m_last_us = 0;
     int m_frame = 0;
     // rainStrength ramps toward the world's precipitation and wetness

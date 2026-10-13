@@ -77,6 +77,12 @@ func initialise(view_camera: Camera3D, iris_effect: GoannaIrisEffect, gbuffers: 
 		viewport.add_child(camera)
 		camera.current = true
 		targets[ct] = [viewport, camera]
+	# A target only the water program writes is kept only where water is
+	# in front: opaque terrain cannot leave it clear in its pass, as
+	# Minecraft's masked write would.
+	for ct in gbuffers.translucent_targets():
+		if targets.has(ct):
+			effect.set_gbuffers_translucent(ct, true)
 	# After the player's camera has moved this frame.
 	process_priority = 100
 

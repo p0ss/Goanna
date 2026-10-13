@@ -71,6 +71,20 @@ func _initialize() -> void:
 	var keys := union.keys()
 	keys.sort()
 	check(Array(g.second_targets()) == keys, "second_targets() is not the surfaces' union")
+	# translucent_targets() is the water's second outputs no other surface
+	# writes.
+	var opaque := {}
+	for name in ["terrain", "cutout", "foliage"]:
+		if report[name]["translated"]:
+			for ct in report[name]["second_colortex"]:
+				opaque[ct] = true
+	var water_only := []
+	if report["water"]["translated"]:
+		for ct in report["water"]["second_colortex"]:
+			if not opaque.has(ct):
+				water_only.push_back(ct)
+	water_only.sort()
+	check(Array(g.translucent_targets()) == water_only, "translucent_targets() is not the water's own outputs")
 	# The chain half says which of them it reads; only those get a camera.
 	# Base-Shader has no chain.
 	var effect := GoannaIrisEffect.new()

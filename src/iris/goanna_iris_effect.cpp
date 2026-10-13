@@ -117,10 +117,17 @@ const char *kBlitVertex =
 // final. Packs do their own exposure and tonemapping; handing them HDR and
 // then tonemapping their result again is how a pack looks washed out. mode 3
 // turns Godot's reversed Z depth into OpenGL's convention (0 near, 1 far,
-// sky 1.0), which is what every pack's depth arithmetic assumes.
+// sky 1.0), which is what every pack's depth arithmetic assumes. mode 4
+// copies a second output only translucent programs write, and only where
+// depth0 (with translucent geometry) is nearer than depth1 (without):
+// elsewhere opaque terrain wrote zero at alpha 1 into it, where Minecraft
+// would have left the clear, and Photon's water layer drew black over all
+// its land.
 const char *kBlitFragment =
         "#version 450\n"
         "layout(set = 0, binding = 0) uniform sampler2D src;\n"
+        "layout(set = 0, binding = 1) uniform sampler2D depth0;\n"
+        "layout(set = 0, binding = 2) uniform sampler2D depth1;\n"
         "layout(push_constant, std430) uniform Params { int mode; int pad0; int pad1; int pad2; } params;\n"
         "layout(location = 0) in vec2 uv;\n"
         "layout(location = 0) out vec4 o;\n"
@@ -129,6 +136,7 @@ const char *kBlitFragment =
         "    if (params.mode == 1) c.rgb = pow(clamp(c.rgb, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));\n"
         "    else if (params.mode == 2) c.rgb = pow(max(c.rgb, vec3(0.0)), vec3(2.2));\n"
         "    else if (params.mode == 3) c = vec4(1.0 - c.r);\n"
+        "    else if (params.mode == 4 && !(texture(depth0, uv).r < texture(depth1, uv).r)) c = vec4(0.0);\n"
         "    o = c;\n"
         "}\n";
 
@@ -210,6 +218,8 @@ void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("has_final"), &GoannaIrisEffect::has_final);
     ClassDB::bind_method(D_METHOD("reads_colortex", "index"), &GoannaIrisEffect::reads_colortex);
     ClassDB::bind_method(D_METHOD("set_gbuffers_target", "index", "texture"), &GoannaIrisEffect::set_gbuffers_target);
+    ClassDB::bind_method(D_METHOD("set_gbuffers_translucent", "index", "translucent_only"),
+            &GoannaIrisEffect::set_gbuffers_translucent);
 }
 
 // ---------------------------------------------------------------------------
@@ -598,7 +608,8 @@ RID GoannaIrisEffect::pipelineFor(RenderingDevice *rd, Pass &p, int64_t fb_forma
     return pipe;
 }
 
-void GoannaIrisEffect::blit(RenderingDevice *rd, const RID &src, const RID &fb, int64_t fb_format, int mode) {
+void GoannaIrisEffect::blit(RenderingDevice *rd, const RID &src, const RID &fb, int64_t fb_format, int mode,
+        const RID &depth0, const RID &depth1) {
     RID pipe;
     auto it = m_blit_pipelines.find(fb_format);
     if (it != m_blit_pipelines.end()) {
@@ -630,6 +641,17 @@ void GoannaIrisEffect::blit(RenderingDevice *rd, const RID &src, const RID &fb, 
     u->add_id(src);
     TypedArray<RDUniform> us;
     us.push_back(u);
+    // The depths only mode 4 reads; any valid texture fills the bindings.
+    int binding = 1;
+    for (const RID *d : {&depth0, &depth1}) {
+        Ref<RDUniform> du;
+        du.instantiate();
+        du->set_uniform_type(RenderingDevice::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE);
+        du->set_binding(binding++);
+        du->add_id(m_sampler_nearest);
+        du->add_id(d->is_valid() ? *d : src);
+        us.push_back(du);
+    }
     RID set = UniformSetCacheRD::get_cache(m_blit_shader, 0, us);
     PackedByteArray pc;
     pc.resize(16);
@@ -1329,9 +1351,11 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     // the pack's geometry programs left them where a second output draws
     // them (set_gbuffers_target).
     std::array<RID, 16> gb_source;
+    std::array<bool, 16> gb_translucent;
     {
         std::lock_guard<std::mutex> lk(m_world_mutex);
         gb_source = m_gb_source;
+        gb_translucent = m_gb_translucent;
     }
     for (int i = 0; i < 16; ++i) {
         if (!m_ct_used[i])
@@ -1342,7 +1366,10 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             TypedArray<RID> t;
             t.push_back(a);
             RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
-            blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 0);
+            if (gb_translucent[i] && depth1 != depth0)
+                blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 4, depth0, depth1);
+            else
+                blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 0);
         } else if (i == 0) {
             TypedArray<RID> t;
             t.push_back(a);
@@ -1464,6 +1491,13 @@ void GoannaIrisEffect::set_gbuffers_target(int index, const RID &texture) {
         return;
     std::lock_guard<std::mutex> lk(m_world_mutex);
     m_gb_source[index] = texture;
+}
+
+void GoannaIrisEffect::set_gbuffers_translucent(int index, bool translucent_only) {
+    if (index < 1 || index >= 16)
+        return;
+    std::lock_guard<std::mutex> lk(m_world_mutex);
+    m_gb_translucent[index] = translucent_only;
 }
 
 bool GoannaIrisEffect::has_final() const {

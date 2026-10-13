@@ -74,6 +74,12 @@ public:
     // (iris::GbuffersResult::second), ascending: the targets
     // project/game/effects/iris_targets.gd may draw for the chain.
     godot::PackedInt32Array second_targets() const;
+    // Of those, the ones only the water program writes. Opaque terrain in
+    // their second output pass writes zero with Godot's opaque alpha of 1,
+    // where Minecraft's masked write leaves the target clear; the chain
+    // keeps such a target only where translucent geometry is in front
+    // (GoannaIrisEffect::set_gbuffers_translucent).
+    godot::PackedInt32Array translucent_targets() const;
     // Writes each translated shader to a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
 

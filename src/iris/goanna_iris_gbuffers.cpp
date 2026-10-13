@@ -95,6 +95,7 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("update", "camera", "state"), &GoannaIrisGbuffers::update);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisGbuffers::report);
     ClassDB::bind_method(D_METHOD("second_targets"), &GoannaIrisGbuffers::second_targets);
+    ClassDB::bind_method(D_METHOD("translucent_targets"), &GoannaIrisGbuffers::translucent_targets);
     ClassDB::bind_method(D_METHOD("set_dump_dir", "dir"), &GoannaIrisGbuffers::set_dump_dir);
     ClassDB::bind_method(D_METHOD("has_shadow"), &GoannaIrisGbuffers::has_shadow);
     ClassDB::bind_method(D_METHOD("shadow_shader", "surface"), &GoannaIrisGbuffers::shadow_shader);
@@ -590,6 +591,20 @@ PackedInt32Array GoannaIrisGbuffers::second_targets() const {
             all.insert(m_second[s].begin(), m_second[s].end());
     PackedInt32Array out;
     for (int ct : all) out.push_back(ct);
+    return out;
+}
+
+PackedInt32Array GoannaIrisGbuffers::translucent_targets() const {
+    PackedInt32Array out;
+    if (!m_shaders[SURFACE_WATER].is_valid())
+        return out;
+    std::set<int> opaque;
+    for (int s = 0; s < SURFACE_COUNT; ++s)
+        if (s != SURFACE_WATER && m_shaders[s].is_valid())
+            opaque.insert(m_second[s].begin(), m_second[s].end());
+    std::set<int> water(m_second[SURFACE_WATER].begin(), m_second[SURFACE_WATER].end());
+    for (int ct : water)
+        if (!opaque.count(ct)) out.push_back(ct);
     return out;
 }
 
