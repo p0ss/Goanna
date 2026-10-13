@@ -75,6 +75,12 @@ the neighbour is as tall, a step where it is shorter, and the whole cell
 where it is empty. Terrain at any tier follows its own surface with one node
 of vertical resolution while keeping the horizontal cell size.
 
+Ground retains exposed voxel sides even when its top belongs to another
+vertical region. Surface skirts bridge different resolutions; provider
+skins, which have no filled volume beneath them, retain their edge skirts.
+Tree crowns retain voxel faces, including their undersides, instead of
+replacing the ground with a canopy height surface.
+
 A partial height side face cannot merge with one in the row above (each sits
 at its own height inside its own cell), so the face key carries its row and
 only full height faces merge freely, which is the common case underground

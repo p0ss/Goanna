@@ -2435,3 +2435,40 @@ variant, filesystem cache and background activity were not controlled,
 and no rendered frame timing was measured. First reads still run on the
 server thread, large grants still request substantial volumes, and the
 same distant extent in both runs leaves further loading work to measure.
+
+## Cliff sides and crown undersides, 2026-10-13
+
+The western village comparison exposed a second issue after summary
+loading was corrected: the ground surface pass suppressed voxel sides
+even when the column top belonged to another vertical region. That region
+had no surface edge from which to draw a skirt, leaving the cliff open.
+Actual ground now keeps exposed voxel sides. Skirts still join different
+resolutions, and provider skins retain skirts because they have no solid
+volume underneath.
+
+Coarse vegetation no longer replaces the ground with a canopy height
+surface. It retains its voxel volume and crown undersides. A separate
+regression found that a completely filled mapblock floating over known air
+also lost its underside: its full height bypassed the floating-column
+classification. The box pass now retains that lower face when the lower
+cell is known, while preserving the unknown ground frontier behaviour.
+
+Native regressions reproduce the missing cliff side, missing crown
+underside and missing full-mapblock underside. The complete native suite
+passes, including mixed-resolution joins and provider skins.
+
+The cliff and crown changes were rendered at both western village angles
+on a copy of `goanna_coastal_reference_20261013`, with Luanti 5.17.0,
+Mineclonia release 38561, Godot 4.5.1 and an RTX 3090 through the render
+service. The main mountain's sides were more continuous. These frames
+preceded the full-mapblock underside correction. Coverage stabilised at a
+2000-node reach for the first angle, but mesh quiet timed out. This is
+visual evidence, not a frame-time measurement or proof of a complete
+horizon. A read of server nodes behind one remaining vertical strip found
+a real steep stone edge, so vertical faces alone are not evidence of gaps.
+
+The final geometry build also rendered both angles on the same server
+and renderer. The mountain remained visible, but the amount of refinement
+varied between captures. Inspection found thousands of dirty regions and
+a populated worker queue after coverage had stabilised. The capture's
+coverage check therefore does not establish mesh stability.

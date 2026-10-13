@@ -994,18 +994,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     auto floatAt = [&](size_t bi, int lx, int lz) -> uint8_t & {
         return floating[bi * (size_t)cpb * cpb + (size_t)lz * cpb + lx];
     };
-    // Region columns (with margin) whose surface is a forest canopy, filled
-    // by the surface pass; the box pass leaves their vegetation alone.
-    const int canopy_margin = mb * cpb;
-    const int canopy_w = n + 2 * canopy_margin;
-    std::vector<uint8_t> canopy_cols((size_t)canopy_w * canopy_w, 0);
-    auto canopyAt = [&](int gx, int gz) -> bool {
-        const int ix = gx + canopy_margin, iz = gz + canopy_margin;
-        if (ix < 0 || iz < 0 || ix >= canopy_w || iz >= canopy_w)
-            return false;
-        return canopy_cols[(size_t)iz * canopy_w + ix] != 0;
-    };
-
     // -----------------------------------------------------------------------
     // Connected ground surface, recovered from the occupancy hierarchy.
     //
@@ -1015,12 +1003,11 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     // Independent liquid envelopes keep water flat and the seabed below it.
     // Each region reads a margin so neighbours can reproduce shared edges.
     //
-    // Where a cell's edge does not meet a neighbour that agrees with it, at a
-    // hole, the shore, a block drawn at another tier or at full detail, or
-    // the edge of what is known, a skirt drops from the edge so nothing is
-    // seen under the surface. The ground cells themselves emit no box faces
-    // below; the box pass draws only what is not ground, which is the
-    // vegetation and anything else the chain could not class as terrain.
+    // Ground keeps its exposed voxel sides in the box pass, so a cliff is
+    // closed even when its top lies outside this region's vertical extent.
+    // Skirts bridge different resolutions' heights. Provider skins
+    // do not carry a filled volume underneath and need skirts at all edges.
+    // Vegetation retains its voxel volume, including crown undersides.
     // Only floor-connected ground enters this pass. Other occupancy remains
     // volumetric in the box pass, including cave walls and island undersides.
     //
@@ -1037,7 +1024,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             bool same = false;    // and its block is drawn at this cell
             bool own = false;     // and that block is a member of this region
             bool water = false;
-            bool canopy = false;  // the surface is a forest roof, not ground
+            bool shell = false;   // provider skin without a filled volume below
             int drawn_at = -1;    // cell size the surface block is drawn at
             float h = 0.0f;       // absolute node height of the surface
             float water_h = -32768.0f; // independent liquid envelope, if known
@@ -1054,7 +1041,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             return &cols[(size_t)iz * W + ix];
         };
         // Both sides of a resolution seam must identify the same ground,
-        // floating geometry, canopy and water. A second, reduced column
+        // floating geometry and water. A second, reduced column
         // reader used to disagree at islands and shallow shores.
         auto readColumn = [&](int gx, int gz, int sample_cell, Column &col) {
             const int samples_per_block = MAP_BLOCKSIZE / sample_cell;
@@ -1079,31 +1066,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                 }
                 int th = lv->terrainAt(lx, lz);
-                // At the coarser tiers a forest is its roof: the highest
-                // vegetation cell in the column, if it stands above the
-                // ground, is the surface, with the canopy's colour. A
-                // forest seen from a few hundred nodes is a green roof
-                // rolling with the land, not a pile of cubes, which is
-                // what boxes at 8 and 16 nodes made of it. At the finest
-                // far tier the trees stay boxes, since there they are
-                // still individual trees.
-                bool canopy = false;
-                if (sample_cell >= 8) {
-                    for (int ty = samples_per_block - 1; ty >= 0 && ty * sample_cell + 1 > th; --ty) {
-                        const LodLevel::Cell &vc = lv->at(lx, ty, lz);
-                        if ((vc.flags & LodLevel::kFilled) && !(vc.flags & LodLevel::kTerrain) &&
-                                lodIsVegetation(ndef, vc.face[0])) {
-                            const int within = vc.top > 0 && vc.top < sample_cell ?
-                                    vc.top : sample_cell;
-                            const int vh = ty * sample_cell + within;
-                            if (vh > th) {
-                                th = vh;
-                                canopy = true;
-                            }
-                            break;
-                        }
-                    }
-                }
                 if (th <= 0)
                     continue;
                 // The highest block with ground is the surface only if
@@ -1117,7 +1079,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 // goes on down. A block below that is not known keeps
                 // the old answer rather than punching a hole at the
                 // frontier.
-                if (!canopy && th < MAP_BLOCKSIZE && by > 0 &&
+                if (th < MAP_BLOCKSIZE && by > 0 &&
                         !(chains[bi] && chains[bi]->surface_shell)) {
                     const size_t below = ((size_t)bz * B + (by - 1)) * B + bx;
                     const LodLevel *lb = chains[below] ? chains[below]->forCell(sample_cell) : nullptr;
@@ -1136,13 +1098,13 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                 }
                 col.has = true;
-                col.canopy = canopy;
+                col.shell = chains[bi] && chains[bi]->surface_shell;
                 col.same = drawn[bi] == sample_cell;
                 col.drawn_at = drawn[bi];
                 col.own = member[bi] != 0;
                 col.is_stored = stored[bi] != 0;
                 col.h = (float)(origin_nodes.Y + (by - mb) * MAP_BLOCKSIZE + th);
-                if (!canopy && col.water_h > -32768.0f)
+                if (col.water_h > -32768.0f)
                     col.h = std::min(col.h, col.water_h - 0.5f);
                 const int ty = (th - 1) / sample_cell;
                 col.gy = (by - mb) * samples_per_block + ty;
@@ -1151,7 +1113,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 const content_t tc = col.top->face[0];
                 if (tc != CONTENT_AIR && tc != CONTENT_IGNORE) {
                     const ContentFeatures &f = ndef->get(tc);
-                    col.water = !canopy && f.isLiquid();
+                    col.water = f.isLiquid();
                 }
             }
         };
@@ -1159,9 +1121,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             for (int gx = -margin; gx < n + margin; ++gx) {
                 Column &col = *colAt(gx, gz);
                 readColumn(gx, gz, cell, col);
-                if (col.canopy)
-                    canopy_cols[(size_t)(gz + canopy_margin) * canopy_w +
-                            (gx + canopy_margin)] = 1;
             }
         // Read the neighbour at the resolution it actually draws. Heights
         // meet through vertical step faces, never diagonal interpolation.
@@ -1307,7 +1266,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 // Horizontal top, clockwise seen from above in Godot.
                 for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
                     sf.idx.push_back(base + i);
-                if (!col.canopy && !col.water)
+                if (!col.water)
                     out.ground.push_back({origin_nodes.X+gx*cell,origin_nodes.Z+gz*cell,cell,hs[0]});
                 ++out.surface_cells;
                 ++out.faces;
@@ -1325,6 +1284,15 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 const int eb[4] = {2, 3, 2, 1};
                 for (int e = 0; e < 4; ++e) {
                     const int ngx = gx + ndx[e], ngz = gz + ndz[e];
+                    // Actual ground keeps voxel sides, including cliffs
+                    // whose top belongs to another vertical region. Skirts
+                    // still bridge different resolutions' measured heights;
+                    // synthetic skins need them throughout.
+                    const Column *neighbour = colAt(ngx, ngz);
+                    if (!col.shell && !col.water &&
+                            (!neighbour || !neighbour->has ||
+                             neighbour->drawn_at < 0 || neighbour->drawn_at == cell))
+                        continue;
                     float nh[4];
                     bool agree = false;
                     // Water skirts only toward a hole. Against land, live
@@ -1371,7 +1339,6 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                             bottom = std::min(std::min(ah, bh) - skirt_min, nlow - 1.0f);
                         }
                     }
-                    const Column *neighbour = colAt(ngx, ngz);
                     if (neighbour && neighbour->has) {
                         // This includes another resolution and near-owned
                         // ground, which quadHeights deliberately excludes.
@@ -1477,20 +1444,26 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                             !(d == 0 && (c->flags & LodLevel::kLiquid));
                     if (!liquid_face && !solid_face)
                         continue;
-                    // Ground is drawn by the exterior pass above, which
-                    // already supplies its top and vertical boundary faces.
-                    // Except a run with air under it, an overhang or an
-                    // island, which the surface pass left for here.
+                    // The ground surface owns top faces, but actual ground
+                    // keeps voxel sides and undersides across vertical
+                    // region boundaries. A full mapblock can also be an
+                    // island, even though the column reader calls it ground.
+                    // Provider skins still use surface skirts; floating
+                    // runs retain all their voxel faces.
                     if (!liquid_face && (c->flags & LodLevel::kTerrain)) {
                         const int bx = g[0] / cpb + mb, by = g[1] / cpb + mb, bz = g[2] / cpb + mb;
                         const size_t bi = ((size_t)bz * B + by) * B + bx;
-                        if (!floatAt(bi, g[0] % cpb, g[2] % cpb))
+                        if (!floatAt(bi, g[0] % cpb, g[2] % cpb) &&
+                                (d == 0 || chains[bi]->surface_shell))
                             continue;
-                    } else if (!liquid_face && canopyAt(g[0], g[2]) &&
-                            lodIsVegetation(ndef, c->face[0])) {
-                        // Vegetation under a canopy surface is inside the
-                        // roof the surface pass drew.
-                        continue;
+                        if (d == 1 && !floatAt(bi, g[0] % cpb, g[2] % cpb)) {
+                            const auto *below = cellAt(g[0], g[1] - 1, g[2]);
+                            // An absent lower summary is not evidence of an
+                            // island. Keep the ground frontier open until
+                            // known air establishes a real underside.
+                            if (!below || !(below->flags & LodLevel::kKnown))
+                                continue;
+                        }
                     }
                     const int fx = g[0] + DIRS[d][0], fy = g[1] + DIRS[d][1], fz = g[2] + DIRS[d][2];
                     const LodLevel::Cell *front_cell = cellAt(fx, fy, fz);

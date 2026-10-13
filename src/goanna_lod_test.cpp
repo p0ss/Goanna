@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <utility>
 
 using namespace goanna;
 
@@ -305,6 +306,107 @@ void testIsolatedVoxelHasAllSixFaces() {
     expect(underside, "isolated voxel has no lower face");
 }
 
+void testCliffCrossesVerticalRegions() {
+    NodeDefManager ndef;
+    BlockLodChain solid = airChain();
+    for (auto &c : solid.level[2].cells)
+        fillCell(c, CONTENT_UNKNOWN);
+    buildLodMipLevels(solid, 2);
+    buildLodTerrainSurface(&ndef, solid, 2);
+    BlockLodChain air = airChain();
+    LodRegionSpec spec;
+    spec.origin = v3s16(0, 1, 0);
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 1, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return bp.X == 0 && bp.Z == 0 && bp.Y >= 0 && bp.Y < 5 ? &solid : &air;
+    };
+    spec.drawn_cell = [](v3s16 bp) {
+        return bp.X == 0 && bp.Z == 0 && bp.Y >= 0 && bp.Y < 5 ? 4 : -1;
+    };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    float side_area = 0.0f;
+    for (const auto &sf : mesh.surfaces)
+        for (size_t i = 0; i + 3 < sf.pos.size(); i += 4)
+            if (sf.nrm[i].X > 0.99f && std::abs(sf.pos[i].X - 16.0f) < 0.001f)
+                side_area += (sf.pos[i + 1] - sf.pos[i]).crossProduct(
+                        sf.pos[i + 3] - sf.pos[i]).getLength();
+    expect(side_area >= 256.0f, "a cliff lost its side below another region's surface");
+}
+
+void testFullMapblockIslandHasAnUnderside() {
+    NodeDefManager ndef;
+    BlockLodChain solid = airChain(), air = airChain();
+    for (auto &c : solid.level[2].cells)
+        fillCell(c, CONTENT_UNKNOWN);
+    buildLodMipLevels(solid, 2);
+    buildLodTerrainSurface(&ndef, solid, 2);
+    LodRegionSpec spec;
+    spec.origin = v3s16(0, 1, 0);
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 1, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        return spec.member(bp) ? &solid : &air;
+    };
+    spec.drawn_cell = [&](v3s16 bp) { return spec.member(bp) ? 4 : -1; };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    float underside = 0.0f;
+    for (const auto &sf : mesh.surfaces)
+        for (size_t i = 0; i + 3 < sf.pos.size(); i += 4)
+            if (sf.nrm[i].Y < -0.99f && std::abs(sf.pos[i].Y - 16.0f) < 0.001f)
+                underside += (sf.pos[i + 1] - sf.pos[i]).crossProduct(
+                        sf.pos[i + 3] - sf.pos[i]).getLength();
+    expect(underside >= 256.0f, "a full mapblock island lost its underside");
+}
+
+void testCanopyDoesNotDrapeAcrossKnownAir() {
+    NodeDefManager ndef;
+    ContentFeatures leaves;
+    leaves.name = "test:leaves";
+    leaves.groups["leaves"] = 1;
+    const content_t leaf = ndef.set("test:leaves", std::move(leaves));
+    BlockLodChain ground = airChain(), crown = airChain(), air = airChain();
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x)
+            fillCell(ground.level[2].at(x, 0, z), CONTENT_UNKNOWN);
+    fillCell(crown.level[2].at(0, 2, 0), leaf, false);
+    for (auto *ch : {&ground, &crown}) {
+        buildLodMipLevels(*ch, 2);
+        buildLodTerrainSurface(&ndef, *ch, 2);
+    }
+    LodRegionSpec spec;
+    spec.blocks = 4;
+    spec.cell = 8;
+    spec.member = [](v3s16 bp) {
+        return bp.X == 0 && bp.Z == 0 && (bp.Y == 0 || bp.Y == 2);
+    };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        if (bp == v3s16(0, 0, 0)) return &ground;
+        if (bp == v3s16(0, 2, 0)) return &crown;
+        return &air;
+    };
+    spec.drawn_cell = [&](v3s16 bp) { return spec.member(bp) ? 8 : -1; };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    bool underside = false;
+    for (const auto &sf : mesh.surfaces)
+        for (size_t i = 0; i + 3 < sf.pos.size(); i += 4) {
+            float low = sf.pos[i].Y, high = low;
+            for (int j = 1; j < 4; ++j) {
+                low = std::min(low, sf.pos[i + j].Y);
+                high = std::max(high, sf.pos[i + j].Y);
+            }
+            expect(!(low < 24.0f && high > 24.0f),
+                    "a canopy skirt invented a wall through known air");
+            underside |= sf.nrm[i].Y < -0.99f && std::abs(low - 40.0f) < 0.001f;
+        }
+    expect(underside, "a distant leaf crown lost its underside");
+}
+
 void testConnectedGroundFollowsAValley() {
     BlockLodChain valley = airChain();
     LodLevel &lv = valley.level[BlockLodChain::levelForCell(4)];
@@ -342,6 +444,7 @@ void testConnectedGroundFollowsAValley() {
 
 void testTerrainSkirtsFaceOutwardOnBothAxes() {
     BlockLodChain slope = airChain();
+    slope.surface_shell = true;
     LodLevel &lv = slope.level[BlockLodChain::levelForCell(4)];
     // Changing height in both horizontal directions produces all four skirt
     // orientations. Their triangles must use the same clockwise-from-outside
@@ -468,7 +571,7 @@ void testGroundSurfaceJoins(bool mixed) {
             expect(closed, "vertical height difference has an open region seam");
         }
     }
-    expect(fine.skirts > 0, "hillside lost its vertical steps");
+    expect(fine.faces > 0, "hillside lost its vertical steps");
     for (const LodSurface &sf : fine.surfaces)
         for (const v3f &normal : sf.nrm)
             expect(std::fabs(normal.X) > 0.999f || std::fabs(normal.Y) > 0.999f ||
@@ -910,6 +1013,9 @@ int main() {
     testLiquidSurfaceHeightSurvivesMip();
     testLiquidIsAnEnvelopeOverSolid();
     testIsolatedVoxelHasAllSixFaces();
+    testCliffCrossesVerticalRegions();
+    testFullMapblockIslandHasAnUnderside();
+    testCanopyDoesNotDrapeAcrossKnownAir();
     testConnectedGroundFollowsAValley();
     testTerrainSkirtsFaceOutwardOnBothAxes();
     testGroundSurfaceJoins(false);
