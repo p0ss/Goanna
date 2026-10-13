@@ -209,7 +209,7 @@ float tileReliefDepth(const uint8_t *px, int w, int h) {
         }
     if (ratios.size() < 100)
         return 0.0f;
-    std::nth_element(ratios.begin(), ratios.begin() + (ptrdiff_t)(ratios.size() / 2),
+    std::nth_element(ratios.begin(), ratios.begin() + ratios.size() / 2,
             ratios.end());
     return ratios[ratios.size() / 2] / (float)w;
 }
