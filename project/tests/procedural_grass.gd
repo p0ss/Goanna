@@ -102,6 +102,24 @@ func run() -> void:
 	main.set_procedural_grass(false)
 	root.msaa_3d = Viewport.MSAA_2X
 	main.set_procedural_grass(true)
+	var pack := GoannaIrisGbuffers.new()
+	check(pack.load_pack(ProjectSettings.globalize_path("res://tests/shaderpacks/base-shader")),
+		"The terrain pack fixture must load")
+	main.client.set_iris_gbuffers(pack)
+	main.set_procedural_grass(true)
+	check(main.client.procedural_grass(), "A terrain pack must preserve the requested grass setting")
+	check(near.mesh.get_surface_count() == 1 and lod.mesh.get_surface_count() == 1,
+		"A terrain pack must remove Goanna grass from existing meshes")
+	check(root.msaa_3d == Viewport.MSAA_2X,
+		"Suppressed grass must release its antialiasing")
+	main.set_procedural_grass(false)
+	main.set_procedural_grass(true)
+	check(near.mesh.get_surface_count() == 1 and lod.mesh.get_surface_count() == 1,
+		"Changing the grass preference must not mix materials into a terrain pack")
+	main.client.set_iris_gbuffers(null)
+	main.set_procedural_grass(main.client.procedural_grass())
+	check(near.mesh.get_surface_count() == 2 and lod.mesh.get_surface_count() == 2,
+		"Removing a terrain pack must restore the requested grass")
 	main.free()
 	check(root.msaa_3d==Viewport.MSAA_2X and root.screen_space_aa==Viewport.SCREEN_SPACE_AA_DISABLED,
 		"Leaving the game must release its AA before the next scene loads")

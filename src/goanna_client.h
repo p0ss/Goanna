@@ -1245,6 +1245,7 @@ private:
         m_anim_materials.clear();
         m_iris_shadow_mats.clear();
     }
+    void refreshProceduralGrass();
     // The node animation clock, seconds in [0, 60) as Client::step keeps it,
     // and a pinned value from set_node_animation_time (below 0 when free).
     float m_node_anim_time = 0.0f;

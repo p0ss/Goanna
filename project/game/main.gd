@@ -415,7 +415,8 @@ const VISUAL_TESTS := {
 ## wants it, and puts back what was there before when it lets go.
 func set_procedural_grass(on: bool) -> void:
 	var viewport := get_viewport()
-	var want_aa: bool = on and render_features["render_grass_aa"] and grass_antialiasing > 0.0
+	var active: bool = on and not client.get_meta("goanna_grass_suppressed", false)
+	var want_aa: bool = active and render_features["render_grass_aa"] and grass_antialiasing > 0.0
 	if want_aa and not grass_aa_active:
 		grass_previous_msaa = viewport.msaa_3d
 		grass_previous_screen_aa = viewport.screen_space_aa
@@ -818,6 +819,7 @@ func _ready() -> void:
 			iris_gbuffers.set_dump_dir(OS.get_environment("GOANNA_SHADERPACK_DUMP"))
 		if iris_gbuffers.load_pack(shaderpack):
 			client.set_iris_gbuffers(iris_gbuffers)
+			set_procedural_grass(client.procedural_grass())
 			print("shader pack gbuffers ", iris_gbuffers.report())
 		else:
 			print("shader pack gbuffers not loaded: ", iris_gbuffers.report())

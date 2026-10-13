@@ -222,3 +222,28 @@ other targets arrive a frame late, geometry custom textures are missing,
 and samplers passed through helper functions do not receive the direct
 call's coordinate conversion. Photon was compiled but not rendered again.
 See [the design notes](../design/iris-compat.md#targets-a-geometry-program-reads).
+
+## Native effect isolation, 13 October 2026
+
+At the western coastal village, MakeUp Ultra Fast 9.5g drew a black sky
+and pale water with Goanna's procedural grass disabled. Disabling native
+clouds, cloud shadows, atmosphere, SSAO, SSR, bloom, shafts, SSIL and SDFGI
+also left those faults visible. A separate capture removed the Godot sky
+resource entirely and retained the black background. These runs used the
+render service, an RTX 3090, Godot 4.5.1, Luanti 5.17.0 and Mineclonia
+release 38561 on a copy of `goanna_coastal_reference_20261013`. Turning off
+native effects alone does not provide the pack's missing sky programs.
+
+Goanna now suppresses its extra procedural grass surfaces while a pack
+provides a terrain geometry program. That material does not write the
+pack's auxiliary targets. The requested grass setting is retained and
+restored when the pack is removed, including its antialiasing ownership.
+The headless Godot 4.5.1 regression checks existing near and far meshes,
+preference changes while suppressed and restoration after pack removal.
+
+The automatic suppression also ran at the village on that server and
+renderer. The saved High preference remained enabled, suppression was
+active and grass antialiasing was inactive. The frame omitted Goanna's
+extra grass, but retained MakeUp's black sky, pale water and broken distant
+terrain. This validates isolation of that material, not complete MakeUp
+compatibility.

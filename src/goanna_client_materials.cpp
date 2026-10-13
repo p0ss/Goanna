@@ -52,6 +52,17 @@ bool GoannaClient::grassSubmerged(int x, float root_boundary, int z, bool live) 
 void GoannaClient::set_procedural_grass(bool enabled) {
     if (enabled == procedural_grass()) return;
     set_meta("goanna_grass_enabled", enabled);
+    refreshProceduralGrass();
+}
+
+void GoannaClient::refreshProceduralGrass() {
+    // Pack geometry writes colour, normals and masks together. Our extra
+    // grass material writes none of those pack-specific auxiliary targets.
+    // Keep the requested setting, but omit its surfaces while a pack owns
+    // terrain so disabling the pack restores the player's preference.
+    const bool suppressed = m_iris_gbuffers.is_valid() && m_iris_gbuffers->has_terrain();
+    set_meta("goanna_grass_suppressed", suppressed);
+    const bool enabled = procedural_grass() && !suppressed;
     std::unique_lock<std::mutex> map_lock;
     if (enabled && m_session) map_lock = std::unique_lock<std::mutex>(m_session->mapLock());
     // Terrain mesh uploads are main-thread operations. Update the published
@@ -132,6 +143,7 @@ void GoannaClient::set_iris_gbuffers(const Ref<GoannaIrisGbuffers> &gbuffers) {
     m_iris_block_ids = PackedInt32Array();
     m_iris_block_names = 0;
     clearMaterials();
+    refreshProceduralGrass();
 }
 
 bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface) {

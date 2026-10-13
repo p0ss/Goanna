@@ -27,7 +27,8 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
     mesh->set_meta("goanna_grass_lod", lod);
     cell = mesh->get_meta("goanna_grass_cell", std::max(1, cell));
     mesh->set_meta("goanna_grass_cell", cell);
-    if (!(bool)owner->get_meta("goanna_grass_enabled", false)) return;
+    if (!(bool)owner->get_meta("goanna_grass_enabled", false) ||
+            (bool)owner->get_meta("goanna_grass_suppressed", false)) return;
     PackedVector3Array vertices;
     PackedColorArray colours;
     PackedFloat32Array bounds, roots;
