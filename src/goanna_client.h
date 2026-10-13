@@ -1080,6 +1080,7 @@ private:
     // patches never filled in. `complete` is set when every record in the
     // reply was generated; anything less is retried once the delay below has
     // passed, and `asked` is when it last went out.
+    uint64_t m_far_summaries_reused = 0;
     struct FarAsk {
         uint64_t cache_ticket = 0;
         std::chrono::steady_clock::time_point asked;

@@ -565,6 +565,7 @@ Dictionary GoannaClient::render_stats() {
             ++far_areas_partial;
     }
     d["far_areas_requested"] = (int)m_far_requested.size();
+    d["far_summaries_reused"] = (int64_t)m_far_summaries_reused;
     d["far_areas_complete"] = far_areas_complete;
     d["far_areas_partial"] = far_areas_partial;
     d["far_areas_empty"] = far_areas_empty;

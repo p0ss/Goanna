@@ -2472,3 +2472,40 @@ and renderer. The mountain remained visible, but the amount of refinement
 varied between captures. Inspection found thousands of dirty regions and
 a populated worker queue after coverage had stabilised. The capture's
 coverage check therefore does not establish mesh stability.
+
+## Reusing unchanged summary chains, 2026-10-13
+
+Partial-area retries could return the same known records repeatedly. The
+client still rebuilt their chains and dirtied their own and neighbouring
+mesh regions each time. A chain now retains a SHA-256 fingerprint of its
+wire record and palette. An identical reply with the same stored/live
+provenance reuses that immutable chain without invalidating meshes. A
+changed record or palette is applied normally; a fresh reply still
+replaces provisional disk shading. The fingerprint is runtime metadata
+and does not change the persistent format. `far_summaries_reused` counts
+records skipped this way.
+
+The native suite passes. A controlled protocol fixture ran through the
+render service's real Luanti 5.17.0 server, Mineclonia release 38561 and
+Godot 4.5.1. Normal summary requests were temporarily disabled through the
+server announcement so their counters could not mask the result. Repeated
+records incremented reuse exactly once; palette and voxel changes did
+not; replacing solids with air and then restoring them also bypassed
+reuse. Repeating the restored record incremented it again. The fixture
+sent synthetic records at one distant mapblock, removed its synthetic
+chain afterwards and restored ordinary summary requests. It changed no
+world nodes. Normal landscape traffic also exercised the reuse path.
+
+This removes redundant invalidations, not the cost of first reads, newly
+received terrain or changing detail tiers. A populated worker queue after
+coverage settles remains a separate observation from a stable horizon.
+
+A subsequent panorama on a copy of the same coastal world showed more
+continuous terrain behind the left-hand trees and along the distant
+shoreline. During that run, sampled dirty-region counts fell from 5304 to
+22 and the tier scan finished; 74 mesh jobs were still queued at the latter
+sample. The capture then recorded stable coverage at a 2000-node reach.
+The library fingerprint was `22fb63753615bb03`, built from the dirty tree
+based on `082ef495`, with the same server, game and renderer as above.
+This is a visual and queue observation, not a controlled performance
+comparison or proof that every distant boundary is closed.

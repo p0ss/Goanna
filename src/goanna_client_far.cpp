@@ -1067,6 +1067,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             }
         }
         const std::string blob = base64_decode(msg.substr(bar + 1));
+        const std::string palette_fingerprint = hashing::sha256(msg.substr(off, bar - off));
         const size_t total = (size_t)edge * edge * edge;
         if (blob.size() < total * kRecordSize)
             continue;
@@ -1183,6 +1184,8 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 continue; // live: known better
             if (m_near_blocks.count(bp))
                 continue; // resident exact mesh: visibly known better
+            const std::string fingerprint = hashing::sha256(
+                    palette_fingerprint + std::string((const char *)r, kRecordSize));
             {
                 // A chain from the store or from live nodes is known better
                 // than a summary and stays. One built from an earlier summary
@@ -1193,12 +1196,22 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 auto old = m_lod_chains.find(bp);
                 if (old != m_lod_chains.end() && (!old->second->summary || old->second->fine_available))
                     continue;
+                // Partial areas are retried even when none of their known
+                // records changed. Keep the immutable chain and its meshes
+                // in that case instead of dirtying every neighbouring region.
+                // A fresh reply must still replace provisional disk shading.
+                if (old != m_lod_chains.end() && old->second->stored == cached &&
+                        old->second->summary_fingerprint == fingerprint) {
+                    ++m_far_summaries_reused;
+                    continue;
+                }
             }
             auto name_of = [&](uint8_t idx, content_t fallback) -> content_t {
                 return idx != 0 && idx < ids.size() ? ids[idx] : fallback;
             };
             auto ch_owned = std::make_shared<BlockLodChain>();
             BlockLodChain &ch = *ch_owned;
+            ch.summary_fingerprint = fingerprint;
             ch.surface_shell = (r[rFlags] & 32) != 0;
             for (LodLevel &lv : ch.level)
                 lv = LodLevel();

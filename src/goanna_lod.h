@@ -39,6 +39,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "irrlichttypes_bloated.h"
@@ -161,6 +162,9 @@ struct BlockLodChain {
     // Built from a server summary rather than from nodes. A later summary of
     // the same block replaces it; a chain from nodes is never replaced by one.
     bool summary = false;
+    // Runtime identity of the wire record and its palette. Not persisted:
+    // a chain reconstructed from disk is checked afresh against the server.
+    std::string summary_fingerprint;
     // Server provider data is an exterior height shell. Omitted interior
     // cells do not describe caves, unlike an ordinary volumetric summary.
     bool surface_shell = false;
