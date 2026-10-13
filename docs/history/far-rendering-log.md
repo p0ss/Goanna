@@ -2385,3 +2385,53 @@ server thread per 30 seconds, about 0.45 ms each and up to 2 ms in a step;
 on the workers, 14 to 17 ms. A small saving on one client, but it no
 longer grows with the number of players asking.
 
+## Partial summary retries and completion counts, 2026-10-13
+
+The coastal village comparison exposed a slow fill at a 2048-node grant.
+A CPU-only probe against a disposable copy of
+`goanna_coastal_reference_20261013`, Luanti 5.17.0, Mineclonia release 38561
+and Godot 4.5.1, confirmed that async summaries were enabled. The client
+mesh queue stayed empty. In one 30-second server window the serial map
+reads took 10.4 seconds and maximum lag reached 3.3 seconds, while the
+worker queue was below its cap. Moving the folding work to workers had
+not removed the serial read cost.
+
+There were two faults in handling partial records. `set_record` incremented
+its complete-record count whenever the old record was incomplete, even if
+the replacement was incomplete too. Rewriting one partial record 512 times
+could therefore settle an entire area. It now counts changes in the
+complete bit, including a complete record becoming partial. The persisted
+background-scan index uses a new key; useful summary blobs are retained.
+
+Each client's retry also re-read partial mapblocks even when no terrain
+had changed. With `register_on_mapblocks_changed` available, a partial read
+is now cached for the server session. Generation bypasses that cached
+check, and node changes force a new read after the existing cooling period.
+The wire still says partial. Servers without the change callback retain
+the old retry behaviour. Background settlement means every record has
+been checked, not that every record is complete.
+
+`luajit tools/test/test-summary-store.lua` reproduces the count fault and
+checks repeated partial reads, complete/partial transitions, generation,
+forced refreshes and the older-server fallback. On a real disposable
+Mineclonia server, block (-120, -8, 40) stayed partial and a second read
+was skipped; editing a known node refreshed it through the actual change
+callback; emerging its area then replaced the partial record with a
+complete one. The test restored its node edit before generation and never
+changed the source world.
+
+Two 120-second CPU-only runs used the same world source, 192 reads per
+step, 2048-node grant and village pose, old code first. At their last
+matching sample, 110.8 seconds after posing:
+
+| Code | Requested areas | Remote blocks | Lower/upper sector reach | Mesh queue |
+| --- | --- | --- | --- | --- |
+| Old | 1053 | 251433 | 1104 / 1840 nodes | 0 |
+| Patched | 1384 | 307713 | 1104 / 1840 nodes | 0 |
+
+This is an initial throughput observation, not a settled performance
+verdict or proof that the full horizon arrived. There was one run per
+variant, filesystem cache and background activity were not controlled,
+and no rendered frame timing was measured. First reads still run on the
+server thread, large grants still request substantial volumes, and the
+same distant extent in both runs leaves further loading work to measure.

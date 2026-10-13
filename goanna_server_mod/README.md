@@ -127,9 +127,12 @@ few seconds after `register_on_mapblocks_changed` reports it; and when the
 queues are idle, the nearest unsettled area to any player is read in the
 background (`goanna_far_summary_backfill`), which is how a world that
 existed before the store did gets read once rather than on the first
-client's clock. An area is settled once every block in it is known or has
-been looked at and found ungenerated, and is not read again: generation and
-node changes are the only things that change it and both are reported.
+client's clock. An area is settled once every block in it is complete or
+has been checked. On servers with map-change notifications, partial reads
+are retained for the session too: retrying a partial area sends the cached
+records, while generation and node changes trigger fresh reads. The wire
+still marks those records partial. Older servers without that callback
+continue reading partial blocks on request.
 
 Two bounds an operator owns. Requests outside `goanna_far_rendering_distance`
 of the asking player are refused silently, so the grant is the reach. And

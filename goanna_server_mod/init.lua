@@ -253,9 +253,9 @@ end
 -- by 8 mapblocks, the unit a client asks for, as one string of 512 records
 -- in the same 92 byte layout the wire carries (x fastest, then y, then z),
 -- with the area's own name list beside it. A record whose complete bit is
--- clear is ungenerated or only partly emerged. A request for an area whose
--- records are all complete is answered by lookup; one with gaps retries only
--- those records while still sending their useful partial contents.
+-- clear is ungenerated or only partly emerged. Complete records are answered
+-- by lookup. Gaps are checked once per session; with map-change callbacks,
+-- partial records are retained until generation or edits invalidate them.
 --
 -- Three things fill the store without anyone asking:
 --   - register_on_generated: every freshly generated block is summarised
@@ -289,6 +289,9 @@ local AREA_BLOCKS = AREA * AREA * AREA
 -- buried provider interiors out of the persistent summary cache. The wire
 -- layout is unchanged; only the meaning of its representative has improved.
 local STORE_KEY = "fs7s2:"
+-- Earlier complete-record counts included repeated partial records. Keep
+-- their useful blobs, but rebuild the background scan's settled index.
+local SETTLED_KEY = STORE_KEY .. "checked-v2"
 local EMPTY_BLOB = string.rep("\0", REC * AREA_BLOCKS)
 local EMPTY_RECORD = string.rep("\0", REC)
 local cache_limit = conf_num("goanna_far_summary_cache_areas", 4096)
@@ -330,9 +333,8 @@ local function split_csv(s)
 end
 
 local function record_known(blob, i)
-	-- Complete, not merely useful. A partial record remains in the blob and
-	-- can be sent to clients, but every request retries it until all of the
-	-- mapblock has emerged.
+	-- Complete, not merely useful. Partial records remain in the blob and
+	-- are refreshed when generation or node changes supply new data.
 	return blob:byte(i * REC + 1) % 16 >= 8
 end
 
@@ -479,9 +481,8 @@ local function set_record(a, i, rec)
 		a.npending = a.npending + 1
 	end
 	a.pending[i] = rec
-	if not was then
-		a.known = a.known + 1
-	end
+	local complete = rec:byte(1) % 16 >= 8
+	a.known = a.known + (complete and 1 or 0) - (was and 1 or 0)
 	if a.checked[i] then
 		a.checked[i] = nil
 		a.nchecked = a.nchecked - 1
@@ -489,8 +490,9 @@ local function set_record(a, i, rec)
 	a.dirty = true
 end
 
--- Every record is complete or has been looked at and found wholly
--- ungenerated. A partial record does not settle its area and is retried.
+-- Every record is complete or has been checked in this server session.
+-- Partial records stay partial on the wire. Generation and map changes
+-- invalidate their cached reads, rather than every client's retry doing so.
 local function area_settled(a)
 	return a.known + a.nchecked >= AREA_BLOCKS
 end
@@ -498,11 +500,10 @@ end
 local last_summarised = {}
 
 -- Settled areas, kept as a set so the backfill can pass over them without
--- loading them, and persisted as one list because it is monotonic: the only
--- things that change a settled area's records, generation and node changes,
--- keep it settled.
+-- loading them. Generation and node changes refresh records separately.
+-- This index describes background work, not completeness on the wire.
 do
-	local s = storage:get_string(STORE_KEY .. "settled")
+	local s = storage:get_string(SETTLED_KEY)
 	for key in s:gmatch("[^,]+") do
 		settled[key] = true
 	end
@@ -788,13 +789,21 @@ local function land_summary(bx, by, bz, s)
 			a.synth[i] = nil
 			reoffer[a.key] = a
 		end
-	elseif not area_available(a, i) and not a.checked[i] then
+	end
+	-- A boundary block may remain partial indefinitely. Re-reading it on
+	-- every request spends the serial map-read budget without adding data.
+	-- Servers with change notifications can retain that result until a
+	-- generated/modified block explicitly asks for a fresh or forced read.
+	local cache_partial = core.register_on_mapblocks_changed ~= nil
+	if not area_known(a, i) and not a.checked[i] and
+			(not area_available(a, i) or cache_partial) then
 		a.checked[i] = true
 		a.nchecked = a.nchecked + 1
 	end
 	summary_stats.file_us = summary_stats.file_us + core.get_us_time() - t0
-	if not settled[a.key] and area_settled(a) then
-		settled[a.key] = true
+	local is_settled = area_settled(a)
+	if (settled[a.key] == true) ~= is_settled then
+		settled[a.key] = is_settled or nil
 		settled_dirty = true
 	end
 end
@@ -843,15 +852,14 @@ end
 -- which is what the per step budget counts; false when the store already
 -- had an answer, or a read of it is already in flight, and nothing was
 -- spent. `force` reads whatever the store holds, for a block that has
--- changed; `fresh` reads a block the store has only ever seen ungenerated,
--- for one that has just been generated.
+-- changed; `fresh` reads an incomplete block again after generation.
 local function summarise(bx, by, bz, force, fresh)
 	local ax, ay, az = fdiv(bx, AREA), fdiv(by, AREA), fdiv(bz, AREA)
 	local a = load_area(ax, ay, az)
 	local i = (bx - ax * AREA) + (by - ay * AREA) * AREA + (bz - az * AREA) * AREA * AREA
 	local synth = a.synth and a.synth[i]
 	if not force and ((area_known(a, i) and not (synth and fresh)) or
-			(a.checked[i] and not area_available(a, i) and not fresh)) then
+			(a.checked[i] and not fresh)) then
 		return false
 	end
 	local h = core.hash_node_position({x = bx, y = by, z = bz})
@@ -1027,7 +1035,7 @@ local function flush(all)
 		for key in pairs(settled) do
 			keys[#keys + 1] = key
 		end
-		storage:set_string(STORE_KEY .. "settled", table.concat(keys, ","))
+		storage:set_string(SETTLED_KEY, table.concat(keys, ","))
 		settled_dirty = false
 	end
 	local n = 0
