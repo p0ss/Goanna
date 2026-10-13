@@ -1545,7 +1545,9 @@ class Service:
         """
         quiet = max(5.0, float(options.get("quiet_seconds", 30)))
         timeout = max(quiet, float(options.get("timeout_seconds", 900)))
-        keys = ("far_blocks", "far_remote", "far_reach", "far_areas_requested",
+        # Cached block totals fluctuate as near/far ownership changes even
+        # when the set of described areas and their coverage is unchanged.
+        keys = ("far_reach", "far_areas_requested",
                 "far_areas_complete", "far_areas_partial", "far_areas_empty",
                 "surface_received", "surface_covered")
         started = time.monotonic()

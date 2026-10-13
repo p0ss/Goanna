@@ -383,9 +383,11 @@ For large landscape captures, `terrain_wait: {"quiet_seconds": 30,
 "timeout_seconds": 900}` waits after each pose until the distant coverage
 counters have stopped changing for 30 seconds. It fails the job instead of
 capturing when the deadline expires. The settings sidecar records those
-counters under `settled.terrain`. This checks stable coverage, not that
-every region contains generated land: a copied world's ungenerated edges
-can still leave gaps and partial areas. Inspect the frame as well.
+counters under `settled.terrain`. Cached block totals are excluded because
+near/far ownership changes them without extending coverage. This checks
+stable coverage, not that every region contains generated land: a copied
+world's ungenerated edges can still leave gaps and partial areas. Inspect
+the frame as well.
 
 A node entry may give `param2`, and `swap: true` places it with
 `swap_node`, so no constructor or destructor runs: a Nether portal set
