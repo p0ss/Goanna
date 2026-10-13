@@ -241,6 +241,64 @@ service that is yielded when its own sources change starts again in place
 with the new ones (the queue is on disk), because one left yielded for
 hours kept yielding to lavapipe clients after `gpu-free` was fixed.
 
+`GOANNA_RENDER_STATE` is also what keeps two agents' queues apart. Two
+agents given the same scratchpad directory, each pointing it at
+`<scratchpad>/render-state`, share one queue: on 2026-10-13 a job meant
+for the standard world went into a shader pack agent's service on another
+world. Give each service a directory no other agent will pick.
+
+#### The standard world
+
+`test_world_do_not_delete` is the world for Goanna's standard scenes: the
+menu backgrounds, the graphics benchmark village and the scenes shader
+packs are judged at. It replaces `test_world`, which held the earlier
+scenes and was lost by 2026-10-13 with no copy and no record of its seed
+or mapgen.
+
+`tools/dev/make-standard-world.sh` makes it from nothing, and refuses if
+a world of that name exists. It writes the world, starts one Luanti server
+on it with no client, pregenerates a box with a worldmod that calls
+`core.emerge_area` a mapchunk at a time (`tools/dev/standard-world-pregen.lua`),
+waits for the server to shut itself down, removes that worldmod and
+installs a fresh `goanna_server_mod`. The settings it uses:
+
+- Mineclonia as installed (release 38561), with its own defaults: nothing
+  in the repository recorded what `test_world` used, so none are changed.
+- Mapgen v7, seed 20261013, Luanti's defaults otherwise. Mineclonia sets
+  `mg_flags` itself (`caves, nodungeons, light, nodecorations, biomes,
+  ores`) and its new structure generator (`mcl_levelgen_enable_ersatz`,
+  on by default) places the villages.
+- One emerge thread.
+- The box is x and z from -1600 to 1600, y from -112 to 207.
+
+The seed fixes the place, not every node. On 2026-10-13 a small box
+around the origin made twice with the same arguments came out with
+different trees, ores and leaf litter: Mineclonia's own generation is not
+deterministic. Against the full world, that box had identical water and 98
+per cent of its ground heights equal, and a box remade around the village
+at (560, 272) had the same number of beds, bells and lanterns over the
+same extent. A remade world puts the land, water and villages in the same
+places, but a frame framed against one particular tree may come out
+different. The world itself is the reference; do not delete it to remake
+it.
+
+On 2026-10-13 (Luanti 5.17.0 flatpak, Mineclonia 38561) that was 6724
+mapchunks in 22 minutes, 480 MB on disk. A different seed or box is
+`--seed`, `--radius`, `--ymin` and `--ymax`; `--name` makes a scratch
+world for trying one.
+
+Render it with the service on a copy, with no fixture floor (otherwise the
+service lays its 49 by 49 stone stage at (1000, 31, 1000) in the copy):
+
+```sh
+GOANNA_RENDER_STATE=<a directory of your own> \
+  tools/goanna-render serve --world-from test_world_do_not_delete --floor ''
+```
+
+The scenes themselves are not chosen yet. The menu backgrounds and the
+benchmark plans still name `test_world`'s poses, which mean nothing in this
+world, until scenes are scouted here and those tools are pointed at them.
+
 #### A job
 
 Coordinates are Luanti's, relative to the stage (its floor is at y -1),
