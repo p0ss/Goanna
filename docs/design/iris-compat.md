@@ -928,21 +928,23 @@ absolute `size.buffer` dimensions retain their data map coordinates.
 
 This is an approximation of Iris's ordering, not full deferred rendering:
 
-- A target written beside the main colour by a deferred pass, with at
-  least three colour channels and relative dimensions, is treated as a
-  scene copy. It receives the current opaque scene before translucent
-  geometry, without the pack's deferred shading.
-- Other targets receive a copy after the deferred chain, available to
-  geometry on the next frame. Missing sky programs still leave their
-  targets empty. `texture.gbuffers` custom images are not loaded here.
+- Geometry reads receive the actual target after the prepare and deferred
+  passes, available on the next frame. Targets written beside colour can
+  store depth or masks in alpha, so they are not replaced with native
+  scene colour. `texture.gbuffers` custom images are not loaded here.
+- Fragment `prepare` programs and their numbered variants run before
+  deferred in the screen chain. Where they write a background into a
+  geometry target, existing geometry pixels are restored over it using
+  depth, leaving the prepared sky intact. This does not move execution
+  before Godot's geometry; geometry still sees the previous snapshot.
 - A sampler passed through a helper function does not receive the direct
   call's coordinate conversion; the translator reports this limitation.
   Offset and gather operations still have the existing approximations.
 
 `report().gbuffers_reads` names the source used for each target. Copies use
-formats Godot can bind through `Texture2DRD`: RGBA16F for scene colour,
-RGBA32F for data. This avoids losing further bits in the copy, but cannot
-recover data already lost in the half float second output viewports.
+RGBA32F, which Godot can bind through `Texture2DRD`. This avoids losing
+further bits in the copy, but cannot recover data already lost in the half
+float second output viewports.
 On resize the render thread creates replacement textures; the main thread
 queues their binding before old textures are released on the render
 thread. `iris_teardown.tscn` exercises resizing and disposal.
@@ -962,7 +964,7 @@ real pack's exposure or temporal filter.
   the geometry drawn through `RenderingDevice`, which neither the
   second outputs nor the shadow map do. Of the packs whose terrain programs were checked, BSL and MakeUp
   write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
-  colour; only Eclipse has been looked at on the GPU with them.
+  colour. All six checkpoint packs have now been captured with them.
 - **Photon's water and its approximations.** It runs whole since
   2026-10-13 (above), but its water is near black and its ice is not
   shown, not traced. Its sky light comes from a compute pass
@@ -974,8 +976,7 @@ real pack's exposure or temporal filter.
 - **Geometry inputs and pass ordering.** Geometry can now read copied
   colortex targets and opaque depth, as described above. Full fidelity
   needs the deferred chain before translucent geometry, sky programs and
-  geometry custom textures. Scene-copy detection is a heuristic; other
-  target copies arrive one frame late.
+  geometry custom textures. Target copies arrive one frame late.
 - **The rest of the shadow map.** The first slice draws opaque, cut-out
   and foliage near terrain only; see the end of "The shadow map, as
   built" for what it leaves out: translucent casters and so `shadowtex1`

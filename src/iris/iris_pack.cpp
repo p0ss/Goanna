@@ -334,6 +334,7 @@ static std::vector<std::string> chainNames(const Pack &p) {
             if (p.hasProgram(n)) chain.push_back(n);
         }
     };
+    addSeries("prepare");
     addSeries("deferred");
     addSeries("composite");
     if (p.hasProgram("final")) chain.push_back("final");

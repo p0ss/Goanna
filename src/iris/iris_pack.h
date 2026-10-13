@@ -80,8 +80,8 @@ public:
     bool program(const std::string &name, Program &out, std::string &err,
             std::vector<std::string> *warnings = nullptr) const;
 
-    // Composite chain order: deferred, deferred1..99, composite, composite1..99,
-    // final. Only names that exist and are enabled are returned.
+    // Screen pass order: prepare, deferred, composite (each with numbered
+    // variants 1..99), then final. Only names that exist and are enabled are returned.
     std::vector<std::string> compositeChain() const;
     // Programs the chain skipped because the properties disable them.
     std::vector<std::string> disabledPrograms() const;

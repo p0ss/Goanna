@@ -12,6 +12,17 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Correct shader water inputs, prepared sky and clear glass, 13 October
+  2026. Preserve actual pack buffer values instead of replacing likely
+  scene copies with native colour, run fragment prepare programs and send
+  clear glass through pack materials. On a local Luanti 5.17.0 server,
+  Mineclonia 38561, Godot 4.5.1 and RTX 3090, Complementary's bay surface
+  returned, Photon's red windows disappeared, and MakeUp's two western
+  village views gained blue sky and blue water. Water noise, dark lighting
+  and other pack-specific defects remain. Native checks pass; details and
+  limitations are in the
+  [follow-up report](../develop/shaderpack-status.md#coastal-checkpoint-follow-up-13-october-2026).
+
 - Recover shader geometry inputs and temporal history, 13 October 2026.
   Complete the abandoned scene and depth reads, use texture formats Godot
   can bind, replace copied textures on viewport resize and release old

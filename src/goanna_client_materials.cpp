@@ -1130,7 +1130,11 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm->set_shader_parameter("albedo_tex", tex);
         if (sh == m_sh_water)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER);
-        else if (sh == m_sh_leaves || sh == m_sh_plants)
+        // Clear glass is alpha tested by the game. It must write the pack's
+        // material buffers too, rather than native lit RGB that a deferred
+        // pack would decode as packed normals and material flags.
+        else if (sh == m_sh_leaves || sh == m_sh_plants || sh == m_sh_glass_clear ||
+                sh == m_sh_glass_double)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_FOLIAGE);
         if (sh == m_sh_lava) {
             const LavaTile &lava = m_lava_tex.at(key.texture_id);

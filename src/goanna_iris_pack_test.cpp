@@ -267,6 +267,21 @@ void testPackOptions() {
         check(prog.fsh.find("//#define BLOOM") != std::string::npos, "override rewrites the source define");
         check(prog.fsh.find("#define SHADOW_QUALITY 1") != std::string::npos, "value override rewrites the source");
     }
+    // Prepare is a producer for geometry inputs such as MakeUp's sky.
+    // Numbered programs retain numerical order, and conditional programs
+    // are filtered by the same rules as deferred and composite.
+    for (const char *name : {"prepare", "prepare2", "prepare10", "deferred"})
+        writeFile(sh / (std::string(name) + ".fsh"),
+                "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }\n");
+    {
+        Pack p;
+        std::string err;
+        check(p.load(root.string(), err), "pack with prepare programs loads");
+        auto chain = p.compositeChain();
+        check(chain.size() == 7 && chain[0] == "prepare" && chain[1] == "prepare2" &&
+                chain[2] == "prepare10" && chain[3] == "deferred",
+                "prepare producers precede deferred in numerical order");
+    }
     fs::remove_all(root);
 }
 

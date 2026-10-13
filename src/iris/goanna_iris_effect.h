@@ -129,21 +129,15 @@ public:
     // read_targets) and the target their colour goes to. Each gets a
     // texture of its own that the geometry programs read through a
     // Texture2DRD global:
-    // - a scene image, a target a deferred pass writes beside the colour
-    //   with three or more channels (MakeUp's gaux1, BSL's and
-    //   Complementary's gaux2), is the opaque scene before translucent
-    //   geometry, this frame, copied by the depth capture companion at
-    //   PRE_TRANSPARENT and encoded as colortex0 is;
-    // - any other is the target as the chain left it after its deferred
-    //   passes, one frame late, copied by this effect.
+    // Each receives the actual target after prepare/deferred, one frame
+    // late. RGB outputs can carry depth or masks in alpha, so substituting
+    // the native scene colour would corrupt the pack's geometry inputs.
     void set_gbuffers_reads(const godot::PackedInt32Array &targets, int colour_target);
     // Main thread, every frame: points the Texture2DRDs at the textures
     // once the render thread has made them. True once they are bound.
     bool sync_gbuffers_reads();
     // The texture for colortex `index`, null when it is not read.
     godot::Ref<godot::Texture2DRD> gbuffers_read_texture(int index) const;
-    // Which of the reads are scene images, for report().
-    bool gbuffers_read_is_scene(int index) const;
 
     void _render_callback(int32_t p_effect_callback_type, godot::RenderData *p_render_data) override;
 
@@ -292,8 +286,8 @@ private:
     godot::Transform3D m_prev_cam;
     godot::Projection m_prev_proj;
 
-    // Gbuffers reads, shared with the depth capture companion. `want` and
-    // `scene` are written once on the main thread under `mutex` and read
+    // Gbuffers reads. `want` is written once on the main thread under
+    // `mutex` and read
     // under it on the render thread. The mutex also guards published RIDs
     // and retired textures during main thread rebinding. Textures are made,
     // written and freed on the render thread (freed at NOTIFICATION_PREDELETE after
@@ -302,8 +296,7 @@ private:
     // by sync_gbuffers_reads before it reads their RIDs.
     struct GbufferReads {
         std::mutex mutex;
-        std::array<bool, 16> want{}, scene{};
-        bool bridge = true;
+        std::array<bool, 16> want{};
         std::array<godot::RID, 16> tex{};
         std::array<godot::Vector2i, 16> size{};
         std::vector<godot::RID> retired;
@@ -316,7 +309,6 @@ private:
     void ensureReads(godot::RenderingDevice *rd, const godot::Vector2i &screen);
     void snapshotReads(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb, const std::array<int, 16> &side,
             const godot::Vector2i &size);
-    void captureScene(godot::RenderingDevice *rd, godot::RenderSceneBuffersRD *rb);
 
     // m_world_mutex guards m_world: set_world_state writes it on the main
     // thread each frame and fillUniforms copies it out on the render thread.

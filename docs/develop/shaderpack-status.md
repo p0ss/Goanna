@@ -247,3 +247,31 @@ active and grass antialiasing was inactive. The frame omitted Goanna's
 extra grass, but retained MakeUp's black sky, pale water and broken distant
 terrain. This validates isolation of that material, not complete MakeUp
 compatibility.
+
+## Coastal checkpoint follow-up, 13 October 2026
+
+Three corrections address faults visible in the western village checkpoint:
+
+- Geometry texture reads retain the pack's actual prepare/deferred output,
+  including alpha. The former scene-copy heuristic replaced Complementary's
+  cloud depth with native scene colour, affecting its water discard test.
+- Fragment `prepare` programs run before deferred in the screen chain.
+  Existing geometry pixels are restored over prepared backgrounds using
+  depth. MakeUp's sky target is now populated.
+- Clear glass uses the pack's cut-out material path. Native lit glass colour
+  must not be interpreted as Photon's packed material data.
+
+On a local Luanti 5.17.0 server, Mineclonia release 38561, Godot 4.5.1 and
+RTX 3090, the corrected Complementary shore capture has a visible bay
+surface, and Photon's shore capture no longer has the red window artefacts.
+MakeUp's two western angles have a blue sky and blue water instead of the
+black background and pale water. Its water remains noisy and its terrain
+dark. Complementary still has water patches and overlapping cloud layers.
+These are visual observations, not full pack compatibility or performance
+claims. Geometry inputs still arrive one frame late; execution remains
+after Godot's translucent geometry.
+
+Captures use the same copied coastal world, time 0.42, High profile,
+1920 by 1080 resolution and requested ranges as the checkpoint. The
+combined capture library is `717026c41d44f7a8`, built from a dirty tree
+based on `1971d4ae`. Native tests, including prepare-pass ordering, pass.
