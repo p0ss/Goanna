@@ -276,6 +276,33 @@ static void testTranslator() {
     check(contains(code, "/ 240.0"), "int literal divisor in a global initialiser");
 }
 
+static void testGeometryReads() {
+    Program p;
+    p.name = "reads";
+    p.vsh = "void main() { gl_Position = ftransform(); }";
+    p.fsh = "uniform sampler2D gaux1, colortex7, depthtex1;\n"
+            "void main() { vec2 uv = vec2(0.2);\n"
+            "gl_FragData[0] = texture2D(gaux1, uv) + texture2D(colortex7, uv)\n"
+            "+ texture2D(depthtex1, uv) + texelFetch(gaux1, ivec2(3), 2)\n"
+            "+ textureGrad(gaux1, uv, vec2(0.1), vec2(0.2)); }";
+    GbuffersOptions o;
+    o.surface = GbuffersSurface::Translucent;
+    o.data_targets.insert(7);
+    GbuffersResult r;
+    std::string err;
+    check(translateGbuffers(p, o, r, err), "geometry reads translate: " + err);
+    check(r.reads == std::vector<int>({4, 7}), "legacy and modern target reads are collected");
+    check(contains(r.code, "texture(iris_colortex4, goanna_screen_uv"), "screen reads flip rows");
+    check(contains(r.code, "texture(iris_colortex7, uv)"), "data map coordinates stay unchanged");
+    check(contains(r.code, "hint_depth_texture") && contains(r.code, "goanna_gl_depth(texture("),
+            "water reads the opaque scene depth in OpenGL convention");
+    check(contains(r.code, "textureSize(iris_colortex4, 2)"), "integer reads flip at their mip size");
+    check(contains(r.code, "* vec2(1.0, -1.0)"), "screen gradients follow the flipped coordinates");
+    o.shadow_pass = true;
+    check(translateGbuffers(p, o, r, err) && r.reads.empty(), "shadow programs never sample scene targets");
+    check(!contains(r.code, "hint_depth_texture"), "shadow programs never request scene depth");
+}
+
 static int translatePack(const std::string &dir, const std::string &outdir) {
     Pack pack;
     std::string err;
@@ -331,6 +358,7 @@ int main(int argc, char **argv) {
         return translatePack(argv[1], argv[2]);
     testPreprocessor();
     testTranslator();
+    testGeometryReads();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);
         return 1;

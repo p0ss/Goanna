@@ -17,11 +17,11 @@ produced the Vulkan GLSL the effect would hand Godot 4.5.1, and
 stage. Godot itself compiled nothing, no pipeline was created, and nothing
 was drawn.
 
-**No pack has been run live.** A render service job for every pack below
+**No pack had been run live on that date.** A render service job for each pack
 against a local Mineclonia server was queued twice. The first waited two
 hours for the GPU lock, which another session's client held, and timed
 out. The second, on lavapipe, had just started when the machine rebooted.
-So there is no frame, no GPU compile and no pipeline result for any pack,
+That survey produced no frame, GPU compile or pipeline result for any pack,
 and the "Live" column says not run. The proof pack's last live pass is the
 one in [Shader pack testing](shaderpack-testing.md).
 
@@ -188,3 +188,37 @@ filter takes 5 by 5 samples (`SHADOW_SAMPLES` 2 either side) and divides by
 0.15, and two later lighting terms that add `inShadow` brighten most of
 that back. With its default options the shadowed and unshadowed frames of
 the stage differ in fewer than 400 pixels at 1280 by 720.
+
+## Recovery checks, 13 October 2026
+
+Recovered the additional camera and cloud inputs and the unfinished
+geometry texture reads from the input worktree. Native tests pass. The
+headless Godot 4.5.1 geometry checks and offline glslang chain checks pass
+for Eclipse, Mellow, MakeUp, BSL, Complementary Reimagined and Photon
+(3, 9, 5, 9, 9 and 20 chain passes respectively).
+
+On the RTX 3090, Godot 4.5.1, a local Luanti 5.17.0 server and Mineclonia
+release 38561, the recovered code initially produced a black MakeUp
+frame and texture errors. The copies now use formats `Texture2DRD` can
+bind. Initialising preserved targets and retaining their last written
+ping pong side also corrected the history handling. With those changes,
+MakeUp drew the lake, shoreline and reflected scenery on a copy of
+`r1tod1`, at (0, 110, 0), pitch -45, yaw 210, FOV 70, 640 by 360. The
+client log contained no shader errors. The background beyond the terrain
+remained black; this is not full sky-program support. The render service's
+quiet check timed out, so this is a visual observation, not a performance
+measurement. Eclipse also drew the lake with blue water and reflections,
+with its existing thick pale fog over the land and no shader errors.
+
+The separate history proof produced (255, 0, 0) in every pixel on the
+same server and renderer, confirming accumulation across frames. An
+expanded GPU teardown fixture passed four create, resize and free cycles.
+The live captures used the dirty recovery worktree based on `64e63506`;
+the capture library hash was `5bd38b2b22c68ae4`. Software runs crashed in
+Godot before a frame and provide no validation of these changes.
+
+Geometry reads are still approximate: scene-copy detection is heuristic,
+other targets arrive a frame late, geometry custom textures are missing,
+and samplers passed through helper functions do not receive the direct
+call's coordinate conversion. Photon was compiled but not rendered again.
+See [the design notes](../design/iris-compat.md#targets-a-geometry-program-reads).

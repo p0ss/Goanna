@@ -141,7 +141,7 @@ the `texture.*` files loaded or skipped, and per pass the uniforms that
 read zero. `GOANNA_SHADERPACK_OPTIONS=NAME=value,NAME=false` overrides a
 pack's option defaults, as an Iris options file would.
 
-None has been run this way yet; see
+Several packs have since run this way; see
 [Shader pack status](shaderpack-status.md).
 
 ## The Shader pack setting
@@ -205,15 +205,35 @@ vignette, against Goanna's own look in the variant without the setting.
 
 ## What it does not prove
 
-- Only the screen space chain is exercised: `composite` and `final`. There
+- The proof pack exercises only the screen space chain: `composite` and
+  `final`. There
   are no `gbuffers_*` programs in the proof pack, so nothing about terrain,
   entity or sky shading under a pack is tested.
-- The proof pack exercises little of the Iris surface. Real packs are
-  checked offline (above) for loading and compiling only; the GPU run of
-  real packs is still to do. See `docs/design/iris-compat.md` for the
-  supported surface.
+- The proof pack exercises little of the Iris surface. Real pack results
+  are recorded separately in the status page; a successful compile alone
+  does not establish visual correctness. See `docs/design/iris-compat.md`
+  for the supported surface.
 - The depth and pulse squares are drawn but not measured. Depth at screen
   centre depends on what the player happens to be looking at, and the pulse
   depends on when the shot lands, so neither gives a stable number.
 - The thresholds are loose on purpose. The test answers "did the chain draw
   at all", not "did it draw the right values".
+
+## History and lifetime regressions
+
+`project/tests/shaderpacks/history` adds 0.1 to a preserved floating point
+buffer each frame and displays it as red. Run it as a render service
+variant with `GOANNA_SHADERPACK` pointing at that directory. After ten
+frames the image should be solid red (255, 0, 0), apart from the client
+interface. Resetting the ping pong side each frame leaves it dark red.
+
+`tests/iris_teardown.tscn`, through `tools/goanna-headless fixture`, checks
+four effect lifetimes, binding the geometry read textures and changing the
+viewport's internal scale during each. Its log must say
+`iris teardown: ok` without rendering errors. It is an offline GPU fixture,
+not a server test.
+
+The history pack was run on 13 October 2026 through the render service,
+RTX 3090, Godot 4.5.1, a local Luanti 5.17.0 server and Mineclonia release
+38561 (a copy of `r1tod1`). All 230400 pixels at 640 by 360 were (255, 0, 0).
+This checks accumulation, not a real pack's temporal antialiasing.

@@ -46,6 +46,35 @@ namespace goanna {
 
 namespace {
 
+// Frees the gbuffers read textures on the render thread, after the
+// Texture2DRDs' own release, which they queue there too. It owns copies of
+// the RIDs and nothing else, so it is safe to run after the effect is gone.
+class FreeReadTextures : public CallableCustom {
+public:
+    explicit FreeReadTextures(std::vector<RID> rids) : m_rids(std::move(rids)) {}
+    uint32_t hash() const override { return (uint32_t)(uintptr_t)this; }
+    String get_as_text() const override { return "GoannaIrisEffect::FreeReadTextures"; }
+    static bool equal(const CallableCustom *a, const CallableCustom *b) { return a == b; }
+    static bool less(const CallableCustom *a, const CallableCustom *b) { return a < b; }
+    CompareEqualFunc get_compare_equal_func() const override { return &equal; }
+    CompareLessFunc get_compare_less_func() const override { return &less; }
+    bool is_valid() const override { return true; }
+    ObjectID get_object() const override { return ObjectID(); }
+    void call(const Variant **, int, Variant &, GDExtensionCallError &err) const override {
+        err.error = GDEXTENSION_CALL_OK;
+        RenderingServer *rs = RenderingServer::get_singleton();
+        RenderingDevice *rd = rs ? rs->get_rendering_device() : nullptr;
+        if (!rd)
+            return;
+        for (const RID &r : m_rids)
+            if (r.is_valid())
+                rd->free_rid(r);
+    }
+
+private:
+    std::vector<RID> m_rids;
+};
+
 // The callback for the centre depth readback. A callable_mp on the effect
 // would leave Godot holding a pointer to it, and checking that callable's
 // validity after the effect is freed reads the freed object (crashes seen
@@ -192,6 +221,8 @@ GoannaIrisEffect::GoannaIrisEffect() {
     m_ubo_data.assign(iris::standardLayout().paddedSize(), 0);
     for (auto &f : m_ct_format)
         f = RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM;
+    for (auto &n : m_ct_format_name)
+        n = "RGBA8";
     for (auto &c : m_ct_clear)
         c = true;
 }
@@ -220,6 +251,10 @@ void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_gbuffers_target", "index", "texture"), &GoannaIrisEffect::set_gbuffers_target);
     ClassDB::bind_method(D_METHOD("set_gbuffers_translucent", "index", "translucent_only"),
             &GoannaIrisEffect::set_gbuffers_translucent);
+    ClassDB::bind_method(D_METHOD("set_gbuffers_reads", "targets", "colour_target"),
+            &GoannaIrisEffect::set_gbuffers_reads);
+    ClassDB::bind_method(D_METHOD("sync_gbuffers_reads"), &GoannaIrisEffect::sync_gbuffers_reads);
+    ClassDB::bind_method(D_METHOD("gbuffers_read_texture", "index"), &GoannaIrisEffect::gbuffers_read_texture);
 }
 
 // ---------------------------------------------------------------------------
@@ -261,12 +296,21 @@ bool GoannaIrisEffect::load_pack(const String &path) {
     if (!m_bridge_colour)
         m_ct_format[0] = RenderingDevice::DATA_FORMAT_R16G16B16A16_SFLOAT;
     for (int i = 0; i < 16; ++i) {
-        auto f = m_pack.consts().find("colortex" + std::to_string(i) + "Format");
-        if (f != m_pack.consts().end())
-            m_ct_format[i] = formatFromIris(f->second, m_ct_format[i]);
-        auto c = m_pack.consts().find("colortex" + std::to_string(i) + "Clear");
-        if (c != m_pack.consts().end())
-            m_ct_clear[i] = c->second != "false";
+        // Either name a target goes by: colortex4Format or gaux1Format.
+        auto targetConst = [&](const char *suffix) -> const std::string * {
+            static const char *legacy[8] = {"gcolor", "gdepth", "gnormal", "composite", "gaux1", "gaux2", "gaux3",
+                    "gaux4"};
+            auto f = m_pack.consts().find("colortex" + std::to_string(i) + suffix);
+            if (f == m_pack.consts().end() && i < 8)
+                f = m_pack.consts().find(std::string(legacy[i]) + suffix);
+            return f != m_pack.consts().end() ? &f->second : nullptr;
+        };
+        if (const std::string *f = targetConst("Format")) {
+            m_ct_format[i] = formatFromIris(*f, m_ct_format[i]);
+            m_ct_format_name[i] = *f;
+        }
+        if (const std::string *c = targetConst("Clear"))
+            m_ct_clear[i] = *c != "false";
         // size.buffer.colortexN = W H: a fraction of the screen when written
         // with a decimal point (Photon's fog and AO at 0.5 0.5), else pixels
         // (its sky map at 192 108). A pass drawing into such a buffer covers
@@ -275,18 +319,7 @@ bool GoannaIrisEffect::load_pack(const String &path) {
         // finds what it wrote there; at screen size it read a quarter of
         // the picture, and Photon drew its fog over the scene at half scale.
         m_ct_size[i] = BufferSize();
-        auto s = m_pack.properties().find("size.buffer.colortex" + std::to_string(i));
-        if (s != m_pack.properties().end()) {
-            std::istringstream in(s->second);
-            std::string w, h;
-            in >> w >> h;
-            float fw = std::strtof(w.c_str(), nullptr), fh = std::strtof(h.c_str(), nullptr);
-            if (!w.empty() && !h.empty() && fw > 0.0f && fh > 0.0f) {
-                m_ct_size[i].relative = w.find('.') != std::string::npos || h.find('.') != std::string::npos;
-                m_ct_size[i].x = fw;
-                m_ct_size[i].y = fh;
-            }
-        }
+        m_pack.bufferSize(i, m_ct_size[i].relative, m_ct_size[i].x, m_ct_size[i].y);
     }
     iris::TranslateOptions opts;
     opts.kind = iris::ProgramKind::Composite;
@@ -387,6 +420,15 @@ Dictionary GoannaIrisEffect::report() const {
     d["passes"] = passes;
     d["gpu_ready"] = m_gpu_ready;
     d["dead"] = m_dead;
+    {
+        // What each geometry program read is served from (set_gbuffers_reads).
+        Dictionary reads;
+        std::lock_guard<std::mutex> lk(m_reads->mutex);
+        for (int i = 0; i < 16; ++i)
+            if (m_reads->want[i])
+                reads[i] = m_reads->scene[i] ? "scene before translucent, this frame" : "after deferred, last frame";
+        d["gbuffers_reads"] = reads;
+    }
     return d;
 }
 
@@ -680,8 +722,20 @@ RID GoannaIrisEffect::colortex(RenderSceneBuffersRD *rb, int index, int side, co
         return rb->get_texture(ctx, name);
     uint32_t usage = RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT |
             RenderingDevice::TEXTURE_USAGE_CAN_COPY_TO_BIT | RenderingDevice::TEXTURE_USAGE_CAN_COPY_FROM_BIT;
-    return rb->create_texture(ctx, name, m_ct_format[index], usage, RenderingDevice::TEXTURE_SAMPLES_1,
+    RID tex = rb->create_texture(ctx, name, m_ct_format[index], usage, RenderingDevice::TEXTURE_SAMPLES_1,
             colortexSize(index, size), 1, 1, true, false);
+    // Clear=false preserves history after the first frame, never undefined
+    // allocation contents. NaNs here poison exposure and temporal filters.
+    RenderingDevice *rd = RenderingServer::get_singleton()->get_rendering_device();
+    TypedArray<RID> targets;
+    targets.push_back(tex);
+    TypedArray<RDFramebufferPass> passes;
+    RID fb = FramebufferCacheRD::get_cache_multipass(targets, passes, 1);
+    PackedColorArray clear;
+    clear.push_back(Color(0, 0, 0, 0));
+    rd->draw_list_begin(fb, RenderingDevice::DRAW_CLEAR_COLOR_ALL, clear);
+    rd->draw_list_end();
+    return tex;
 }
 
 // Whether `name` is a uniform this effect answers outside the standard block:
@@ -1295,6 +1349,7 @@ Ref<GoannaIrisEffect> GoannaIrisEffect::make_depth_capture() const {
     Ref<GoannaIrisEffect> e;
     e.instantiate();
     e->m_capture = true;
+    e->m_reads = m_reads;
     e->set_effect_callback_type(EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT);
     return e;
 }
@@ -1305,8 +1360,10 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             return;
         RenderingDevice *rd = RenderingServer::get_singleton()->get_rendering_device();
         Ref<RenderSceneBuffersRD> rb = p_render_data->get_render_scene_buffers();
-        if (rd && rb.is_valid() && rb->get_view_count() == 1)
+        if (rd && rb.is_valid() && rb->get_view_count() == 1) {
             captureDepth(rd, rb.ptr());
+            captureScene(rd, rb.ptr());
+        }
         return;
     }
     if (p_type != EFFECT_CALLBACK_TYPE_POST_TRANSPARENT || m_dead || m_passes.empty() || !p_render_data)
@@ -1332,6 +1389,7 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     RID depth = rb->get_depth_texture();
     if (!colour.is_valid())
         return;
+    ensureReads(rd, size);
 
     // Depth in OpenGL's convention: depthtex0 now, with everything drawn,
     // and depthtex1 from the capture taken before translucent geometry if
@@ -1359,7 +1417,7 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
 
     // Which side of each colortex is "current". A pass reads current and
     // writes the other, then the ones it wrote flip.
-    std::array<int, 16> side{};
+    std::array<int, 16> side = m_ct_side;
     TypedArray<RDFramebufferPass> nopasses;
 
     // colortex0 starts as the scene colour; the rest start cleared, or as
@@ -1375,8 +1433,8 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     for (int i = 0; i < 16; ++i) {
         if (!m_ct_used[i])
             continue;
-        RID a = colortex(rb.ptr(), i, 0, size);
-        RID b = colortex(rb.ptr(), i, 1, size);
+        RID a = colortex(rb.ptr(), i, side[i], size);
+        RID b = colortex(rb.ptr(), i, 1 - side[i], size);
         if (i > 0 && gb_source[i].is_valid() && rd->texture_is_valid(gb_source[i])) {
             TypedArray<RID> t;
             t.push_back(a);
@@ -1403,7 +1461,15 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
         }
     }
 
+    // What the geometry programs read next frame: the targets as the
+    // deferred passes leave them, which is when Iris draws translucent
+    // geometry.
+    bool snapped = false;
     for (auto &p : m_passes) {
+        if (!snapped && p.stage != "deferred") {
+            snapshotReads(rd, rb.ptr(), side, size);
+            snapped = true;
+        }
         if (!p.shader.is_valid())
             continue;
         // targets
@@ -1477,6 +1543,9 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             blit(rd, finalTarget(rb.ptr(), size), ofb, rd->framebuffer_get_format(ofb), 2);
         }
     }
+    if (!snapped)
+        snapshotReads(rd, rb.ptr(), side, size);
+    m_ct_side = side;
 }
 
 RID GoannaIrisEffect::finalTarget(RenderSceneBuffersRD *rb, const Vector2i &size) {
@@ -1522,7 +1591,184 @@ bool GoannaIrisEffect::has_final() const {
     return false;
 }
 
+// ---------------------------------------------------------------------------
+// Gbuffers reads: the targets a geometry program samples
+
+void GoannaIrisEffect::set_gbuffers_reads(const PackedInt32Array &targets, int colour_target) {
+    // Targets a deferred pass writes in the same pass as the colour: the
+    // scene images (a copy of the lit scene for refraction and
+    // reflections), when they have the channels for a picture.
+    std::array<bool, 16> beside_colour{};
+    for (auto &p : m_passes) {
+        if (p.stage != "deferred")
+            continue;
+        std::vector<int> db = p.tr.drawbuffers;
+        if (db.empty())
+            db.push_back(0);
+        if (std::find(db.begin(), db.end(), colour_target) == db.end() && std::find(db.begin(), db.end(), 0) == db.end())
+            continue;
+        for (int i : db)
+            if (i >= 0 && i < 16)
+                beside_colour[i] = true;
+    }
+    std::array<bool, 16> want{}, scene{};
+    for (int64_t k = 0; k < targets.size(); ++k) {
+        const int i = targets[k];
+        if (i < 0 || i >= 16)
+            continue;
+        want[i] = true;
+        const std::string &f = m_ct_format_name[i];
+        const bool picture = f.rfind("RGB", 0) == 0 || f.rfind("R11F_G11F_B10F", 0) == 0;
+        scene[i] = i != 0 && i != colour_target && beside_colour[i] && picture && m_ct_size[i].relative;
+        if (m_read_tex[i].is_null())
+            m_read_tex[i].instantiate();
+    }
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    m_reads->want = want;
+    m_reads->scene = scene;
+    m_reads->bridge = m_bridge_colour;
+}
+
+bool GoannaIrisEffect::sync_gbuffers_reads() {
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    const uint32_t g = m_reads->generation.load(std::memory_order_acquire);
+    if (g == 0 || g == m_read_seen)
+        return m_read_bound;
+    for (int i = 0; i < 16; ++i)
+        if (m_read_tex[i].is_valid() && m_reads->tex[i].is_valid())
+            m_read_tex[i]->set_texture_rd_rid(m_reads->tex[i]);
+    // Texture2DRD queues its replacement on the render thread. Release the
+    // old textures after those replacements, never while a global uses one.
+    if (!m_reads->retired.empty()) {
+        RenderingServer::get_singleton()->call_on_render_thread(
+                Callable(memnew(FreeReadTextures(std::move(m_reads->retired)))));
+        m_reads->retired.clear();
+    }
+    m_read_seen = g;
+    m_read_bound = true;
+    for (int i = 0; i < 16; ++i)
+        if (m_reads->want[i] && !m_reads->tex[i].is_valid())
+            m_read_bound = false;
+    return m_read_bound;
+}
+
+Ref<Texture2DRD> GoannaIrisEffect::gbuffers_read_texture(int index) const {
+    if (index < 0 || index >= 16)
+        return Ref<Texture2DRD>();
+    return m_read_tex[index];
+}
+
+bool GoannaIrisEffect::gbuffers_read_is_scene(int index) const {
+    if (index < 0 || index >= 16)
+        return false;
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    return m_reads->scene[index];
+}
+
+// Render thread. Keep replaced textures alive until the main thread has
+// queued the Texture2DRD updates, then free them after those updates.
+void GoannaIrisEffect::ensureReads(RenderingDevice *rd, const Vector2i &screen) {
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    const auto &want = m_reads->want;
+    const auto &scene = m_reads->scene;
+    bool made = false;
+    for (int i = 0; i < 16; ++i) {
+        if (!want[i])
+            continue;
+        const Vector2i size = scene[i] ? screen : colortexSize(i, screen);
+        if (m_reads->tex[i].is_valid() && m_reads->size[i] == size)
+            continue;
+        Ref<RDTextureFormat> tf;
+        tf.instantiate();
+        tf->set_width(size.x);
+        tf->set_height(size.y);
+        // Texture2DRD accepts Godot Image formats only. A pack's RGB16 or
+        // RG16 target can be a valid RD texture but cannot be registered
+        // as a spatial sampler. RGBA32F also preserves 16 bit UNORM data.
+        tf->set_format(scene[i] ? RenderingDevice::DATA_FORMAT_R16G16B16A16_SFLOAT
+                               : RenderingDevice::DATA_FORMAT_R32G32B32A32_SFLOAT);
+        tf->set_usage_bits(RenderingDevice::TEXTURE_USAGE_SAMPLING_BIT |
+                RenderingDevice::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT | RenderingDevice::TEXTURE_USAGE_CAN_COPY_TO_BIT);
+        Ref<RDTextureView> tv;
+        tv.instantiate();
+        RID t = rd->texture_create(tf, tv);
+        if (!t.is_valid())
+            continue;
+        TypedArray<RID> targets;
+        targets.push_back(t);
+        TypedArray<RDFramebufferPass> passes;
+        RID fb = FramebufferCacheRD::get_cache_multipass(targets, passes, 1);
+        PackedColorArray clear;
+        clear.push_back(Color(0, 0, 0, 0));
+        rd->draw_list_begin(fb, RenderingDevice::DRAW_CLEAR_COLOR_ALL, clear);
+        rd->draw_list_end();
+        if (m_reads->tex[i].is_valid())
+            m_reads->retired.push_back(m_reads->tex[i]);
+        m_reads->tex[i] = t;
+        m_reads->size[i] = size;
+        made = true;
+    }
+    if (made)
+        m_reads->generation.fetch_add(1, std::memory_order_release);
+}
+
+// Render thread, in the chain after its deferred passes: every read that is
+// not a scene image, for the geometry programs of the next frame.
+void GoannaIrisEffect::snapshotReads(RenderingDevice *rd, RenderSceneBuffersRD *rb, const std::array<int, 16> &side,
+        const Vector2i &size) {
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    const auto &want = m_reads->want;
+    const auto &scene = m_reads->scene;
+    TypedArray<RDFramebufferPass> nopasses;
+    for (int i = 0; i < 16; ++i) {
+        if (!want[i] || scene[i] || !m_ct_used[i] || !m_reads->tex[i].is_valid())
+            continue;
+        TypedArray<RID> t;
+        t.push_back(m_reads->tex[i]);
+        RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
+        blit(rd, colortex(rb, i, side[i], size), fb, rd->framebuffer_get_format(fb), 0);
+    }
+}
+
+// Render thread, in the depth capture companion at PRE_TRANSPARENT: the
+// opaque scene for every scene image, encoded as colortex0 is.
+void GoannaIrisEffect::captureScene(RenderingDevice *rd, RenderSceneBuffersRD *rb) {
+    std::lock_guard<std::mutex> lk(m_reads->mutex);
+    const auto &scene = m_reads->scene;
+    const bool bridge = m_reads->bridge;
+    RID colour = rb->get_color_texture();
+    if (!colour.is_valid() || !ensureBlit(rd))
+        return;
+    TypedArray<RDFramebufferPass> nopasses;
+    for (int i = 0; i < 16; ++i) {
+        if (!scene[i] || !m_reads->tex[i].is_valid())
+            continue;
+        TypedArray<RID> t;
+        t.push_back(m_reads->tex[i]);
+        RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
+        blit(rd, colour, fb, rd->framebuffer_get_format(fb), bridge ? 1 : 0);
+    }
+}
+
 void GoannaIrisEffect::freeGpu() {
+    if (!m_capture) {
+        // The read textures belong to this effect, not the companion.
+        std::lock_guard<std::mutex> lk(m_reads->mutex);
+        std::vector<RID> rids = std::move(m_reads->retired);
+        m_reads->retired.clear();
+        for (int i = 0; i < 16; ++i) {
+            if (!m_reads->tex[i].is_valid())
+                continue;
+            if (m_read_tex[i].is_valid())
+                m_read_tex[i]->set_texture_rd_rid(RID());
+            rids.push_back(m_reads->tex[i]);
+            m_reads->tex[i] = RID();
+        }
+        m_read_bound = false;
+        RenderingServer *rs = RenderingServer::get_singleton();
+        if (rs && !rids.empty())
+            rs->call_on_render_thread(Callable(memnew(FreeReadTextures(std::move(rids)))));
+    }
     RenderingServer *rs = RenderingServer::get_singleton();
     RenderingDevice *rd = rs ? rs->get_rendering_device() : nullptr;
     if (!rd)

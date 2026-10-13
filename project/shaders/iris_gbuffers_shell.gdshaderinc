@@ -82,6 +82,25 @@ vec4 goanna_frag_coord(vec4 fragcoord, vec2 viewport, vec3 view, mat4 projection
 	return vec4(fragcoord.x, viewport.y - fragcoord.y, z, 1.0 / clip.w);
 }
 
+// Textures of the screen (the opaque depth under translucent geometry, the
+// chain's targets) are stored top row first, as Godot's screen coordinates
+// run, while a pack's coordinates for them run bottom up from
+// gl_FragCoord above. These turn a pack's coordinate into the texture's.
+vec2 goanna_screen_uv(vec2 gl_uv) {
+	return vec2(gl_uv.x, 1.0 - gl_uv.y);
+}
+
+ivec2 goanna_screen_texel(ivec2 gl_texel, ivec2 size) {
+	return ivec2(gl_texel.x, size.y - 1 - gl_texel.y);
+}
+
+// Godot 4.5 stores depth reversed, 1 at the near plane and 0 at the far,
+// with the same projection the pack's gbufferProjection is, so OpenGL's
+// window depth is one less it: 1.0 where nothing opaque was drawn.
+vec4 goanna_gl_depth(vec4 d) {
+	return vec4(vec3(1.0 - d.r), 1.0);
+}
+
 // at_midBlock: from the vertex to the centre of its node, in sixty
 // fourths of a node. A node's centre is at integer coordinates and its
 // faces half a node out, so half a node back along the normal is inside it.

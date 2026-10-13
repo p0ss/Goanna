@@ -20,6 +20,7 @@
 // Main type: GoannaIrisGbuffers.
 #pragma once
 
+#include "iris/goanna_iris_effect.h"
 #include "iris/iris_gbuffers.h"
 #include "iris/goanna_iris_shadow.h"
 #include "iris/iris_pack.h"
@@ -80,6 +81,16 @@ public:
     // keeps such a target only where translucent geometry is in front
     // (GoannaIrisEffect::set_gbuffers_translucent).
     godot::PackedInt32Array translucent_targets() const;
+    // Every colortex some translated program samples
+    // (iris::GbuffersResult::reads), ascending, and the target the terrain
+    // program's colour goes to.
+    godot::PackedInt32Array read_targets() const;
+    int colour_target() const { return m_colour_target; }
+    // Main thread, once, after both halves of the pack have loaded: hands
+    // the chain the targets the programs read (GoannaIrisEffect::
+    // set_gbuffers_reads) and keeps it, so update() can point the
+    // iris_colortex<N> globals at its copies. Until then they read black.
+    void link_chain(const godot::Ref<GoannaIrisEffect> &chain);
     // Writes each translated shader to a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
 
@@ -124,6 +135,10 @@ private:
     std::vector<std::string> m_warnings[SURFACE_COUNT];
     std::vector<int> m_dropped[SURFACE_COUNT];
     std::vector<int> m_second[SURFACE_COUNT];
+    std::vector<int> m_reads[SURFACE_COUNT];
+    int m_colour_target = 0;
+    godot::Ref<GoannaIrisEffect> m_chain;
+    bool m_chain_bound = false;
     std::string m_error[SURFACE_COUNT];
     bool m_moves[SURFACE_COUNT] = {false, false, false, false};
     std::string m_load_error, m_dump_dir;

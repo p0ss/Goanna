@@ -74,6 +74,11 @@ struct GbuffersOptions {
     // whatever translucent surface Godot sorts after the water, so without
     // a reader Goanna's own order is kept.
     bool translucent_depth = false;
+    // colortex targets sized in pixels (size.buffer with whole numbers):
+    // data maps, not pictures of the screen, read with the pack's own
+    // coordinates. Every other colortex a program samples is read as a
+    // screen texture, its rows flipped (goanna_screen_uv in the shell).
+    std::set<int> data_targets;
     // A label for the header comment, usually pack/program.
     std::string label;
     // The pack's custom uniforms (uniform.* in shaders.properties), by name.
@@ -96,6 +101,14 @@ struct GbuffersResult {
     // 15, and whichever the colour is when it is not colortex0), ascending
     std::vector<int> second;
     std::vector<int> dropped;   // colortex targets written that cannot be expressed
+    // colortex targets the program samples, ascending: each is read through
+    // the global iris_colortex<N>, which GoannaIrisGbuffers points at the
+    // screen space chain's copy of that target (GoannaIrisEffect,
+    // "gbuffers reads").
+    std::vector<int> reads;
+    // The colortex the colour output goes to (0 unless DRAWBUFFERS sends it
+    // elsewhere, as MakeUp's colortex1).
+    int colour_target = 0;
     // Godot global shader parameters the code reads, each with its Godot
     // type name (float, vec3, mat4, sampler2D ...). They must exist before
     // the shader is compiled.

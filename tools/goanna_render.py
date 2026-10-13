@@ -824,8 +824,8 @@ class Client:
         return {k: v.get("value") for k, v in got.items() if isinstance(v, dict)}
 
     def shader_errors(self):
-        """Shader compile errors in the client log so far. Godot compiles a
-        material's shader when it is first drawn, so a pass that fails shows
+        """Shader compile and texture binding errors in the client log so far.
+        Godot compiles a material's shader when it is first drawn, so a pass that fails shows
         here only after a frame with it in view; a frame with a failed pass
         draws the fallback and can look plausible."""
         try:
@@ -837,7 +837,10 @@ class Client:
         for i, line in enumerate(lines):
             low = line.lower()
             if "shader error" in low or "shader compilation failed" in low or \
-                    ("error" in low and ".gdshader" in low):
+                    ("error" in low and ".gdshader" in low) or \
+                    ("error:" in low and any(message in low for message in (
+                        "unsupported image format", "uninitialized rid",
+                        "imfmt.image_format == image::format_max"))):
                 out.append(" | ".join(x.strip() for x in lines[i:i + 3])[:400])
         return out
 

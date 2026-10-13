@@ -95,6 +95,9 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("update", "camera", "state"), &GoannaIrisGbuffers::update);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisGbuffers::report);
     ClassDB::bind_method(D_METHOD("second_targets"), &GoannaIrisGbuffers::second_targets);
+    ClassDB::bind_method(D_METHOD("read_targets"), &GoannaIrisGbuffers::read_targets);
+    ClassDB::bind_method(D_METHOD("colour_target"), &GoannaIrisGbuffers::colour_target);
+    ClassDB::bind_method(D_METHOD("link_chain", "chain"), &GoannaIrisGbuffers::link_chain);
     ClassDB::bind_method(D_METHOD("translucent_targets"), &GoannaIrisGbuffers::translucent_targets);
     ClassDB::bind_method(D_METHOD("set_dump_dir", "dir"), &GoannaIrisGbuffers::set_dump_dir);
     ClassDB::bind_method(D_METHOD("has_shadow"), &GoannaIrisGbuffers::has_shadow);
@@ -193,6 +196,13 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         o.old_lighting = old_lighting;
         // Only a pack with a screen space chain reads the water's depth.
         o.translucent_depth = !m_pack.compositeChain().empty();
+        // Targets sized in pixels are data maps, read unflipped.
+        for (int i = 0; i < 16; ++i) {
+            bool relative = true;
+            float bx = 0.0f, by = 0.0f;
+            if (m_pack.bufferSize(i, relative, bx, by) && !relative)
+                o.data_targets.insert(i);
+        }
         o.label = m_pack.name() + "/" + chosen;
         iris::GbuffersResult r;
         std::string terr;
@@ -206,6 +216,9 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         m_warnings[s].insert(m_warnings[s].end(), r.warnings.begin(), r.warnings.end());
         m_dropped[s] = r.dropped;
         m_second[s] = r.second;
+        m_reads[s] = r.reads;
+        if (s == SURFACE_TERRAIN)
+            m_colour_target = r.colour_target;
         m_moves[s] = r.moves_vertices;
         // The globals must exist before Godot parses the shader.
         for (auto &g : r.globals) registerGlobal(g.first, g.second);
@@ -351,6 +364,10 @@ void GoannaIrisGbuffers::makeTextures() {
     setGlobal("iris_shadowtex0", m_white);
     setGlobal("iris_shadowtex1", m_white);
     setGlobal("iris_shadowcolor0", m_white);
+    // The chain's targets until link_chain gives their copies.
+    for (auto &g : m_globals)
+        if (g.first.compare(0, 13, "iris_colortex") == 0)
+            setGlobal(g.first.c_str(), m_black);
 }
 
 // The lightmap a pack multiplies lmcoord through, Minecraft's 16 by 16
@@ -386,6 +403,13 @@ void GoannaIrisGbuffers::updateLightmap(float daylight, const Color &sky) {
 
 void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     if (!camera || !has_terrain()) return;
+    // The chain's copies of the targets the programs read, once its
+    // render thread has made them.
+    if (m_chain.is_valid() && m_chain->sync_gbuffers_reads() && !m_chain_bound) {
+        for (int ct : read_targets())
+            setGlobal(("iris_colortex" + std::to_string(ct)).c_str(), m_chain->gbuffers_read_texture(ct));
+        m_chain_bound = true;
+    }
     const uint64_t now = Time::get_singleton()->get_ticks_usec();
     const float dt = m_last_us ? (now - m_last_us) / 1e6f : 0.0f;
     m_last_us = now;
@@ -599,6 +623,23 @@ bool GoannaIrisGbuffers::lookupBuiltin(const std::string &name, iris::Value &out
     }
 }
 
+PackedInt32Array GoannaIrisGbuffers::read_targets() const {
+    std::set<int> all;
+    for (int s = 0; s < SURFACE_COUNT; ++s)
+        if (m_shaders[s].is_valid())
+            all.insert(m_reads[s].begin(), m_reads[s].end());
+    PackedInt32Array out;
+    for (int ct : all) out.push_back(ct);
+    return out;
+}
+
+void GoannaIrisGbuffers::link_chain(const Ref<GoannaIrisEffect> &chain) {
+    m_chain = chain;
+    m_chain_bound = false;
+    if (chain.is_valid())
+        chain->set_gbuffers_reads(read_targets(), m_colour_target);
+}
+
 PackedInt32Array GoannaIrisGbuffers::second_targets() const {
     std::set<int> all;
     for (int s = 0; s < SURFACE_COUNT; ++s)
@@ -642,6 +683,9 @@ Dictionary GoannaIrisGbuffers::report() const {
         PackedInt32Array so;
         for (int x : m_second[s]) so.push_back(x);
         e["second_colortex"] = so;
+        PackedInt32Array rd;
+        for (int x : m_reads[s]) rd.push_back(x);
+        e["read_colortex"] = rd;
         e["moves_vertices"] = m_moves[s];
         d[names[s]] = e;
     }

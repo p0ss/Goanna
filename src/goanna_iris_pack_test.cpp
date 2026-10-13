@@ -211,6 +211,12 @@ void testPackOptions() {
     writeFile(sh / "composite2.fsh", "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }\n");
     writeFile(sh / "final.fsh", "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }\n");
     writeFile(sh / "shaders.properties",
+            "size.buffer.colortex2=0.5 0.25\n"
+            "size.buffer.colortex3=192 108\n"
+            "size.buffer.colortex4=nan 2\n"
+            "size.buffer.colortex5=1oops 2\n"
+            "size.buffer.colortex6=1e40 2\n"
+            "size.buffer.colortex7=2 2 extra\n"
             "program.composite1.enabled=BLOOM\n"
             "program.composite2.enabled=GODRAYS && SHADOW_QUALITY > 1\n"
             "#if SHADOW_QUALITY == 2\n"
@@ -226,6 +232,14 @@ void testPackOptions() {
         Pack p;
         std::string err;
         check(p.load(root.string(), err), "temporary pack loads");
+        bool relative = false;
+        float x = 0, y = 0;
+        check(p.bufferSize(2, relative, x, y) && relative && x == 0.5f && y == 0.25f,
+                "relative buffer dimensions");
+        check(p.bufferSize(3, relative, x, y) && !relative && x == 192 && y == 108,
+                "absolute buffer dimensions");
+        for (int i : {0, 4, 5, 6, 7})
+            check(!p.bufferSize(i, relative, x, y), "absent or malformed dimensions rejected");
         check(p.options().count("BLOOM") && p.options().at("BLOOM").empty(), "boolean option on");
         check(p.optionsOff().count("GODRAYS") && !p.options().count("GODRAYS"), "commented boolean is off");
         check(p.options().count("SHADOW_QUALITY") && p.options().at("SHADOW_QUALITY") == "2", "value option default");

@@ -7,6 +7,9 @@
 #include "iris_pack.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -349,6 +352,26 @@ std::vector<std::string> Pack::disabledPrograms() const {
     for (auto &n : chainNames(*this))
         if (!programEnabled(n)) off.push_back(n);
     return off;
+}
+
+bool Pack::bufferSize(int index, bool &relative, float &x, float &y) const {
+    auto s = m_props.find("size.buffer.colortex" + std::to_string(index));
+    if (s == m_props.end())
+        return false;
+    std::istringstream in(s->second);
+    std::string w, h;
+    std::string extra;
+    in >> w >> h;
+    char *we = nullptr, *he = nullptr;
+    const float fw = std::strtof(w.c_str(), &we), fh = std::strtof(h.c_str(), &he);
+    if (w.empty() || h.empty() || *we || *he || (in >> extra) ||
+            !std::isfinite(fw) || !std::isfinite(fh) || !(fw > 0.0f) || !(fh > 0.0f) ||
+            fw >= (float)std::numeric_limits<int>::max() || fh >= (float)std::numeric_limits<int>::max())
+        return false;
+    relative = w.find('.') != std::string::npos || h.find('.') != std::string::npos;
+    x = fw;
+    y = fh;
+    return true;
 }
 
 } // namespace iris

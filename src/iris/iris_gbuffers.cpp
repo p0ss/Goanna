@@ -240,7 +240,11 @@ const GlobalDef *findShadowFixed(const std::string &pack) {
 }
 
 // What a pack sampler is bound to.
-enum class SamplerRole { Atlas, Normals, Specular, Lightmap, Noise, White, Black, ShadowDepth0, ShadowDepth1, ShadowColour0 };
+enum class SamplerRole {
+    Atlas, Normals, Specular, Lightmap, Noise, White, Black, ShadowDepth0, ShadowDepth1, ShadowColour0,
+    SceneDepth, // the opaque depth under translucent geometry (Godot's hint_depth_texture)
+    ChainTarget, // a colortex the screen space chain wrote (iris_colortex<N>)
+};
 
 bool samplerRole(const std::string &name, SamplerRole &role) {
     if (name == "texture" || name == "tex" || name == "gtexture") role = SamplerRole::Atlas;
@@ -261,6 +265,15 @@ bool samplerRole(const std::string &name, SamplerRole &role) {
     else
         role = SamplerRole::Black;
     return true;
+}
+
+// The colortex a sampler name means (colortex4, gaux1 ...), or -1.
+int chainTargetIndex(const std::string &sampler) {
+    const std::string c = canonicalSampler(sampler);
+    if (c.compare(0, 8, "colortex") != 0)
+        return -1;
+    const int i = std::atoi(c.c_str() + 8);
+    return i >= 0 && i < 16 ? i : -1;
 }
 
 const std::set<std::string> &genericFloatFunctions() {
@@ -367,6 +380,7 @@ private:
         return t.n == 4 ? n : "vec4(" + n + pad[t.n] + ")";
     }
     std::set<int> m_out_written;
+    std::set<int> m_reads; // colortex targets sampled (GbuffersResult::reads)
     // Varyings carried in packed slots (packVaryings), per stage, by pack
     // name. A struct varying lists its fields.
     struct Carried {
@@ -437,7 +451,8 @@ private:
             m_global_types[name] = type;
             std::string hint;
             if (type == "sampler2D")
-                hint = name == "iris_lightmap" ? " : filter_linear, repeat_disable"
+                hint = name == "iris_lightmap" || name.compare(0, 13, "iris_colortex") == 0
+                        ? " : filter_linear, repeat_disable"
                         : name.compare(0, 11, "iris_shadow") == 0 ? " : filter_nearest, repeat_disable"
                                                                   : " : filter_linear_mipmap, repeat_enable";
             addDecl("global uniform " + type + " " + name + hint + ";");
@@ -788,7 +803,20 @@ Val Translator::ident(const Expr &e) {
             case SamplerRole::Lightmap: tex = needGlobal("iris_lightmap", "sampler2D"); break;
             case SamplerRole::Noise: tex = needGlobal("iris_noisetex", "sampler2D"); break;
             case SamplerRole::White: tex = needGlobal("iris_tex_white", "sampler2D"); break;
-            case SamplerRole::Black: tex = needGlobal("iris_tex_black", "sampler2D"); break;
+            case SamplerRole::Black: {
+                const int ct = m_o.shadow_pass ? -1 : chainTargetIndex(n);
+                if (ct >= 0) {
+                    // The helper samples it with the pack's coordinates, so
+                    // a screen texture's rows are not flipped there.
+                    if (!m_o.data_targets.count(ct))
+                        warn("sampler '" + n + "' passed to a function is read upside down");
+                    tex = needGlobal("iris_colortex" + std::to_string(ct), "sampler2D");
+                    m_reads.insert(ct);
+                } else {
+                    tex = needGlobal("iris_tex_black", "sampler2D");
+                }
+                break;
+            }
             default:
                 warn("the atlas passed to a function is read as black");
                 tex = needGlobal("iris_tex_black", "sampler2D");
@@ -894,6 +922,19 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         const Expr &e) {
     SamplerRole role;
     samplerRole(sampler, role);
+    // Translucent geometry reads the depth of everything opaque, which is
+    // what Iris's depthtex1 holds while it draws. Godot gives a transparent
+    // material exactly that through hint_depth_texture, so depthtex0 to 2
+    // all read it there (Iris's depthtex0 is the buffer being drawn into).
+    if (role == SamplerRole::White && m_o.surface == GbuffersSurface::Translucent && !m_o.shadow_pass &&
+            (sampler.compare(0, 8, "depthtex") == 0 || sampler == "gdepthtex"))
+        role = SamplerRole::SceneDepth;
+    // A colortex (gaux1 and the other legacy names included): what the
+    // chain left in it, as Iris lets a geometry program read the targets
+    // earlier passes wrote.
+    const int chain_target = role == SamplerRole::Black && !m_o.shadow_pass ? chainTargetIndex(sampler) : -1;
+    if (chain_target >= 0)
+        role = SamplerRole::ChainTarget;
     const bool array = m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout;
     auto coord = [&](const Val &uv) {
         if (!array) return uv.code;
@@ -902,7 +943,20 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
     };
     std::string tex;
     bool layered = false;
+    // A texture of the screen (see plain() below), and whether its value is
+    // Godot's reversed depth, read as OpenGL's.
+    bool screen = false, gl_depth = false;
     switch (role) {
+    case SamplerRole::SceneDepth:
+        addDecl("uniform sampler2D goanna_scene_depth : hint_depth_texture, filter_nearest, repeat_disable;");
+        tex = "goanna_scene_depth";
+        screen = gl_depth = true;
+        break;
+    case SamplerRole::ChainTarget:
+        tex = needGlobal("iris_colortex" + std::to_string(chain_target), "sampler2D");
+        screen = !m_o.data_targets.count(chain_target);
+        m_reads.insert(chain_target);
+        break;
     case SamplerRole::Atlas:
         tex = array ? "albedo_array" : "albedo_tex";
         layered = array;
@@ -971,22 +1025,35 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         if (base == l.first) base = l.second;
     Ty v4 = Ty::vec(Ty::Float, 4);
     auto fl = [&](size_t i) { return conv(args[i], Ty::scalar(Ty::Float)).code; };
+    // A screen texture's rows run top down, as Godot's screen coordinates
+    // do, and the pack's coordinates bottom up, as gl_FragCoord's do in the
+    // shell; scene depth is also reversed. plain() turns a pack coordinate
+    // into the texture's, done() a sample into what the pack expects.
+    auto plain = [&](const Val &uv) {
+        return screen ? "goanna_screen_uv((" + uv.code + ").xy)" : uv.code;
+    };
+    auto done = [&](const std::string &code) -> Val {
+        return {gl_depth ? "goanna_gl_depth(" + code + ")" : code, v4, false};
+    };
     if (base == "texture" && args.size() >= 2) {
-        std::string c = layered ? coord(args[1]) : args[1].code;
-        return {"texture(" + tex + ", " + c + (args.size() > 2 ? ", " + fl(2) : "") + ")", v4, false};
+        std::string c = layered ? coord(args[1]) : plain(args[1]);
+        return done("texture(" + tex + ", " + c + (args.size() > 2 ? ", " + fl(2) : "") + ")");
     }
     if (base == "textureLod" && args.size() >= 3) {
-        std::string c = layered ? coord(args[1]) : args[1].code;
-        return {"textureLod(" + tex + ", " + c + ", " + fl(2) + ")", v4, false};
+        std::string c = layered ? coord(args[1]) : plain(args[1]);
+        return done("textureLod(" + tex + ", " + c + ", " + fl(2) + ")");
     }
     if (base == "textureGrad" && args.size() >= 4) {
-        std::string c = layered ? coord(args[1]) : args[1].code;
-        return {"textureGrad(" + tex + ", " + c + ", " + args[2].code + ", " + args[3].code + ")", v4, false};
+        std::string c = layered ? coord(args[1]) : plain(args[1]);
+        return done("textureGrad(" + tex + ", " + c + ", " +
+                (screen ? "(" + args[2].code + ") * vec2(1.0, -1.0)" : args[2].code) + ", " +
+                (screen ? "(" + args[3].code + ") * vec2(1.0, -1.0)" : args[3].code) + ")");
     }
     if (base == "textureProj" && args.size() >= 2) {
-        if (layered) {
-            Val uv = {"(" + args[1].code + ").xy / (" + args[1].code + ").w", Ty::vec(Ty::Float, 2), false};
-            return {"texture(" + tex + ", " + coord(uv) + ")", v4, false};
+        if (layered || screen) {
+            const char *q = args[1].t.n == 3 ? ".z" : ".w";
+            Val uv = {"(" + args[1].code + ").xy / (" + args[1].code + ")" + q, Ty::vec(Ty::Float, 2), false};
+            return done("texture(" + tex + ", " + (layered ? coord(uv) : plain(uv)) + ")");
         }
         return {"textureProj(" + tex + ", " + args[1].code + ")", v4, false};
     }
@@ -1000,15 +1067,24 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
             return {"texelFetch(" + tex + ", ivec3(" + args[1].code + ", goanna_layer), " + args[2].code + ")", v4,
                     false};
         }
+        if (screen)
+            return done("texelFetch(" + tex + ", goanna_screen_texel(ivec2(" + args[1].code + "), textureSize(" +
+                    tex + ", " + args[2].code + ")), " + args[2].code + ")");
         return {"texelFetch(" + tex + ", " + args[1].code + ", " + args[2].code + ")", v4, false};
     }
     if (base == "textureGather" || base == "textureOffset" || base == "textureLodOffset" ||
             base == "texelFetchOffset") {
         warn(base + " is read without its offset");
-        std::string c = layered ? coord(args[1]) : args[1].code;
+        if (base == "texelFetchOffset" && !layered) {
+            std::string p = screen ? "goanna_screen_texel(ivec2(" + args[1].code + "), textureSize(" +
+                                           tex + ", " + args[2].code + "))"
+                                   : args[1].code;
+            return done("texelFetch(" + tex + ", " + p + ", " + args[2].code + ")");
+        }
+        std::string c = layered ? coord(args[1]) : plain(args[1]);
         if (base == "textureLodOffset")
-            return {"textureLod(" + tex + ", " + c + ", " + fl(2) + ")", v4, false};
-        return {"texture(" + tex + ", " + c + ")", v4, false};
+            return done("textureLod(" + tex + ", " + c + ", " + fl(2) + ")");
+        return done("texture(" + tex + ", " + c + ")");
     }
     warn("texture function " + fn + " on '" + sampler + "' not translated");
     return {"vec4(0.0)", v4, false};
@@ -2475,6 +2551,8 @@ bool Translator::run(const Program &p, std::string &err) {
         warn("no output goes to colortex0; output " + std::to_string(colour) + " (colortex" +
                 std::to_string(colour < (int)db.size() ? db[colour] : colour) + ") is drawn as the colour");
     }
+    if (colour >= 0)
+        m_r.colour_target = colour < (int)db.size() ? db[colour] : colour;
     // Every other target written is a second output: a camera drawing that
     // colortex for the chain (kGbuffersPassShift) gets it in place of the
     // colour, which is how a pack's normals, masks and lightmap reach its
@@ -2491,6 +2569,7 @@ bool Translator::run(const Program &p, std::string &err) {
     }
     for (auto &kv : second)
         m_r.second.push_back(kv.first);
+    m_r.reads.assign(m_reads.begin(), m_reads.end());
     if (!m_r.dropped.empty()) {
         std::string list;
         for (int ct : m_r.dropped) list += (list.empty() ? "" : ", ") + std::string("colortex") + std::to_string(ct);

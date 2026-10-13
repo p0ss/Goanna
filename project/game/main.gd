@@ -850,6 +850,9 @@ func _ready() -> void:
 			shaderpack_failed_chain = iris.report()
 			iris = null
 	_setup_iris_shadow()
+	# The chain's targets the geometry programs sample (gaux1 and the rest).
+	if iris and iris_gbuffers:
+		iris_gbuffers.link_chain(iris)
 	# A pack with terrain but no screen space chain (Base-Shader) still owns
 	# the colour of the world.
 	if iris_gbuffers and iris_gbuffers.has_terrain():

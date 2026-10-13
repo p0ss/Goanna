@@ -907,6 +907,52 @@ Not observed: any displaced vertex (Eclipse's waves, Mellow's waving
 leaves) on the GPU; any pack at night, in rain or under water; the shadow
 map at night; performance, the shadow pass's included.
 
+### Additional camera and world inputs
+
+Both the screen space chain and geometry programs receive the integer and
+fractional camera position, their previous frame values, camera movement
+per frame (`velocity`) and the server's cloud height. Geometry custom
+uniforms can override a standard uniform, as they can in the chain.
+The added player flags and end-flash uniforms currently have false or zero
+fallbacks; `firstPersonCamera` is true. These declarations do not establish
+support for every Minecraft player state or dimension effect.
+
+### Targets a geometry program reads
+
+Geometry programs can sample `colortex0` to `colortex15`, including the
+legacy `gaux` names. The translator records the targets it reads and
+registers texture globals. Translucent programs also read the opaque scene
+through Godot's depth texture, with reversed depth converted to OpenGL
+window depth. Screen coordinates and gradients are flipped; targets with
+absolute `size.buffer` dimensions retain their data map coordinates.
+
+This is an approximation of Iris's ordering, not full deferred rendering:
+
+- A target written beside the main colour by a deferred pass, with at
+  least three colour channels and relative dimensions, is treated as a
+  scene copy. It receives the current opaque scene before translucent
+  geometry, without the pack's deferred shading.
+- Other targets receive a copy after the deferred chain, available to
+  geometry on the next frame. Missing sky programs still leave their
+  targets empty. `texture.gbuffers` custom images are not loaded here.
+- A sampler passed through a helper function does not receive the direct
+  call's coordinate conversion; the translator reports this limitation.
+  Offset and gather operations still have the existing approximations.
+
+`report().gbuffers_reads` names the source used for each target. Copies use
+formats Godot can bind through `Texture2DRD`: RGBA16F for scene colour,
+RGBA32F for data. This avoids losing further bits in the copy, but cannot
+recover data already lost in the half float second output viewports.
+On resize the render thread creates replacement textures; the main thread
+queues their binding before old textures are released on the render
+thread. `iris_teardown.tscn` exercises resizing and disposal.
+
+The chain honours legacy format and clear declarations as well as modern
+names. New targets are initialised to zero even when `Clear=false`, and
+the last written ping pong side is retained across frames. The small
+`tests/shaderpacks/history` pack checks accumulation independently of a
+real pack's exposure or temporal filter.
+
 ### What is left
 
 - **The second outputs' cost and precision.** Built (see "Second
@@ -922,14 +968,14 @@ map at night; performance, the shadow pass's included.
   shown, not traced. Its sky light comes from a compute pass
   (`deferred4_a`, `SH_SKYLIGHT`) Goanna does not run, so that ambient term
   reads zero; its material data loses the low byte of each 16 bit channel
-  in the half float second outputs; its TAA history and `flip` directive
-  are run as Goanna's ping pong has them. Not compared with Iris.
-- **Colortex reads in geometry programs.** A `gbuffers_*` program that
-  samples a colortex reads black: MakeUp's terrain fog (`gaux4`, written
-  by its sky program) and its water's refraction (`gaux1`, the opaque
-  scene its `deferred` copies before translucent geometry) both need it,
-  and its frames are dark and its water black for it. It needs the sky
-  programs and a copy of the opaque scene before the water is drawn.
+  in the half float second outputs. History now retains the last written
+  ping pong side, but explicit `flip` directives remain unsupported.
+  Not compared with Iris.
+- **Geometry inputs and pass ordering.** Geometry can now read copied
+  colortex targets and opaque depth, as described above. Full fidelity
+  needs the deferred chain before translucent geometry, sky programs and
+  geometry custom textures. Scene-copy detection is a heuristic; other
+  target copies arrive one frame late.
 - **The rest of the shadow map.** The first slice draws opaque, cut-out
   and foliage near terrain only; see the end of "The shadow map, as
   built" for what it leaves out: translucent casters and so `shadowtex1`

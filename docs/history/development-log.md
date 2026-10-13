@@ -12,6 +12,18 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Recover shader geometry inputs and temporal history, 13 October 2026.
+  Complete the abandoned scene and depth reads, use texture formats Godot
+  can bind, replace copied textures on viewport resize and release old
+  textures after their bindings change. Preserve the last written history
+  buffer between frames and initialise it on allocation. Native tests,
+  six packs' offline chain and headless geometry checks pass. On a local
+  Luanti 5.17.0 server, Mineclonia 38561, Godot 4.5.1 and RTX 3090, MakeUp
+  drew the lake and reflected scenery, and the history proof accumulated
+  to its expected solid red. GPU resize and teardown checks passed.
+  Remaining approximations and run details are in
+  [shader pack status](../develop/shaderpack-status.md#recovery-checks-13-october-2026).
+
 The v0.8.0-alpha tag is `3f476b4`, 2026-09-16 22:39 +1000. The Kythen
 authoring run below straddles that date: its first commit landed seven
 minutes after the tag, so the whole run sits in this section.

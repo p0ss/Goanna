@@ -85,6 +85,11 @@ public:
     std::vector<std::string> compositeChain() const;
     // Programs the chain skipped because the properties disable them.
     std::vector<std::string> disabledPrograms() const;
+    // size.buffer.colortexN = W H: a fraction of the screen when written
+    // with a decimal point (0.5 0.5), else pixels (192 108). False when the
+    // pack gives none, or none that reads as two positive numbers, and the
+    // buffer is the screen's size.
+    bool bufferSize(int index, bool &relative, float &x, float &y) const;
 
 private:
     std::string readResolved(const std::string &path, int depth, std::string &err) const;
