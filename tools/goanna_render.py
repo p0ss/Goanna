@@ -1515,7 +1515,7 @@ class Service:
         for key, value in undo.items():
             c.send("set", {"key": key, "value": float(value)})
 
-    def pose(self, p):
+    def pose(self, p, terrain_wait=None):
         c = self.client.control
         g = to_goanna(self.place(p["pos"]))
         args = {"x": g[0], "y": g[1], "z": g[2], "fly": True}
@@ -1529,6 +1529,39 @@ class Service:
         c.send("wait", {"settle": True})
         t0 = time.time()
         self.settled = {"quiet": self.wait_quiet(3.0, 60.0), "waited_s": round(time.time() - t0, 1)}
+        if terrain_wait:
+            self.settled["terrain"] = self.wait_terrain(terrain_wait)
+            if not self.settled["terrain"]["stable"]:
+                raise RenderError("terrain coverage was still changing at the capture deadline")
+
+    def wait_terrain(self, options):
+        """Wait for coverage to stop growing, independently of mesh churn.
+
+        Partial areas can straddle ungenerated map boundaries and keep
+        retrying forever. Stable coverage is recorded, not full coverage.
+        """
+        quiet = max(5.0, float(options.get("quiet_seconds", 30)))
+        timeout = max(quiet, float(options.get("timeout_seconds", 900)))
+        keys = ("far_blocks", "far_remote", "far_reach", "far_areas_requested",
+                "far_areas_complete", "far_areas_partial", "far_areas_empty",
+                "surface_received", "surface_covered")
+        started = time.monotonic()
+        changed = started
+        last = None
+        while time.monotonic() - started < timeout:
+            self.check_stop()
+            self.check_gpu()
+            stats = self.client.control.eval("client.render_stats()") or {}
+            current = {key: stats.get(key) for key in keys}
+            if current != last or any(value is None for value in current.values()):
+                last = current
+                changed = time.monotonic()
+            if time.monotonic() - changed >= quiet:
+                return {"stable": True, "waited_s": round(time.monotonic() - started, 1),
+                        "quiet_seconds": quiet, "coverage": last}
+            time.sleep(2)
+        return {"stable": False, "waited_s": round(time.monotonic() - started, 1),
+                "quiet_seconds": quiet, "coverage": last}
 
     def wait_quiet(self, quiet, timeout):
         c = self.client.control
@@ -1580,7 +1613,7 @@ class Service:
                 self.check_gpu()
                 if "fov" in p:
                     c.send("set", {"key": "fov", "value": float(p["fov"])})
-                self.pose(p)
+                self.pose(p, job.get("terrain_wait"))
                 shot = out / safe_name(name) / ("%s.png" % safe_name(p["name"]))
                 shot.parent.mkdir(parents=True, exist_ok=True)
                 meta = c.send("shot", {"path": str(shot), "warm": int(job.get("warm", 20))})
@@ -1860,6 +1893,7 @@ USAGE = """usage:
                       [--pack DIR] [--build CHECKOUT] [--idle-minutes N]
                       [--fake-gpu-user FILE] [--foreground]
   goanna-render shoot JOB.json [--no-start] [--timeout S]
+  goanna-render vanilla JOB.json --world-from WORLD [--server-view-range BLOCKS]
   goanna-render status
   goanna-render stop
 The job format is in docs/agents/agent-interfaces.md, under "The render service"."""
@@ -1875,6 +1909,9 @@ def main(argv):
             return cmd_serve(rest)
         if cmd == "shoot":
             return cmd_shoot(rest)
+        if cmd == "vanilla":
+            from goanna_render_vanilla import command
+            return command(rest)
         if cmd == "status":
             return cmd_status(rest)
         if cmd == "stop":

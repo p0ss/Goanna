@@ -307,6 +307,24 @@ nodes. Match them with the job's `profile.view_range` and
 server's limit. Far terrain also needs `--world-from` or `--far`, and only
 generated terrain is available in a copied world.
 
+#### Vanilla reference frames
+
+After stopping the Goanna render service, `tools/goanna-render vanilla
+JOB.json --world-from WORLD --server-view-range 40` captures the same
+world-frame poses through the headless launcher with the unmodified Luanti
+client. It takes the GPU lock for the run and stops its clients and server
+on exit. It uses a fresh copy of the world, fixes the player, camera and
+time from the server, and sends no desktop input.
+
+This command uses the job's `out`, `poses`, `size` and `time`, with clear
+weather. It ignores Goanna's variants, PBR pack and graphics profile, and
+refuses fixture node edits and statues. Frames and settings go under
+`OUT/vanilla/`. The original game textures and Luanti's own shaders are the
+reference. The live range is the server range times 16 nodes; vanilla has
+no Goanna far summaries. There is no client streaming completion query,
+so `--settle-seconds` gives a recorded fixed wait, 60 seconds by default.
+Inspect the frames before treating that wait as enough.
+
 #### A job
 
 Coordinates are Luanti's, relative to the stage (its floor is at y -1),
@@ -354,6 +372,14 @@ main's checkout (`project/bin` there, and its GDScript as it stands);
 overrides any of `build`, `pack`, `tier`, `size`, `env`, `maps`, `profile`
 (merged), `time` and `weather`, and every variant is shot at every pose.
 `frames: false` skips frames for a timing only job.
+
+For large landscape captures, `terrain_wait: {"quiet_seconds": 30,
+"timeout_seconds": 900}` waits after each pose until the distant coverage
+counters have stopped changing for 30 seconds. It fails the job instead of
+capturing when the deadline expires. The settings sidecar records those
+counters under `settled.terrain`. This checks stable coverage, not that
+every region contains generated land: a copied world's ungenerated edges
+can still leave gaps and partial areas. Inspect the frame as well.
 
 A node entry may give `param2`, and `swap: true` places it with
 `swap_node`, so no constructor or destructor runs: a Nether portal set
