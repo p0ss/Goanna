@@ -399,6 +399,7 @@ void GoannaIrisEffect::set_world_state(const Dictionary &s) {
     if (s.has("in_water")) m_world.in_water = (int)s["in_water"];
     if (s.has("sky_color")) m_world.sky = s["sky_color"];
     if (s.has("fog_color")) m_world.fog = s["fog_color"];
+    if (s.has("cloud_height")) m_world.cloud_height = (float)(double)s["cloud_height"];
     if (s.has("shadow_model_view") && s.has("shadow_projection")) {
         m_world.shadow_mv = s["shadow_model_view"];
         m_world.shadow_proj = s["shadow_projection"];
@@ -1148,6 +1149,20 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     put("lightningBoltPosition", ec, 4);
     putVec3("cameraPosition", cam.origin);
     putVec3("previousCameraPosition", m_prev_cam.origin);
+    // Iris's split of the position into whole nodes (floored) and the
+    // fraction left, which a pack adds back for precision far out.
+    auto splitPosition = [this](const char *int_name, const char *fract_name, const Vector3 &p) {
+        const Vector3 whole = p.floor();
+        int i[3] = {(int)whole.x, (int)whole.y, (int)whole.z};
+        putInt(int_name, i, 3);
+        putVec3(fract_name, p - whole);
+    };
+    splitPosition("cameraPositionInt", "cameraPositionFract", cam.origin);
+    splitPosition("previousCameraPositionInt", "previousCameraPositionFract", m_prev_cam.origin);
+    // Iris's velocity: how far the camera moved since the last frame.
+    putFloat("velocity", (float)(cam.origin - m_prev_cam.origin).length());
+    putFloat("cloudHeight", w.cloud_height);
+    putInt1("firstPersonCamera", 1);
     Vector3 sunV = view.xform(w.sun.normalized()) * 100.0f;
     Vector3 moonV = view.xform(w.moon.normalized()) * 100.0f;
     putVec3("sunPosition", sunV);

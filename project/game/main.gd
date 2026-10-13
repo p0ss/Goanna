@@ -4158,7 +4158,8 @@ func _apply_sky() -> void:
 		var rain: float = pn.precipitation() if pn != null else 0.0
 		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
-			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain})
+			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain,
+			"cloud_height": cloud_height})
 	if iris_gbuffers:
 		# The pack's terrain does its own fog, so it is told where Goanna's
 		# would have begun and closed.
@@ -4167,7 +4168,8 @@ func _apply_sky() -> void:
 			"moon_direction": moon_dir, "time_of_day": st["time_of_day"],
 			"in_water": 1 if underwater else 0, "sky_color": top,
 			"fog_color": e.fog_light_color, "fog_start": e.fog_depth_begin,
-			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0})
+			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0,
+			"cloud_height": cloud_height})
 		if iris_shadow != null:
 			# This frame's shadow space, for the culling camera and the chain;
 			# the gbuffers programs already have it from update().

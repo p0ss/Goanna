@@ -424,7 +424,17 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
         setGlobal("iris_shadowProjectionInverse", proj_inv);
     }
     setGlobal("iris_cameraPosition", pos);
-    setGlobal("iris_previousCameraPosition", m_frame > 1 ? m_prev_cam : pos);
+    const Vector3 prev_pos = m_frame > 1 ? m_prev_cam : pos;
+    setGlobal("iris_previousCameraPosition", prev_pos);
+    // Iris's split into whole nodes (floored) and the fraction left, and
+    // its velocity, the distance the camera moved since the last frame.
+    setGlobal("iris_cameraPositionInt", Vector3i(pos.floor()));
+    setGlobal("iris_cameraPositionFract", pos - pos.floor());
+    setGlobal("iris_previousCameraPositionInt", Vector3i(prev_pos.floor()));
+    setGlobal("iris_previousCameraPositionFract", prev_pos - prev_pos.floor());
+    setGlobal("iris_velocity", (float)(pos - prev_pos).length());
+    setGlobal("iris_firstPersonCamera", true);
+    setGlobal("iris_cloudHeight", (float)state.get("cloud_height", 192.0f));
     setGlobal("iris_eyePosition", pos);
     setGlobal("iris_relativeEyePosition", Vector3());
     setGlobal("iris_playerLookVector", -cam.basis.get_column(2));
@@ -566,6 +576,11 @@ bool GoannaIrisGbuffers::lookupBuiltin(const std::string &name, iris::Value &out
     case Variant::VECTOR3: {
         Vector3 x = v;
         out.n = 3; out.v[0] = x.x; out.v[1] = x.y; out.v[2] = x.z;
+        return true;
+    }
+    case Variant::VECTOR3I: {
+        Vector3i x = v;
+        out.n = 3; out.v[0] = (float)x.x; out.v[1] = (float)x.y; out.v[2] = (float)x.z;
         return true;
     }
     case Variant::PROJECTION: {

@@ -66,8 +66,8 @@ public:
     int block_id(const godot::String &name) const;
     // Every frame, main thread. `state` carries what GoannaIrisEffect's
     // set_world_state takes (sun_direction, moon_direction, time_of_day,
-    // in_water, sky_color, fog_color, rain) plus fog_start and fog_end, the
-    // drawn distance the pack's fog should close at.
+    // in_water, sky_color, fog_color, rain, cloud_height) plus fog_start and
+    // fog_end, the drawn distance the pack's fog should close at.
     void update(godot::Camera3D *camera, const godot::Dictionary &state);
     godot::Dictionary report() const;
     // Every colortex some translated program writes as a second output

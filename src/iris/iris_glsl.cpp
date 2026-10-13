@@ -123,8 +123,13 @@ const Layout &standardLayout() {
         l.add(n, UType::Vec4);
     for (const char *n : {"cameraPosition", "previousCameraPosition", "sunPosition", "moonPosition",
                  "shadowLightPosition", "upPosition", "skyColor", "fogColor", "eyePosition",
-                 "relativeEyePosition", "playerLookVector", "playerBodyVector"})
+                 "relativeEyePosition", "playerLookVector", "playerBodyVector", "cameraPositionFract",
+                 "previousCameraPositionFract", "endFlashPosition"})
         l.add(n, UType::Vec3);
+    // The camera position split into whole and fractional nodes, as Iris
+    // gives it for packs that need it exact far from the origin.
+    for (const char *n : {"cameraPositionInt", "previousCameraPositionInt"})
+        l.add(n, UType::IVec3);
     for (const char *n : {"eyeBrightness", "eyeBrightnessSmooth", "atlasSize"})
         l.add(n, UType::IVec2);
     for (const char *n : {"viewWidth", "viewHeight", "aspectRatio", "near", "far", "frameTimeCounter",
@@ -134,7 +139,8 @@ const Layout &standardLayout() {
                  "playerMood", "constantMood", "thunderStrength", "ambientLight",
                  "currentPlayerHealth", "maxPlayerHealth", "currentPlayerHunger", "maxPlayerHunger",
                  "currentPlayerAir", "maxPlayerAir", "currentPlayerArmor", "maxPlayerArmor",
-                 "cloudTime", "dhNearPlane", "dhFarPlane", "temperature", "rainfall"})
+                 "cloudTime", "dhNearPlane", "dhFarPlane", "temperature", "rainfall", "cloudHeight",
+                 "endFlashIntensity", "previousEndFlashIntensity", "velocity"})
         l.add(n, UType::Float);
     for (const char *n : {"frameCounter", "worldTime", "worldDay", "moonPhase", "isEyeInWater", "hideGUI",
                  "heldItemId", "heldBlockLightValue", "heldItemId2", "heldBlockLightValue2", "fogMode",
@@ -142,6 +148,11 @@ const Layout &standardLayout() {
                  "isSpectator", "isRightHanded", "biome", "biome_category", "bedrockLevel",
                  "heightLimit", "logicalHeightLimit", "hasCeiling", "hasSkylight"})
         l.add(n, UType::Int);
+    // Iris's player and world flags that packs declare bool.
+    for (const char *n : {"is_burning", "is_hurt", "is_invisible", "is_on_ground", "is_sneaking", "is_sprinting",
+                 "isElytraFlying", "isRiding", "feetInWater", "inSwimmingAnimation", "heavyFog",
+                 "firstPersonCamera"})
+        l.add(n, UType::Bool);
     return l;
 }
 

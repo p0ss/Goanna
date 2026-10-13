@@ -87,8 +87,9 @@ public:
     // Main thread, every frame. The keys are sun_direction and
     // moon_direction as a Vector3, time_of_day (0..1, 0 midnight), rain
     // (0..1), in_water as an int, and sky_color and fog_color, which are
-    // colours. shadow_model_view and shadow_projection, as Projections,
-    // are the pack's shadow matrices (GoannaIrisGbuffers::shadow_state);
+    // colours, and cloud_height, the world's cloud base for Iris's
+    // cloudHeight (192, Minecraft's, until given). shadow_model_view and
+    // shadow_projection, as Projections, are the pack's shadow matrices (GoannaIrisGbuffers::shadow_state);
     // without them the shadow matrices are the camera's. Missing keys keep
     // their previous value.
     void set_world_state(const godot::Dictionary &state);
@@ -145,6 +146,8 @@ private:
         godot::Vector3 sun{0, 1, 0}, moon{0, -1, 0};
         float tod = 0.5f, rain = 0.0f;
         int in_water = 0;
+        // Goanna's cloud height (the server's set_clouds), for cloudHeight.
+        float cloud_height = 192.0f;
         godot::Color sky{0.5f, 0.7f, 1.0f}, fog{0.7f, 0.8f, 0.9f};
         bool has_shadow = false;
         godot::Projection shadow_mv, shadow_proj;

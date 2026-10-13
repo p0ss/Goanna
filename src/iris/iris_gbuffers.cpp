@@ -1815,6 +1815,14 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                     globals[d.name] = {d.name, t};
                     continue;
                 }
+                // A custom uniform named like a standard one replaces it, as
+                // in the screen space chain.
+                if (m_o.custom_uniforms.count(d.name) && !d.array && t.b != Ty::Struct &&
+                        !(m_o.shadow_pass && findShadowFixed(d.name))) {
+                    // a custom uniform, evaluated on the CPU each frame
+                    globals[d.name] = {needGlobal("iris_cu_" + d.name, t.godot()), t};
+                    continue;
+                }
                 if (const GlobalDef *gd = m_o.shadow_pass && findShadowFixed(d.name) ? findShadowFixed(d.name)
                                                                                     : findGlobal(d.name)) {
                     Ty gt = tyFromName(gd->type, m_structs);
@@ -1836,11 +1844,6 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 auto ou = other_u.find(d.name);
                 if (ou != other_u.end() && ou->second.t == t) {
                     globals[d.name] = ou->second;
-                    continue;
-                }
-                if (m_o.custom_uniforms.count(d.name) && !d.array && t.b != Ty::Struct) {
-                    // a custom uniform, evaluated on the CPU each frame
-                    globals[d.name] = {needGlobal("iris_cu_" + d.name, t.godot()), t};
                     continue;
                 }
                 std::string name = uniqueGlobal(d.name);
