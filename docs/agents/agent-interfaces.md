@@ -299,6 +299,14 @@ The scenes themselves are not chosen yet. The menu backgrounds and the
 benchmark plans still name `test_world`'s poses, which mean nothing in this
 world, until scenes are scouted here and those tools are pointed at them.
 
+For a wider landscape, `serve --server-view-range 40
+--server-far-distance 2048` raises the server's live terrain limit to 640
+nodes and its far grant to 2048 nodes. The defaults are 16 blocks and 512
+nodes. Match them with the job's `profile.view_range` and
+`profile.far_distance`: a larger client setting alone cannot raise the
+server's limit. Far terrain also needs `--world-from` or `--far`, and only
+generated terrain is available in a copied world.
+
 #### A job
 
 Coordinates are Luanti's, relative to the stage (its floor is at y -1),
