@@ -14,9 +14,10 @@
 // goanna_client_jobs.cpp, and the surface and fine data halves in
 // goanna_client_surface.cpp and goanna_client_fine.cpp.
 //
-// Threads: Godot's main thread only. Chains are prepared on the LodStorage
-// worker, which has its own queue and mutex (goanna_lod_storage.h);
-// lodRequestChain and lodCollectChains are this side of it.
+// Threads: main thread except prepareLodUpload, which fills worker-owned
+// value arrays. Chains are prepared on the LodStorage worker, which has its
+// own queue and mutex (goanna_lod_storage.h); lodRequestChain and
+// lodCollectChains are this side of it.
 
 #include "goanna_client_internal.h"
 
@@ -543,6 +544,106 @@ void GoannaClient::lodForget(const v3s16 &bp) {
     lodAssign(bp, 0);
 }
 
+std::vector<GoannaClient::LodUploadSurface> GoannaClient::prepareLodUpload(LodRegionMesh &mesh) {
+    std::vector<LodUploadSurface> prepared;
+    std::vector<LodSurface> metadata;
+    prepared.reserve(mesh.surfaces.size());
+    metadata.reserve(mesh.surfaces.size());
+    for (LodSurface &sf : mesh.surfaces) {
+        const int nv = (int)sf.pos.size();
+        if (!nv || sf.idx.empty()) continue;
+        LodUploadSurface out;
+        out.verts.resize(nv);
+        out.norms.resize(nv);
+        out.uvs.resize(nv);
+        out.uv2s.resize(nv);
+        out.cols.resize(nv);
+        out.custom0.resize(nv * 4);
+        out.custom2.resize(nv * 4);
+        Vector3 *positions = out.verts.ptrw();
+        Vector3 *normals = out.norms.ptrw();
+        Vector2 *texcoords = out.uvs.ptrw();
+        Vector2 *layers = out.uv2s.ptrw();
+        Color *colours = out.cols.ptrw();
+        uint8_t *light = out.custom0.ptrw();
+        uint8_t *extra = out.custom2.ptrw();
+        for (int i = 0; i < nv; ++i) {
+            positions[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
+            normals[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
+            texcoords[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
+            layers[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
+            const u32 c = sf.col[i];
+            colours[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
+                    (c & 0xff) / 255.0f, 1.0f);
+            for (int k = 0; k < 4; ++k)
+                light[i * 4 + k] = sf.custom0[i * 4 + k];
+            for (int k = 0; k < 4; ++k)
+                extra[i * 4 + k] = sf.custom2[i * 4 + k];
+        }
+        out.idx.resize((int)sf.idx.size());
+        int32_t *indices = out.idx.ptrw();
+        for (size_t i = 0; i < sf.idx.size(); ++i)
+            indices[i] = (int)sf.idx[i];
+        out.tangents = node_tangents(out.verts, out.norms, out.uvs, out.idx);
+        prepared.push_back(std::move(out));
+        LodSurface meta;
+        meta.texture_id = sf.texture_id;
+        meta.liquid = sf.liquid;
+        metadata.push_back(std::move(meta));
+        // Release raw geometry on the worker, not when publishing the result.
+        sf = LodSurface();
+    }
+    mesh.surfaces = std::move(metadata);
+    return prepared;
+}
+
+bool GoannaClient::lodUploadSurface(LodRegion &r,
+        const std::vector<LodUploadSurface> &surfaces, uint64_t generation) {
+    if (r.upload_mesh.is_null() || r.upload_generation != generation) {
+        r.upload_mesh.instantiate();
+        r.upload_surface = 0;
+        r.upload_total = surfaces.size();
+        r.upload_generation = generation;
+    }
+    if (r.upload_surface == surfaces.size()) return true;
+    const LodUploadSurface &sf = surfaces[r.upload_surface++];
+    Array arrays;
+    arrays.resize(Mesh::ARRAY_MAX);
+    arrays[Mesh::ARRAY_VERTEX] = sf.verts;
+    arrays[Mesh::ARRAY_NORMAL] = sf.norms;
+    arrays[Mesh::ARRAY_TANGENT] = sf.tangents;
+    arrays[Mesh::ARRAY_TEX_UV] = sf.uvs;
+    arrays[Mesh::ARRAY_TEX_UV2] = sf.uv2s;
+    arrays[Mesh::ARRAY_COLOR] = sf.cols;
+    arrays[Mesh::ARRAY_CUSTOM0] = sf.custom0;
+    arrays[Mesh::ARRAY_CUSTOM2] = sf.custom2;
+    arrays[Mesh::ARRAY_INDEX] = sf.idx;
+    r.upload_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays,
+            TypedArray<Array>(), Dictionary(), kNodeSurfaceFlags);
+    ++m_lod_surfaces_uploaded;
+    return r.upload_surface == surfaces.size();
+}
+
+Array GoannaClient::lod_uploads() const {
+    Array out;
+    auto describe = [&](const LodRegion &r, const String &kind) {
+        if (r.upload_mesh.is_null()) return;
+        Dictionary entry;
+        entry["kind"] = kind;
+        entry["surface"] = (int64_t)r.upload_surface;
+        entry["total"] = (int64_t)r.upload_total;
+        entry["generation"] = (int64_t)r.upload_generation;
+        entry["staged_mesh"] = (int64_t)r.upload_mesh->get_instance_id();
+        entry["visible_mesh"] = r.node && r.node->get_mesh().is_valid()
+                ? (int64_t)r.node->get_mesh()->get_instance_id() : 0;
+        entry["visible_node"] = r.node ? (int64_t)r.node->get_instance_id() : 0;
+        out.push_back(entry);
+    };
+    for (const auto &entry : m_lod_regions) describe(entry.second, "region");
+    for (const auto &entry : m_surface_staged) describe(entry.second.region, "surface");
+    return out;
+}
+
 void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
         std::chrono::steady_clock::time_point t0, int exact_cell_used, int coarse_cell_used) {
     r.priority_members_valid = false;
@@ -615,11 +716,12 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                 " members " + String::num_int64((int)r.members.size()) + " faces " +
                 String::num_int64(lm.faces) + " quads " + String::num_int64(lm.quads) + " |";
         for (const LodSurface &sf : lm.surfaces)
-            line += String(" tex ") + String::num_int64(sf.texture_id) + ":" +
-                    String::num_int64((int64_t)sf.idx.size() / 6);
+            line += String(" tex ") + String::num_int64(sf.texture_id);
         UtilityFunctions::print(line, " ", String::num(ms_since(t0), 2), " ms");
     }
     if (lm.empty()) {
+        r.upload_mesh.unref();
+        r.upload_surface = 0;
         if (r.node) {
             surfaceRetire(r.node);
             if (r.node) r.node->queue_free();
@@ -641,132 +743,14 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         finish_handoffs();
         return;
     }
-    Ref<ArrayMesh> mesh;
-    mesh.instantiate();
+    Ref<ArrayMesh> mesh = r.upload_mesh;
+    r.upload_mesh.unref();
+    r.upload_surface = 0;
+    // Bind at commit, so a settings change during staging cannot leave
+    // half the replacement using materials from an obsolete cache.
     int si = 0;
     for (const LodSurface &sf : lm.surfaces) {
-        const int nv = (int)sf.pos.size();
-        if (nv == 0 || sf.idx.empty())
-            continue;
-        PackedVector3Array verts, norms;
-        PackedVector2Array uvs, uv2s;
-        PackedColorArray cols;
-        PackedByteArray custom0, custom2;
-        PackedInt32Array idx;
-        verts.resize(nv);
-        norms.resize(nv);
-        uvs.resize(nv);
-        uv2s.resize(nv);
-        cols.resize(nv);
-        custom0.resize(nv * 4);
-        custom2.resize(nv * 4);
-        Vector3 *positions = verts.ptrw();
-        Vector3 *normals = norms.ptrw();
-        Vector2 *texcoords = uvs.ptrw();
-        Vector2 *layers = uv2s.ptrw();
-        Color *colours = cols.ptrw();
-        uint8_t *light = custom0.ptrw();
-        uint8_t *extra = custom2.ptrw();
-        for (int i = 0; i < nv; ++i) {
-            positions[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
-            normals[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
-            texcoords[i] = Vector2(sf.uv[i].X, sf.uv[i].Y);
-            layers[i] = Vector2(sf.uv2[i].X, sf.uv2[i].Y);
-            const u32 c = sf.col[i];
-            colours[i] = Color(((c >> 16) & 0xff) / 255.0f, ((c >> 8) & 0xff) / 255.0f,
-                    (c & 0xff) / 255.0f, 1.0f);
-            for (int k = 0; k < 4; ++k)
-                light[i * 4 + k] = sf.custom0[i * 4 + k];
-            for (int k = 0; k < 4; ++k)
-                extra[i * 4 + k] = sf.custom2[i * 4 + k];
-        }
-        idx.resize((int)sf.idx.size());
-        int32_t *indices = idx.ptrw();
-        for (size_t i = 0; i < sf.idx.size(); ++i)
-            indices[i] = (int)sf.idx[i];
-        Array arrays;
-        arrays.resize(Mesh::ARRAY_MAX);
-        arrays[Mesh::ARRAY_VERTEX] = verts;
-        arrays[Mesh::ARRAY_NORMAL] = norms;
-		arrays[Mesh::ARRAY_TANGENT] = node_tangents(verts, norms, uvs, idx);
-        arrays[Mesh::ARRAY_TEX_UV] = uvs;
-        arrays[Mesh::ARRAY_TEX_UV2] = uv2s;
-        arrays[Mesh::ARRAY_COLOR] = cols;
-        arrays[Mesh::ARRAY_CUSTOM0] = custom0;
-        arrays[Mesh::ARRAY_CUSTOM2] = custom2;
-        arrays[Mesh::ARRAY_INDEX] = idx;
-        mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
-                Dictionary(), kNodeSurfaceFlags);
-        Ref<Material> mat;
-        if (sf.liquid) {
-            // Water at distance, docs/design/far-rendering-plan.md rung 6: the same water
-            // shader as the near mesh, on the liquid's own tile, with the
-            // same parameters, so the sea reads as sea at the horizon with
-            // its specular, fresnel and the sky's reflection. Everything that
-            // must differ between near and far (waves, the reflection march,
-            // absorption, the flatten toward the tile average) is a function
-            // of view distance inside the shader itself, because two
-            // materials that agree at every distance cannot draw a seam at
-            // the hand-off. Waving used to be off here, and the reflection
-            // march was gated on it, which left the far sea a dark band
-            // against the reflecting near water (the R2 recorded in
-            // docs/history/far-rendering-log.md, "The near/far water
-            // hand-off, 2026-08-28").
-            auto wit = m_lod_water.find(sf.texture_id);
-            if (wit == m_lod_water.end()) {
-                Ref<ShaderMaterial> wm;
-                if (!m_shaders_loaded)
-                    materialFor(MaterialKey()); // loads the shaders
-                buildFakeLiquidTextures();
-                GoannaTexture *wgt = m_session->tsrc()->goannaTexture(sf.texture_id);
-                if (m_sh_water.is_valid() && wgt && wgt->godotTexture().is_valid()) {
-                    wm.instantiate();
-                    const auto lava = m_lava_tex.find(sf.texture_id);
-                    wm->set_shader(lava != m_lava_tex.end() ? m_sh_lava : m_sh_water);
-                    wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
-                    if (lava == m_lava_tex.end())
-                        applyIrisGbuffers(wm, GoannaIrisGbuffers::SURFACE_WATER);
-                    if (lava != m_lava_tex.end()) {
-                        GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava->second.surface_texture);
-                        if (surface && surface->godotTexture().is_valid()) {
-                            wm->set_shader_parameter("albedo_tex", surface->godotTexture());
-                            configureLavaMaterial(wm, surface->image());
-                        }
-                        float level = lava->second.level / 14.0f;
-                        wm->set_shader_parameter("emission_energy", 4.8f * level * level);
-                    } else {
-                        wm->set_shader_parameter("waving", true);
-                        wm->set_shader_parameter("lod_flatten", true);
-                    }
-                }
-                wit = m_lod_water.emplace(sf.texture_id, wm).first;
-            }
-            mat = wit->second;
-        } else if (sf.texture_id) {
-            // The same array shader and arrays as the near mesh, so there is
-            // no distance at which the world changes renderer; only the tier
-            // copy adds block light as emission.
-            MaterialKey k;
-            k.texture_id = sf.texture_id;
-            k.array_texture = true;
-            k.lod = true;
-            mat = materialFor(k);
-        } else {
-            // Tiles with no array texture: the flat colour the old single
-            // tier drew everything with, now only the exception.
-            if (m_lod_material.is_null()) {
-                m_lod_material.instantiate();
-                m_lod_material->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-                // The vertex colour here is the tile's sRGB average (the
-                // fallback in goanna_lod.cpp), so say so, or Godot reads it
-                // as linear and the tile is brighter than it is anywhere
-                // else (docs/develop/launch-target.md, R1).
-                m_lod_material->set_flag(BaseMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
-                m_lod_material->set_roughness(1.0f);
-                m_lod_material->set_metallic(0.0f);
-            }
-            mat = m_lod_material;
-        }
+        Ref<Material> mat = lodMaterial(sf.texture_id, sf.liquid);
         if (mat.is_valid())
             mesh->surface_set_material(si, mat);
         ++si;

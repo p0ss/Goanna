@@ -12,6 +12,28 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Warm far materials and stage far mesh uploads, 15 October 2026. The
+  material scan now includes far array variants, liquids and the colour
+  fallback. Far-region and baked-surface workers prepare packed vertex
+  buffers and tangents. The main thread uploads one surface per region
+  per update, retaining old visible geometry until the replacement is
+  complete. Submission generations survive region removal and recreation;
+  obsolete results cannot discard a newer staged mesh.
+  The live `project/tests/lod_upload.gd` probe passed against the render
+  service's local Luanti 5.17.0 Mineclonia fixture, Godot 4.5.1, RTX 3090 in
+  headless gamescope. It observed a partial replacement retaining its old
+  mesh, cancelled that upload by restarting workers and drained the new
+  work. Coverage remained nine regions and ten surfaces, with zero cold
+  far-material builds and six warmed liquid materials. A synthetic server
+  surface provider also exercised four partial baked-surface uploads,
+  which stayed unattached until completion, with zero cold material builds.
+  The dirty checkout
+  was based on `3809b3c7`, with unrelated Overseer edits. Native LOD,
+  surface and mesh-pool tests passed. No before/after frame-time comparison
+  was made. Individual surface uploads, grass generation and final scene
+  handoffs remain indivisible. Occluder batching, adaptive budgets, fast
+  flight and long-session memory measurements remain separate work.
+
 - Warm terrain materials and prepare regional tangents on workers,
   15 October 2026. Polling now spends part of its existing slice preparing
   resolved node materials before terrain needs them. Cache invalidation

@@ -469,6 +469,83 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer)
     return materialFor(keyForIrr(m, layer));
 }
 
+Ref<Material> GoannaClient::lodMaterial(u32 texture_id, bool liquid, bool warming) {
+    Ref<Material> mat;
+    if (liquid) {
+        // Water at distance, docs/design/far-rendering-plan.md rung 6: the same water
+        // shader as the near mesh, on the liquid's own tile, with the
+        // same parameters, so the sea reads as sea at the horizon with
+        // its specular, fresnel and the sky's reflection. Everything that
+        // must differ between near and far (waves, the reflection march,
+        // absorption, the flatten toward the tile average) is a function
+        // of view distance inside the shader itself, because two
+        // materials that agree at every distance cannot draw a seam at
+        // the hand-off. Waving used to be off here, and the reflection
+        // march was gated on it, which left the far sea a dark band
+        // against the reflecting near water (the R2 recorded in
+        // docs/history/far-rendering-log.md, "The near/far water
+        // hand-off, 2026-08-28").
+        auto wit = m_lod_water.find(texture_id);
+        if (wit == m_lod_water.end()) {
+            if (!warming) ++m_lod_material_cold_builds;
+            Ref<ShaderMaterial> wm;
+            if (!m_shaders_loaded)
+                materialFor(MaterialKey()); // loads the shaders
+            buildFakeLiquidTextures();
+            GoannaTexture *wgt = m_session->tsrc()->goannaTexture(texture_id);
+            if (m_sh_water.is_valid() && wgt && wgt->godotTexture().is_valid()) {
+                wm.instantiate();
+                const auto lava = m_lava_tex.find(texture_id);
+                wm->set_shader(lava != m_lava_tex.end() ? m_sh_lava : m_sh_water);
+                wm->set_shader_parameter("albedo_tex", wgt->godotTexture());
+                if (lava == m_lava_tex.end())
+                    applyIrisGbuffers(wm, GoannaIrisGbuffers::SURFACE_WATER);
+                if (lava != m_lava_tex.end()) {
+                    GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava->second.surface_texture);
+                    if (surface && surface->godotTexture().is_valid()) {
+                        wm->set_shader_parameter("albedo_tex", surface->godotTexture());
+                        configureLavaMaterial(wm, surface->image());
+                    }
+                    float level = lava->second.level / 14.0f;
+                    wm->set_shader_parameter("emission_energy", 4.8f * level * level);
+                } else {
+                    wm->set_shader_parameter("waving", true);
+                    wm->set_shader_parameter("lod_flatten", true);
+                }
+            }
+            wit = m_lod_water.emplace(texture_id, wm).first;
+        }
+        mat = wit->second;
+    } else if (texture_id) {
+        // The same array shader and arrays as the near mesh, so there is
+        // no distance at which the world changes renderer; only the tier
+        // copy adds block light as emission.
+        MaterialKey k;
+        k.texture_id = texture_id;
+        k.array_texture = true;
+        k.lod = true;
+        if (!warming && !m_materials.count(k.hash())) ++m_lod_material_cold_builds;
+        mat = materialFor(k);
+    } else {
+        // Tiles with no array texture: the flat colour the old single
+        // tier drew everything with, now only the exception.
+        if (m_lod_material.is_null()) {
+            if (!warming) ++m_lod_material_cold_builds;
+            m_lod_material.instantiate();
+            m_lod_material->set_flag(BaseMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+            // The vertex colour here is the tile's sRGB average (the
+            // fallback in goanna_lod.cpp), so say so, or Godot reads it
+            // as linear and the tile is brighter than it is anywhere
+            // else (docs/develop/launch-target.md, R1).
+            m_lod_material->set_flag(BaseMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
+            m_lod_material->set_roughness(1.0f);
+            m_lod_material->set_metallic(0.0f);
+        }
+        mat = m_lod_material;
+    }
+    return mat;
+}
+
 void GoannaClient::warmMaterials(double budget_ms) {
     if (!m_session || !m_session->contentPrepared() || m_material_warm_node > 0xffff)
         return;
@@ -514,6 +591,17 @@ void GoannaClient::warmMaterials(double budget_ms) {
                             return;
                     }
                 }
+            }
+            // Resolve the far variant independently: it can use an array
+            // even where the near tile uses a special single-image shader.
+            // Liquids use their first frame or resolved special tile.
+            for (int side = 0; side < 6; ++side) {
+                if (cursor++ < m_material_warm_layer) continue;
+                m_material_warm_layer = cursor;
+                const auto tile = lodSurfaceTile(m_lod_tiles, ndef, m_session->tsrc(),
+                        &m_session->materialTable(), (content_t)m_material_warm_node, side);
+                lodMaterial(tile.texture_id, tile.liquid, true);
+                if (ms_since(started) >= budget_ms) return;
             }
         }
         ++m_material_warm_node;

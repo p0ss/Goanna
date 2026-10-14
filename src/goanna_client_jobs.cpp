@@ -341,6 +341,8 @@ void GoannaClient::set_mesh_threads(int threads) {
     keys.reserve(m_lod_regions.size());
     for (auto &kv : m_lod_regions) {
         kv.second.building = false;
+        kv.second.upload_mesh.unref();
+        kv.second.upload_surface = 0;
         keys.push_back(kv.first);
     }
     for (const LodRegionKey &k : keys)
@@ -421,6 +423,7 @@ struct LodRegionJob : goanna::MeshJob {
     const MaterialTable *materials = nullptr;
     LodTileCache *tiles = nullptr;
     LodRegionMesh result;
+    std::vector<GoannaClient::LodUploadSurface> upload;
     uint64_t state_revision = 0;
 
     void run() override {
@@ -432,9 +435,16 @@ struct LodRegionJob : goanna::MeshJob {
             snap.bind(coarse);
             appendLodMesh(result, meshLodRegion(coarse, ndef, tsrc, materials, *tiles));
         }
+        upload = GoannaClient::prepareLodUpload(result);
     }
 };
 } // namespace
+
+void GoannaClient::PreparedSurfaceJob::run() {
+    SurfaceJob::run();
+    for (auto &entry : chunks)
+        uploads[entry.first] = prepareLodUpload(entry.second.mesh);
+}
 
 // What a region is worth building next: what is wrong with it, how far away
 // it is, whether the player is looking at it, and how long it has waited.
@@ -633,7 +643,7 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         // the visible world never arrived while the queue filled in the world
         // nobody could see. It also used the region's low corner rather than
         // its centre, which is another 64 nodes at tier 3.
-        const uint64_t generation = r.generation + 1;
+        const uint64_t generation = ++m_lod_job_generation;
         if (!m_mesh_pool.submit(jk, generation, stage, priority, std::move(job))) {
             // Admission is deliberately bounded. Keep the last complete mesh
             // and leave this region dirty so it is retried after pressure
@@ -664,6 +674,10 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
     if (coarse_spec.cell != exact_spec.cell)
         appendLodMesh(lm, meshLodRegion(coarse_spec, m_session->nodeDefs(), m_session->tsrc(),
                                   &m_session->materialTable(), m_lod_tiles));
+    // Explicit synchronous mode remains synchronous, but uses the same
+    // preparation and publication paths as the worker mode.
+    const auto upload = prepareLodUpload(lm);
+    while (!lodUploadSurface(r, upload, r.generation)) {}
     lodPublishRegion(key, r, lm, t0, exact_spec.cell, coarse_spec.cell);
 }
 
@@ -810,6 +824,9 @@ void GoannaClient::lodCollectMeshes() {
     // exceed it; stop before starting another. Retain the count cap too.
     const double budget_ms = m_poll_budget_ms > 0 ? m_poll_budget_ms : 6.0;
     int published = 0;
+    // Return incomplete regions only after this collection pass, so each
+    // can upload at most one surface per update without blocking its peers.
+    std::vector<MeshPool::Done> deferred;
     MeshPool::Done done;
     while (m_mesh_pool.next(done)) {
         if (published > 0 && ms_since(started) >= budget_ms) {
@@ -864,7 +881,7 @@ void GoannaClient::lodCollectMeshes() {
         }
         if (done.key.kind == MeshJobKey::kSurface) {
             if (done.generation != m_surface_generation) continue;
-            m_surface_ready.reset(static_cast<SurfaceJob *>(done.job.release()));
+            m_surface_ready.reset(static_cast<PreparedSurfaceJob *>(done.job.release()));
             m_surface_uploads.clear();
             for (const auto &kv : m_surface_ready->chunks) {
                 const auto old = m_surface_regions.find(kv.first);
@@ -891,21 +908,31 @@ void GoannaClient::lodCollectMeshes() {
         if (it == m_lod_regions.end())
             continue; // the region went away while it was meshing
         LodRegion &r = it->second;
+        // An old capture for a removed region must not cancel the new
+        // region's job or its partially uploaded replacement.
+        if (done.generation != r.generation) continue;
         if (job->state_revision != r.state_revision) {
             // Membership or source data changed after this snapshot. Keep the
             // last coherent node and let the current dirty state rebuild.
             r.building = false;
+            if (r.upload_mesh.is_valid()) ++m_lod_uploads_cancelled;
+            r.upload_mesh.unref();
+            r.upload_surface = 0;
             continue;
         }
-        if (done.generation != r.generation) {
-            // Overtaken. The newer capture is queued or running; keep drawing
-            // what is already there rather than showing an older shape.
-            r.building = false;
-            continue;
-        }
-        lodPublishRegion(key, r, job->result, clock_t_::now(), job->exact.cell, job->coarse.cell);
         ++published;
+        const auto upload_started = clock_t_::now();
+        if (!lodUploadSurface(r, job->upload, done.generation)) {
+            const double elapsed = ms_since(upload_started);
+            ema(m_ms_lod, elapsed);
+            m_ms_lod_worst = std::max(m_ms_lod_worst, elapsed);
+            deferred.push_back(std::move(done));
+            continue;
+        }
+        lodPublishRegion(key, r, job->result, upload_started, job->exact.cell, job->coarse.cell);
     }
+    for (auto &entry : deferred)
+        m_mesh_pool.requeueReady(std::move(entry));
 }
 
 } // namespace goanna

@@ -27,11 +27,28 @@ the next tile layer and restarts whenever the material cache is cleared.
 `render_stats().material_warm_complete` reports when the scan has finished.
 
 Warming uses the publication path's animation-array, opaque-tile and
-special-material routing. Dynamic crack materials and far-terrain variants
-still build on demand. It creates resources on the main thread; it does
-not precompile GPU pipelines. Preparing unused materials can increase
-memory use. Near-region workers also prepare tangent arrays, leaving their
-upload and Godot resource creation on the main thread.
+special-material routing. It also resolves each node's six far-terrain
+tiles through the far mesher's lookup, warming the LOD array variants,
+water/lava materials and flat-colour fallback. Dynamic crack materials
+still build on demand. Clearing materials clears the far caches too.
+`render_stats().lod_material_cold_builds` counts far materials created by
+publication rather than warming; it is cumulative across cache clears.
+
+Warming creates resources on the main thread; it does not precompile GPU
+pipelines. Preparing unused materials can increase memory use. Near-region
+workers prepare tangent arrays. Far-region and baked-surface workers
+prepare all packed vertex arrays and tangents, then discard raw geometry.
+The explicit synchronous meshing mode does this preparation on the main
+thread instead.
+
+Far regions upload at most one surface per `update_lod` call. Baked-surface
+chunks use the same staged upload, keeping the previous complete surface
+visible until all replacement chunks are ready. Staged meshes remain
+unattached; publication binds current materials and changes coverage only
+after the last surface. Obsolete captures and worker restarts discard
+their staged uploads. `lod_uploads()` reports staged surface counts and
+mesh IDs for diagnostics. One surface upload, procedural grass generation
+and the final scene handoff remain indivisible main-thread operations.
 
 ## What LabPBR carries
 

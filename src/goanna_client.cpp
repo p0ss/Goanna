@@ -404,6 +404,14 @@ Dictionary GoannaClient::render_stats() {
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["materials"] = (int)m_materials.size();
     d["material_warm_complete"] = m_material_warm_node > 0xffff;
+    d["lod_material_cold_builds"] = (int64_t)m_lod_material_cold_builds;
+    d["lod_liquid_materials"] = (int64_t)m_lod_water.size();
+    d["lod_surfaces_uploaded"] = (int64_t)m_lod_surfaces_uploaded;
+    d["lod_uploads_cancelled"] = (int64_t)m_lod_uploads_cancelled;
+    int uploading = 0;
+    for (const auto &entry : m_lod_regions)
+        if (entry.second.upload_mesh.is_valid()) ++uploading;
+    d["lod_uploading"] = uploading;
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
     d["lights_in_range"] = m_lights_in_range;
@@ -675,6 +683,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("poll_blocks", "max_blocks"), &GoannaClient::poll_blocks);
     ClassDB::bind_method(D_METHOD("block_mesh_count"), &GoannaClient::block_mesh_count);
     ClassDB::bind_method(D_METHOD("material_count"), &GoannaClient::material_count);
+    ClassDB::bind_method(D_METHOD("lod_uploads"), &GoannaClient::lod_uploads);
     ClassDB::bind_method(D_METHOD("material_diagnostics", "texture_name"),
             &GoannaClient::material_diagnostics, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("set_player_pose", "pos", "pitch_deg", "yaw_deg"),

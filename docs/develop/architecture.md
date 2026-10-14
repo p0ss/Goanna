@@ -106,10 +106,12 @@ place where a mesh replaces its predecessor, which is what lets a far
 region keep its old mesh until the new one is published.
 
 Godot's packed arrays (`PackedVector3Array` and the rest) are values, not
-objects, and the near batch job fills them on a worker (`NearBatchJob` in
-[`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp)); the
-`ArrayMesh` is made from them on the main thread in
-`GoannaClient::nearPublishBatch`.
+objects. Near batch, far-region and prepared baked-surface jobs fill them
+on workers in
+[`goanna_client_jobs.cpp`](../../src/goanna_client_jobs.cpp). The main
+thread creates `ArrayMesh` resources. Near batches publish together; far
+regions and baked-surface chunks stage one surface at a time and keep
+their old visible geometry until the replacement is complete.
 
 ### From the session to the main thread
 

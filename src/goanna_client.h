@@ -157,6 +157,17 @@ public:
         int n_verts = 0, n_idx = 0;
         int v_at = 0, i_at = 0;
     };
+    // Worker-owned value arrays, never Godot resources or scene objects.
+    struct LodUploadSurface {
+        godot::PackedVector3Array verts, norms;
+        godot::PackedVector2Array uvs, uv2s;
+        godot::PackedColorArray cols;
+        godot::PackedByteArray custom0, custom2;
+        godot::PackedInt32Array idx;
+        godot::PackedFloat32Array tangents;
+    };
+    static std::vector<LodUploadSurface> prepareLodUpload(LodRegionMesh &mesh);
+    godot::Array lod_uploads() const;
 
     GoannaClient();
     ~GoannaClient() override;
@@ -779,6 +790,12 @@ private:
     };
     struct LodRegion {
         godot::MeshInstance3D *node = nullptr;
+        // Unattached replacement. Coverage and handoffs change only after
+        // its final surface has uploaded and lodPublishRegion commits it.
+        godot::Ref<godot::ArrayMesh> upload_mesh;
+        size_t upload_surface = 0;
+        size_t upload_total = 0;
+        uint64_t upload_generation = 0;
         std::set<v3s16> members;
         bool dirty = false;
         // dirty_at is the FIRST invalidation since the last build (the
@@ -826,7 +843,11 @@ private:
     std::string m_surface_revision;
     struct SurfaceRegion { LodRegion region; uint64_t signature = 0; };
     std::map<goanna::SurfaceKey, SurfaceRegion> m_surface_regions, m_surface_staged;
-    std::unique_ptr<goanna::SurfaceJob> m_surface_ready;
+    struct PreparedSurfaceJob : goanna::SurfaceJob {
+        std::map<goanna::SurfaceKey, std::vector<LodUploadSurface>> uploads;
+        void run() override;
+    };
+    std::unique_ptr<PreparedSurfaceJob> m_surface_ready;
     std::vector<goanna::SurfaceKey> m_surface_uploads;
     std::vector<std::pair<uint64_t, godot::MeshInstance3D *>> m_surface_retired;
     uint64_t m_surface_retired_serial = 0;
@@ -1179,11 +1200,19 @@ private:
     // waiter if their chain has not arrived; unknown space stays unknown.
     void lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec &exact,
             const LodRegionSpec &coarse, LodRegionSnapshot &out);
-    // Turn a finished LodRegionMesh into the region's ArrayMesh and put it on
-    // screen. Main thread, whether the mesh came from a worker or was built
-    // inline because the pool is not running.
+    // Commit an uploaded mesh, its coverage and handoffs together. lm holds
+    // counts, ground patches and material identities; workers have released
+    // its raw geometry after preparing the packed arrays.
     void lodPublishRegion(const LodRegionKey &key, LodRegion &r, const LodRegionMesh &lm,
             std::chrono::steady_clock::time_point t0, int exact_cell, int coarse_cell);
+    bool lodUploadSurface(LodRegion &r, const std::vector<LodUploadSurface> &surfaces,
+            uint64_t generation);
+    godot::Ref<godot::Material> lodMaterial(u32 texture_id, bool liquid, bool warming = false);
+    uint64_t m_lod_material_cold_builds = 0;
+    uint64_t m_lod_surfaces_uploaded = 0;
+    uint64_t m_lod_uploads_cancelled = 0;
+    // Never reuse a submission stamp when a removed/reset region returns.
+    uint64_t m_lod_job_generation = 0;
     // Collect whatever the mesh workers have finished. Main thread, once a
     // poll, bounded so a large backlog is spread over frames rather than
     // spent in one.
@@ -1247,6 +1276,8 @@ private:
     godot::Ref<godot::Texture2D> companionTexture(u32 texture_id, const char *suffix);
     void clearMaterials() {
         m_materials.clear();
+        m_lod_water.clear();
+        m_lod_material.unref();
         m_anim_materials.clear();
         m_iris_shadow_mats.clear();
         m_material_warm_node = 0;

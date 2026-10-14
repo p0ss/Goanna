@@ -4,8 +4,8 @@
 // GoannaClient's side of goanna_surface.h, split out of goanna_client.cpp:
 // surfaceUpdate (called from update_lod) takes tiles off the session, asks
 // for the ones wanted, and submits a SurfaceJob; surfacePublish swaps the
-// finished surface in, chunk by chunk under a 2 ms budget, revealing it only
-// once every chunk is uploaded. The surface and the voxel meshes hand over
+// finished surface in, surface by surface under a 2 ms budget, revealing it
+// only once every chunk is uploaded. The surface and the voxel meshes hand over
 // in step: surfaceStage hides a newly published far region until a surface
 // built with it in mind is shown, so the two do not draw the same ground, and
 // surfaceRetire keeps a mesh that is leaving until a surface built without it
@@ -52,9 +52,11 @@ void GoannaClient::surfacePublish() {
     // uploaded. Old geometry keeps drawing throughout the upload budget.
     while (!m_surface_uploads.empty()) {
         const auto key = m_surface_uploads.back();
-        m_surface_uploads.pop_back();
         auto &next = m_surface_staged[key];
         const auto &chunk = m_surface_ready->chunks.at(key);
+        if (!lodUploadSurface(next.region, m_surface_ready->uploads.at(key), m_surface_generation))
+            return;
+        m_surface_uploads.pop_back();
         m_surface_uploading = true;
         lodPublishRegion({}, next.region, chunk.mesh, std::chrono::steady_clock::now(), 0, 0);
         m_surface_uploading = false;
@@ -223,7 +225,7 @@ void GoannaClient::surfaceUpdate() {
     input_hash(radius); input_hash(reach); input_hash(m_surface_received);
     input_hash(m_surface_source_revision);
     if (input_signature == m_surface_input_signature) return;
-    auto job = std::make_unique<SurfaceJob>();
+    auto job = std::make_unique<PreparedSurfaceJob>();
     job->tiles = m_surface_tiles;
     job->x = surfaceFloor(x, 32) * 32;
     job->z = surfaceFloor(z, 32) * 32;
