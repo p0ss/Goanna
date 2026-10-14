@@ -663,6 +663,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("luanti_version"), &GoannaClient::luanti_version);
     ClassDB::bind_method(D_METHOD("set_material_strength", "channel", "value"), &GoannaClient::set_material_strength);
     ClassDB::bind_method(D_METHOD("material_strength", "channel"), &GoannaClient::material_strength);
+    ClassDB::bind_method(D_METHOD("set_soft_texture_filtering", "enabled"), &GoannaClient::set_soft_texture_filtering);
+    ClassDB::bind_method(D_METHOD("soft_texture_filtering"), &GoannaClient::soft_texture_filtering);
     ClassDB::bind_method(D_METHOD("server_options"), &GoannaClient::server_options);
     ClassDB::bind_method(D_METHOD("set_solid_ice", "on"), &GoannaClient::set_solid_ice);
     ClassDB::bind_method(D_METHOD("solid_ice"), &GoannaClient::solid_ice);

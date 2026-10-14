@@ -23,8 +23,16 @@
 // other two linear because a direction field snapped to texels swings the
 // highlight from frame to frame.
 uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray albedo_array_soft : source_color, filter_linear_mipmap, repeat_enable;
+uniform bool soft_texture_filtering = false;
 uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
+
+vec4 sample_albedo_grad(vec3 uv_layer, vec2 uv_dx, vec2 uv_dy) {
+	return soft_texture_filtering
+			? textureGrad(albedo_array_soft, uv_layer, uv_dx, uv_dy)
+			: textureGrad(albedo_array, uv_layer, uv_dx, uv_dy);
+}
 // Whether the pack gave this array its _n and _s companions, so
 // normal_array and spec_array are bound. Both false under GOANNA_NO_PBR.
 uniform bool has_normal = false;

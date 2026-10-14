@@ -354,6 +354,15 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
         m_entities->setChannel(k, value);
 }
 
+void GoannaClient::set_soft_texture_filtering(bool enabled) {
+    m_soft_texture_filtering = enabled;
+    for (auto &kv : m_materials) {
+        Ref<ShaderMaterial> sm = kv.second;
+        if (sm.is_valid())
+            sm->set_shader_parameter("soft_texture_filtering", enabled);
+    }
+}
+
 void GoannaClient::set_texture_map(const String &csv) {
     m_texture_map = csv;
     if (m_session)
@@ -1034,6 +1043,8 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
             applyIrisGbuffers(sm, scissor ? GoannaIrisGbuffers::SURFACE_CUTOUT
                                           : GoannaIrisGbuffers::SURFACE_TERRAIN);
             sm->set_shader_parameter("albedo_array", arr);
+            sm->set_shader_parameter("albedo_array_soft", arr);
+            sm->set_shader_parameter("soft_texture_filtering", m_soft_texture_filtering);
             // Authored PBR from the server's own media, if a pack ships it:
             // this is what a resource pack buys over inferring relief from
             // the diffuse texture, and it needs no protocol change at all.
@@ -1498,6 +1509,8 @@ Ref<Material> GoannaClient::crackOverlayMaterial(const MaterialKey &key) {
     if (agt && agt->godotArray().is_valid()) {
         sm->set_shader_parameter("base_alpha_test", true);
         sm->set_shader_parameter("albedo_array", agt->godotArray());
+        sm->set_shader_parameter("albedo_array_soft", agt->godotArray());
+        sm->set_shader_parameter("soft_texture_filtering", m_soft_texture_filtering);
         const auto &lanim = agt->layerAnim();
         if (!lanim.empty()) {
             PackedInt32Array anim;

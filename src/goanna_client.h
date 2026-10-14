@@ -198,6 +198,8 @@ public:
     // already built, so a slider shows its effect at once.
     void set_material_strength(const godot::String &channel, float value);
     float material_strength(const godot::String &channel) const;
+    void set_soft_texture_filtering(bool enabled);
+    bool soft_texture_filtering() const { return m_soft_texture_filtering; }
     // A game_texture,pack_path CSV, so set_texture_path may point at an
     // unmodified Minecraft resource pack. Set before connect_to.
     // What a paired server mod said this server permits, empty against a
@@ -1291,6 +1293,7 @@ private:
     float m_node_anim_time = 0.0f;
     float m_node_anim_pinned = -1.0f;
     std::map<std::string, float> m_mat_strength; // see set_material_strength
+    bool m_soft_texture_filtering = false;
     // Texture ids belonging to nodes drawn as a liquid that are not one. See
     // buildFakeLiquidTextures.
     std::set<u32> m_fake_liquid_tex;

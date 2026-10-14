@@ -236,7 +236,7 @@ void fragment() {
 			}
 		}
 	}
-	tile = textureGrad(albedo_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);
+	tile = sample_albedo_grad(vec3(tile_uv, float(layer)), uv_dx, uv_dy);
 	ALBEDO = (tile * COLOR).rgb;
 	if (v_stale > 0.001)
 		ALBEDO = mix(ALBEDO, vec3(dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722))), v_stale * stale_strength);
@@ -354,7 +354,7 @@ void fragment() {
 		for (int edge = 0; edge < 4; edge++) {
 			vec2 offset = edge < 2 ? vec2(edge == 0 ? -1.0 : 1.0, 0.0)
 					: vec2(0.0, edge == 2 ? -1.0 : 1.0);
-			vec3 neighbour = textureGrad(albedo_array,
+			vec3 neighbour = sample_albedo_grad(
 					vec3(tile_uv + offset * texel, float(layer)), uv_dx, uv_dy).rgb;
 			surround += goanna_diamond_mask(neighbour, layer_diamond[layer]) * 0.25;
 		}
@@ -363,9 +363,9 @@ void fragment() {
 		float thickness = goanna_gem_mode(gem_code) == 2 ? block_depth : mix(0.4, 1.8, surround);
 		vec3 eye = vec3(dot(VIEW, TANGENT), dot(VIEW, BINORMAL), max(dot(VIEW, NORMAL), 0.05));
 		vec2 travel = goanna_diamond_travel(eye, thickness, gem_code);
-		vec3 middle = textureGrad(albedo_array,
+		vec3 middle = sample_albedo_grad(
 				vec3(tile_uv + travel * texel * 0.45, float(layer)), uv_dx, uv_dy).rgb;
-		vec3 rear = textureGrad(albedo_array,
+		vec3 rear = sample_albedo_grad(
 				vec3(tile_uv + travel * texel, float(layer)), uv_dx, uv_dy).rgb;
 		middle = mix(tile.rgb, middle, goanna_diamond_mask(middle, layer_diamond[layer]));
 		rear = mix(tile.rgb, rear, goanna_diamond_mask(rear, layer_diamond[layer]));

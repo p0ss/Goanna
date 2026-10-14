@@ -889,6 +889,7 @@ const SETTINGS := [
 	["Graphics/Grass and foliage", "render_foliage_wind", "toggle", "Foliage wind", "Animate ordinary leaves and plants without removing their geometry."],
 	["Graphics/Grass and foliage", "mat_sss", "slider", "Leaf translucency", "Light coming through leaves and ice from behind.", 0.0, 1.0, 0.05],
 	["Graphics/Materials", "texture_size", "steps", "Texture resolution", "How fine the enhanced materials' textures are, in pixels across a block face. Larger textures show more detail up close and use more video memory: each step up takes about four times as much. Textures larger than this are reduced when a world is loaded, so a change applies the next time you join.", [[128.0, "128"], [256.0, "256"], [512.0, "512"]]],
+	["Graphics/Materials", "soft_texture_filtering", "steps", "Texture filtering", "Soft uses linear mipmap filtering on terrain textures, which softens distant surfaces viewed at an angle. Crisp keeps anisotropic filtering for sharper detail.", [[0.0, "Crisp"], [1.0, "Soft"]]],
 	["Graphics/Materials", "auto_bump", "slider", "Auto bump", "Fake surface relief from texture brightness.", 0.0, 1.0, 0.05],
 	["Graphics/Materials", "bevel", "slider", "Edge bevel", "Chamfer the exposed edges of solid nodes.", 0.0, 0.15, 0.01],
 	["Graphics/Materials", "mat_normal", "slider", "Normal strength", "How much of the pack's surface relief to apply. Packs are authored for other art at other resolutions, and a normal map meant for 64 pixel textures reads as smeared blotches on 16 pixel ones. Lower this first if a pack looks muddy.", 0.0, 2.0, 0.05],
@@ -1172,6 +1173,7 @@ func _apply_setting(key: String, value: float) -> void:
 		"repeat_place": if client.has_method("set_repeat_place_interval"): client.set_repeat_place_interval(value)
 		"auto_bump": if client.has_method("set_auto_bump"): client.set_auto_bump(value)
 		"texture_size": if client.has_method("set_texture_size"): client.set_texture_size(int(value))
+		"soft_texture_filtering": if client.has_method("set_soft_texture_filtering"): client.set_soft_texture_filtering(on)
 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
 		"lamp_occlusion": client.set_lamp_occlusion(value > 0.5)
 		"lamp_shadow_distance": client.set_lamp_shadow_distance(value)
@@ -1209,6 +1211,8 @@ func _setting_value(key: String, fallback: float) -> float:
 		"repeat_place": if client.has_method("repeat_place_interval"): return client.repeat_place_interval()
 		"auto_bump": if client.has_method("auto_bump"): return client.auto_bump()
 		"texture_size": if client.has_method("texture_size"): return float(client.texture_size())
+		"soft_texture_filtering": if client.has_method("soft_texture_filtering"):
+			return 1.0 if client.soft_texture_filtering() else 0.0
 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
 		"lamp_occlusion": return 1.0 if client.lamp_occlusion() else 0.0
 		"lamp_shadow_distance": return client.lamp_shadow_distance()
