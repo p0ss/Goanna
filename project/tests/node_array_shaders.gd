@@ -22,7 +22,8 @@ const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 const NODES := "res://shaders/nodes_array.gdshader"
 const SCISSOR := "res://shaders/nodes_array_scissor.gdshader"
 # What materialFor sets by name on an array material, of either shader.
-const SET_BY_CLIENT := ["albedo_array", "normal_array", "spec_array", "has_normal",
+const SET_BY_CLIENT := ["albedo_array", "albedo_array_soft", "soft_texture_filtering",
+		"normal_array", "spec_array", "has_normal",
 		"has_spec", "layer_class", "layer_anim", "layer_depth", "layer_coarse",
 		"layer_roughness_floor", "pack_normal_gain", "block_light_emission",
 		"lod_flatten", "lod_avg_colour", "lod_coverage", "lod_avg_rough",
@@ -76,7 +77,7 @@ func _initialize() -> void:
 			"(layer_depth[layer] > 0.0 ? layer_depth[layer] : goanna_class_depth(cls))",
 			"* parallax_depth * pom;",
 			"if (parallax_shadow_strength > 0.001 && goanna_sun_dir.y > 0.02 && sn > 0.05) {",
-			"tile = textureGrad(albedo_array, vec3(tile_uv, float(layer)), uv_dx, uv_dy);"]:
+			"tile = sample_albedo_grad(vec3(tile_uv, float(layer)), uv_dx, uv_dy);"]:
 		check(nodes.contains(text), NODES + " lost part of its parallax march: " + text)
 	# A write, not a mention: the header comment names it to say why not.
 	var write := RegEx.create_from_string("ALPHA_SCISSOR_THRESHOLD\\s*=")

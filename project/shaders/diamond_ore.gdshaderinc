@@ -17,7 +17,7 @@ uniform float diamond_ore_transmission : hint_range(0.0, 1.0) = 1.0;
 uniform float diamond_ore_depth : hint_range(0.0, 4.0) = 2.5;
 
 vec3 goanna_ore_rock(int code, vec2 uv, int layer, vec2 dx, vec2 dy, vec3 fallback) {
-	vec3 here = textureGrad(albedo_array, vec3(uv, float(layer)), dx, dy).rgb;
+	vec3 here = sample_albedo_grad(vec3(uv, float(layer)), dx, dy).rgb;
 	if (goanna_diamond_mask(here, code) < 0.1)
 		return here;
 	// The combined ore art has no rock under its painted gems. Extend the
@@ -27,7 +27,7 @@ vec3 goanna_ore_rock(int code, vec2 uv, int layer, vec2 dx, vec2 dy, vec3 fallba
 		for (int side = 0; side < 4; side++) {
 			vec2 direction = side < 2 ? vec2(side == 0 ? -1.0 : 1.0, 0.0)
 					: vec2(0.0, side == 2 ? -1.0 : 1.0);
-			vec3 rock = textureGrad(albedo_array,
+			vec3 rock = sample_albedo_grad(
 					vec3(uv + direction * float(radius) / 16.0, float(layer)), dx, dy).rgb;
 			if (goanna_diamond_mask(rock, code) < 0.1)
 				return rock;
@@ -48,7 +48,7 @@ vec3 goanna_ore_interior(int code, vec2 uv, int layer, vec2 dx, vec2 dy,
 	for (int step = 1; step <= 8; step++) {
 		float fraction = float(step) / 8.0;
 		at = uv + travel * fraction;
-		vec3 wall = textureGrad(albedo_array, vec3(at, float(layer)), dx, dy).rgb;
+		vec3 wall = sample_albedo_grad(vec3(at, float(layer)), dx, dy).rgb;
 		if (goanna_diamond_mask(wall, code) < 0.1) {
 			path *= fraction;
 			break;

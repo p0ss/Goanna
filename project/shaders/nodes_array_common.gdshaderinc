@@ -23,7 +23,12 @@
 // other two linear because a direction field snapped to texels swings the
 // highlight from frame to frame.
 uniform sampler2DArray albedo_array : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
-uniform sampler2DArray albedo_array_soft : source_color, filter_linear_mipmap, repeat_enable;
+// The Soft texture filtering setting: still nearest within a level, so a
+// block up close keeps its pixels, but blended between mipmap levels with no
+// anisotropy, which is how Minecraft samples terrain and what softens a
+// distant surface seen at a grazing angle. Linear magnification here would
+// blur every texel near the camera.
+uniform sampler2DArray albedo_array_soft : source_color, filter_nearest_mipmap, repeat_enable;
 uniform bool soft_texture_filtering = false;
 uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;

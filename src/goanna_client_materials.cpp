@@ -356,9 +356,15 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
 
 void GoannaClient::set_soft_texture_filtering(bool enabled) {
     m_soft_texture_filtering = enabled;
+    // Only the node array and crack shaders declare it. A shader pack's
+    // translated terrain program does its own sampling, and setting an
+    // unknown parameter on any other material only earns a warning.
     for (auto &kv : m_materials) {
         Ref<ShaderMaterial> sm = kv.second;
-        if (sm.is_valid())
+        if (sm.is_null())
+            continue;
+        const Ref<Shader> shader = sm->get_shader();
+        if (shader == m_sh_array || shader == m_sh_array_scissor || shader == m_sh_crack)
             sm->set_shader_parameter("soft_texture_filtering", enabled);
     }
 }
