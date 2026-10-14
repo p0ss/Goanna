@@ -12,6 +12,19 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Isolate Eclipse lighting inputs, 14 October 2026. Add a reproducible
+  wall, overhang, lantern and pool fixture, disposable diagnostic pack
+  variants and corresponding Minecraft construction commands. On local
+  Luanti 5.17.0, Mineclonia 38561, Godot 4.5.1 and RTX 3090, ten day/night
+  captures plus a baseline dusk view reported no shader errors, using the
+  portable extension from committed `5bdefa52`. Sampled opaque surfaces
+  were unchanged by bypassing the screen chain. Removing vertex colour
+  darkening changed the recess more than approximately undoing the Luanti
+  light curve. The pack already produced warm lantern light at night and
+  warmer sunlight at dusk. No production lighting change was made, and
+  a matched Minecraft/Iris reference is still needed. See
+  [shader pack testing](../develop/shaderpack-testing.md#eclipse-lighting-isolation).
+
 - Cache announced server media, 14 October 2026. Compile Luanti's FileCache
   unchanged and store verified media by hash in `user://cache/media`.
   Request only cache misses; corrupt entries are downloaded and repaired.

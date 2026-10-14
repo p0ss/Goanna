@@ -237,3 +237,69 @@ The history pack was run on 13 October 2026 through the render service,
 RTX 3090, Godot 4.5.1, a local Luanti 5.17.0 server and Mineclonia release
 38561 (a copy of `r1tod1`). All 230400 pixels at 640 by 360 were (255, 0, 0).
 This checks accumulation, not a real pack's temporal antialiasing.
+
+## Eclipse lighting isolation
+
+`tools/test/eclipse-lighting-fixture.py` prepares a stone wall, roofed
+recess, lantern and pool for the render service. It copies a supplied
+Eclipse pack into a new scratch directory, records source hashes and
+generates day and night variants. It never changes the supplied pack or
+starts a client itself:
+
+```sh
+python3 tools/test/eclipse-lighting-fixture.py /path/to/eclipse \
+  --build /path/to/committed/checkout --out /tmp/eclipse-lighting
+GOANNA_RENDER_STATE=/tmp/eclipse-lighting-service \
+  tools/goanna-render serve --build /path/to/committed/checkout
+GOANNA_RENDER_STATE=/tmp/eclipse-lighting-service \
+  tools/goanna-render shoot /tmp/eclipse-lighting/job.json --no-start
+GOANNA_RENDER_STATE=/tmp/eclipse-lighting-service tools/goanna-render stop
+```
+
+The checkout needs a matching compiled extension. Normal GPU checks and
+the shared lock apply. `--variants baseline --phases dusk` makes one
+additional time-of-day reference, with a different output directory.
+
+All variants turn Eclipse's SSAO and soft shadows off. The baseline keeps
+the rest of the pack unchanged. The other variants isolate:
+
+- Inverse light levels: approximately invert Goanna's default Luanti
+  brightness curve before supplying light coordinates. This is a probe,
+  not a production correction: the inverse of averaged brightness is not
+  the average of the original levels. Luanti's daytime bank also contains
+  artificial light, so it is not Minecraft's separate skylight channel.
+- Old lighting off: set the pack's `oldLighting` property to false. This
+  removes directional face shading, not ambient occlusion.
+- Neutral vertex colour: replace `gl_Color` with white. This removes tint,
+  directional face shading and Goanna's combined corner/traced occlusion.
+  A brighter result does not establish that removing all of these is right.
+- Geometry only: remove composite/deferred programs and use an identity
+  final pass. Lighting and fog inside the geometry programs still run;
+  this is not an unlit albedo capture.
+
+The generated Minecraft function builds corresponding geometry around
+(1000, 64, 1000), clears its fixture volume and places the camera. Run it
+only in a disposable Java world, after loading the surrounding chunks.
+The final camera uses spectator mode so it does not fall. Match Eclipse's
+version and options, FOV, sun direction, weather and resource pack before
+comparing captures.
+The two games' textures, light propagation and lamp strengths can differ;
+equal clock values alone do not establish equivalent illumination. No
+Minecraft client is installed, authenticated or launched by this tool.
+
+The job records server node light levels in `GOANNA_LIGHT_PROBE_LOADED`
+log entries. Reject `ignore` samples: they describe unloaded mapblocks,
+not darkness. Goanna's eye-brightness uniforms remain fixed at full light
+in these experiments, so camera adaptation is not tested.
+
+On 14 October 2026, the five variants were captured at day and night on
+the RTX 3090, Godot 4.5.1, local Luanti 5.17.0 and Mineclonia 38561,
+using the portable extension from committed `5bdefa52`. A baseline dusk
+capture was also made. Every capture reported no shader errors. Fixed
+opaque wall and floor samples were identical with and without the screen
+chain, locating their darkening in the geometry shading. The inverse
+light-level probe changed the lantern recess modestly; removing vertex
+colour darkening changed it much more. Dusk already produced warmer
+sunlight with the unmodified pack. These are Goanna-side observations,
+not a matched Iris comparison or a validated lighting fix. Minecraft
+reference captures and performance measurements remain outstanding.
