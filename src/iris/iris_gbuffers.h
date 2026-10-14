@@ -71,6 +71,9 @@ struct GbuffersOptions {
     // oldLighting). Iris defaults this to off.
     bool old_lighting = false;
     bool separate_ao = false;
+    // A screen space chain consumes the exact pack output, including HDR.
+    // Standalone geometry instead hands display colour to Godot.
+    bool raw_colour = false;
     // Whether the translucent program writes depth, as Minecraft's water
     // does, so a screen space chain finds the water surface in depthtex0
     // and not in depthtex1. GoannaIrisGbuffers turns it on only for a pack
@@ -83,6 +86,8 @@ struct GbuffersOptions {
     // coordinates. Every other colortex a program samples is read as a
     // screen texture, its rows flipped (goanna_screen_uv in the shell).
     std::set<int> data_targets;
+    // UNORM16 data survives half-float viewports as two RGB bit groups.
+    std::set<int> packed_targets;
     // A label for the header comment, usually pack/program.
     std::string label;
     // The pack's custom uniforms (uniform.* in shaders.properties), by name.

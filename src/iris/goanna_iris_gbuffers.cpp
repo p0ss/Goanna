@@ -95,6 +95,7 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("block_id", "name"), &GoannaIrisGbuffers::block_id);
     ClassDB::bind_method(D_METHOD("update", "camera", "state"), &GoannaIrisGbuffers::update);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisGbuffers::report);
+    ClassDB::bind_method(D_METHOD("packed_target", "index"), &GoannaIrisGbuffers::packed_target);
     ClassDB::bind_method(D_METHOD("second_targets"), &GoannaIrisGbuffers::second_targets);
     ClassDB::bind_method(D_METHOD("read_targets"), &GoannaIrisGbuffers::read_targets);
     ClassDB::bind_method(D_METHOD("colour_target"), &GoannaIrisGbuffers::colour_target);
@@ -184,6 +185,14 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         const std::string v = trim(sa->second);
         separate_ao = v == "true" || (v != "false" && m_pack.options().count(v) > 0);
     }
+    static const char *legacy[8] = {"gcolor", "gdepth", "gnormal", "composite", "gaux1", "gaux2", "gaux3", "gaux4"};
+    for (int ct = 1; ct < 16; ++ct) {
+        auto format = m_pack.consts().find("colortex" + std::to_string(ct) + "Format");
+        if (format == m_pack.consts().end() && ct < 8)
+            format = m_pack.consts().find(std::string(legacy[ct]) + "Format");
+        if (format != m_pack.consts().end() && (format->second == "RGBA16" || format->second == "RGB16" ||
+                format->second == "RG16" || format->second == "R16")) m_packed_targets.insert(ct);
+    }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
             "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured"};
     const iris::GbuffersSurface kinds[SURFACE_COUNT] = {iris::GbuffersSurface::ArrayOpaque,
@@ -217,6 +226,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
         o.separate_ao = separate_ao;
+        o.raw_colour = !m_pack.compositeChain().empty();
+        o.packed_targets = m_packed_targets;
         // Only a pack with a screen space chain reads the water's depth.
         o.translucent_depth = !m_pack.compositeChain().empty();
         // Targets sized in pixels are data maps, read unflipped.
@@ -673,8 +684,10 @@ PackedInt32Array GoannaIrisGbuffers::read_targets() const {
 void GoannaIrisGbuffers::link_chain(const Ref<GoannaIrisEffect> &chain) {
     m_chain = chain;
     m_chain_bound = false;
-    if (chain.is_valid())
+    if (chain.is_valid()) {
         chain->set_gbuffers_reads(read_targets(), m_colour_target);
+        chain->set_gbuffers_colour_raw(true);
+    }
 }
 
 PackedInt32Array GoannaIrisGbuffers::second_targets() const {

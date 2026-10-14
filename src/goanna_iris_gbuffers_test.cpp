@@ -246,7 +246,7 @@ static void testTranslator() {
     check(err.empty() && contains(code, "& ivec2(15)"), "scalar widened for &: " + code);
     check(contains(code, "= vec2(0.5, 0.5);"), "mc_midTexCoord as a vec2");
 
-    // A program writing only colortex0 has no second output and no branch.
+    // A colour-only program still masks cameras drawing other targets.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",
             "void main() { gl_FragData[0] = vec4(1.0); }\n", GbuffersSurface::ArrayOpaque, r, err);
     check(r.second.empty() && contains(code, "vec4 goanna_second = vec4(0.0)"),
@@ -380,6 +380,22 @@ static void testVertexLighting() {
     check(translateGbuffers(p, o, r, err) && r.ao_level == 0.0f, "a pack can disable vertex AO");
 }
 
+static void testColourHandoff() {
+    Program p;
+    p.vsh = "void main() { gl_Position = ftransform(); }";
+    p.fsh = "void main() { gl_FragData[0] = vec4(2.0, 0.5, 8.0, 1.0); }";
+    GbuffersOptions o;
+    o.raw_colour = true;
+    GbuffersResult r;
+    std::string err;
+    check(translateGbuffers(p, o, r, err), "HDR hand-off translation: " + err);
+    check(contains(r.code, "ALBEDO = goanna_out_0.rgb;"), "a chain gets unclamped pack colour");
+    check(!contains(r.code, "ALBEDO = goanna_to_linear"), "a chain does not get a second colour conversion");
+    o.raw_colour = false;
+    check(translateGbuffers(p, o, r, err) && contains(r.code, "ALBEDO = goanna_to_linear"),
+            "standalone geometry retains display colour conversion");
+}
+
 static void testSky() {
     Program p;
     p.vsh = "varying vec4 colour; void main() { colour = gl_Color; gl_Position = ftransform(); }";
@@ -407,6 +423,7 @@ int main(int argc, char **argv) {
     testGeometryReads();
     testVertexLighting();
     testSky();
+    testColourHandoff();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);
         return 1;

@@ -158,3 +158,15 @@ vec4 goanna_shadow_position(vec4 clip, uint layers) {
 	return vec4(clip.x, clip.y, 0.5 * (clip.w - clip.z), clip.w);
 }
 #endif
+
+// Six groups of at most eleven bits carry four UNORM16 channels through
+// two RGB half-float viewports. Multiples of 1/2048 are represented exactly;
+// this also carries the fourth data channel despite opaque alpha being 1.
+vec3 goanna_pack_unorm16(vec4 value, bool low) {
+	uvec4 bits = uvec4(round(clamp(value, 0.0, 1.0) * 65535.0));
+	if (!low)
+		return vec3(uvec3(bits.r & 2047u, (bits.r >> 11u) | ((bits.g & 63u) << 5u),
+				(bits.g >> 6u) | ((bits.b & 1u) << 10u))) / 2048.0;
+	return vec3(uvec3((bits.b >> 1u) & 2047u, (bits.b >> 12u) | ((bits.a & 127u) << 4u),
+			bits.a >> 7u)) / 2048.0;
+}

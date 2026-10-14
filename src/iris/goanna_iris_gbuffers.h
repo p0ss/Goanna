@@ -77,6 +77,7 @@ public:
     // (iris::GbuffersResult::second), ascending: the targets
     // project/game/effects/iris_targets.gd may draw for the chain.
     godot::PackedInt32Array second_targets() const;
+    bool packed_target(int index) const { return m_packed_targets.count(index) > 0; }
     // Of those, the ones only the water program writes. Opaque terrain in
     // their second output pass writes zero with Godot's opaque alpha of 1,
     // where Minecraft's masked write leaves the target clear; the chain
@@ -139,6 +140,7 @@ private:
     std::vector<int> m_second[SURFACE_COUNT];
     std::vector<int> m_reads[SURFACE_COUNT];
     int m_colour_target = 0;
+    std::set<int> m_packed_targets;
     godot::Ref<GoannaIrisEffect> m_chain;
     bool m_chain_bound = false;
     std::string m_error[SURFACE_COUNT];

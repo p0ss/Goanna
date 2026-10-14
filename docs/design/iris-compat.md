@@ -943,8 +943,9 @@ This is an approximation of Iris's ordering, not full deferred rendering:
 
 `report().gbuffers_reads` names the source used for each target. Copies use
 RGBA32F, which Godot can bind through `Texture2DRD`. This avoids losing
-further bits in the copy, but cannot recover data already lost in the half
-float second output viewports.
+further bits in the copy. UNORM16 secondary targets now bypass half-float
+precision loss through the bit transport described below. Other formats
+still retain the precision limits of their source viewports.
 On resize the render thread creates replacement textures; the main thread
 queues their binding before old textures are released on the render
 thread. `iris_teardown.tscn` exercises resizing and disposal.
@@ -954,6 +955,31 @@ names. New targets are initialised to zero even when `Clear=false`, and
 the last written ping pong side is retained across frames. The small
 `tests/shaderpacks/history` pack checks accumulation independently of a
 real pack's exposure or temporal filter.
+
+### Colour and packed material transport
+
+When geometry has a screen space chain, its primary colour reaches that
+chain unchanged. It is not clamped to 0..1 or decoded as display colour:
+Eclipse can write gamma-encoded colour while Complementary can write linear
+HDR into its declared floating-point target. The chain's final display
+output is decoded with the sRGB transfer function before Godot's output
+encoding. Standalone geometry retains display-colour conversion.
+
+Declared UNORM16 secondary targets use two RGB viewports. Each carries
+three groups of at most eleven bits as exact multiples of 1/2048. The copy
+reassembles four 16-bit channels before storing the requested target. This
+also preserves the fourth material channel, which ordinary opaque viewport
+alpha cannot carry. The extra pass counts towards the eight-pass limit.
+Blended geometry cannot preserve this bit encoding through colour blending;
+its translation reports that limitation. Other secondary formats still pass
+through half floats, and opaque alpha in those formats is not preserved.
+
+The `tests/shaderpacks/hdr-handoff` diagnostic pack writes HDR colour and
+four distinct 16-bit values, then checks them in `final`. On 14 October 2026
+it produced the expected terrain pixel `(186, 136, 186)` against the
+Minecraft Java 26.2 comparison server through BridgeTest, Godot 4.5.1 and
+the RTX 3090 in headless gamescope. Sky and blended water are negative
+controls in that fixture; this verifies opaque transport, not all blending.
 
 ### Pack sky geometry
 
@@ -975,20 +1001,21 @@ implemented. Missing custom samplers read transparent black and are reported.
 
 - **The second outputs' cost and precision.** Built (see "Second
   outputs"), but each target is a whole geometry pass, not yet measured,
-  and values pass through half floats, which loses the bits Photon packs
-  into its 16 bit material targets. One render target per pass would need
-  the geometry drawn through `RenderingDevice`, which neither the
-  second outputs nor the shadow map do. Of the packs whose terrain programs were checked, BSL and MakeUp
-  write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
+  and ordinary values pass through half floats. UNORM16
+  material targets now use the two-pass bit transport described above.
+  Multiple render targets in one pass would need the geometry drawn
+  through `RenderingDevice`, which neither the secondary outputs nor the
+  shadow map do. Of the packs whose terrain programs were checked,
+  BSL and MakeUp write `colortex1` and Complementary `colortex3`, 4 and 6 besides the
   colour. All six checkpoint packs have now been captured with them.
 - **Photon's water and its approximations.** It runs whole since
   2026-10-13 (above), but its water is near black and its ice is not
   shown, not traced. Its sky light comes from a compute pass
   (`deferred4_a`, `SH_SKYLIGHT`) Goanna does not run, so that ambient term
-  reads zero; its material data loses the low byte of each 16 bit channel
-  in the half float second outputs. History now retains the last written
-  ping pong side, but explicit `flip` directives remain unsupported.
-  Not compared with Iris.
+  reads zero; its UNORM16 material data now uses exact opaque transport,
+  but blended material data remains approximate. History now retains the
+  last written ping pong side, but explicit `flip` directives remain
+  unsupported. Not compared with Iris.
 - **Geometry inputs and pass ordering.** Geometry can now read copied
   colortex targets and opaque depth, as described above. Full fidelity
   needs the deferred chain before translucent geometry and geometry

@@ -101,12 +101,13 @@ public:
     void set_shadow(const godot::Ref<GoannaIrisShadow> &shadow);
     // Dump the translated GLSL for each pass into a directory, for debugging.
     void set_dump_dir(const godot::String &dir);
-    // Colour bridge, on by default: colortex0 receives Godot's colour encoded
-    // to gamma space LDR as a pack expects, and final's output is decoded
+    // Colour bridge, on by default: native colour is encoded to sRGB;
+    // translated geometry hands its pack values through raw. Final is decoded
     // back to linear. main.gd sets a linear tonemap to match while a pack
     // has a final program. Off hands the pack linear HDR and tonemaps after.
     void set_bridge_colour(bool on);
     bool get_bridge_colour() const;
+    void set_gbuffers_colour_raw(bool on) { m_gbuffers_colour_raw = on; }
     bool has_final() const;
     // Whether any pass samples colortex `index`, so a geometry program's
     // output to it is worth drawing (project/game/effects/iris_targets.gd).
@@ -117,6 +118,7 @@ public:
     // start of the chain in place of the clear. An invalid RID goes back
     // to clearing.
     void set_gbuffers_target(int index, const godot::RID &texture);
+    void set_gbuffers_low_target(int index, const godot::RID &texture);
     // That only translucent geometry writes colortex `index`
     // (GoannaIrisGbuffers::translucent_targets): the copy keeps it only
     // where depthtex0 is nearer than depthtex1, and elsewhere leaves the
@@ -227,6 +229,7 @@ private:
     std::string m_dump_dir;
     bool m_labpbr = false;
     bool m_bridge_colour = true;
+    bool m_gbuffers_colour_raw = false;
     // Set before the effect is attached, then only read.
     godot::Ref<GoannaIrisShadow> m_shadow;
 
@@ -277,7 +280,7 @@ private:
     std::array<bool, 16> m_ct_read{};
     // The second outputs, set on the main thread by set_gbuffers_target and
     // read on the render thread, under m_world_mutex.
-    std::array<godot::RID, 16> m_gb_source{};
+    std::array<godot::RID, 16> m_gb_source{}, m_gb_low{};
     std::array<bool, 16> m_gb_translucent{};
     uint64_t m_t0 = 0, m_last_us = 0;
     int m_frame = 0;

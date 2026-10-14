@@ -2625,6 +2625,13 @@ bool Translator::run(const Program &p, std::string &err) {
             for (auto &kv : second)
                 fo << "\t\tif (goanna_pass == " << kv.first + 1 << "u)\n\t\t\tgoanna_second = " << outVec4(kv.second)
                    << ";\n";
+            for (auto &kv : second)
+                if (m_o.packed_targets.count(kv.first)) {
+                    fo << "\t\tif (goanna_pass == " << kv.first + 1 << "u)\n"
+                       << "\t\t\tgoanna_second.rgb = goanna_pack_unorm16(goanna_second, "
+                       << "(CAMERA_VISIBLE_LAYERS & 8192u) != 0u);\n";
+                    if (blended) warn("UNORM16 byte transport is exact only for unblended geometry");
+                }
             fo << "\t\tALBEDO = goanna_second.rgb;\n";
             if (blended)
                 fo << "\t\tALPHA = clamp(goanna_second.a, 0.0, 1.0);\n";
@@ -2633,7 +2640,8 @@ bool Translator::run(const Program &p, std::string &err) {
         }
         // The shadow program's colour is shadowcolor0, kept as written.
         fo << "\t" << ind << "ALBEDO = "
-           << (m_o.shadow_pass ? "clamp(" + c + ".rgb, 0.0, 1.0)" : "goanna_to_linear(" + c + ".rgb)") << ";\n";
+           << (m_o.shadow_pass ? "clamp(" + c + ".rgb, 0.0, 1.0)" :
+                m_o.raw_colour ? c + ".rgb" : "goanna_to_linear(" + c + ".rgb)") << ";\n";
         if (blended)
             fo << "\t" << ind << "ALPHA = clamp(" << c << ".a, 0.0, 1.0);\n";
         if (split)

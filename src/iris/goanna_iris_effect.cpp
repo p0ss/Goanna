@@ -139,9 +139,9 @@ const char *kBlitVertex =
         "    uv = q;\n"
         "    gl_Position = vec4(q * 2.0 - 1.0, 0.0, 1.0);\n"
         "}\n";
-// mode 0 copies. mode 1 encodes Godot's linear HDR colour into the gamma
-// space LDR a pack expects to find in colortex0, as Minecraft's framebuffer
-// holds. mode 2 decodes a pack's finished image back to linear for Godot's
+// mode 0 copies pack colour unchanged, including linear HDR. Mode 1
+// encodes native Godot colour into sRGB for packs without geometry. Mode 2
+// decodes a pack's finished image back to linear for Godot's
 // output stage, which main.gd sets to a linear tonemap while a pack owns
 // final. Packs do their own exposure and tonemapping; handing them HDR and
 // then tonemapping their result again is how a pack looks washed out. mode 3
@@ -161,15 +161,33 @@ const char *kBlitFragment =
         "layout(push_constant, std430) uniform Params { int mode; int pad0; int pad1; int pad2; } params;\n"
         "layout(location = 0) in vec2 uv;\n"
         "layout(location = 0) out vec4 o;\n"
+        "vec3 encode(vec3 c) {\n"
+        "    c = max(c, vec3(0.0));\n"
+        "    return mix(12.92 * c, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c));\n"
+        "}\n"
+        "vec3 decode(vec3 c) {\n"
+        "    c = max(c, vec3(0.0));\n"
+        "    return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));\n"
+        "}\n"
         "void main() {\n"
         "    vec4 c = texture(src, uv);\n"
-        "    if (params.mode == 1) c.rgb = pow(clamp(c.rgb, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));\n"
-        "    else if (params.mode == 2) c.rgb = pow(max(c.rgb, vec3(0.0)), vec3(2.2));\n"
+        "    if (params.mode == 1) c.rgb = encode(c.rgb);\n"
+        "    else if (params.mode == 2) c.rgb = decode(c.rgb);\n"
         "    else if (params.mode == 3) c = vec4(1.0 - c.r);\n"
         "    else if (params.mode == 4 && !(texture(depth0, uv).r < texture(depth1, uv).r)) c = vec4(0.0);\n"
         "    if (params.mode == 5 || params.mode == 6) {\n"
         "        if (texture(depth0, uv).r >= 1.0) discard;\n"
-        "        if (params.mode == 6) c.rgb = pow(clamp(c.rgb, vec3(0.0), vec3(1.0)), vec3(1.0 / 2.2));\n"
+        "        if (params.mode == 6) c.rgb = encode(c.rgb);\n"
+        "    }\n"
+        "    if (params.mode == 8 || params.mode == 9) {\n"
+        "        if (params.mode == 9 && texture(depth0, uv).r >= 1.0) discard;\n"
+        "        uvec3 hi = uvec3(round(c.rgb * 2048.0));\n"
+        "        uvec3 lo = uvec3(round(texture(depth1, uv).rgb * 2048.0));\n"
+        "        uvec4 bits = uvec4(hi.x | ((hi.y & 31u) << 11u),\n"
+        "            (hi.y >> 5u) | ((hi.z & 1023u) << 6u),\n"
+        "            (hi.z >> 10u) | (lo.x << 1u) | ((lo.y & 15u) << 12u),\n"
+        "            (lo.y >> 4u) | (lo.z << 7u));\n"
+        "        c = vec4(bits) / 65535.0;\n"
         "    }\n"
         "    o = c;\n"
         "}\n";
@@ -253,6 +271,7 @@ void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_bridge_colour"), &GoannaIrisEffect::get_bridge_colour);
     ClassDB::bind_method(D_METHOD("has_final"), &GoannaIrisEffect::has_final);
     ClassDB::bind_method(D_METHOD("reads_colortex", "index"), &GoannaIrisEffect::reads_colortex);
+    ClassDB::bind_method(D_METHOD("set_gbuffers_low_target", "index", "texture"), &GoannaIrisEffect::set_gbuffers_low_target);
     ClassDB::bind_method(D_METHOD("set_gbuffers_target", "index", "texture"), &GoannaIrisEffect::set_gbuffers_target);
     ClassDB::bind_method(D_METHOD("set_gbuffers_translucent", "index", "translucent_only"),
             &GoannaIrisEffect::set_gbuffers_translucent);
@@ -383,6 +402,7 @@ String GoannaIrisEffect::pack_name() const {
 Dictionary GoannaIrisEffect::report() const {
     std::lock_guard<std::mutex> lock(m_report_mutex);
     Dictionary d;
+    d["gbuffers_colour_raw"] = m_gbuffers_colour_raw;
     d["pack"] = pack_name();
     d["load_error"] = String::utf8(m_load_error.c_str());
     Array programs;
@@ -1444,11 +1464,12 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
     // colortex0 starts as the scene colour; the rest start cleared, or as
     // the pack's geometry programs left them where a second output draws
     // them (set_gbuffers_target).
-    std::array<RID, 16> gb_source;
+    std::array<RID, 16> gb_source, gb_low;
     std::array<bool, 16> gb_translucent;
     {
         std::lock_guard<std::mutex> lk(m_world_mutex);
         gb_source = m_gb_source;
+        gb_low = m_gb_low;
         gb_translucent = m_gb_translucent;
     }
     for (int i = 0; i < 16; ++i) {
@@ -1460,7 +1481,9 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             TypedArray<RID> t;
             t.push_back(a);
             RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
-            if (gb_translucent[i] && depth1 != depth0)
+            if (gb_low[i].is_valid() && rd->texture_is_valid(gb_low[i]))
+                blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 8, depth0, gb_low[i]);
+            else if (gb_translucent[i] && depth1 != depth0)
                 blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 4, depth0, depth1);
             else
                 blit(rd, gb_source[i], fb, rd->framebuffer_get_format(fb), 0);
@@ -1468,7 +1491,7 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
             TypedArray<RID> t;
             t.push_back(a);
             RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
-            blit(rd, colour, fb, rd->framebuffer_get_format(fb), m_bridge_colour ? 1 : 0);
+            blit(rd, colour, fb, rd->framebuffer_get_format(fb), m_bridge_colour && !m_gbuffers_colour_raw ? 1 : 0);
         } else if (m_ct_clear[i]) {
             for (RID tex : {a, b}) {
                 TypedArray<RID> t;
@@ -1504,7 +1527,8 @@ void GoannaIrisEffect::_render_callback(int32_t p_type, RenderData *p_render_dat
                 t.push_back(colortex(rb.ptr(), i, side[i], size));
                 RID fb = FramebufferCacheRD::get_cache_multipass(t, nopasses, 1);
                 blit(rd, source, fb, rd->framebuffer_get_format(fb),
-                        i == 0 && m_bridge_colour ? 6 : 5, depth0);
+                        gb_low[i].is_valid() ? 9 :
+                        i == 0 && m_bridge_colour && !m_gbuffers_colour_raw ? 6 : 5, depth0, gb_low[i]);
             }
             geometry_restored = true;
         }
@@ -1620,6 +1644,12 @@ void GoannaIrisEffect::set_gbuffers_target(int index, const RID &texture) {
         return;
     std::lock_guard<std::mutex> lk(m_world_mutex);
     m_gb_source[index] = texture;
+}
+
+void GoannaIrisEffect::set_gbuffers_low_target(int index, const RID &texture) {
+    if (index < 1 || index >= 16) return;
+    std::lock_guard<std::mutex> lk(m_world_mutex);
+    m_gb_low[index] = texture;
 }
 
 void GoannaIrisEffect::set_gbuffers_translucent(int index, bool translucent_only) {
