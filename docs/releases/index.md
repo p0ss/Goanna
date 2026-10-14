@@ -8,7 +8,7 @@ downloaded release from 0.11.0 on updates itself; see
 | Version | Tagged | In brief |
 | --- | --- | --- |
 | [Unreleased](unreleased.md) | | Changes on main since 0.15.0 |
-| [0.15.0-alpha](v0.15.0-alpha.md) | | Server media cache, shader pack skies and colour, staged distant terrain |
+| [0.15.0-alpha](v0.15.0-alpha.md) | | Fewer stalls while terrain streams, server media cache, shader pack skies |
 | [0.14.0-alpha](v0.14.0-alpha.md) | 2026-10-13 | Shader packs, storms and settled snow, flames and portals |
 | [0.13.0-alpha](v0.13.0-alpha.md) | 2026-10-05 | Voice typing, chat from a controller, the newest materials on Start Game |
 | [0.12.0-alpha](v0.12.0-alpha.md) | 2026-10-05 | Read aloud and keyboard play, positional sound, materials on first visit |
