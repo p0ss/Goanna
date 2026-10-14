@@ -349,6 +349,8 @@ static func unreachable_bundles(bundles: Array, ambiguous: Dictionary) -> Array:
 # from the menu, since a bundle a player never used may be for another game.
 static func _has_any_version(id: String) -> bool:
 	var dir := AssetStore.root().path_join(id)
+	if not DirAccess.dir_exists_absolute(dir):
+		return false
 	for version in DirAccess.get_directories_at(dir):
 		if FileAccess.file_exists(dir.path_join(version).path_join("manifest.json")):
 			return true
