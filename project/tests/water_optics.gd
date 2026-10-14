@@ -51,6 +51,7 @@ func check(ok: bool, message: String) -> void:
 
 
 func _initialize() -> void:
+	_test_joining_query()
 	_test_shader()
 	_test_regions()
 	_test_murk()
@@ -60,6 +61,21 @@ func _initialize() -> void:
 	check(finished == 6, "%d of 6 tests ran to their end" % finished)
 	print("water optics: ", "ok" if failures == 0 else "%d failure(s)" % failures)
 	quit(1 if failures else 0)
+
+
+func _test_joining_query() -> void:
+	var peer := PacketPeerUDP.new()
+	var bound := peer.bind(0, "127.0.0.1")
+	check(bound == OK, "could not bind the joining query fixture")
+	if bound != OK:
+		return
+	var joining := GoannaClient.new()
+	root.add_child(joining)
+	joining.connect_to("127.0.0.1", peer.get_local_port(), "query_fixture", "")
+	check(joining.node_name_at(Vector3.ZERO) == "", "joining exposes no node name before content is ready")
+	joining.disconnect_from_server()
+	joining.free()
+	peer.close()
 
 
 # A sea with its surface at y 0.5 (water in every node at or under y 0) down

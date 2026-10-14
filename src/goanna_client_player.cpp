@@ -227,9 +227,16 @@ Vector2i GoannaClient::shader_pack_light_at(const Vector3 &pos) {
 String GoannaClient::node_name_at(const Vector3 &pos) {
     if (!m_session)
         return String();
+    // Water optics can query during joining. Definitions are replaced on
+    // the session thread until ContentReady, so do not read them earlier.
+    const SessionState state = m_session->stats().state;
+    if (state != SessionState::ContentReady && state != SessionState::Ready)
+        return String();
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     v3s16 np((s16)floorf(pos.x + 0.5f), (s16)floorf(pos.y + 0.5f), (s16)floorf(-pos.z + 0.5f));
     MapNode n = m_session->map().getNode(np);
+    if (n.getContent() == CONTENT_IGNORE)
+        return String();
     return String::utf8(m_session->nodeDefs()->get(n).name.c_str());
 }
 
