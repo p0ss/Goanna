@@ -161,6 +161,14 @@ is built into its binary. High resolution animation, custom models and
 resource pack extensions have not been verified. The initial texture test
 uses ordinary 16-pixel textures.
 
+The comparison profile resets Minecraft to four mipmap levels and texture
+filtering `NONE`. Imported shader-pack terrain samples nearest texels with
+blended mipmap levels and no anisotropy, matching this baseline. Native
+Goanna terrain retains its anisotropic sampler. The Minecraft sidecar records
+its live filtering option, mipmap count and block-atlas sampler. Anisotropic
+Minecraft profiles and exact mipmap generation equivalence are not supported
+by this baseline.
+
 Each run writes PNGs, frame JSON sidecars, server and bridge logs,
 `result.json` and an `index.html` gallery. The result records component and
 pack hashes, options, camera transforms, observed client state, shader
@@ -214,6 +222,9 @@ red, blue, gold and glass surfaces, the sky and the wood's right side. The
 side sample detects opposite sunlight directions which front-facing samples
 can miss.
 The script requires Pillow and the standard 1280x720 calibration camera.
+The input probe samples both near and distant floor albedo. RGB standard
+deviation records local texture contrast, so equal mean colours cannot hide
+an overly sharp distant texture.
 It records mean RGB differences and pixel RGB mean absolute error without
 altering screenshots. Mean colour agreement in these areas does not establish
 whole-frame equivalence. Animated gold and emissive effects, geometry edges,
@@ -385,3 +396,34 @@ Run the camera, capture rejection and profile isolation checks with:
 ```sh
 python tools/test/test-minecraft-comparison.py
 ```
+
+## Terrain filtering and colour controls
+
+On 15 October 2026, paired raw-texture captures identified anisotropy in
+Goanna's imported terrain sampler as a source of excess distant detail.
+Minecraft reported filtering `NONE`, four mipmap levels and a nearest
+block-atlas sampler with maximum anisotropy 1. Removing anisotropy from the
+imported albedo array reduced distant floor pixel error from 4.52 to 2.39 RGB
+levels. Raw texture contrast, measured as standard deviation, changed from
+11.33 to 8.50 against Minecraft's 8.02. The near-floor input was unchanged.
+Both raw floor inputs remained neutral grey; the residual distant mean
+albedo difference was 0.75 levels. Mipmap generation differs between the
+engines and was not changed.
+
+The lit comparison used the same diagnostic Eclipse copy described above,
+with only its suspect unbound cloud blend omitted. Matching terrain filtering
+did not remove the sampled floor's blue colour discrepancy. Disabling SSAO
+alone left the floor difference at 6.31 levels but reduced the glass sample's
+maximum mean channel difference from 21.57 to 2.65. Disabling soft shadows
+alone reduced the floor difference to 1.68; glass still differed by 18.27.
+These controls isolate the dominant floor error to soft-shadow sampling and
+the dominant glass error to the AO path. They do not establish the underlying
+causes or justify tint, exposure or shadow-strength adjustments.
+
+Runs used the dirty checkout based on `a9044c80`, the unmodified Minecraft
+Java 26.2 dedicated server, BridgeTest protocol 52, no Luanti game, Goanna's
+Luanti 5.17.0 core, Godot 4.5.1 and RTX 3090 in headless gamescope. Captured
+clocks were 6000. The captures, filtering metadata, input metrics and
+interactive before/after gallery are under `build/minecraft/filtering-audit/`.
+Foliage transparency, mipmap alpha coverage, soft-shadow depth and noise,
+glass AO inputs and baseline cloud geometry remain to be investigated.

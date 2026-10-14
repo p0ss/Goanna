@@ -28,16 +28,19 @@ SURFACES = {
 }
 # The current Goanna screen-space UV convention swaps the probe's rows.
 # Pair the same buffers explicitly, rather than comparing different inputs.
-INPUTS = {'albedo': (280, 290, 280, 650),
-          'vertex_colour': (920, 290, 920, 650),
-          'light_coordinates': (280, 650, 280, 290),
-          'sun_direction': (920, 650, 920, 290)}
+INPUTS = {'albedo': (280, 290, 280, 650, 50, 30),
+          'albedo_far': (175, 185, 175, 545, 50, 25),
+          'vertex_colour': (920, 290, 920, 650, 50, 30),
+          'light_coordinates': (280, 650, 280, 290, 50, 30),
+          'sun_direction': (920, 650, 920, 290, 50, 30)}
 
 
 def measure(reference, candidate):
     means = [ImageStat.Stat(im).mean for im in (reference, candidate)]
     error = ImageStat.Stat(ImageChops.difference(reference, candidate)).mean
     return {'minecraft_rgb': means[0], 'goanna_rgb': means[1],
+            'minecraft_rgb_stddev': ImageStat.Stat(reference).stddev,
+            'goanna_rgb_stddev': ImageStat.Stat(candidate).stddev,
             'mean_rgb_delta': [b - a for a, b in zip(*means)],
             'pixel_rgb_mae': error,
             'maximum_mean_channel_error': max(abs(b - a) for a, b in zip(*means))}
@@ -62,9 +65,9 @@ def main():
         parser.error('these sample areas require the standard calibration camera at 1280x720')
     rows = {}
     if args.inputs:
-        for name, (mx, my, gx, gy) in INPUTS.items():
-            rows[name] = measure(images[0].crop((mx, my, mx + 50, my + 30)),
-                                 images[1].crop((gx, gy, gx + 50, gy + 30)))
+        for name, (mx, my, gx, gy, width, height) in INPUTS.items():
+            rows[name] = measure(images[0].crop((mx, my, mx + width, my + height)),
+                                 images[1].crop((gx, gy, gx + width, gy + height)))
     else:
         for name, box in SURFACES.items():
             rows[name] = measure(*(im.crop(box) for im in images))

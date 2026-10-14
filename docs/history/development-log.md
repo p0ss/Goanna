@@ -12,6 +12,26 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Match imported terrain texture filtering, 15 October 2026. Minecraft's
+  live comparison profile uses four mipmap levels and no anisotropy, while
+  Goanna's imported terrain sampler previously requested anisotropy.
+  Remove that request from imported albedo arrays, retain native terrain
+  filtering and record Minecraft's sampler state in capture sidecars.
+  The distant raw floor sample's pixel error fell from 4.52 to 2.39 RGB
+  levels and its contrast approached Minecraft's; close detail stayed
+  unchanged. Raw stone was neutral grey in both clients. Separate shader
+  controls found that disabling soft shadows reduced the lit floor's
+  maximum mean channel difference from 6.31 to 1.68, while disabling SSAO
+  reduced the glass difference from 21.57 to 2.65. Use the diagnostic
+  Eclipse sky copy, without changing material lighting or exposure.
+  Tested against the unmodified Minecraft Java 26.2 dedicated server,
+  BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core,
+  Godot 4.5.1 and RTX 3090 in headless gamescope, using the dirty checkout
+  based on `a9044c80`. Clocks matched at noon. Headless shader contracts
+  and comparison checks passed. Mipmap generation, foliage, glass AO,
+  soft shadows and baseline clouds remain unresolved. See
+  [Minecraft comparison captures](../agents/minecraft-comparison.md).
+
 - Audit the suspect Eclipse sky reference, 14 October 2026. The earlier
   white-sky match demonstrated agreement with shader output, without
   establishing reference correctness. Verify that the captured source

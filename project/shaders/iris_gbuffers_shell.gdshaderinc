@@ -20,7 +20,9 @@
 // The same arrays nodes_array_common.gdshaderinc declares, without
 // source_color: a pack samples its atlas as stored, in gamma space, and
 // converts at the end (goanna_to_linear) the way Minecraft's output does.
-uniform sampler2DArray albedo_array : filter_nearest_mipmap_anisotropic, repeat_enable;
+// Minecraft's default atlas sampler uses nearest texels with blended mip
+// levels and no anisotropy. Native terrain keeps its sharper sampler.
+uniform sampler2DArray albedo_array : filter_nearest_mipmap, repeat_enable;
 uniform sampler2DArray normal_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray spec_array : hint_default_black, filter_linear_mipmap_anisotropic, repeat_enable;
 // An animated tile's frame count and frame length per first layer, as in

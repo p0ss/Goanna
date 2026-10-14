@@ -114,5 +114,6 @@ def prepare(root, out, job):
         result['resource'] = {'source': str(Path(job['resource_pack']).resolve()),
                               'sha256_tree': fingerprint(resource)}
     option_file(root / 'client/options.txt', {'resourcePacks': json.dumps(resource_names),
-                                             'incompatibleResourcePacks': '[]'})
+                                             'incompatibleResourcePacks': '[]',
+                                             'textureFiltering': 0, 'mipmapLevels': 4})
     return env, result

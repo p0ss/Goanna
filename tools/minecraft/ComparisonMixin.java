@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -44,7 +45,16 @@ public abstract class ComparisonMixin {
         result.addProperty("connected", client.level != null && client.player != null);
         result.addProperty("version", client.getLaunchedVersion());
         result.addProperty("fps", client.getFps());
+        result.addProperty("texture_filtering", client.options.textureFiltering().get().name());
+        result.addProperty("mipmap_levels", client.options.mipmapLevels().get());
         if (client.level != null) {
+            var atlas = client.getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS);
+            var sampler = atlas.getSampler();
+            JsonObject sampling = new JsonObject();
+            sampling.addProperty("min_filter", sampler.getMinFilter().name());
+            sampling.addProperty("mag_filter", sampler.getMagFilter().name());
+            sampling.addProperty("max_anisotropy", sampler.getMaxAnisotropy());
+            result.add("block_atlas_sampler", sampling);
             result.addProperty("world_time", client.level.getOverworldClockTime() % 24000);
             result.addProperty("sun_angle_degrees", client.level.environmentAttributes()
                 .getDimensionValue(EnvironmentAttributes.SUN_ANGLE));
