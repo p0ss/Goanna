@@ -341,6 +341,8 @@ var iris: GoannaIrisEffect
 # and water with them. Null without a pack, or with
 # GOANNA_SHADERPACK_GBUFFERS=0.
 var iris_gbuffers: GoannaIrisGbuffers
+# The pack's sky geometry, when its sky program translated.
+var iris_sky: Node3D
 # The cameras drawing the geometry programs' second outputs for the chain
 # (game/effects/iris_targets.gd); null without both halves of a pack.
 var iris_targets: Node
@@ -851,6 +853,12 @@ func _ready() -> void:
 			print("shader pack failed to load: ", iris.report())
 			shaderpack_failed_chain = iris.report()
 			iris = null
+	if iris_gbuffers and iris_gbuffers.shader(4) != null:
+		iris_sky = preload("res://game/effects/iris_sky.gd").new()
+		add_child(iris_sky)
+		iris_sky.initialise(iris_gbuffers)
+		env.environment.background_mode = Environment.BG_COLOR
+		env.environment.background_color = Color.BLACK
 	_setup_iris_shadow()
 	# The chain's targets the geometry programs sample (gaux1 and the rest).
 	if iris and iris_gbuffers:
@@ -4178,6 +4186,8 @@ func _apply_sky() -> void:
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
 			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain,
 			"cloud_height": cloud_height, "eye_brightness": pack_eye})
+	if iris_sky != null:
+		iris_sky.update(get_viewport().get_camera_3d(), st, top, client)
 	if iris_gbuffers:
 		# The pack's terrain does its own fog, so it is told where Goanna's
 		# would have begun and closed.

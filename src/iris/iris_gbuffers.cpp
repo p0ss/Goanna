@@ -1893,6 +1893,11 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                     globals[d.name] = {d.name, t};
                     continue;
                 }
+                if (d.name == "renderStage") {
+                    addDecl("uniform int goanna_render_stage = " + std::to_string(m_o.render_stage) + ";");
+                    globals[d.name] = {"goanna_render_stage", t};
+                    continue;
+                }
                 // A custom uniform named like a standard one replaces it, as
                 // in the screen space chain.
                 if (m_o.custom_uniforms.count(d.name) && !d.array && t.b != Ty::Struct &&
@@ -2162,7 +2167,13 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
     if (st == Stage::Vertex) {
         if (local == "goanna_gl_Vertex") return "vec4 goanna_gl_Vertex = MODEL_MATRIX * vec4(VERTEX, 1.0);";
         if (local == "goanna_gl_Normal") return "vec3 goanna_gl_Normal = normalize(mat3(MODEL_MATRIX) * NORMAL);";
-        if (local == "goanna_gl_Color") return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM2, mat3(MODEL_MATRIX) * NORMAL);";
+        if (local == "goanna_gl_Color") {
+            if (m_o.surface == GbuffersSurface::SkyBasic || m_o.surface == GbuffersSurface::SkyTextured) {
+                addDecl("uniform vec4 goanna_sky_colour = vec4(1.0);");
+                return "vec4 goanna_gl_Color = goanna_sky_colour;";
+            }
+            return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM2, mat3(MODEL_MATRIX) * NORMAL);";
+        }
         if (local == "goanna_gl_MultiTexCoord0") return "vec4 goanna_gl_MultiTexCoord0 = vec4(UV, 0.0, 1.0);";
         if (local == "goanna_gl_MultiTexCoord1") return "vec4 goanna_gl_MultiTexCoord1 = vec4(CUSTOM2.gb * 240.0, 0.0, 1.0);";
         if (local == "goanna_gl_Entity") return "vec4 goanna_gl_Entity = vec4(goanna_block_entity(UV2.y), -1.0, 0.0, 0.0);";
@@ -2377,11 +2388,6 @@ bool Translator::run(const Program &p, std::string &err) {
     // The macro set the pack loader and the screen space chain use too.
     for (auto &m : standardMacros())
         defineMacro(base, m.first, m.second);
-    for (int k = 0; k < 6; ++k) {
-        static const char *stages[] = {"MC_RENDER_STAGE_NONE", "MC_RENDER_STAGE_SKY", "MC_RENDER_STAGE_SUNSET",
-                "MC_RENDER_STAGE_TERRAIN_SOLID", "MC_RENDER_STAGE_TERRAIN_CUTOUT", "MC_RENDER_STAGE_TERRAIN_TRANSLUCENT"};
-        defineMacro(base, stages[k], std::to_string(k));
-    }
     for (auto &kv : m_o.defines)
         base[kv.first] = kv.second;
     m_r.drawbuffers = scanDrawBuffers(p.fsh);
@@ -2528,6 +2534,11 @@ bool Translator::run(const Program &p, std::string &err) {
         vo << "\tPOSITION = goanna_shadow_position("
            << (m_vin.count("goanna_gl_Position") ? "goanna_gl_Position" : "vec4(2.0, 2.0, 2.0, 1.0)")
            << ", CAMERA_VISIBLE_LAYERS);\n";
+    } else if (m_o.surface == GbuffersSurface::SkyBasic || m_o.surface == GbuffersSurface::SkyTextured) {
+        // Keep the pack's projected direction, but put the sky at the far
+        // depth so even coarse terrain occludes it. The dome follows the eye.
+        if (m_vin.count("goanna_gl_Position"))
+            vo << "\tPOSITION = vec4(goanna_gl_Position.xy, 0.0, goanna_gl_Position.w);\n";
     } else if (m_vin.count("goanna_gl_Position") && !plain) {
         m_r.moves_vertices = true;
         std::string P = needGlobal("iris_gbufferProjection", "mat4");
@@ -2591,7 +2602,8 @@ bool Translator::run(const Program &p, std::string &err) {
         for (int ct : m_r.dropped) list += (list.empty() ? "" : ", ") + std::string("colortex") + std::to_string(ct);
         warn("outputs to " + list + " cannot be expressed and are dropped");
     }
-    const bool blended = m_o.surface == GbuffersSurface::Translucent;
+    const bool blended = m_o.surface == GbuffersSurface::Translucent ||
+            m_o.surface == GbuffersSurface::SkyTextured;
     if (colour >= 0) {
         std::string c = outVec4(colour);
         if (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout) {
@@ -2600,7 +2612,7 @@ bool Translator::run(const Program &p, std::string &err) {
         }
         std::string ind;
         // The shadow program draws one target, shadowcolor0.
-        const bool split = !second.empty() && !m_o.shadow_pass;
+        const bool split = !m_o.shadow_pass;
         if (split) {
             // A target this program does not write keeps what is under it,
             // as GL's masked write does: alpha 0 where blended, and where
@@ -2642,7 +2654,9 @@ bool Translator::run(const Program &p, std::string &err) {
     // water in depthtex0 and not in depthtex1 and measures the water's
     // depth from the two (GbuffersOptions::translucent_depth). Godot's own
     // water writes none.
-    if (m_o.surface == GbuffersSurface::Translucent)
+    if (m_o.surface == GbuffersSurface::SkyBasic || m_o.surface == GbuffersSurface::SkyTextured)
+        o << "cull_disabled, depth_draw_never;\n";
+    else if (m_o.surface == GbuffersSurface::Translucent)
         o << "blend_mix, cull_disabled, " << (m_o.translucent_depth ? "depth_draw_always" : "depth_draw_opaque")
           << ";\n";
     else if (m_o.surface == GbuffersSurface::SingleCutout || m_o.shadow_pass)
@@ -2685,6 +2699,8 @@ std::vector<std::string> gbuffersFallback(const std::string &program) {
             program == "gbuffers_terrain_solid") {
         out.push_back("gbuffers_terrain");
     }
+    if (program == "gbuffers_skybasic") return {program, "gbuffers_basic"};
+    if (program == "gbuffers_skytextured") return {program, "gbuffers_textured", "gbuffers_basic"};
     if (program == "gbuffers_water") out.push_back("gbuffers_terrain");
     for (const char *n : {"gbuffers_textured_lit", "gbuffers_textured", "gbuffers_basic"})
         if (std::find(out.begin(), out.end(), n) == out.end()) out.push_back(n);

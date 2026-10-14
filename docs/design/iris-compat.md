@@ -955,6 +955,22 @@ the last written ping pong side is retained across frames. The small
 `tests/shaderpacks/history` pack checks accumulation independently of a
 real pack's exposure or temporal filter.
 
+### Pack sky geometry
+
+The loader translates `gbuffers_skybasic` and `gbuffers_skytextured`, with
+Iris's basic and textured fallbacks. A dome centred on the camera receives
+the server's sky colour. Stars and textured sun/moon geometry use the same
+programs with their own `renderStage` values. Sky vertices keep the pack's
+projected direction at the far depth, without writing depth. The secondary
+output cameras include this geometry, so sky masks reach the chain too.
+
+When this sky program is present, the native sky background steps aside.
+The pack may draw procedural stars, sun and moon in its dome shader and
+suppress the supplied geometry itself. These meshes approximate Minecraft's
+sky geometry; the server still supplies celestial textures, time and star
+settings. Custom sky textures and the separate sunset gradient are not
+implemented. Missing custom samplers read transparent black and are reported.
+
 ### What is left
 
 - **The second outputs' cost and precision.** Built (see "Second
@@ -975,8 +991,8 @@ real pack's exposure or temporal filter.
   Not compared with Iris.
 - **Geometry inputs and pass ordering.** Geometry can now read copied
   colortex targets and opaque depth, as described above. Full fidelity
-  needs the deferred chain before translucent geometry, sky programs and
-  geometry custom textures. Target copies arrive one frame late.
+  needs the deferred chain before translucent geometry and geometry
+  custom textures. Target copies arrive one frame late.
 - **The rest of the shadow map.** The first slice draws opaque, cut-out
   and foliage near terrain only; see the end of "The shadow map, as
   built" for what it leaves out: translucent casters and so `shadowtex1`
@@ -984,13 +1000,15 @@ real pack's exposure or temporal filter.
   grass, `shadowcomp`, the per program shadow variants, `sunPathRotation`.
   Its cost is not measured: a second scene render of the near terrain,
   with Godot's depth prepass, each frame.
-- **Everything not on a node surface**: entities, the sky, clouds, the hand,
-  particles and the procedural grass keep Godot's shaders; their programs
-  (`gbuffers_entities`, `gbuffers_skybasic` and the rest) are not loaded.
+- **Other scene geometry**: entities, clouds, the hand, particles
+  and the procedural grass keep Godot's shaders; their programs
+  (`gbuffers_entities`, `gbuffers_clouds` and the rest) are not loaded.
 - `atlasSize` is a single tile's 16 by 16 because there is no atlas, so a
   pack that does arithmetic on atlas coordinates (parallax, neighbouring
-  tiles) is not answered; `eyeBrightnessSmooth`, `moonPhase` and `worldDay`
-  are constants, as for the chain.
+  tiles) is not answered; `moonPhase` and `worldDay` remain constants.
+  Eye brightness now samples the camera node's raw light banks, with the
+  pack's smoothing half-life. Sky light is conservative where lamp light
+  dominates the daytime bank; Luanti does not send separate sky values.
 - A pack whose translation Godot's compiler crashes on takes the client
   with it. One such construct is avoided; others may exist.
 - Local multiplayer: the globals are not scoped per view as `RenderScope`

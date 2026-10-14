@@ -16,8 +16,8 @@
 // player's camera (GoannaIrisGbuffers), and the vertex inputs come from
 // the node mesh contract in docs/systems/mesh-attributes.md: gl_Color is
 // the tile tint times occlusion and face shading, gl_MultiTexCoord1 is
-// CUSTOM0's block and sky light, mc_Entity.x is the pack's own number for
-// the block in UV2.y. The program is unshaded and its colortex0 output is
+// CUSTOM2's linear block and sky coordinates, mc_Entity.x is the pack's
+// own number for the block in UV2.y. The program is unshaded and its colortex0 output is
 // ALBEDO. Its other outputs are second outputs: the same shader draws one
 // of them as its colour instead when the camera's cull mask says so
 // (kGbuffersPassShift below), and a camera of that kind renders into a
@@ -45,6 +45,8 @@ enum class GbuffersSurface {
     ArrayOpaque, // nodes_array.gdshader's tiles: an array texture, no alpha test
     ArrayCutout, // nodes_array_scissor.gdshader's tiles: alpha tested at alphaTestRef
     Translucent, // water.gdshader's surfaces: one texture, blended
+    SkyBasic, // camera-centred sky dome, behind all geometry
+    SkyTextured, // sun and moon textures, blended over the sky
     SingleCutout, // waving_leaves and waving_plants: one texture, alpha tested, both sides
 };
 
@@ -64,6 +66,7 @@ struct GbuffersOptions {
     // Macros defined before each stage, after the translator's own
     // (MC_VERSION and the rest). Pack option overrides go here.
     MacroTable defines;
+    int render_stage = 8; // MC_RENDER_STAGE_TERRAIN_SOLID
     // Minecraft's directional face shading in gl_Color (shaders.properties
     // oldLighting). Iris defaults this to off.
     bool old_lighting = false;

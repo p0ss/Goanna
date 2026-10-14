@@ -249,7 +249,8 @@ static void testTranslator() {
     // A program writing only colortex0 has no second output and no branch.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",
             "void main() { gl_FragData[0] = vec4(1.0); }\n", GbuffersSurface::ArrayOpaque, r, err);
-    check(r.second.empty() && !contains(code, "CAMERA_VISIBLE_LAYERS"), "colour only, no second output");
+    check(r.second.empty() && contains(code, "vec4 goanna_second = vec4(0.0)"),
+            "colour-only programs leave secondary targets cleared");
 
     // A pack that keeps its colour in colortex1 draws it as the colour and
     // as colortex1's second output, where its chain looks for it.
@@ -379,6 +380,25 @@ static void testVertexLighting() {
     check(translateGbuffers(p, o, r, err) && r.ao_level == 0.0f, "a pack can disable vertex AO");
 }
 
+static void testSky() {
+    Program p;
+    p.vsh = "varying vec4 colour; void main() { colour = gl_Color; gl_Position = ftransform(); }";
+    p.fsh = "uniform int renderStage; varying vec4 colour; void main() { "
+            "gl_FragData[0] = renderStage == MC_RENDER_STAGE_STARS ? colour : vec4(0.2); }";
+    GbuffersOptions o;
+    o.surface = GbuffersSurface::SkyBasic;
+    o.render_stage = 1;
+    GbuffersResult r;
+    std::string err;
+    check(translateGbuffers(p, o, r, err), "sky translation: " + err);
+    check(contains(r.code, "uniform int goanna_render_stage = 1;"), "sky identifies its own render stage");
+    check(contains(r.code, "POSITION = vec4(goanna_gl_Position.xy, 0.0"), "sky remains behind terrain");
+    check(contains(r.code, "depth_draw_never"), "sky does not occlude other geometry");
+    check(!contains(r.code, "goanna_vertex_colour(COLOR"), "sky colour is independent of terrain AO");
+    check(gbuffersFallback("gbuffers_skybasic") == std::vector<std::string>({"gbuffers_skybasic", "gbuffers_basic"}),
+            "sky fallback does not pick lit terrain");
+}
+
 int main(int argc, char **argv) {
     if (argc == 3)
         return translatePack(argv[1], argv[2]);
@@ -386,6 +406,7 @@ int main(int argc, char **argv) {
     testTranslator();
     testGeometryReads();
     testVertexLighting();
+    testSky();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);
         return 1;

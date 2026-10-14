@@ -49,7 +49,8 @@ public:
     // SURFACE_FOLIAGE is the single texture leaves and plants
     // (waving_leaves.gdshader, waving_plants.gdshader), drawn with the
     // cutout program.
-    enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_FOLIAGE = 3, SURFACE_COUNT = 4 };
+    enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_FOLIAGE = 3,
+            SURFACE_SKY = 4, SURFACE_SKY_TEXTURED = 5, SURFACE_COUNT = 6 };
 
     // Translates the pack's terrain, cutout and water programs (each with
     // Iris's fallbacks) and registers the globals they read. True when at

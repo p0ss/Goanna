@@ -148,6 +148,10 @@ Dictionary GoannaIrisGbuffers::lighting_state() const {
     d["eye_brightness_smooth"] = Vector2i(m_eye_smooth.round());
     d["eye_seen"] = m_eye_seen;
     d["eye_half_seconds"] = m_eye_half_seconds;
+    for (const char *name : {"sunPosition", "moonPosition", "shadowLightPosition", "sunAngle", "worldTime"}) {
+        auto it = m_builtin.find(name);
+        if (it != m_builtin.end()) d[name] = it->second;
+    }
     return d;
 }
 
@@ -181,11 +185,11 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         separate_ao = v == "true" || (v != "false" && m_pack.options().count(v) > 0);
     }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
-            "gbuffers_terrain_cutout"};
+            "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured"};
     const iris::GbuffersSurface kinds[SURFACE_COUNT] = {iris::GbuffersSurface::ArrayOpaque,
             iris::GbuffersSurface::ArrayCutout, iris::GbuffersSurface::Translucent,
-            iris::GbuffersSurface::SingleCutout};
-    const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage"};
+            iris::GbuffersSurface::SingleCutout, iris::GbuffersSurface::SkyBasic, iris::GbuffersSurface::SkyTextured};
+    const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage", "sky", "sky_textured"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         std::string chosen;
         for (auto &n : iris::gbuffersFallback(wanted[s]))
@@ -207,6 +211,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         }
         iris::GbuffersOptions o;
         o.surface = kinds[s];
+        const int stages[SURFACE_COUNT] = {8, 8, 17, 8, 1, 4};
+        o.render_stage = stages[s];
         for (auto &d : m_pack.customUniforms().defs())
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
@@ -357,7 +363,7 @@ void GoannaIrisGbuffers::makeTextures() {
         return ImageTexture::create_from_image(img);
     };
     m_white = solid(Color(1, 1, 1, 1));
-    m_black = solid(Color(0, 0, 0, 1));
+    m_black = solid(Color(0, 0, 0, 0));
     // noisetex: white noise per channel, 256 square, as packs expect by
     // default (noiseTextureResolution). Seeded, so a frame is reproducible.
     Ref<Image> noise = Image::create_empty(256, 256, false, Image::FORMAT_RGBA8);
@@ -559,7 +565,7 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     setGlobal("iris_heightLimit", 384);
     setGlobal("iris_logicalHeightLimit", 384);
     setGlobal("iris_bedrockLevel", -64);
-    setGlobal("iris_renderStage", 3);
+    setGlobal("iris_renderStage", 8);
     setGlobal("iris_atlasSize", Vector2i(16, 16));
     setGlobal("iris_maxPlayerHealth", 20.0f);
     setGlobal("iris_currentPlayerHealth", 20.0f);
@@ -699,7 +705,7 @@ Dictionary GoannaIrisGbuffers::report() const {
     Dictionary d;
     d["pack"] = String(m_pack.name().c_str());
     if (!m_load_error.empty()) d["error"] = String(m_load_error.c_str());
-    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage"};
+    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage", "sky", "sky_textured"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         Dictionary e;
         e["program"] = String(m_program[s].c_str());

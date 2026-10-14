@@ -60,10 +60,14 @@ func _initialize() -> void:
 		check(not names.is_empty(), name + " does not compile in Godot")
 		for u in (ARRAY_UNIFORMS if surface < 2 else SINGLE_UNIFORMS[surface]):
 			check(names.has(u), name + " has no uniform " + u)
+	for surface in [4, 5]:
+		var shader: Shader = g.shader(surface)
+		if shader != null:
+			check(not uniform_names(shader).is_empty(), "sky program does not compile in Godot")
 	# second_targets() is every surface's second outputs together, the
 	# colortex numbers game/effects/iris_targets.gd may draw.
 	var union := {}
-	for name in ["terrain", "cutout", "water", "foliage"]:
+	for name in ["terrain", "cutout", "water", "foliage", "sky", "sky_textured"]:
 		if report[name]["translated"]:
 			for ct in report[name]["second_colortex"]:
 				check(ct >= 1 and ct <= 15, name + " has a second output outside colortex1 to 15")
@@ -74,7 +78,7 @@ func _initialize() -> void:
 	# translucent_targets() is the water's second outputs no other surface
 	# writes.
 	var opaque := {}
-	for name in ["terrain", "cutout", "foliage"]:
+	for name in ["terrain", "cutout", "foliage", "sky", "sky_textured"]:
 		if report[name]["translated"]:
 			for ct in report[name]["second_colortex"]:
 				opaque[ct] = true
