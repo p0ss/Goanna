@@ -146,14 +146,15 @@ void GoannaClient::set_iris_gbuffers(const Ref<GoannaIrisGbuffers> &gbuffers) {
     refreshProceduralGrass();
 }
 
-bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface) {
+bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface,
+                                   bool water_override) {
     if (m_iris_gbuffers.is_null())
         return false;
     Ref<Shader> sh = m_iris_gbuffers->shader(surface);
     if (sh.is_null())
         return false;
     sm->set_shader(sh);
-    if (surface == GoannaIrisGbuffers::SURFACE_WATER) {
+    if (surface == GoannaIrisGbuffers::SURFACE_WATER && water_override) {
         // Every water surface is the one block; Mineclonia's water has no
         // entry in the texture map the block table is built from.
         sm->set_shader_parameter("goanna_iris_entity_override", m_iris_gbuffers->block_id("water"));
@@ -1130,6 +1131,10 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm->set_shader_parameter("albedo_tex", tex);
         if (sh == m_sh_water)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER);
+        // Blended glass and ice are translucent terrain too. Keep their
+        // block IDs so the pack does not give them water waves or tint.
+        else if (sh == m_sh_glass || sh == m_sh_ice)
+            applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER, false);
         // Clear glass is alpha tested by the game. It must write the pack's
         // material buffers too, rather than native lit RGB that a deferred
         // pack would decode as packed normals and material flags.

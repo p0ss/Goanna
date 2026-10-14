@@ -800,6 +800,12 @@ Val Translator::ident(const Expr &e) {
             // A sampler handed to a function as a value: its bound texture.
             SamplerRole role;
             samplerRole(n, role);
+            // An unassigned sampler2D keeps OpenGL's texture unit zero.
+            // The basic sky binds a white diffuse texture on that unit.
+            if (role == SamplerRole::Black && chainTargetIndex(n) < 0 &&
+                    m_o.surface == GbuffersSurface::SkyBasic && !m_o.shadow_pass &&
+                    it->second.t.name == "sampler2D")
+                role = SamplerRole::White;
             std::string tex;
             switch (role) {
             case SamplerRole::Lightmap: tex = needGlobal("iris_lightmap", "sampler2D"); break;
@@ -937,6 +943,14 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
     const int chain_target = role == SamplerRole::Black && !m_o.shadow_pass ? chainTargetIndex(sampler) : -1;
     if (chain_target >= 0)
         role = SamplerRole::ChainTarget;
+    auto declaration = m_globals[si(m_stage)].find(sampler);
+    if (role == SamplerRole::Black && m_o.surface == GbuffersSurface::SkyBasic &&
+            !m_o.shadow_pass && declaration != m_globals[si(m_stage)].end() &&
+            declaration->second.t.name == "sampler2D") {
+        // GLSL leaves an unassigned sampler on texture unit zero. Iris's
+        // basic sky uses white there, observed with the cloudTex probe.
+        role = SamplerRole::White;
+    }
     const bool array = m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout;
     auto coord = [&](const Val &uv) {
         if (!array) return uv.code;

@@ -195,8 +195,9 @@ encode block and sky coordinates directly. Sun RGB encodes its normalised
 view-space direction as `direction * 0.5 + 0.5`.
 
 For Eclipse captures, omit `--inputs` to measure the stage's floor, wood,
-red, blue and gold surfaces, plus the wood's right side. The side sample
-detects opposite sunlight directions which front-facing samples can miss.
+red, blue, gold and glass surfaces, the sky and the wood's right side. The
+side sample detects opposite sunlight directions which front-facing samples
+can miss.
 The script requires Pillow and the standard 1280x720 calibration camera.
 It records mean RGB differences and pixel RGB mean absolute error without
 altering screenshots. Mean colour agreement in these areas does not establish
@@ -281,6 +282,30 @@ The shader contracts, clock and tint checks, native light and shadow checks,
 and strict documentation build passed. A joining-time crash during an
 earlier capture also led to guarding node-name queries until content is
 ready; its local UDP regression test and subsequent captures passed.
+
+Further captures based on `99827bb7` identified an unbound `cloudTex`
+sampler in Eclipse's basic sky program. The diagnostic copy sampled that
+texture directly: Minecraft's resulting sky was near white, while Goanna's
+was black. GLSL initialises unassigned samplers to texture unit zero
+([GLSL specification](https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html)).
+The observed Iris basic sky path binds white there. Goanna now uses white
+for otherwise unbound 2D samplers on that basic sky path, including samplers
+passed through helper functions. Assigned colortex bindings remain intact.
+Custom sky texture bindings and non-2D fallback behaviour were not verified.
+
+With the original Eclipse pack restored, the sampled sky's maximum mean
+channel difference fell to 4.94. Minecraft's cloud geometry is still absent
+from Goanna's pack sky. Blended glass had been using Goanna's native material
+instead of the pack's translucent program. Routing blended glass and ice
+through that program, with their own block IDs, reduced the glass sample's
+maximum mean channel difference from 77.16 to 21.47. Glass remains different;
+ice was not present in the live stage. The latest gallery is
+`build/minecraft/lighting-parity/sky-glass-corrected/`, and the combined
+interactive comparison is `build/minecraft/lighting-parity/index.html`.
+Sky sampler regression checks and shader contracts passed. The earlier
+lighting and joining changes were also rebuilt from the clean committed
+checkout, reusing unchanged dependency objects after source verification;
+the clean checkout's shader and joining regressions passed.
 
 Run the camera, capture rejection and profile isolation checks with:
 

@@ -5,7 +5,8 @@
 
 Requires Pillow. These fixed areas measure this stage and camera only;
 animated textures, foliage, sky, water and geometry edges need separate
-inspection. Mean colour agreement does not establish whole-frame parity.
+inspection even when their mean colour is sampled. Mean colour agreement
+does not establish whole-frame parity.
 """
 
 import argparse
@@ -22,6 +23,8 @@ SURFACES = {
     'blue': (806, 280, 821, 300),
     'gold': (628, 378, 650, 413),
     'wood_right': (574, 325, 578, 370),
+    'glass': (722, 328, 780, 348),
+    'sky': (500, 200, 700, 235),
 }
 # The current Goanna screen-space UV convention swaps the probe's rows.
 # Pair the same buffers explicitly, rather than comparing different inputs.

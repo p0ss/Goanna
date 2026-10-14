@@ -12,6 +12,24 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Correct Eclipse sky input and blended material routing, 14 October
+  2026. The live sky sampler probe found that an unbound `cloudTex` reads
+  white in Iris's basic sky path and black in Goanna. Match the observed
+  unit-zero sky fallback, including sampler helper arguments, while
+  preserving assigned colortex bindings. Route blended glass and ice
+  through the pack's translucent program with their own block IDs. Tested
+  against the unmodified Minecraft Java 26.2 dedicated server, BridgeTest
+  protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core, Godot 4.5.1 and
+  RTX 3090 in headless gamescope, using the dirty checkout based on
+  `99827bb7`. With the original Eclipse restored, the sampled sky differed
+  by at most 4.94 mean RGB levels. The glass sample's maximum mean channel
+  difference fell from 77.16 to 21.47. Cloud geometry, glass, foliage,
+  water, animation and shadow differences remain; ice was not in the live
+  fixture. Native sampler regression checks and headless shader contracts
+  passed. The previous lighting and joining commits were also rebuilt and
+  checked in a clean checkout. See
+  [Minecraft comparison captures](../agents/minecraft-comparison.md).
+
 - Correct Minecraft comparison lighting inputs, 14 October 2026. Replace
   BridgeTest's placeholder node RGB with white while retaining explicit
   biome tints. Advertise the bridge's mirrored X coordinate in ordinary

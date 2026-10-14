@@ -413,6 +413,17 @@ static void testSky() {
     check(!contains(r.code, "goanna_vertex_colour(COLOR"), "sky colour is independent of terrain AO");
     check(gbuffersFallback("gbuffers_skybasic") == std::vector<std::string>({"gbuffers_skybasic", "gbuffers_basic"}),
             "sky fallback does not pick lit terrain");
+    p.fsh = "uniform sampler2D cloudTex, colortex7; "
+            "vec4 readCloud(sampler2D map) { return texture2D(map, vec2(0.5)); } "
+            "void main() { gl_FragData[0] = texture2D(cloudTex, vec2(0.5)) + "
+            "readCloud(cloudTex) + texture2D(colortex7, vec2(0.5)); }";
+    check(translateGbuffers(p, o, r, err), "unbound sky sampler translation: " + err);
+    check(contains(r.code, "texture(iris_tex_white,"), "unbound sky sampler reads white unit zero");
+    check(!contains(r.code, "iris_tex_black"), "sky sampler helpers also read white");
+    check(r.reads == std::vector<int>({7}), "assigned sky colortex retains its binding");
+    o.surface = GbuffersSurface::ArrayOpaque;
+    check(translateGbuffers(p, o, r, err) && contains(r.code, "iris_tex_black"),
+            "unsupported terrain samplers retain their existing fallback");
 }
 
 int main(int argc, char **argv) {

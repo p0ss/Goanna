@@ -1277,7 +1277,8 @@ private:
     size_t m_iris_block_names = 0;
     // Puts a pack's program on `sm` when one is loaded for the surface
     // (GoannaIrisGbuffers::SURFACE_*); false, and `sm` untouched, otherwise.
-    bool applyIrisGbuffers(const godot::Ref<godot::ShaderMaterial> &sm, int surface);
+    bool applyIrisGbuffers(const godot::Ref<godot::ShaderMaterial> &sm, int surface,
+                         bool water_override = true);
     // A pack's shadow map (iris-compat.md, rung 7): a child of a near
     // terrain MeshInstance3D drawing the same mesh on the shadow layer
     // alone, each surface with the pack's shadow program in place of its
