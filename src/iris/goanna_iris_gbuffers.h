@@ -110,6 +110,7 @@ public:
     bool has_shadow() const { return m_shadow_shaders[SURFACE_TERRAIN].is_valid(); }
     godot::Ref<godot::Shader> shadow_shader(int surface) const;
     int shadow_resolution() const { return m_shadow_settings.resolution; }
+    float sun_path_rotation() const { return m_shadow_settings.sun_path_rotation; }
     int shadow_layer() const { return (int)SHADOW_LAYER; }
     // The capture GoannaIrisShadow, whose textures update() hands the
     // gbuffers programs as shadowtex0, shadowtex1 and shadowcolor0 once

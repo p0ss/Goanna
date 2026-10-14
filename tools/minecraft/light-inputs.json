@@ -1,0 +1,11 @@
+{
+  "out": "build/minecraft/light-inputs",
+  "size": [1280, 720],
+  "settle_seconds": 20,
+  "time_ticks": 6000,
+  "shader_pack": "tools/minecraft/light-inputs",
+  "poses": [
+    {"name": "calibration", "pos": [8.5, 106, 24.5],
+     "look_at": [8.5, 101.5, 6.5], "fov": 70}
+  ]
+}

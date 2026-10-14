@@ -78,6 +78,7 @@ public:
     // pack's option defaults. A pack that requires an Iris feature Goanna
     // does not supply is refused, with the reason in report().
     bool load_pack(const godot::String &path);
+    float sun_path_rotation() const { return m_sun_path_rotation; }
     // Main thread. The depth capture companion described above. It shares
     // nothing with this effect but the scene buffers, so it can be made at
     // any time; add it to the Compositor before this effect.
@@ -216,6 +217,7 @@ private:
     void freeGpu();
 
     iris::Pack m_pack;
+    float m_sun_path_rotation = 0.0f;
     std::vector<Pass> m_passes;
     std::string m_load_error;
     // True for the depth capture companion, which does nothing else.

@@ -12,6 +12,29 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Correct Minecraft comparison lighting inputs, 14 October 2026. Replace
+  BridgeTest's placeholder node RGB with white while retaining explicit
+  biome tints. Advertise the bridge's mirrored X coordinate in ordinary
+  node metadata and reflect Goanna's celestial orbit accordingly. Apply
+  shader pack sun path rotation consistently and separate the orbit angle
+  from the game clock. Freeze both capture clocks and reject mismatches.
+  Add an authored input probe and quantitative calibration measurements.
+  Tested on the GPU against the unmodified Minecraft Java 26.2 dedicated
+  server, BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0
+  core, Godot 4.5.1 and RTX 3090 in headless gamescope. Runs used dirty
+  checkouts based on `a83278e1` and `39fc90f7`. The dusk probe matched
+  neutral vertex colour exactly, mean light coordinates within 0.06 RGB
+  levels and encoded sun direction within one level. Default Eclipse
+  surface samples differed by up to 6.31 at noon, 2.70 at dusk and 1.16 at
+  midnight, excluding animated gold. Disabling SSAO and soft shadows
+  reduced the noon floor difference to 1.68, with other samples up to 4.59.
+  Sky, water, glass, foliage, animation timing, AO and shadow differences
+  remain. Guard joining-time node queries after an observed crash; the
+  UDP regression and subsequent live captures passed. Offline shader,
+  light, shadow, tint and clock checks passed. Normal play and arbitrary
+  existing worlds were not tested. See
+  [Minecraft comparison captures](../agents/minecraft-comparison.md).
+
 - Add shared Minecraft comparison captures, 14 October 2026. Install the
   pinned Minecraft Java 26.2, Fabric, Iris and Sodium stack in an isolated
   directory, and build BridgeTest with a recorded texture-name correction.

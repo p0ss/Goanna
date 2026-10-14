@@ -112,6 +112,19 @@ def validate_frame_state(renderer, state):
         raise render.RenderError('Goanna has no connected terrain: ' + str(state.get('message', state)))
 
 
+def validate_clock_state(renderer, state, time_ticks):
+    if renderer == 'minecraft':
+        if state.get('world_time') != time_ticks:
+            raise render.RenderError('Minecraft clock differs from the job; rebuild the capture helper')
+    elif renderer == 'goanna':
+        expected = ((time_ticks + 6000) % 24000) / 24000
+        observed = state.get('sky', {}).get('time_of_day', -1)
+        error = abs((observed - expected + 0.5) % 1 - 0.5)
+        if observed < 0 or error > 1 / 24000:
+            raise render.RenderError('Goanna clock %.7f differs from job %.7f; '
+                                     'rebuild the comparison bridge' % (observed, expected))
+
+
 def fixture(server):
     """A small calibration stage in the dedicated comparison world only."""
     server.send('forceload add -16 -16 32 32')
@@ -126,6 +139,7 @@ def fixture(server):
     else:
         raise render.RenderError('calibration chunks did not load')
     commands = [
+        'gamerule minecraft:advance_time false',
         'time set noon', 'weather clear', 'tick freeze',
         'fill -8 99 -8 24 115 28 air',
         'fill -8 99 -8 24 99 28 smooth_stone',
@@ -209,6 +223,9 @@ def capture(args):
     goanna_build = opt.build.resolve() if opt.build else render.main_checkout()
     installation = json.loads((root / 'installation.json').read_text())
     job = json.loads(Path(opt.job).read_text())
+    time_ticks = int(job.get('time_ticks', 6000))
+    if not 0 <= time_ticks < 24000:
+        raise render.RenderError('Minecraft time_ticks must be between 0 and 23999')
     poses = job['poses']
     if not poses:
         raise render.RenderError('comparison needs at least one pose')
@@ -331,7 +348,7 @@ def capture(args):
             # bridge has completed its Luanti handshake. Send a fresh clock
             # and teleport only after the receiving client is ready.
             server.send('tick unfreeze')
-            server.send('time set noon')
+            server.send('time set %d' % time_ticks)
             time.sleep(2)
             server.send('tick freeze')
             for pose in poses:
@@ -366,6 +383,7 @@ def capture(args):
                     raise render.RenderError('Iris did not activate the requested shader pack')
                 if renderer == 'goanna':
                     state['render_settings'] = control.send('settings')
+                    state['sky'] = control.run('return main.client.sky_state()')
                     state['camera_fov_vertical'] = control.run('return main.cam.fov')
                     state['pack_lighting'] = control.run(
                         'return main.iris_gbuffers.lighting_state() if main.iris_gbuffers != null else {}')
@@ -374,6 +392,7 @@ def capture(args):
                         '\t"gbuffers": main.iris_gbuffers.report() if main.iris_gbuffers != null else {}}')
                     if job.get('shader_pack') and not any(state['shader_reports'].values()):
                         raise render.RenderError('Goanna did not activate the requested shader pack')
+                validate_clock_state(renderer, state, time_ticks)
                 frame = {'renderer': renderer, 'path': str(path), 'pose': pose,
                          'camera': mc if renderer == 'minecraft' else goanna,
                          'observed': state, 'capture': shot,

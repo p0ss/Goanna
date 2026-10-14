@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,6 +44,11 @@ public abstract class ComparisonMixin {
         result.addProperty("connected", client.level != null && client.player != null);
         result.addProperty("version", client.getLaunchedVersion());
         result.addProperty("fps", client.getFps());
+        if (client.level != null) {
+            result.addProperty("world_time", client.level.getOverworldClockTime() % 24000);
+            result.addProperty("sun_angle_degrees", client.level.environmentAttributes()
+                .getDimensionValue(EnvironmentAttributes.SUN_ANGLE));
+        }
         try {
             Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
             Object iris = api.getMethod("getInstance").invoke(null);

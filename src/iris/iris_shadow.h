@@ -37,8 +37,8 @@ struct ShadowSettings {
     // above the player towards the sun is clipped, as in Iris.
     float near_plane = 0.05f;
     float far_plane = 256.0f;
-    // The pack's sunPathRotation. Not applied: Goanna's sun is where the
-    // server puts it, and the shadows have to fall from that sun.
+    // The pack's orbit rotation in degrees, applied to the server's sun and
+    // moon before supplying lighting, shadow and celestial geometry inputs.
     float sun_path_rotation = 0.0f;
     // Things the pack asked for that are not honoured, for report().
     std::vector<std::string> notes;

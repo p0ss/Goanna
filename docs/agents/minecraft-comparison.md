@@ -36,6 +36,20 @@ copy, records it in `bridge-build.json`, and leaves the owner's clone alone.
 This fixes the observed join failure; it does not establish modern inventory
 or item-ID compatibility.
 
+The build also replaces three placeholder node base colours, RGB
+`100, 70, 85`, with white. Node colour multiplies the texture independently
+of explicit tile and biome tints. The placeholders made both Luanti clients
+darker and purple. Explicit tints and underwater post-effect colours remain
+intact. The build manifest records the corrected base colour.
+
+BridgeTest reserves node ID 120 for `bridgetest:glowing_air`. The build adds
+the ordinary node group `goanna_sky_mirror_x` to that definition. Goanna
+checks its name and group after content becomes ready, then reflects the
+sun and moon across X to match the bridge's world transform. Unmarked
+servers keep their original orbit. This uses normal node metadata over the
+unmodified Luanti protocol; the Luanti engine is not patched. Native Luanti
+does not interpret this group, so its celestial direction remains different.
+
 During a capture the service sets `GOANNA_COMPARISON_CAMERA=1`. This grants
 the native Luanti client `fly` and `noclip`, so it can hold the spectator
 camera position. All comparison players use spectator mode in the local
@@ -46,6 +60,9 @@ reconciliation from Azalea's simulated player, which otherwise pulls the
 native camera towards the ground even while the world is frozen. This bridge
 mode is a camera instrument for the local stage. Without that environment
 variable the bridge retains its upstream privileges and reconciliation.
+The flag also disables clock extrapolation and advertises zero time speed,
+matching the comparison world's frozen clock. Ordinary launches keep the
+bridge's upstream clock behaviour.
 
 ## Setup
 
@@ -83,7 +100,7 @@ client. The native client
 uses the existing Flatpak launcher. Its poses must share one FOV.
 
 The service starts its own local server, builds a small calibration stage
-in the dedicated comparison world, freezes world ticks at noon, and runs
+in the dedicated comparison world, freezes world ticks, and runs
 one GPU client at a time. It takes the GPU lock and checks for other clients
 throughout the run. The clients stay inside headless gamescope. Minecraft's
 small Fabric helper handles camera positioning and screenshots inside its
@@ -92,6 +109,11 @@ framed by server teleport commands and photographed through gamescope.
 Each Goanna run has a fresh user directory and disables its terrain store,
 so cached terrain from earlier bridge definitions cannot enter a comparison.
 The native client retains its HUD, including bridge inventory warnings.
+`time_ticks` selects the Minecraft clock phase, from 0 to 23999. Its default
+is 6000, noon; dusk is 12000 and midnight is 18000. The stage disables clock
+advancement before briefly unfreezing to deliver camera and clock packets.
+Minecraft's helper records the actual clock and sun angle; Goanna records
+its sky and shader lighting state. Mismatched capture clocks are rejected.
 
 The stage contains coloured pillars, stone, wood, glass, leaves, water, an
 emissive node, an oriented log, stairs and a slab. The stage commands clear
@@ -110,6 +132,7 @@ wait before capture, rather than claiming streaming has completed.
   "out": "build/minecraft/my-comparison",
   "size": [1280, 720],
   "settle_seconds": 20,
+  "time_ticks": 6000,
   "shader_pack": "/path/to/shaderpack.zip",
   "shader_options": {"SSAO_ENABLED": false},
   "resource_pack": "/path/to/texturepack.zip",
@@ -146,6 +169,45 @@ Disconnected Minecraft captures and Goanna captures with no meshed terrain
 are rejected. Failed runs record `ok: false` and an error. The service stops
 its own processes on success, failure or interruption.
 
+## Lighting input probe
+
+The authored diagnostic pack writes four inputs before lighting or
+post-processing: raw texture RGB, vertex colour, light coordinates and
+encoded view-space sun direction. Its sun path rotation is -40 degrees,
+matching the Eclipse pack used in the initial comparison. The same pack
+source runs in both clients.
+
+```sh
+tools/goanna-render minecraft tools/minecraft/light-inputs.json
+python tools/minecraft/light_metrics.py build/minecraft/light-inputs \
+  --inputs --out build/minecraft/light-inputs/metrics.json
+```
+
+Minecraft's upper row shows texture and vertex colour; its lower row shows
+light coordinates and sun direction. Goanna's current screen-space UV
+convention swaps those rows. The measurement script pairs the same buffers
+explicitly. This is a recorded compatibility difference, not an input
+colour correction.
+
+The geometry programs retain explicit biome tints. They disable old face
+lighting, so a neutral block should have white vertex colour. Light channels
+encode block and sky coordinates directly. Sun RGB encodes its normalised
+view-space direction as `direction * 0.5 + 0.5`.
+
+For Eclipse captures, omit `--inputs` to measure the stage's floor, wood,
+red, blue and gold surfaces, plus the wood's right side. The side sample
+detects opposite sunlight directions which front-facing samples can miss.
+The script requires Pillow and the standard 1280x720 calibration camera.
+It records mean RGB differences and pixel RGB mean absolute error without
+altering screenshots. Mean colour agreement in these areas does not establish
+whole-frame equivalence. Animated gold and emissive effects, geometry edges,
+sky, water and foliage need separate inspection.
+
+Goanna applies a pack's `sunPathRotation` to terrain, shadows, sky and
+screen-space uniforms together. `sunAngle` follows the celestial orbit;
+`worldTime` retains the server's clock. Luanti's orbit curve approximates
+Minecraft's curve between the matched noon and midnight positions.
+
 ## Observed runs
 
 On 14 October 2026, Minecraft Java 26.2's unmodified dedicated server served
@@ -175,6 +237,50 @@ checkout used for each run. Headless frame rates are relative observations
 only. Software rendering, normal play, Microsoft authentication,
 inventory equivalence, entities and arbitrary existing worlds were not
 tested by this workflow.
+
+### Lighting corrections
+
+Further live captures on the same server and GPU, using Godot 4.5.1 and the
+dirty checkout based on `a83278e1` and `39fc90f7`, isolated the bridge's base
+colour and the shader's sun direction. The dusk input probe measured:
+
+| Input | Maximum mean RGB channel difference, out of 255 |
+| --- | --- |
+| Raw stone texture | 0.50 |
+| Neutral vertex colour | 0.00 |
+| Block and sky light coordinates | 0.06 |
+| Encoded view-space sun direction | 1.00 |
+
+These corrections remove the broad darkening and purple tint. Unmodified
+Eclipse, with its default effects enabled, gave the following maximum mean
+channel differences over the floor, wood, red, blue and wood-side samples:
+
+| Clock phase | Maximum sampled difference |
+| --- | --- |
+| Noon | 6.31 |
+| Dusk | 2.70 |
+| Midnight | 1.16 |
+
+At noon, disabling `SSAO_ENABLED` and `SOFT_SHADOWS` in both clients reduced
+the floor's maximum mean channel difference from 6.31 to 1.68. Other
+surface samples differed by up to 4.59 with those options disabled, so this
+does not establish full lighting equivalence. The dusk side sample confirms
+that sunlight now reaches the same side of the wood in both clients.
+Both clients' recorded clock phases matched the job exactly.
+
+The gold sample differed by up to 9.17 at dusk. Emissive animation and shader
+animation timers are not synchronised by freezing world ticks. Sky, glass,
+water, foliage, ambient occlusion and shadow details remain visibly
+different. The input probe's row orientation also remains different.
+
+The galleries and numerical reports are under
+`build/minecraft/lighting-parity/`: `inputs-dusk-fixed/`, `final-day/`,
+`final-dusk/`, `final-night/` and `final-no-occlusion/`. Each directory has
+its original screenshots, capture sidecars and `metrics.json`.
+The shader contracts, clock and tint checks, native light and shadow checks,
+and strict documentation build passed. A joining-time crash during an
+earlier capture also led to guarding node-name queries until content is
+ready; its local UDP regression test and subsequent captures passed.
 
 Run the camera, capture rejection and profile isolation checks with:
 

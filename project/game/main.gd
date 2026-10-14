@@ -4177,23 +4177,32 @@ func _apply_sky() -> void:
 	# precipitation from the particle side, and "in water" for any liquid,
 	# since the node definition does not say which liquids are lava.
 	var pack_eye := Vector2i(-1, -1)
+	var pack_state := st
 	if iris or iris_gbuffers:
 		pack_eye = client.shader_pack_light_at(cam.global_position)
+		var orbit_rotation := 0.0
+		if iris_gbuffers:
+			orbit_rotation = iris_gbuffers.sun_path_rotation()
+		else:
+			orbit_rotation = iris.sun_path_rotation()
+		pack_state = preload("res://game/effects/iris_sky.gd").celestial_state(st, orbit_rotation)
+	var pack_sun: Vector3 = pack_state["sun_direction"]
+	var pack_moon: Vector3 = pack_state["moon_direction"]
 	if iris:
 		var pn := PlayerContext.find(self, "goanna_particles")
 		var rain: float = pn.precipitation() if pn != null else 0.0
-		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
+		iris.set_world_state({"sun_direction": pack_sun, "moon_direction": pack_moon,
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
 			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain,
 			"cloud_height": cloud_height, "eye_brightness": pack_eye})
 	if iris_sky != null:
-		iris_sky.update(get_viewport().get_camera_3d(), st, top, client)
+		iris_sky.update(get_viewport().get_camera_3d(), pack_state, top, client)
 	if iris_gbuffers:
 		# The pack's terrain does its own fog, so it is told where Goanna's
 		# would have begun and closed.
 		var pg := PlayerContext.find(self, "goanna_particles")
-		iris_gbuffers.update(get_viewport().get_camera_3d(), {"sun_direction": sun_dir,
-			"moon_direction": moon_dir, "time_of_day": st["time_of_day"],
+		iris_gbuffers.update(get_viewport().get_camera_3d(), {"sun_direction": pack_sun,
+			"moon_direction": pack_moon, "time_of_day": st["time_of_day"],
 			"in_water": 1 if underwater else 0, "sky_color": top,
 			"fog_color": e.fog_light_color, "fog_start": e.fog_depth_begin,
 			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0,

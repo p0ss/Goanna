@@ -59,7 +59,6 @@ ShadowSettings readShadowSettings(const std::map<std::string, std::string> &cons
     if (constNumber(consts, options, "shadowIntervalSize", v) && v >= 0.0) s.interval = (float)v;
     if (constNumber(consts, options, "sunPathRotation", v)) {
         s.sun_path_rotation = (float)v;
-        if (v != 0.0) s.notes.push_back("sunPathRotation is not applied: the shadows fall from the server's sun");
     }
     if (constNumber(consts, options, "shadowMapFov", v) && v > 0.0)
         s.notes.push_back("shadowMapFov (a perspective shadow map) is not supported; the map is orthographic");

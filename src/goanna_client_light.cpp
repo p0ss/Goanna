@@ -37,14 +37,34 @@ Dictionary GoannaClient::sky_state() const {
     if (!m_session)
         return d;
     SkyState st = m_session->skyState();
+    // Definitions become immutable at ContentReady. The bridge declares
+    // its mirrored world coordinate in a normal node group; other servers
+    // retain their original orbit. Reflect both bodies before any consumer
+    // derives lighting, shadows or shader uniforms from their directions.
+    const SessionState state = m_session->stats().state;
+    bool mirror_x = false;
+    if (state == SessionState::ContentReady || state == SessionState::Ready) {
+        // BridgeTest reserves ID 120. This node has no inventory item, so
+        // Luanti's item-alias name index omits it after updateAliases().
+        const ContentFeatures &marker = m_session->nodeDefs()->get(content_t(120));
+        mirror_x = marker.name == "bridgetest:glowing_air" &&
+            marker.getGroup("goanna_sky_mirror_x") != 0;
+    }
+    Vector3 sun_dir = toGodotDir(sunDirection(st.time_of_day, st.sky.body_orbit_tilt));
+    Vector3 moon_dir = toGodotDir(moonDirection(st.time_of_day, st.sky.body_orbit_tilt));
+    if (mirror_x) {
+        sun_dir.x = -sun_dir.x;
+        moon_dir.x = -moon_dir.x;
+    }
+    d["sky_mirror_x"] = mirror_x;
     d["version"] = (int)st.version;
     d["time_of_day"] = st.time_of_day;
     d["time_speed"] = st.time_speed;
     d["wicked_time_of_day"] = getWickedTimeOfDay(st.time_of_day);
     float ratio = st.day_night_override ? st.day_night_override_ratio : dayNightRatio(st.time_of_day) / 1000.0f;
     d["day_night_ratio"] = ratio;
-    d["sun_direction"] = toGodotDir(sunDirection(st.time_of_day, st.sky.body_orbit_tilt));
-    d["moon_direction"] = toGodotDir(moonDirection(st.time_of_day, st.sky.body_orbit_tilt));
+    d["sun_direction"] = sun_dir;
+    d["moon_direction"] = moon_dir;
     Dictionary sky;
     sky["type"] = String(st.sky.type.c_str());
     sky["bgcolor"] = toColor(st.sky.bgcolor);

@@ -15,6 +15,16 @@ var star_count := -1
 var gbuffers: GoannaIrisGbuffers
 
 
+static func celestial_state(state: Dictionary, degrees: float) -> Dictionary:
+	# Godot mirrors Luanti's Z. Rotate the orbit around its east/west axis,
+	# keeping every pack consumer on the same sun and moon path.
+	var out := state.duplicate()
+	for key in ["sun_direction", "moon_direction"]:
+		if state.has(key):
+			out[key] = (state[key] as Vector3).rotated(Vector3.RIGHT, deg_to_rad(degrees))
+	return out
+
+
 func make_surface(mesh: Mesh, shader: Shader) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
 	surface.mesh = mesh

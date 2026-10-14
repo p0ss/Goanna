@@ -49,7 +49,7 @@ static void testSettings() {
             {{"shadowMapResolution", "1024"}, {"sunPathRotation", "-40.0f"}, {"shadowDistance", "120.0f"}}, {});
     check(e.resolution == 1024, "shadowMapResolution read");
     check(near(e.distance, 120.0f), "shadowDistance with an f suffix");
-    check(near(e.sun_path_rotation, -40.0f) && !e.notes.empty(), "sunPathRotation read, and noted as not applied");
+    check(near(e.sun_path_rotation, -40.0f) && e.notes.empty(), "sunPathRotation read without an unsupported note");
     // A directive written as an option's name, as menus do.
     ShadowSettings o = readShadowSettings({{"shadowMapResolution", "SHADOW_RES"}}, {{"SHADOW_RES", "2048"}});
     check(o.resolution == 2048, "resolution through an option");

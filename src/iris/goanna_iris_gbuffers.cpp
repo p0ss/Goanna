@@ -6,6 +6,7 @@
 // docs/design/iris-compat.md for the plan.
 
 #include "iris/goanna_iris_gbuffers.h"
+#include "goanna_sky.h"
 
 #include "iris/iris_preproc.h"
 
@@ -105,6 +106,7 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("has_shadow"), &GoannaIrisGbuffers::has_shadow);
     ClassDB::bind_method(D_METHOD("shadow_shader", "surface"), &GoannaIrisGbuffers::shadow_shader);
     ClassDB::bind_method(D_METHOD("shadow_resolution"), &GoannaIrisGbuffers::shadow_resolution);
+    ClassDB::bind_method(D_METHOD("sun_path_rotation"), &GoannaIrisGbuffers::sun_path_rotation);
     ClassDB::bind_method(D_METHOD("shadow_layer"), &GoannaIrisGbuffers::shadow_layer);
     ClassDB::bind_method(D_METHOD("set_shadow", "shadow"), &GoannaIrisGbuffers::set_shadow);
     ClassDB::bind_method(D_METHOD("shadow_state"), &GoannaIrisGbuffers::shadow_state);
@@ -529,11 +531,13 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     setGlobal("iris_shadowLightPosition", sun.y >= 0.0f ? sun_v : moon_v);
     if (has_shadow()) updateShadow(pos, sun.y >= 0.0f ? sun : moon);
     setGlobal("iris_upPosition", cam.basis.inverse().xform(Vector3(0, 1, 0)) * 100.0f);
-    // Luanti's day starts at midnight, Minecraft's at sunrise.
-    float sun_angle = std::fmod(tod - 0.25f + 1.0f, 1.0f);
+    // The clock and the celestial orbit have different day/night lengths.
+    // sunAngle follows the orbit; worldTime retains the server's clock.
+    float sun_angle = std::fmod(goanna::getWickedTimeOfDay(tod) + 0.75f, 1.0f);
+    float clock = std::fmod(tod + 0.75f, 1.0f);
     setGlobal("iris_sunAngle", sun_angle);
     setGlobal("iris_shadowAngle", sun_angle < 0.5f ? sun_angle : sun_angle - 0.5f);
-    setGlobal("iris_worldTime", (int)(sun_angle * 24000.0f) % 24000);
+    setGlobal("iris_worldTime", (int)(clock * 24000.0f) % 24000);
     setGlobal("iris_worldDay", 0);
     setGlobal("iris_moonPhase", 0);
     Color sky = state.get("sky_color", Color(0.5f, 0.7f, 1.0f));
@@ -750,6 +754,7 @@ Dictionary GoannaIrisGbuffers::report() const {
     sh["warnings"] = sw;
     sh["resolution"] = m_shadow_settings.resolution;
     sh["distance"] = m_shadow_settings.distance;
+    sh["sun_path_rotation"] = m_shadow_settings.sun_path_rotation;
     if (m_shadow.is_valid()) sh["capture"] = m_shadow->report();
     d["shadow"] = sh;
     return d;

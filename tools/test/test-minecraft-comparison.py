@@ -12,11 +12,44 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import goanna_render as render
-from goanna_render_minecraft import camera, validate_frame_state
+from goanna_render_minecraft import camera, validate_clock_state, validate_frame_state
 from minecraft.profile import fingerprint, prepare, unpack
+from minecraft.build_bridge import mirrored_sky_marker, neutral_node_colours
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_capture_clocks_use_the_same_phase(self):
+        for ticks, tod in [(0, 0.25), (6000, 0.5), (12000, 0.75), (18000, 0)]:
+            validate_clock_state('minecraft', {'world_time': ticks}, ticks)
+            validate_clock_state('goanna', {'sky': {'time_of_day': tod}}, ticks)
+        with self.assertRaises(render.RenderError):
+            validate_clock_state('minecraft', {'world_time': 6040}, 6000)
+        with self.assertRaises(render.RenderError):
+            validate_clock_state('goanna', {'sky': {'time_of_day': 0.502}}, 6000)
+        with self.assertRaises(render.RenderError):
+            validate_clock_state('goanna', {}, 6000)
+
+    def test_sky_marker_identifies_the_mirrored_bridge(self):
+        definition = (b'name: String::from("bridgetest:glowing_air"),\n'
+                      b'            groups: vec![(String::from(""), 1)],')
+        corrected = mirrored_sky_marker(definition)
+        self.assertIn(b'String::from("goanna_sky_mirror_x")', corrected)
+        with self.assertRaises(ValueError):
+            mirrored_sky_marker(b'other node')
+
+    def test_neutral_node_colour_preserves_explicit_tints(self):
+        definition = (b'red: 100,\n    green: 70,\n    blue: 85,\n'
+                      b'post_effect_color: SColor::new(100, 70, 85, 20),\n'
+                      b'color_rgb: Some((80, 160, 40)),\n')
+        corrected = neutral_node_colours(definition * 3)
+        self.assertEqual(corrected.count(b'red: 255,'), 3)
+        self.assertEqual(corrected.count(b'green: 255,'), 3)
+        self.assertEqual(corrected.count(b'blue: 255,'), 3)
+        self.assertEqual(corrected.count(b'SColor::new(100, 70, 85, 20)'), 3)
+        self.assertEqual(corrected.count(b'color_rgb: Some((80, 160, 40))'), 3)
+        with self.assertRaises(ValueError):
+            neutral_node_colours(definition)
+
     def test_block_centres_and_camera_axes(self):
         # A Minecraft cube at (0, 100, 0) centres on (.5, 100.5, .5).
         # BridgeTest moves that centre to (-1, 100, 0) in Goanna.

@@ -42,12 +42,35 @@ func uniform_names(shader: Shader) -> Dictionary:
 
 
 func _initialize() -> void:
+	_test_pack.call_deferred()
+
+
+func _test_pack() -> void:
+	var bodies := {"sun_direction": Vector3.UP, "moon_direction": Vector3.DOWN}
+	var tilted: Dictionary = preload("res://game/effects/iris_sky.gd").celestial_state(bodies, -40.0)
+	check(tilted["sun_direction"].is_equal_approx(Vector3(0, cos(deg_to_rad(40.0)), -sin(deg_to_rad(40.0)))),
+		"negative sun path rotation tilts midday towards negative Godot Z")
+	check(tilted["moon_direction"].is_equal_approx(-tilted["sun_direction"]), "moon follows the same orbit")
+	check(bodies["sun_direction"] == Vector3.UP, "pack orbit does not change the server state")
+	check(preload("res://game/effects/iris_sky.gd").celestial_state(bodies, 0.0) == bodies,
+		"zero rotation preserves the server orbit")
 	var path := OS.get_environment("GOANNA_IRIS_PACK")
 	var bundled := path == ""
 	if bundled:
 		path = ProjectSettings.globalize_path(BASE)
 	var g := GoannaIrisGbuffers.new()
 	check(g.load_pack(path), "the pack did not load: %s" % g.report())
+	var camera := Camera3D.new()
+	root.add_child(camera)
+	g.update(camera, {"time_of_day": 0.75})
+	var lighting := g.lighting_state()
+	check(is_equal_approx(lighting["sunAngle"], 0.4636752137),
+		"sunAngle follows the dusk orbit rather than the clock")
+	check(lighting["worldTime"] == 12000, "worldTime retains the dusk clock")
+	g.update(camera, {"time_of_day": 0.0})
+	check(is_equal_approx(g.lighting_state()["sunAngle"], 0.75), "midnight sunAngle wraps")
+	check(g.lighting_state()["worldTime"] == 18000, "midnight worldTime wraps")
+	camera.free()
 	var report: Dictionary = g.report()
 	print("iris_gbuffers: ", report)
 	for surface in [0, 1, 2, 3]:

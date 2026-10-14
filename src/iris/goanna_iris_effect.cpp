@@ -8,6 +8,8 @@
 // goanna_iris_effect.h.
 
 #include "iris/goanna_iris_effect.h"
+#include "iris/iris_shadow.h"
+#include "goanna_sky.h"
 
 #include <godot_cpp/classes/framebuffer_cache_rd.hpp>
 #include <godot_cpp/classes/image.hpp>
@@ -261,6 +263,7 @@ void GoannaIrisEffect::_notification(int p_what) {
 
 void GoannaIrisEffect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_pack", "path"), &GoannaIrisEffect::load_pack);
+    ClassDB::bind_method(D_METHOD("sun_path_rotation"), &GoannaIrisEffect::sun_path_rotation);
     ClassDB::bind_method(D_METHOD("make_depth_capture"), &GoannaIrisEffect::make_depth_capture);
     ClassDB::bind_method(D_METHOD("pack_name"), &GoannaIrisEffect::pack_name);
     ClassDB::bind_method(D_METHOD("report"), &GoannaIrisEffect::report);
@@ -298,6 +301,7 @@ bool GoannaIrisEffect::load_pack(const String &path) {
         UtilityFunctions::push_error(String("Goanna Iris: ") + err.c_str());
         return false;
     }
+    m_sun_path_rotation = iris::readShadowSettings(m_pack.consts(), m_pack.options()).sun_path_rotation;
     // Goanna supplies none of Iris's optional features (compute, custom
     // images, SSBOs and the rest), so a pack that requires one is refused
     // rather than run in a state its author never wrote for.
@@ -1284,12 +1288,13 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     putFloat("frameTimeCounter", t);
     putFloat("frameTime", dt);
     // Luanti time_of_day: 0 midnight, 0.5 noon. Minecraft worldTime: 0 at
-    // 6:00, 6000 noon, 18000 midnight. sunAngle is worldTime / 24000.
+    // 6:00, 6000 noon, 18000 midnight. sunAngle follows the celestial orbit.
     float tod = w.tod - std::floor(w.tod);
     float wt = tod - 0.25f;
     wt -= std::floor(wt);
-    putFloat("sunAngle", wt);
-    putFloat("shadowAngle", wt < 0.5f ? wt : wt - 0.5f);
+    float sun_angle = std::fmod(goanna::getWickedTimeOfDay(tod) + 0.75f, 1.0f);
+    putFloat("sunAngle", sun_angle);
+    putFloat("shadowAngle", sun_angle < 0.5f ? sun_angle : sun_angle - 0.5f);
     putInt1("worldTime", (int)(wt * 24000.0f));
     putInt1("worldDay", 0);
     putInt1("moonPhase", 0);

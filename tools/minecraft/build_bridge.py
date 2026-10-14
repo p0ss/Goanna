@@ -8,11 +8,34 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 
 BRIDGE_REV = '093807327ea75fbaff91ee3f5dc56c83dbe2efdd'
 DATA_REV = '46b78398b6f351958e02fbd266424f0ee0ab138b'
 TOOLCHAIN = 'nightly-2026-10-14'
+
+
+def neutral_node_colours(source):
+    # ContentFeatures' base RGB multiplies every tile, independently of the
+    # tile's own biome tint. These placeholders darken both Luanti clients.
+    pattern = rb'red: 100,\n(\s*)green: 70,\n(\s*)blue: 85,'
+    result, count = re.subn(pattern,
+                           rb'red: 255,\n\1green: 255,\n\2blue: 255,', source)
+    if count != 3:
+        raise ValueError('BridgeTest node colour definitions changed')
+    return result
+
+
+def mirrored_sky_marker(source):
+    # BridgeTest mirrors Minecraft's X coordinate. Advertise that transform
+    # in an ordinary node group, so clients can reflect the celestial orbit.
+    old = (b'name: String::from("bridgetest:glowing_air"),\n'
+           b'            groups: vec![(String::from(""), 1)],')
+    new = old.replace(b'String::from("")', b'String::from("goanna_sky_mirror_x")')
+    if source.count(old) != 1:
+        raise ValueError('BridgeTest sky marker definition changed')
+    return source.replace(old, new)
 
 
 def checkout(url, revision, destination):
@@ -59,8 +82,10 @@ def main():
            b'else { vec![String::from("interact"), String::from("shout")] },')
     if original_rules.count(old) != 1:
         raise ValueError('BridgeTest privilege definition changed')
-    comparison_rules = original_rules.replace(old, new)
-    if rules.read_bytes() not in (original_rules, comparison_rules):
+    previous_rules = original_rules.replace(old, new)
+    neutral_rules = neutral_node_colours(previous_rules)
+    comparison_rules = mirrored_sky_marker(neutral_rules)
+    if rules.read_bytes() not in (original_rules, previous_rules, neutral_rules, comparison_rules):
         raise ValueError('Unexpected edits in the bridge rule definitions')
     rules.write_bytes(comparison_rules)
     player = bridge / 'src/s2c/player.rs'
@@ -77,9 +102,31 @@ def main():
     if player.read_bytes() not in (original_player, comparison_player):
         raise ValueError('Unexpected edits in the bridge position handling')
     player.write_bytes(comparison_player)
+    world = bridge / 'src/s2c/world.rs'
+    original_world = subprocess.check_output(['git', '-C', str(bridge), 'show',
+                                             'HEAD:src/s2c/world.rs'])
+    clock = b'time_speed: Some(72.0),'
+    if original_world.count(clock) != 1:
+        raise ValueError('BridgeTest clock definition changed')
+    # The capture world is frozen. Advertising normal time progression
+    # would make Luanti clients drift while Minecraft's clock stays still.
+    comparison_world = original_world.replace(clock,
+        b'time_speed: Some(if std::env::var("GOANNA_COMPARISON_CAMERA").ok().as_deref() == Some("1") '
+        b'{ 0.0 } else { 72.0 }),')
+    previous_world = comparison_world
+    elapsed = b'let elapsed = game_time.saturating_sub(time_state.anchor_game_time);'
+    if original_world.count(elapsed) != 1:
+        raise ValueError('BridgeTest clock interpolation changed')
+    comparison_world = comparison_world.replace(elapsed,
+        b'let elapsed = if std::env::var("GOANNA_COMPARISON_CAMERA").ok().as_deref() == Some("1") '
+        b'{ 0 } else { game_time.saturating_sub(time_state.anchor_game_time) };')
+    if world.read_bytes() not in (original_world, previous_world, comparison_world):
+        raise ValueError('Unexpected edits in the bridge clock handling')
+    world.write_bytes(comparison_world)
     dirty = subprocess.check_output(['git', '-C', str(bridge), 'diff', '--name-only'],
                                     text=True).splitlines()
-    if dirty != ['extra_data/item_texture_map.json', 'src/s2c/defs.rs', 'src/s2c/player.rs']:
+    if dirty != ['extra_data/item_texture_map.json', 'src/s2c/defs.rs',
+                 'src/s2c/player.rs', 'src/s2c/world.rs']:
         raise ValueError('Unexpected edits in the BridgeTest build copy: ' + str(dirty))
     env = dict(os.environ, MINECRAFT_DATA_REPO_PATH=str(data),
                CARGO_TARGET_DIR=str(root / 'bridge-target'))
@@ -92,8 +139,11 @@ def main():
     record = {'bridge_revision': BRIDGE_REV, 'minecraft_data_revision': DATA_REV,
               'toolchain': TOOLCHAIN, 'binary_sha256': sha,
               'overlay': {'minecraft:scute': entries['minecraft:scute']},
+              'node_base_colour': [255, 255, 255],
+              'sky_coordinate_group': 'goanna_sky_mirror_x',
               'comparison_privileges': ['fly', 'noclip'],
               'comparison_camera_env': 'GOANNA_COMPARISON_CAMERA=1',
+              'comparison_time_speed': 0,
               'cargo_lock_sha256': hashlib.sha256((bridge / 'Cargo.lock').read_bytes()).hexdigest()}
     (root / 'bridge-build.json').write_text(json.dumps(record, indent=2) + '\n')
     print(binary)
