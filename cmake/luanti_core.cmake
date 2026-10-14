@@ -80,7 +80,7 @@ set(LUANTI_CORE_SRCS
     network/networkpacket.cpp network/networkprotocol.cpp network/socket.cpp
     # client-side pieces that compile verbatim (no renderer calls)
     client/tile.cpp client/mesh.cpp client/meshgen/collector.cpp client/imagefilters.cpp
-    client/texturepaths.cpp
+    client/texturepaths.cpp client/filecache.cpp
     # world data
     serialization.cpp nameidmapping.cpp mapnode.cpp mapblock.cpp nodedef.cpp itemdef.cpp
     tool.cpp inventory.cpp itemstackmetadata.cpp metadata.cpp nodemetadata.cpp

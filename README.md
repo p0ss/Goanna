@@ -69,6 +69,9 @@ The menu provides Start Game, Join Game, Content, Settings and About. See
 Diffusion downloads and current limitations. See
 [the developer guide](docs/develop/index.md) to build, test or extend Goanna.
 
+For help with installation, builds or playing, join the
+[Goanna Discord server](https://discord.gg/asDVADMc5N).
+
 ## Compatibility and scope
 
 Goanna does not modify servers and does not grant abilities by default. It

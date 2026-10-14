@@ -202,6 +202,8 @@ void GoannaClient::connect_to(const String &host, int port, const String &player
     // Icon jobs point into the outgoing session's meshes and images.
     m_item_icons.clear();
     m_session = std::make_unique<GoannaSession>();
+    m_session->setMediaCacheRoot(std::string(OS::get_singleton()->get_user_data_dir()
+            .path_join("cache/media").utf8().get_data()));
     // The camera is created before connect_to(), so _report_fov() normally
     // arrives before the session. Apply the retained cone before the first
     // player-position packet or the server streams only its 70 degree
@@ -318,6 +320,9 @@ Dictionary GoannaClient::status() const {
     d["resident_blocks"] = m_session ? (int)m_session->residentBlocks() : 0;
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["media_received"] = (int)s.media_received;
+    d["media_cached"] = (int)s.media_cached;
+    d["media_downloaded"] = (int)s.media_downloaded;
+    d["media_cache_checked"] = s.media_cache_checked;
     d["materials"] = m_materials.size();
     d["camera_fov"] = m_session->cameraFov.load(std::memory_order_relaxed);
     int n_lights = 0;

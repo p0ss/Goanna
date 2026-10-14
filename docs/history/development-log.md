@@ -12,6 +12,23 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Cache announced server media, 14 October 2026. Compile Luanti's FileCache
+  unchanged and store verified media by hash in `user://cache/media`.
+  Request only cache misses; corrupt entries are downloaded and repaired.
+  Cache write failures leave joining available. Separate cache loading,
+  downloading and world preparation in the join screen, and add the
+  Discord support link to the README.
+  Tested against a disposable local Luanti 5.17.0 server running devtest
+  plus a one-texture fixture, Godot 4.5.1, with the dummy renderer and no
+  GPU. A first join downloaded 447 files; a fresh client process reused all
+  447 with no media requests in the server log. Corrupting one cache entry
+  and deleting another downloaded only two files. Changing the fixture's
+  contents under the same filename downloaded only that file; the next
+  join downloaded none. An unusable cache directory still reached ready
+  with 447 downloads. These runs used the dirty checkout based on
+  `98e73976`. Offline join label checks and the main script parse passed.
+  No rendered join screen, public server or Arch runtime was tested.
+
 - Refine native water reflections, 13 October 2026. Replace growing
   world-space ray steps with evenly spaced screen samples, refine depth
   crossings and reject hits behind unrelated silhouettes. Extend the

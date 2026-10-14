@@ -59,6 +59,7 @@ struct ParticleParameters;
 #include "util/pointedthing.h"
 
 class NodeDefManager;
+class FileCache;
 class IWritableItemDefManager;
 class MapBlock;
 class NetworkPacket;
@@ -97,7 +98,10 @@ struct SessionStats {
     size_t node_defs = 0;
     size_t item_defs = 0;
     size_t media_announced = 0;
-    size_t media_received = 0;
+    size_t media_received = 0; // available announced files, cached or downloaded
+    size_t media_cached = 0;
+    size_t media_downloaded = 0;
+    bool media_cache_checked = false;
     size_t blocks_received = 0;
     v3f player_pos = v3f(0, 0, 0);
     float player_pitch = 0, player_yaw = 0;
@@ -197,6 +201,8 @@ public:
     // Root directory; the server gets its own subdirectory. Set before
     // start(); empty leaves the store off.
     void setStoreRoot(const std::string &root) { m_store_root = root; }
+    // Set on the main thread before start(); cache IO stays on the session thread.
+    void setMediaCacheRoot(const std::string &root);
     BlockStore *store() { return m_store.get(); }
     uint64_t terrainDefinitions() const { return m_terrain_definitions; }
     uint64_t terrainVisualDefinitions() const { return m_terrain_visual_definitions; }
@@ -741,6 +747,7 @@ private:
     mutable std::mutex m_media_mutex;
     std::map<std::string, std::string> m_media_wanted; // name -> sha1 raw
     std::map<std::string, std::string> m_media;        // name -> bytes
+    std::unique_ptr<FileCache> m_media_cache;
     // Pushed media: waiting for its bytes (name -> sha1 raw and the tokens to
     // acknowledge), and arrived, waiting for the main thread to load it.
     struct PushedMedia { std::string sha1; std::vector<u32> tokens; };

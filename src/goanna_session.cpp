@@ -21,6 +21,7 @@
 
 #include "goanna_session.h"
 #include "util/hashing.h"
+#include "util/hex.h"
 
 #include "goanna_radial_form.h"
 #include "goanna_lod_storage.h"
@@ -31,6 +32,7 @@
 #include "goanna_luanti_client.h"
 #include "goanna_raycast.h"
 #include "client/node_visuals.h"
+#include "client/filecache.h"
 #include "client/item_visuals_manager.h"
 #include "raycast.h"
 #include "tool.h"
@@ -2634,7 +2636,13 @@ void GoannaSession::onItemDef(NetworkPacket &pkt) {
     maybeReady();
 }
 
+void GoannaSession::setMediaCacheRoot(const std::string &root) {
+    m_media_cache = root.empty() ? nullptr : std::make_unique<FileCache>(root);
+}
+
 void GoannaSession::onAnnounceMedia(NetworkPacket &pkt) {
+    if (m_media_announced)
+        return;
     u16 proto = stats().proto_ver;
     std::vector<std::string> names;
     {
@@ -2657,20 +2665,55 @@ void GoannaSession::onAnnounceMedia(NetworkPacket &pkt) {
             }
         }
     }
-    // Remote media servers are ignored; everything comes over the connection.
+    // Cache misses use the connection; remote media servers are not used.
     {
         std::lock_guard<std::mutex> lk(m_stats_mutex);
         m_stats.media_announced = names.size();
     }
-    m_media_announced = true;
-    m_media_announce_time = std::chrono::steady_clock::now();
-    m_media_last_arrival = m_media_announce_time;
-    infostream << "goanna: media announced: " << names.size() << " files; requesting all" << std::endl;
-    if (names.empty()) {
-        m_media_done = true;
-    } else {
-        requestMedia(names);
+    std::vector<std::string> missing;
+    size_t cached = 0;
+    std::map<std::string, std::string> announced;
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        announced = m_media_wanted;
     }
+    // Disk reads must not hold the media lock: the main thread also reads
+    // the announcement to select material bundles while showing progress.
+    for (const auto &wanted : announced) {
+        if (!m_running)
+            return;
+        std::ostringstream bytes(std::ios::binary);
+        // Cache keys come only from the server's digest, never its filenames.
+        // A partial or corrupt cache entry is a miss, not usable media.
+        if (wanted.second.size() == 20 && m_media_cache &&
+                m_media_cache->load(hex_encode(wanted.second), bytes) &&
+                hashing::sha1(bytes.str()) == wanted.second) {
+            {
+                std::lock_guard<std::mutex> lk(m_media_mutex);
+                m_media[wanted.first] = bytes.str();
+            }
+            ++cached;
+            std::lock_guard<std::mutex> stats_lock(m_stats_mutex);
+            m_stats.media_cached = cached;
+            m_stats.media_received = cached;
+        } else {
+            missing.push_back(wanted.first);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lk(m_media_mutex);
+        m_media_announce_time = std::chrono::steady_clock::now();
+        m_media_last_arrival = m_media_announce_time;
+    }
+    {
+        std::lock_guard<std::mutex> lk(m_stats_mutex);
+        m_stats.media_cache_checked = true;
+    }
+    m_media_announced = true;
+    infostream << "goanna: media announced: " << names.size() << " files; "
+               << cached << " cached, requesting " << missing.size() << std::endl;
+    m_media_done = missing.empty();
+    requestMedia(missing);
     maybeReady();
 }
 
@@ -2679,7 +2722,7 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
     u32 num_files;
     pkt >> num_bunches >> bunch_i >> num_files;
     u16 proto = stats().proto_ver;
-    size_t have = 0, want = 0;
+    size_t have = 0, want = 0, downloaded = 0;
     {
         std::lock_guard<std::mutex> lk(m_media_mutex);
         for (u32 i = 0; i < num_files; i++) {
@@ -2691,6 +2734,22 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
                 std::ostringstream oss(std::ios::binary);
                 decompressZstd(iss, oss);
                 data = oss.str();
+            }
+            auto announced = m_media_wanted.find(name);
+            if (announced != m_media_wanted.end()) {
+                if (hashing::sha1(data) != announced->second) {
+                    warningstream << "goanna: media " << name << " does not match its hash"
+                                  << std::endl;
+                    continue;
+                }
+                if (!m_media.count(name))
+                    ++downloaded;
+                if (m_media_cache &&
+                        !m_media_cache->update(hex_encode(announced->second), data)) {
+                    warningstream << "goanna: could not write the media cache; continuing "
+                                  << "without caching for this connection" << std::endl;
+                    m_media_cache.reset();
+                }
             }
             auto pushed = m_media_pushed.find(name);
             if (pushed != m_media_pushed.end()) {
@@ -2714,6 +2773,7 @@ void GoannaSession::onMedia(NetworkPacket &pkt) {
     {
         std::lock_guard<std::mutex> lk(m_stats_mutex);
         m_stats.media_received = have;
+        m_stats.media_downloaded += downloaded;
     }
     if (have >= want && want > 0) {
         m_media_done = true;

@@ -988,6 +988,8 @@ func _ready() -> void:
 	if player_slot != null:
 		player_slot.configure_client(client)
 	if connect_automatically:
+		# Delay preparation until its label has been drawn.
+		client.set_content_hold(connect_overlay != null)
 		client.connect_to(host, port, pname, str(connection_options.get("password", OS.get_environment("GOANNA_PASS"))))
 	var asset_updater := AssetUpdater.new()
 	asset_updater.client = client
@@ -1331,6 +1333,7 @@ var _connect_error_said := ""
 var connect_title: Label
 var connect_detail: Label
 var connect_bar: ProgressBar
+var _preparation_shown := false
 
 # When the connection screen went up, for the no answer timeout below.
 var _connect_started_ms := 0
@@ -1361,12 +1364,13 @@ func _release_materials(skipped: bool) -> void:
 				client.set_texture_path(path)
 				print("texture pack ", path, " (installed for this connection)")
 				break
-	client.set_content_hold(false)
+	client.set_content_hold(connect_overlay != null)
 	if _skip_button != null and is_instance_valid(_skip_button):
 		_skip_button.visible = false
 
 func _build_connect_overlay() -> void:
 	_connect_started_ms = Time.get_ticks_msec()
+	_preparation_shown = false
 	connect_overlay = ColorRect.new()
 	(connect_overlay as ColorRect).color = Color(0.06, 0.07, 0.09)
 	connect_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1456,10 +1460,11 @@ func _update_connect_overlay(s: Dictionary) -> void:
 	if _materials_held and bool(s.get("content_held", false)) and state == "content-ready":
 		_show_material_wait()
 		return
-	if want > 0:
-		connect_title.text = "Downloading media"
-		connect_bar.value = float(got) / float(want)
-		connect_detail.text = "%d of %d files. A large public server sends a great deal of media; this can take a few minutes the first time." % [got, want]
+	if want > 0 or state == "content-ready":
+		var progress := preload("res://game/media_progress.gd").describe(s)
+		connect_title.text = progress.title
+		connect_bar.value = progress.progress
+		connect_detail.text = progress.detail
 	else:
 		connect_title.text = "Connecting"
 		connect_bar.value = 0.0
@@ -1585,6 +1590,11 @@ func _process(delta: float) -> void:
 	if profile_frame_work: work_clock = _work_mark("sky", work_clock)
 	var s: Dictionary = client.status()
 	_update_connect_overlay(s)
+	if connect_overlay != null and not _materials_held and s.get("state") == "content-ready":
+		if not _preparation_shown:
+			_preparation_shown = true
+			return
+		client.set_content_hold(false)
 	if showcase_mode and not showcase_placed and s.get("state") == "ready":
 		showcase_placed = true
 		# Claim ordinary placement before teleport_to yields. _process continues

@@ -30,6 +30,19 @@ companions, so a server's Iron, Stone or other style textures stay visible.
 Hosting starts a normal Luanti server and can expose a name, description,
 password, port, player limit and public-list announcement.
 
+## Server media
+
+Goanna keeps the server's announced textures, sounds and models in
+`user://cache/media`, shared across connections by content hash. Each join
+checks the cached bytes against the server's hashes and downloads missing
+or corrupt files. A changed file is downloaded again. If the cache cannot
+be written, joining still continues with downloaded media.
+
+The join screen distinguishes **Loading cached media**, **Downloading
+media** and **Preparing world**. The download count excludes cache hits;
+preparation loads the media into textures and models for the new session.
+This cache is separate from the enhanced material bundles below.
+
 ## Enhanced materials
 
 Enhanced materials (the depth, gloss and relief on a game's surfaces) come
