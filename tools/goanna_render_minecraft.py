@@ -198,6 +198,7 @@ def capture(args):
     ap = argparse.ArgumentParser(prog='goanna-render minecraft')
     ap.add_argument('job')
     ap.add_argument('--root', type=Path, default=Path('build/minecraft'))
+    ap.add_argument('--build', type=Path, help='Goanna checkout to capture')
     ap.add_argument('--bridge', type=Path)
     ap.add_argument('--out', type=Path, help='override the job output directory')
     ap.add_argument('--only', choices=('minecraft', 'goanna', 'vanilla'))
@@ -205,6 +206,7 @@ def capture(args):
     ap.add_argument('--software', action='store_true')
     opt = ap.parse_args(args)
     root = opt.root.resolve()
+    goanna_build = opt.build.resolve() if opt.build else render.main_checkout()
     installation = json.loads((root / 'installation.json').read_text())
     job = json.loads(Path(opt.job).read_text())
     poses = job['poses']
@@ -235,7 +237,7 @@ def capture(args):
     frames = []
     metadata = {'installation': installation, 'job': job, 'frames': frames,
                 'mode': 'headless', 'relative_only': True, 'software': opt.software,
-                'goanna': render.git_state(render.main_checkout()),
+                'goanna': render.git_state(goanna_build),
                 'client_mods': {p.name: file_hash(p) for p in sorted((root / 'client/mods').glob('*.jar'))},
                 'bridge_build': json.loads((root / 'bridge-build.json').read_text())
                                 if (root / 'bridge-build.json').exists() else None,
@@ -303,7 +305,7 @@ def capture(args):
                     profile = xdg / 'godot/app_userdata/Goanna'
                     profile.mkdir(parents=True, exist_ok=True)
                     (profile / 'goanna.cfg').write_text('[settings]\nshow_body=0\nasset_updates=false\n')
-                    client = render.gh.start_goanna(render.main_checkout(), port=30985, name=name,
+                    client = render.gh.start_goanna(goanna_build, port=30985, name=name,
                                                     width=width, height=height, software=opt.software,
                                                     env=dict(pack_env, XDG_DATA_HOME=str(xdg),
                                                              GOANNA_NO_STORE='1', GOANNA_PACK_SET='1'))
@@ -365,6 +367,8 @@ def capture(args):
                 if renderer == 'goanna':
                     state['render_settings'] = control.send('settings')
                     state['camera_fov_vertical'] = control.run('return main.cam.fov')
+                    state['pack_lighting'] = control.run(
+                        'return main.iris_gbuffers.lighting_state() if main.iris_gbuffers != null else {}')
                     state['shader_reports'] = control.run(
                         'return {"chain": main.iris.report() if main.iris != null else {},\n'
                         '\t"gbuffers": main.iris_gbuffers.report() if main.iris_gbuffers != null else {}}')

@@ -368,6 +368,9 @@ static void testVertexLighting() {
     check(contains(r.code, "#define GOANNA_IRIS_SEPARATE_AO"), "separate AO selects the alpha contract");
     check(!contains(r.code, "#define GOANNA_IRIS_OLD_LIGHTING"), "legacy face shading defaults off");
     check(contains(r.code, "goanna_vertex_colour(COLOR, CUSTOM2"), "pack AO uses the corner channel");
+    p.vsh = "varying vec4 colour; void main() { colour = gl_MultiTexCoord1; gl_Position = ftransform(); }";
+    check(translateGbuffers(p, o, r, err), "linear pack light coordinates translate");
+    check(contains(r.code, "vec4(CUSTOM2.gb * 240.0"), "light coordinates do not use native brightness");
     o.old_lighting = true;
     check(translateGbuffers(p, o, r, err), "explicit old lighting translates");
     check(contains(r.code, "#define GOANNA_IRIS_OLD_LIGHTING"), "explicit old lighting is retained");

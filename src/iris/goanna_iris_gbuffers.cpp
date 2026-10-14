@@ -88,6 +88,7 @@ Projection toProjection(const Transform3D &t) { return Projection(t); }
 
 void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_pack", "path"), &GoannaIrisGbuffers::load_pack);
+    ClassDB::bind_method(D_METHOD("lighting_state"), &GoannaIrisGbuffers::lighting_state);
     ClassDB::bind_method(D_METHOD("shader", "surface"), &GoannaIrisGbuffers::shader);
     ClassDB::bind_method(D_METHOD("has_terrain"), &GoannaIrisGbuffers::has_terrain);
     ClassDB::bind_method(D_METHOD("block_ids", "block_names"), &GoannaIrisGbuffers::block_ids);
@@ -139,6 +140,15 @@ void GoannaIrisGbuffers::setGlobal(const char *name, const Variant &v) {
     if (std::strncmp(name, "iris_", 5) == 0) m_builtin[name + 5] = v;
     if (!m_globals.count(name)) return;
     RenderingServer::get_singleton()->global_shader_parameter_set(StringName(name), v);
+}
+
+Dictionary GoannaIrisGbuffers::lighting_state() const {
+    Dictionary d;
+    d["eye_brightness"] = m_eye_light;
+    d["eye_brightness_smooth"] = Vector2i(m_eye_smooth.round());
+    d["eye_seen"] = m_eye_seen;
+    d["eye_half_seconds"] = m_eye_half_seconds;
+    return d;
 }
 
 bool GoannaIrisGbuffers::load_pack(const String &path) {
@@ -249,6 +259,11 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
     m_custom = m_pack.customUniforms();
     parseBlockProperties((std::filesystem::path(m_pack.shadersDir()) / "block.properties").string());
     makeTextures();
+    auto eye_half = m_pack.consts().find("eyeBrightnessHalflife");
+    if (eye_half != m_pack.consts().end()) {
+        float ticks = std::strtof(eye_half->second.c_str(), nullptr);
+        if (std::isfinite(ticks) && ticks >= 0) m_eye_half_seconds = ticks / 20.0f;
+    }
     m_t0 = Time::get_singleton()->get_ticks_usec();
     return has_terrain();
 }
@@ -526,8 +541,17 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     const int in_water = state.get("in_water", 0);
     setGlobal("iris_isEyeInWater", in_water);
     setGlobal("iris_eyeAltitude", pos.y);
-    setGlobal("iris_eyeBrightness", Vector2i(240, 240));
-    setGlobal("iris_eyeBrightnessSmooth", Vector2i(240, 240));
+    const Vector2i eye = state.get("eye_brightness", Vector2i(-1, -1));
+    if (eye.x >= 0 && eye.y >= 0) {
+        m_eye_light = eye;
+        const Vector2 target(eye.x, eye.y);
+        if (!m_eye_seen) m_eye_smooth = target;
+        else m_eye_smooth = m_eye_smooth.lerp(target, m_eye_half_seconds > 0.0f ?
+            1.0f - std::pow(0.5f, dt / m_eye_half_seconds) : 1.0f);
+        m_eye_seen = true;
+    }
+    setGlobal("iris_eyeBrightness", m_eye_light);
+    setGlobal("iris_eyeBrightnessSmooth", Vector2i(m_eye_smooth.round()));
     setGlobal("iris_alphaTestRef", 0.1f);
     setGlobal("iris_screenBrightness", 1.0f);
     setGlobal("iris_ambientLight", 0.0f);

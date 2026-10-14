@@ -24,10 +24,12 @@
 // with no tie to the map, so a NearBlockJob carries it to a mesh worker and
 // samples it there. Main types: VertexLight, BlockLightField.
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
 #include "goanna_occlusion.h"
+#include "light.h"
 #include "irrlichttypes_bloated.h"
 
 class MapBlock;
@@ -43,8 +45,28 @@ struct VertexLight {
     uint8_t sky = 255;   // daylight reaching here: Luanti's day bank
     uint8_t ao = 255;    // combined traced and corner occlusion, for native materials
     uint8_t corner = 255; // corner occlusion alone, for imported shader packs
-    uint8_t block_level = 255, day_level = 255; // raw averaged levels scaled to 0..255
+    uint8_t pack_block = 255, pack_sky = 255; // linear pack coordinates, scaled to 0..255
 };
+
+// Map raw Luanti levels to linear block/sky coordinates. When daytime
+// light equals block light, the protocol cannot distinguish hidden skylight
+// from lamp light; use zero sky conservatively. Native lighting is unchanged.
+inline v2f shaderPackLight(float block, float day) {
+    block = std::clamp(block, 0.0f, (float)LIGHT_SUN);
+    day = std::clamp(day, 0.0f, (float)LIGHT_SUN);
+    return v2f(block / LIGHT_SUN, day > block + 0.001f ? day / LIGHT_SUN : 0.0f);
+}
+// Inverse of the immutable Luanti decode table, for stored coarse brightness.
+// Quantised or averaged brightness yields an approximation to a raw level.
+inline float lightLevelFromBrightness(uint8_t brightness) {
+    if (brightness == 0) return 0.0f;
+    for (int level = 1; level <= LIGHT_SUN; ++level) {
+        const int hi = decode_light(level), lo = decode_light(level - 1);
+        if (brightness <= hi && hi > lo)
+            return level - 1 + (brightness - lo) / (float)(hi - lo);
+    }
+    return (float)LIGHT_SUN;
+}
 
 // The light and occupancy of one mapblock's 3x3x3 neighbourhood, built once
 // per meshing pass and then sampled per vertex. Positions passed in are Luanti

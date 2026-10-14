@@ -14,6 +14,7 @@
 //   cmake --build build --target goanna_light_test && ./build/goanna_light_test
 
 #include "goanna_occlusion.h"
+#include "goanna_light.h"
 
 #include <chrono>
 #include <cmath>
@@ -96,6 +97,16 @@ bool wall(int x, int, int) { return x < 0; }
 } // namespace
 
 int main() {
+    // Imported packs expect linear light levels, and artificial light must
+    // not masquerade as skylight in an otherwise unlit room.
+    const v2f sun = shaderPackLight(0, 15);
+    const v2f lamp = shaderPackLight(15, 15);
+    const v2f mixed = shaderPackLight(7.5f, 15);
+    if (sun.X != 0 || sun.Y != 1 || lamp.X != 1 || lamp.Y != 0 ||
+            mixed.X != 0.5f || mixed.Y != 1) {
+        std::fprintf(stderr, "shader-pack light level contract failed\n");
+        return 1;
+    }
     struct Case {
         const char *name;
         v3f p, n;

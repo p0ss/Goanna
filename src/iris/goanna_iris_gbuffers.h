@@ -71,6 +71,7 @@ public:
     // fog_end, the drawn distance the pack's fog should close at.
     void update(godot::Camera3D *camera, const godot::Dictionary &state);
     godot::Dictionary report() const;
+    godot::Dictionary lighting_state() const;
     // Every colortex some translated program writes as a second output
     // (iris::GbuffersResult::second), ascending: the targets
     // project/game/effects/iris_targets.gd may draw for the chain.
@@ -151,6 +152,10 @@ private:
     uint64_t m_t0 = 0, m_last_us = 0;
     int m_frame = 0;
     float m_rain = 0.0f, m_wetness = 0.0f;
+    godot::Vector2 m_eye_smooth;
+    godot::Vector2i m_eye_light;
+    bool m_eye_seen = false;
+    float m_eye_half_seconds = 0.5f;
     godot::Projection m_prev_mv, m_prev_proj;
     // Every Iris uniform update() worked out this frame, by its Iris name,
     // for the custom uniforms to read whether or not a shader declares it.

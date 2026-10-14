@@ -1068,8 +1068,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         tacc.custom0.push_back(vl.ao);
                         tacc.custom0.push_back(255);
                         tacc.custom2.push_back(vl.corner);
-                        tacc.custom2.push_back(vl.block_level);
-                        tacc.custom2.push_back(vl.day_level);
+                        tacc.custom2.push_back(vl.pack_block);
+                        tacc.custom2.push_back(vl.pack_sky);
                         tacc.custom2.push_back(255);
                         if (debug_light) {
                             ++dl_n;

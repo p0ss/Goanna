@@ -354,7 +354,7 @@ void SurfaceJob::run() {
             sf.uv2.emplace_back(te.layer, te.block_id);
             sf.col.push_back(te.texture_id ? te.tint : te.fallback);
             sf.custom0.insert(sf.custom0.end(), {0, 255, 255, 255});
-            sf.custom2.insert(sf.custom2.end(), {255, 0, 255, 255});
+            sf.custom2.insert(sf.custom2.end(), {255, 0, 255, 0});
         }
         // Mirroring Z changes handedness; Godot front faces are clockwise.
         const v3f cross = (p[1] - p[0]).crossProduct(p[2] - p[0]);

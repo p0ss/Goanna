@@ -2164,7 +2164,7 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
         if (local == "goanna_gl_Normal") return "vec3 goanna_gl_Normal = normalize(mat3(MODEL_MATRIX) * NORMAL);";
         if (local == "goanna_gl_Color") return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM2, mat3(MODEL_MATRIX) * NORMAL);";
         if (local == "goanna_gl_MultiTexCoord0") return "vec4 goanna_gl_MultiTexCoord0 = vec4(UV, 0.0, 1.0);";
-        if (local == "goanna_gl_MultiTexCoord1") return "vec4 goanna_gl_MultiTexCoord1 = vec4(CUSTOM0.rg * 240.0, 0.0, 1.0);";
+        if (local == "goanna_gl_MultiTexCoord1") return "vec4 goanna_gl_MultiTexCoord1 = vec4(CUSTOM2.gb * 240.0, 0.0, 1.0);";
         if (local == "goanna_gl_Entity") return "vec4 goanna_gl_Entity = vec4(goanna_block_entity(UV2.y), -1.0, 0.0, 0.0);";
         if (local == "goanna_gl_Tangent") return "vec4 goanna_gl_Tangent = vec4(normalize(mat3(MODEL_MATRIX) * TANGENT), 1.0);";
         if (local == "goanna_gl_MidBlock") return "vec4 goanna_gl_MidBlock = vec4(goanna_mid_block(MODEL_MATRIX, VERTEX, NORMAL), 0.0);";

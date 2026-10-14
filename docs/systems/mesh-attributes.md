@@ -25,7 +25,7 @@ meshers, both node array shaders and the LOD material in the same commit.
 | `ARRAY_COLOR` | tile tint only, never light | grass and foliage colourisation, `param2` colour; near lava alpha exception below |
 | `ARRAY_CUSTOM0` | `RGBA8_UNORM`: block light, sky light, ambient occlusion, freshness | see below |
 | `ARRAY_CUSTOM1` | near lava only: `RGB_FLOAT` world displacement direction | absent on ordinary node meshes |
-| `ARRAY_CUSTOM2` | `RGBA8_UNORM`: corner AO, raw block/day levels, valid raw levels | native materials retain `CUSTOM0` lighting |
+| `ARRAY_CUSTOM2` | `RGBA8_UNORM`: corner AO, pack block/sky coordinates, exact-source flag | native materials retain `CUSTOM0` lighting |
 | `ARRAY_INDEX` | triangles, Godot winding | |
 
 The array layer in `UV2.x` also decides, on the near mesh, which of the
@@ -47,13 +47,21 @@ by `ambientOcclusionLevel`, in vertex RGB or alpha according to
 only when the pack enables it. Native materials continue to use the
 combined occlusion in `CUSTOM0.b`.
 
-Exact meshes also carry averaged raw Luanti block and daytime light levels
-in `CUSTOM2.gb`, scaled from 0..15 to 0..255, with `CUSTOM2.a = 255`.
-Coarse meshes carry neutral corner occlusion and mark their raw channels
-invalid (`CUSTOM2.a = 0`); their existing decoded light remains in
-`CUSTOM0.rg`. Daytime light includes artificial sources and is not a
-separate Minecraft skylight measurement. Lava subdivision preserves the
-additional attribute alongside its displacement direction in `CUSTOM1`.
+Exact meshes derive `CUSTOM2.gb` from raw Luanti levels before averaging.
+Both light coordinates use the 0..15 level domain. Luanti's ordinary lamps
+reach 14, while sunlight reaches 15; that game difference is preserved.
+If the daytime bank
+is no brighter than the night bank, its sky contribution is ambiguous and
+is conservatively set to zero. This prevents lamp light being treated as
+skylight in a cave, but can underestimate sky where a lamp dominates.
+Imported programs receive these linear coordinates in `gl_MultiTexCoord1`,
+scaled to 0..240, instead of native decoded brightness.
+
+`CUSTOM2.a = 255` identifies exact-node samples. Coarse meshes approximately
+invert their stored native brightness and carry the same linear coordinate
+contract, with neutral corner AO and `CUSTOM2.a = 0`. Height previews use
+full sky and no block light, also marked approximate. Lava subdivision
+preserves this attribute alongside its displacement direction in `CUSTOM1`.
 
 ### Dedicated lava surfaces
 

@@ -4168,13 +4168,16 @@ func _apply_sky() -> void:
 	# environment now has it (the underwater tint while submerged), the
 	# precipitation from the particle side, and "in water" for any liquid,
 	# since the node definition does not say which liquids are lava.
+	var pack_eye := Vector2i(-1, -1)
+	if iris or iris_gbuffers:
+		pack_eye = client.shader_pack_light_at(cam.global_position)
 	if iris:
 		var pn := PlayerContext.find(self, "goanna_particles")
 		var rain: float = pn.precipitation() if pn != null else 0.0
 		iris.set_world_state({"sun_direction": sun_dir, "moon_direction": moon_dir,
 			"time_of_day": st["time_of_day"], "in_water": 1 if underwater else 0,
 			"sky_color": top, "fog_color": e.fog_light_color, "rain": rain,
-			"cloud_height": cloud_height})
+			"cloud_height": cloud_height, "eye_brightness": pack_eye})
 	if iris_gbuffers:
 		# The pack's terrain does its own fog, so it is told where Goanna's
 		# would have begun and closed.
@@ -4184,7 +4187,7 @@ func _apply_sky() -> void:
 			"in_water": 1 if underwater else 0, "sky_color": top,
 			"fog_color": e.fog_light_color, "fog_start": e.fog_depth_begin,
 			"fog_end": e.fog_depth_end, "rain": pg.precipitation() if pg != null else 0.0,
-			"cloud_height": cloud_height})
+			"cloud_height": cloud_height, "eye_brightness": pack_eye})
 		if iris_shadow != null:
 			# This frame's shadow space, for the culling camera and the chain;
 			# the gbuffers programs already have it from update().

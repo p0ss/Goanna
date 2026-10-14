@@ -211,6 +211,19 @@ bool GoannaClient::isUnderwaterAt(const Vector3 &eye) {
     return m_session->nodeDefs()->get(n).isLiquid();
 }
 
+Vector2i GoannaClient::shader_pack_light_at(const Vector3 &pos) {
+    if (!m_session || !m_session->nodeDefs()) return Vector2i(-1, -1);
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    v3s16 np((s16)floorf(pos.x + 0.5f), (s16)floorf(pos.y + 0.5f), (s16)floorf(-pos.z + 0.5f));
+    MapNode n = m_session->map().getNode(np);
+    if (n.getContent() == CONTENT_IGNORE) return Vector2i(-1, -1);
+    const ContentFeatures &f = m_session->nodeDefs()->get(n);
+    const auto flags = f.getLightingFlags();
+    const v2f light = shaderPackLight(n.getLight(LIGHTBANK_NIGHT, flags),
+            n.getLight(LIGHTBANK_DAY, flags));
+    return Vector2i((int)std::lround(light.X * 240), (int)std::lround(light.Y * 240));
+}
+
 String GoannaClient::node_name_at(const Vector3 &pos) {
     if (!m_session)
         return String();

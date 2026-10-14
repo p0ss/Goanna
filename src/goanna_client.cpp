@@ -690,6 +690,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("take_dug_nodes"), &GoannaClient::take_dug_nodes);
     ClassDB::bind_method(D_METHOD("take_particles"), &GoannaClient::take_particles);
     ClassDB::bind_method(D_METHOD("node_name_at", "pos"), &GoannaClient::node_name_at);
+    ClassDB::bind_method(D_METHOD("shader_pack_light_at", "pos"), &GoannaClient::shader_pack_light_at);
     ClassDB::bind_method(D_METHOD("top_surface_at", "pos"), &GoannaClient::top_surface_at);
     ClassDB::bind_method(D_METHOD("resolve_nodemeta_text", "context", "text"),
             &GoannaClient::resolve_nodemeta_text);

@@ -448,6 +448,7 @@ void GoannaIrisEffect::set_world_state(const Dictionary &s) {
     if (s.has("sky_color")) m_world.sky = s["sky_color"];
     if (s.has("fog_color")) m_world.fog = s["fog_color"];
     if (s.has("cloud_height")) m_world.cloud_height = (float)(double)s["cloud_height"];
+    if (s.has("eye_brightness")) m_world.eye_light = s["eye_brightness"];
     if (s.has("shadow_model_view") && s.has("shadow_projection")) {
         m_world.shadow_mv = s["shadow_model_view"];
         m_world.shadow_proj = s["shadow_projection"];
@@ -602,6 +603,11 @@ bool GoannaIrisEffect::ensureGpu(RenderingDevice *rd) {
             ++ok;
     }
     m_t0 = Time::get_singleton()->get_ticks_usec();
+    auto eye_half = m_pack.consts().find("eyeBrightnessHalflife");
+    if (eye_half != m_pack.consts().end()) {
+        float ticks = std::strtof(eye_half->second.c_str(), nullptr);
+        if (std::isfinite(ticks) && ticks >= 0) m_eye_half_seconds = ticks / 20.0f;
+    }
     m_last_us = m_t0;
     m_gpu_ready = true;
     if (ok == 0) {
@@ -1235,8 +1241,18 @@ void GoannaIrisEffect::fillUniforms(RenderData *rdata, const Vector2i &size) {
     putVec3("relativeEyePosition", Vector3());
     putVec3("playerLookVector", -cam.basis.get_column(2));
     putVec3("playerBodyVector", -cam.basis.get_column(2));
-    int eb[2] = {240, 240};
+    if (w.eye_light.x >= 0 && w.eye_light.y >= 0) {
+        m_eye_light = w.eye_light;
+        const Vector2 target(w.eye_light.x, w.eye_light.y);
+        if (!m_eye_seen) m_eye_smooth = target;
+        else m_eye_smooth = m_eye_smooth.lerp(target, m_eye_half_seconds > 0.0f ?
+            1.0f - std::pow(0.5f, dt / m_eye_half_seconds) : 1.0f);
+        m_eye_seen = true;
+    }
+    int eb[2] = {m_eye_light.x, m_eye_light.y};
     putInt("eyeBrightness", eb, 2);
+    eb[0] = (int)std::lround(m_eye_smooth.x);
+    eb[1] = (int)std::lround(m_eye_smooth.y);
     putInt("eyeBrightnessSmooth", eb, 2);
     int atlas[2] = {1024, 1024};
     putInt("atlasSize", atlas, 2);

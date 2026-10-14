@@ -130,7 +130,8 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
     const int lx = (int)std::floor(base.X - 0.5f) - m_origin.X;
     const int ly = (int)std::floor(base.Y - 0.5f) - m_origin.Y;
     const int lz = (int)std::floor(base.Z - 0.5f) - m_origin.Z;
-    int count = 0, day = 0, night = 0, day_level = 0, night_level = 0;
+    int count = 0, day = 0, night = 0;
+    v2f pack(0.0f, 0.0f);
     for (int dz = 0; dz < 2; ++dz)
         for (int dy = 0; dy < 2; ++dy)
             for (int dx = 0; dx < 2; ++dx) {
@@ -144,15 +145,14 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                     continue;
                 day += c.day;
                 night += c.night;
-                day_level += c.day_level;
-                night_level += c.night_level;
+                pack += shaderPackLight(c.night_level, c.day_level);
                 ++count;
             }
     if (count > 0) {
         out.sky = (uint8_t)std::clamp(day / count, 0, 255);
         out.block = (uint8_t)std::clamp(night / count, 0, 255);
-        out.day_level = (uint8_t)std::lround(day_level * 17.0f / count);
-        out.block_level = (uint8_t)std::lround(night_level * 17.0f / count);
+        out.pack_block = (uint8_t)std::lround(pack.X * 255.0f / count);
+        out.pack_sky = (uint8_t)std::lround(pack.Y * 255.0f / count);
     } else {
         // Every neighbour solid: an enclosed face. Take the node's own value,
         // which is what a glowing block's own faces need.
@@ -160,8 +160,9 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                 (int)std::floor(base.Y) - m_origin.Y, (int)std::floor(base.Z) - m_origin.Z);
         out.sky = c.day;
         out.block = c.night;
-        out.day_level = c.day_level * 17;
-        out.block_level = c.night_level * 17;
+        pack = shaderPackLight(c.night_level, c.day_level);
+        out.pack_block = (uint8_t)std::lround(pack.X * 255.0f);
+        out.pack_sky = (uint8_t)std::lround(pack.Y * 255.0f);
     }
     out.ao = (uint8_t)std::lround(traceOcclusion(m_occ, p, nn, occlusionRadius()) * 255.0f);
     // The corner term, vanilla's smooth lighting darkening: of the four

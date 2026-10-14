@@ -164,6 +164,7 @@ private:
         godot::Vector3 sun{0, 1, 0}, moon{0, -1, 0};
         float tod = 0.5f, rain = 0.0f;
         int in_water = 0;
+        godot::Vector2i eye_light{-1, -1};
         // Goanna's cloud height (the server's set_clouds), for cloudHeight.
         float cloud_height = 192.0f;
         godot::Color sky{0.5f, 0.7f, 1.0f}, fog{0.7f, 0.8f, 0.9f};
@@ -283,6 +284,10 @@ private:
     // rainStrength ramps toward the world's precipitation and wetness
     // follows it more slowly, as Minecraft and Iris do; see fillUniforms.
     float m_rain_strength = 0.0f, m_wetness = 0.0f;
+    godot::Vector2 m_eye_smooth;
+    godot::Vector2i m_eye_light;
+    bool m_eye_seen = false;
+    float m_eye_half_seconds = 0.5f;
     godot::Transform3D m_prev_cam;
     godot::Projection m_prev_proj;
 

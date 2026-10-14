@@ -126,6 +126,10 @@ names. The profile copies one shader source and the same explicit options
 into both Iris paths. The native Luanti client supplies an engine reference;
 it does not run the Minecraft shader pack.
 
+`--build /path/to/checkout` selects the Goanna build and records that
+checkout's commit and dirty state. It needs a matching compiled extension.
+The default remains the main checkout.
+
 Texture profiles overlay the same Minecraft texture names into the bridge's
 media and Goanna's texture override path. Normal and specular maps are also
 copied. Resource packs need `pack.mcmeta` at their root. Packs which alter

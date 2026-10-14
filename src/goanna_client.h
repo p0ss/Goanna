@@ -422,6 +422,8 @@ public:
     godot::Array take_particles();
     // Name of the node at a Godot-space position, "" if unknown.
     godot::String node_name_at(const godot::Vector3 &pos);
+    // Linear pack light at the camera: 0..240; (-1,-1) when unknown.
+    godot::Vector2i shader_pack_light_at(const godot::Vector3 &pos);
     // Which shader draws the top face of the node at a Godot-space
     // position, and why: the node, its top tile, whether that tile is in
     // an array and whether the array holds any alpha. Weather diagnostics
