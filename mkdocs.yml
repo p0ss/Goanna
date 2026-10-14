@@ -127,6 +127,7 @@ nav:
       - agents/index.md
       - Agent interfaces: agents/agent-interfaces.md
       - Control channel: agents/control-channel.md
+      - Minecraft comparison: agents/minecraft-comparison.md
       - The director: agents/director.md
   - Systems:
       - systems/index.md

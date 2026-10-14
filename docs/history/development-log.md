@@ -12,6 +12,27 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Add shared Minecraft comparison captures, 14 October 2026. Install the
+  pinned Minecraft Java 26.2, Fabric, Iris and Sodium stack in an isolated
+  directory, and build BridgeTest with a recorded texture-name correction.
+  Add an internal Minecraft camera and screenshot helper, shared shader
+  and texture profiles, and sequential capture through the render service.
+  The comparison bridge can hold the native spectator camera when the
+  service enables its camera flag; ordinary launches retain upstream
+  movement and privileges. Tested on the GPU with the unmodified Minecraft
+  26.2 dedicated server, BridgeTest protocol 52, native Luanti 5.17.0 and
+  Goanna's Luanti 5.17.0 core, Godot 4.5.1 and RTX 3090. No Luanti game ran
+  behind the bridge. Calibration landmarks aligned visually across the
+  clients. Ordinary 16-pixel texture substitutions reached all three
+  clients. Eclipse loaded in both Iris paths; Goanna drew much darker
+  terrain, with sky, water and animated texture differences. Native Luanti
+  retains its HUD and reports an inventory warning. Runs used the dirty
+  checkout based on `863b37cd`. Camera and profile isolation checks, helper
+  compilation, the bridge build and strict documentation build passed.
+  Existing-world import, normal play, online authentication and complete
+  block-state or inventory fidelity were not tested. See
+  [Minecraft comparison captures](../agents/minecraft-comparison.md).
+
 - Isolate Eclipse lighting inputs, 14 October 2026. Add a reproducible
   wall, overhang, lantern and pool fixture, disposable diagnostic pack
   variants and corresponding Minecraft construction commands. On local

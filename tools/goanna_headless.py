@@ -424,7 +424,9 @@ def gpu_clients():
         if "--server" in argv or "--headless" in argv:
             continue
         pid = int(parts[0])
-        if any(word in comm for word in ("godot", "gamescope", "luanti.bin")) \
+        minecraft = any(main in argv for main in (
+            "net.minecraft.client.main.Main", "net.fabricmc.loader.impl.launch.knot.KnotClient"))
+        if (minecraft or any(word in comm for word in ("godot", "gamescope", "luanti.bin"))) \
                 and "reaper" not in comm and pid not in seen and not under_software(pid):
             found.append((pid, parts[3]))
     return found
@@ -742,6 +744,42 @@ def start_vanilla(host="127.0.0.1", port=30000, name="vanilla", password="", wid
     return _spawn(rec, lock_wait=lock_wait)
 
 
+def start_minecraft(root, port=25585, name="ComparisonMC", width=1280, height=720,
+                    software=False, lock_wait=0.0):
+    """Launch the isolated, local-server Minecraft comparison installation.
+
+    The account here belongs to our loopback test server. No launcher tokens
+    are read or stored in the supervisor record.
+    """
+    root = pathlib.Path(root).expanduser().resolve()
+    manifest = json.loads((root / "installation.json").read_text())
+    game = root / "client"
+    control = game / ".goanna-control"
+    control.mkdir(mode=0o700, exist_ok=True)
+    for stale in ("request.json", "response.json"):
+        (control / stale).unlink(missing_ok=True)
+    rec = _base_record("minecraft-%d" % int(port), "minecraft", width, height, software)
+    rec["cpu_compositor"] = True
+    argv = [manifest["java"], "-Xms512M", "-Xmx4G",
+            "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=ALL-UNNAMED",
+            "-Djava.library.path=" + str(root / "natives"),
+            "-Dminecraft.launcher.brand=Goanna", "-Dminecraft.launcher.version=0.1",
+            "-cp", os.pathsep.join(manifest["classpath"]), manifest["main_class"],
+            "--username", name, "--version", manifest["minecraft"],
+            "--gameDir", str(game), "--assetsDir", str(root / "assets"),
+            "--assetIndex", manifest["asset_index"],
+            "--uuid", "00000000000000000000000000000001", "--accessToken", "0",
+            "--userType", "msa", "--versionType", "release",
+            "--width", str(int(width)), "--height", str(int(height)),
+            "--quickPlayMultiplayer", "127.0.0.1:%d" % int(port)]
+    child_env = {"LIBGL_ALWAYS_SOFTWARE": "1", "__GLX_VENDOR_LIBRARY_NAME": "mesa",
+                 "MESA_LOADER_DRIVER_OVERRIDE": "llvmpipe"} if software else {}
+    rec.update(argv=argv, env=child_env, cwd=str(game), name=name, server="127.0.0.1:%d" % int(port),
+               project=str(game), meta={"minecraft": manifest["minecraft"]},
+               client_log=str(pathlib.Path(rec["log_dir"]) / "output.log"))
+    return _spawn(rec, lock_wait=lock_wait)
+
+
 def tail(path, lines=20):
     try:
         return "\n".join(pathlib.Path(path).read_text(errors="replace").strip()
@@ -874,7 +912,7 @@ def supervise(ident):
     # gamescope's output and the client's stdout, together. For Goanna that is
     # the client's log; the vanilla client keeps its own, in client_log.
     output = open(logs / "output.log", "ab")
-    gs = subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=output,
+    gs = subprocess.Popen(argv, env=env, cwd=rec.get("cwd"), stdin=subprocess.DEVNULL, stdout=output,
                           stderr=subprocess.STDOUT, process_group=0, close_fds=True)
     output.close()
     rec.update(status="starting", supervisor_pid=me, supervisor_start=proc_start(me),
@@ -1119,6 +1157,7 @@ def describe(rec):
 # --- command line ------------------------------------------------------------
 
 USAGE = """usage:
+  goanna-headless minecraft --root DIR [--port N] [--size WxH] [--software]
   goanna-headless start [--project PATH] [--control-port N] [--server HOST:PORT]
                         [--name NAME] [--password PW] [--size WxH] [--software]
                         [--gpu-compositor] [--lock-wait SECONDS]
@@ -1196,6 +1235,13 @@ def main(argv):
                                          software=opts.get("software", False),
                                          settings=opts["set"],
                                          lock_wait=float(opts.get("lock_wait", 0))))
+        elif cmd == "minecraft":
+            w, h = _size(opts)
+            out = describe(start_minecraft(opts.get("root", "build/minecraft"),
+                                           port=int(opts.get("port", 25585)),
+                                           width=w, height=h,
+                                           software=opts.get("software", False),
+                                           lock_wait=float(opts.get("lock_wait", 0))))
         elif cmd == "fixture":
             w, h = _size(opts) if "size" in opts else (1600, 900)
             out = run_fixture(opts.get("project", pathlib.Path(__file__).resolve().parent.parent),

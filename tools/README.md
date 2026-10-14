@@ -44,6 +44,23 @@ All are current.
   `tools/git-hooks`, whose `commit-msg` checks commit message format.
   `tools/install-git-hooks.sh` once per checkout.
 
+## minecraft: shared-world comparison
+
+Current: `goanna-render minecraft JOB.json` runs Minecraft and Goanna against
+one local Minecraft 26.2 server through BridgeTest. `--native` includes the
+native Luanti reference. Clients run sequentially through the GPU launcher.
+
+- `minecraft/setup.py`: install the pinned client, server and mod stack.
+- `minecraft/build_helper.py`, `ComparisonMixin.java`: build Minecraft's
+  internal camera and screenshot control mod.
+- `minecraft/build_bridge.py`: build the pinned bridge in an isolated copy,
+  with the recorded item texture alias and comparison camera controls.
+- `minecraft/profile.py`: prepare shared shader and texture pack inputs.
+- `minecraft/calibration.json`: the initial camera job.
+- `goanna_render_minecraft.py`: run the local stage and save the comparison
+  gallery, settings and hashes. See
+  [Minecraft comparison captures](../docs/agents/minecraft-comparison.md).
+
 ## pbr: material maps and asset bundles
 
 Current: the authoring, gates and bundle tools.

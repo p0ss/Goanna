@@ -1,0 +1,179 @@
+# Minecraft comparison captures
+
+`tools/goanna-render minecraft` captures Minecraft Java and Goanna from the
+same local Minecraft server.
+[BridgeTest](https://github.com/l-koehler/bridgetest) translates the connection
+into the ordinary Luanti protocol for Goanna. `--native` also captures the
+native Luanti client through the same bridge, sequentially.
+
+This gives shader investigations a shared world, textures, camera position
+and field of view. It does not require a Mineclonia world import. Importing
+existing worlds and a block-state fidelity backlog remain separate work.
+
+## Pinned environment
+
+| Component | Version or revision |
+| --- | --- |
+| Minecraft Java client and server | 26.2, protocol 776 |
+| Java | 25 |
+| Fabric Loader | 0.19.5 |
+| Iris | 1.11.4+26.2-fabric |
+| Sodium | mc26.2-0.9.2-fabric |
+| BridgeTest | `093807327ea75fbaff91ee3f5dc56c83dbe2efdd` |
+| Rust toolchain | nightly-2026-10-14 |
+| minecraft-data | `46b78398b6f351958e02fbd266424f0ee0ab138b` |
+
+The installer downloads the official client, server, libraries and assets,
+plus the pinned Fabric, Iris and Sodium components. It verifies published
+checksums where supplied and records downloaded library hashes. Generated
+files and downloaded game assets stay in ignored `build/minecraft/`.
+
+The bridge build uses a separate checkout under `build/minecraft/sources/`.
+Its locked `minecraft-data-rs` dependency supplies old item data. Without
+an alias from `minecraft:scute` to `minecraft:turtle_scute`, the bridge panics
+while preparing definitions. The helper applies that alias to the build
+copy, records it in `bridge-build.json`, and leaves the owner's clone alone.
+This fixes the observed join failure; it does not establish modern inventory
+or item-ID compatibility.
+
+During a capture the service sets `GOANNA_COMPARISON_CAMERA=1`. This grants
+the native Luanti client `fly` and `noclip`, so it can hold the spectator
+camera position. All comparison players use spectator mode in the local
+comparison world. These privileges are recorded
+in the build manifest and belong to this test installation.
+It retains Minecraft server teleports but disables periodic position
+reconciliation from Azalea's simulated player, which otherwise pulls the
+native camera towards the ground even while the world is frozen. This bridge
+mode is a camera instrument for the local stage. Without that environment
+variable the bridge retains its upstream privileges and reconciliation.
+
+## Setup
+
+Use a Java 25 JDK, including `javac`, and Rust installed through rustup. The
+bridge also needs the normal native Rust build dependencies, including a C
+compiler, OpenSSL development libraries and pkg-config.
+
+```sh
+python tools/minecraft/setup.py --java /path/to/jdk-25/bin/java --accept-eula
+python tools/minecraft/build_helper.py
+rustup toolchain install nightly-2026-10-14 --profile minimal
+python tools/minecraft/build_bridge.py
+```
+
+Pass `--accept-eula` only after accepting the
+[Minecraft EULA](https://www.minecraft.net/eula). The isolated server uses
+local test identities, binds to `127.0.0.1:25585`, and disables online
+authentication. BridgeTest binds to `127.0.0.1:30985`. The launcher does not
+read the owner's Minecraft account tokens or alter their launcher profiles.
+
+All three setup helpers accept `--root DIR`. `build_bridge.py` also accepts
+`--cargo PATH` and `--jobs N`. The installed JDK for the initial run is at
+`build/minecraft/jdk/jdk-25.0.4.1+1/`.
+
+## Capture
+
+```sh
+tools/goanna-render minecraft tools/minecraft/calibration.json
+```
+
+The output directory must be empty. Pass `--out DIR`, or copy the job and
+change `out`, for each run. Add `--native` for the native Luanti reference,
+or use `--only minecraft`, `--only goanna` or `--only vanilla` to capture one
+client. The native client
+uses the existing Flatpak launcher. Its poses must share one FOV.
+
+The service starts its own local server, builds a small calibration stage
+in the dedicated comparison world, freezes world ticks at noon, and runs
+one GPU client at a time. It takes the GPU lock and checks for other clients
+throughout the run. The clients stay inside headless gamescope. Minecraft's
+small Fabric helper handles camera positioning and screenshots inside its
+own client; Goanna uses its existing control channel. The native client is
+framed by server teleport commands and photographed through gamescope.
+Each Goanna run has a fresh user directory and disables its terrain store,
+so cached terrain from earlier bridge definitions cannot enter a comparison.
+The native client retains its HUD, including bridge inventory warnings.
+
+The stage contains coloured pillars, stone, wood, glass, leaves, water, an
+emissive node, an oriented log, stairs and a slab. The stage commands clear
+and rebuild their area in this dedicated world. Do not point this server
+installation at an existing world that you want to preserve.
+
+Camera `pos` is the Minecraft eye position in block units. `look_at`, or
+Minecraft `yaw` and `pitch`, sets its direction. `fov` is the vertical FOV.
+BridgeTest mirrors X and offsets cube centres by half a block; Goanna also
+mirrors Z when moving into Godot coordinates. The service applies both
+transforms. `size` sets image dimensions and `settle_seconds` records a fixed
+wait before capture, rather than claiming streaming has completed.
+
+```json
+{
+  "out": "build/minecraft/my-comparison",
+  "size": [1280, 720],
+  "settle_seconds": 20,
+  "shader_pack": "/path/to/shaderpack.zip",
+  "shader_options": {"SSAO_ENABLED": false},
+  "resource_pack": "/path/to/texturepack.zip",
+  "poses": [
+    {"name": "calibration", "pos": [8.5, 106, 24.5],
+     "look_at": [8.5, 101.5, 6.5], "fov": 70}
+  ]
+}
+```
+
+Omit the pack fields for a default-texture, shader-free baseline. Packs can
+be directories or zip archives. Shader options use the pack's actual option
+names. The profile copies one shader source and the same explicit options
+into both Iris paths. The native Luanti client supplies an engine reference;
+it does not run the Minecraft shader pack.
+
+Texture profiles overlay the same Minecraft texture names into the bridge's
+media and Goanna's texture override path. Normal and specular maps are also
+copied. Resource packs need `pack.mcmeta` at their root. Packs which alter
+`models/` or `blockstates/` are rejected because BridgeTest's geometry mapping
+is built into its binary. High resolution animation, custom models and
+resource pack extensions have not been verified. The initial texture test
+uses ordinary 16-pixel textures.
+
+Each run writes PNGs, frame JSON sidecars, server and bridge logs,
+`result.json` and an `index.html` gallery. The result records component and
+pack hashes, options, camera transforms, observed client state, shader
+translation reports, the Goanna commit and whether its checkout was dirty.
+Disconnected Minecraft captures and Goanna captures with no meshed terrain
+are rejected. Failed runs record `ok: false` and an error. The service stops
+its own processes on success, failure or interruption.
+
+## Observed runs
+
+On 14 October 2026, Minecraft Java 26.2's unmodified dedicated server served
+the calibration world to Minecraft and Goanna through the pinned BridgeTest
+build. Goanna used the pinned Luanti 5.17.0 client code and Godot 4.5.1 on the
+GPU in headless gamescope. This was a live Minecraft world, with no Luanti
+game installed behind the proxy.
+
+The default-texture stage aligned visually between the two cameras. With
+Eclipse loaded from the same archive, Minecraft reported an active Iris
+shader pack, and Goanna reported translated terrain and water programs plus
+three compiled post-processing passes. Goanna drew substantially darker
+terrain; sky, water, foliage and animated emissive textures differed. These
+captures are evidence for shader debugging, not a claim of renderer parity.
+
+The final shader-free texture gallery is in `build/minecraft/texture-final/`.
+Minecraft, native Luanti 5.17.0 and Goanna showed the calibration stage with
+the same stone-brick, diamond and birch texture substitutions. Native Luanti
+held the camera with the comparison flag enabled. Its HUD and inventory
+warning remain visible; its colour and lighting differ from Minecraft's.
+Goanna's terrain store had to be disabled to keep earlier bridge terrain
+out of the frame.
+
+The Eclipse gallery is in `build/minecraft/eclipse-final/`; the local repeat
+job is `build/minecraft/eclipse-job.json`. Capture records include the dirty
+checkout used for each run. Headless frame rates are relative observations
+only. Software rendering, normal play, Microsoft authentication,
+inventory equivalence, entities and arbitrary existing worlds were not
+tested by this workflow.
+
+Run the camera, capture rejection and profile isolation checks with:
+
+```sh
+python tools/test/test-minecraft-comparison.py
+```

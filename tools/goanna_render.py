@@ -1901,6 +1901,8 @@ USAGE = """usage:
                       [--fake-gpu-user FILE] [--foreground]
   goanna-render shoot JOB.json [--no-start] [--timeout S]
   goanna-render vanilla JOB.json --world-from WORLD [--server-view-range BLOCKS]
+  goanna-render minecraft JOB.json [--root DIR] [--native]
+                         [--only minecraft|goanna|vanilla] [--software]
   goanna-render status
   goanna-render stop
 The job format is in docs/agents/agent-interfaces.md, under "The render service"."""
@@ -1918,6 +1920,9 @@ def main(argv):
             return cmd_shoot(rest)
         if cmd == "vanilla":
             from goanna_render_vanilla import command
+            return command(rest)
+        if cmd == "minecraft":
+            from goanna_render_minecraft import command
             return command(rest)
         if cmd == "status":
             return cmd_status(rest)
