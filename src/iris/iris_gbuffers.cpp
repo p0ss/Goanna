@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -2160,7 +2162,7 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
     if (st == Stage::Vertex) {
         if (local == "goanna_gl_Vertex") return "vec4 goanna_gl_Vertex = MODEL_MATRIX * vec4(VERTEX, 1.0);";
         if (local == "goanna_gl_Normal") return "vec3 goanna_gl_Normal = normalize(mat3(MODEL_MATRIX) * NORMAL);";
-        if (local == "goanna_gl_Color") return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM0, mat3(MODEL_MATRIX) * NORMAL);";
+        if (local == "goanna_gl_Color") return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM2, mat3(MODEL_MATRIX) * NORMAL);";
         if (local == "goanna_gl_MultiTexCoord0") return "vec4 goanna_gl_MultiTexCoord0 = vec4(UV, 0.0, 1.0);";
         if (local == "goanna_gl_MultiTexCoord1") return "vec4 goanna_gl_MultiTexCoord1 = vec4(CUSTOM0.rg * 240.0, 0.0, 1.0);";
         if (local == "goanna_gl_Entity") return "vec4 goanna_gl_Entity = vec4(goanna_block_entity(UV2.y), -1.0, 0.0, 0.0);";
@@ -2390,6 +2392,20 @@ bool Translator::run(const Program &p, std::string &err) {
         std::string pp;
         std::vector<std::string> perr;
         preprocess(*src[s], m, pp, perr);
+        // Read the live directive after conditionals and option macros,
+        // rather than the pack-wide inventory of all source branches.
+        std::map<std::string, std::string> active_consts;
+        scanConsts(pp, active_consts);
+        auto ao = active_consts.find("ambientOcclusionLevel");
+        if (ao != active_consts.end()) {
+            char *end = nullptr;
+            float value = std::strtof(ao->second.c_str(), &end);
+            if (end && (*end == 'f' || *end == 'F')) ++end;
+            if (end && end != ao->second.c_str() && *end == '\0' && std::isfinite(value))
+                m_r.ao_level = std::clamp(value, 0.0f, 1.0f);
+            else
+                warn("ambientOcclusionLevel is not a numeric literal; using 1.0");
+        }
         for (auto &e : perr)
             warn(std::string(s == 0 ? "vsh " : "fsh ") + e);
         std::string perr2;
@@ -2637,6 +2653,9 @@ bool Translator::run(const Program &p, std::string &err) {
         o << "#define GOANNA_IRIS_ARRAY\n";
     if (m_o.old_lighting)
         o << "#define GOANNA_IRIS_OLD_LIGHTING\n";
+    if (m_o.separate_ao && !m_o.shadow_pass)
+        o << "#define GOANNA_IRIS_SEPARATE_AO\n";
+    o << "const float goanna_iris_ao_level = " << std::showpoint << m_r.ao_level << std::noshowpoint << ";\n";
     if (m_o.shadow_pass)
         o << "#define GOANNA_IRIS_SHADOW\n";
     o << "#include \"res://shaders/iris_gbuffers_shell.gdshaderinc\"\n\n";

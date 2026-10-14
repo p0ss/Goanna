@@ -651,7 +651,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         PackedVector3Array verts, norms;
         PackedVector2Array uvs, uv2s;
         PackedColorArray cols;
-        PackedByteArray custom0;
+        PackedByteArray custom0, custom2;
         PackedInt32Array idx;
         verts.resize(nv);
         norms.resize(nv);
@@ -659,12 +659,14 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         uv2s.resize(nv);
         cols.resize(nv);
         custom0.resize(nv * 4);
+        custom2.resize(nv * 4);
         Vector3 *positions = verts.ptrw();
         Vector3 *normals = norms.ptrw();
         Vector2 *texcoords = uvs.ptrw();
         Vector2 *layers = uv2s.ptrw();
         Color *colours = cols.ptrw();
         uint8_t *light = custom0.ptrw();
+        uint8_t *extra = custom2.ptrw();
         for (int i = 0; i < nv; ++i) {
             positions[i] = Vector3(sf.pos[i].X, sf.pos[i].Y, sf.pos[i].Z);
             normals[i] = Vector3(sf.nrm[i].X, sf.nrm[i].Y, sf.nrm[i].Z);
@@ -675,6 +677,8 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
                     (c & 0xff) / 255.0f, 1.0f);
             for (int k = 0; k < 4; ++k)
                 light[i * 4 + k] = sf.custom0[i * 4 + k];
+            for (int k = 0; k < 4; ++k)
+                extra[i * 4 + k] = sf.custom2[i * 4 + k];
         }
         idx.resize((int)sf.idx.size());
         int32_t *indices = idx.ptrw();
@@ -689,6 +693,7 @@ void GoannaClient::lodPublishRegion(const LodRegionKey &key, LodRegion &r, const
         arrays[Mesh::ARRAY_TEX_UV2] = uv2s;
         arrays[Mesh::ARRAY_COLOR] = cols;
         arrays[Mesh::ARRAY_CUSTOM0] = custom0;
+        arrays[Mesh::ARRAY_CUSTOM2] = custom2;
         arrays[Mesh::ARRAY_INDEX] = idx;
         mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                 Dictionary(), kNodeSurfaceFlags);

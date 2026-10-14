@@ -64,16 +64,21 @@ bool BlockLightField::build(GoannaSession &session, v3s16 bp) {
                             cell.flags = kKnown | (solid ? kSolid : 0) | (lit ? kLit : 0);
                             if (lit) {
                                 ContentLightingFlags lf = f.getLightingFlags();
-                                cell.day = decode_light(n.getLight(LIGHTBANK_DAY, lf));
-                                cell.night = decode_light(n.getLight(LIGHTBANK_NIGHT, lf));
+                                cell.day_level = n.getLight(LIGHTBANK_DAY, lf);
+                                cell.night_level = n.getLight(LIGHTBANK_NIGHT, lf);
+                                cell.day = decode_light(cell.day_level);
+                                cell.night = decode_light(cell.night_level);
                             } else {
                                 cell.day = 0;
                                 cell.night = 0;
+                                cell.day_level = cell.night_level = 0;
                             }
                             // A glowing node lights its own faces, whether or
                             // not light propagates through it.
-                            if (f.light_source > 0)
+                            if (f.light_source > 0) {
                                 cell.night = std::max<uint8_t>(cell.night, decode_light(f.light_source));
+                                cell.night_level = std::max<uint8_t>(cell.night_level, f.light_source);
+                            }
                             if (solid)
                                 m_occ.setCell(ox + x, oy + y, oz + z);
                         }
@@ -125,7 +130,7 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
     const int lx = (int)std::floor(base.X - 0.5f) - m_origin.X;
     const int ly = (int)std::floor(base.Y - 0.5f) - m_origin.Y;
     const int lz = (int)std::floor(base.Z - 0.5f) - m_origin.Z;
-    int count = 0, day = 0, night = 0;
+    int count = 0, day = 0, night = 0, day_level = 0, night_level = 0;
     for (int dz = 0; dz < 2; ++dz)
         for (int dy = 0; dy < 2; ++dy)
             for (int dx = 0; dx < 2; ++dx) {
@@ -139,11 +144,15 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                     continue;
                 day += c.day;
                 night += c.night;
+                day_level += c.day_level;
+                night_level += c.night_level;
                 ++count;
             }
     if (count > 0) {
         out.sky = (uint8_t)std::clamp(day / count, 0, 255);
         out.block = (uint8_t)std::clamp(night / count, 0, 255);
+        out.day_level = (uint8_t)std::lround(day_level * 17.0f / count);
+        out.block_level = (uint8_t)std::lround(night_level * 17.0f / count);
     } else {
         // Every neighbour solid: an enclosed face. Take the node's own value,
         // which is what a glowing block's own faces need.
@@ -151,6 +160,8 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                 (int)std::floor(base.Y) - m_origin.Y, (int)std::floor(base.Z) - m_origin.Z);
         out.sky = c.day;
         out.block = c.night;
+        out.day_level = c.day_level * 17;
+        out.block_level = c.night_level * 17;
     }
     out.ao = (uint8_t)std::lround(traceOcclusion(m_occ, p, nn, occlusionRadius()) * 255.0f);
     // The corner term, vanilla's smooth lighting darkening: of the four
@@ -177,6 +188,7 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                         ++solid;
                 }
         static const float curve[4] = {1.0f, 0.75f, 0.58f, 0.45f};
+        out.corner = (uint8_t)std::lround(255.0f * curve[std::min(solid, 3)]);
         out.ao = (uint8_t)std::lround(out.ao * curve[std::min(solid, 3)]);
     }
     return out;

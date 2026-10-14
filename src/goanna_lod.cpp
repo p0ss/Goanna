@@ -1262,6 +1262,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     sf.custom0.push_back(day);
                     sf.custom0.push_back(ao);
                     sf.custom0.push_back(fresh);
+                    sf.custom2.insert(sf.custom2.end(), {255, 0, 0, 0});
                 }
                 // Horizontal top, clockwise seen from above in Godot.
                 for (u32 i : {0u, 2u, 1u, 0u, 3u, 2u})
@@ -1380,6 +1381,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         ss.custom0.push_back(day);
                         ss.custom0.push_back(255);
                         ss.custom0.push_back(fresh);
+                        ss.custom2.insert(ss.custom2.end(), {255, 0, 0, 0});
                     }
                     // Winding per side, matching the box pass: the quad here
                     // is (bottom a, bottom b, top b, top a), which for +X and
@@ -1680,6 +1682,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         sf.custom0.push_back(key.day);
                         sf.custom0.push_back(key.ao);
                         sf.custom0.push_back(key.fresh);
+                        sf.custom2.insert(sf.custom2.end(), {255, 0, 0, 0});
                     }
                     // Clockwise seen from outside, which is Godot's front
                     // face. Mirroring Luanti Z into Godot Z reverses the two

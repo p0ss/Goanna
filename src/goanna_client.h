@@ -150,7 +150,7 @@ public:
         godot::PackedVector3Array verts, norms;
         godot::PackedVector2Array uvs, uv2s;
         godot::PackedColorArray cols;
-        godot::PackedByteArray custom0;
+        godot::PackedByteArray custom0, custom2;
         godot::PackedInt32Array idx;
         bool glow = false;
         int n_verts = 0, n_idx = 0;
@@ -616,7 +616,7 @@ private:
         godot::PackedVector3Array verts, norms;
         godot::PackedVector2Array uvs, uv2s;
         godot::PackedColorArray cols;
-        godot::PackedByteArray custom0;
+        godot::PackedByteArray custom0, custom2;
         godot::PackedInt32Array idx;
         bool glow = false;
         bool is_array = false;

@@ -191,11 +191,12 @@ void prepareLavaSurface(Array &arrays, GoannaSession &session,
     const PackedColorArray colour = arrays[Mesh::ARRAY_COLOR];
     const PackedVector2Array uv2 = arrays[Mesh::ARRAY_TEX_UV2];
     const PackedByteArray light = arrays[Mesh::ARRAY_CUSTOM0];
+    const PackedByteArray extra = arrays[Mesh::ARRAY_CUSTOM2];
     const PackedInt32Array indices = arrays[Mesh::ARRAY_INDEX];
     PackedVector3Array out_pos, out_norm;
     PackedVector2Array out_uv, out_uv2;
     PackedColorArray out_colour;
-    PackedByteArray out_light;
+    PackedByteArray out_light, out_extra;
     PackedInt32Array out_indices;
     PackedFloat32Array out_direction;
     LavaFlow flow(session, observations);
@@ -227,6 +228,10 @@ void prepareLavaSurface(Array &arrays, GoannaSession &session,
                 for (int k = 0; k < 4; ++k)
                     out_light.push_back((uint8_t)std::clamp((int)std::lround(
                             light[a*4+k]*wa + light[b*4+k]*wb + light[c*4+k]*wc), 0, 255));
+                if (!extra.is_empty())
+                    for (int k = 0; k < 4; ++k)
+                        out_extra.push_back((uint8_t)std::clamp((int)std::lround(
+                                extra[a*4+k]*wa + extra[b*4+k]*wb + extra[c*4+k]*wc), 0, 255));
             }
         }
         for (int y = 0; y < steps; ++y)
@@ -248,6 +253,7 @@ void prepareLavaSurface(Array &arrays, GoannaSession &session,
     arrays[Mesh::ARRAY_TEX_UV2] = out_uv2;
     arrays[Mesh::ARRAY_COLOR] = out_colour;
     arrays[Mesh::ARRAY_CUSTOM0] = out_light;
+    if (!extra.is_empty()) arrays[Mesh::ARRAY_CUSTOM2] = out_extra;
     arrays[Mesh::ARRAY_CUSTOM1] = out_direction;
     arrays[Mesh::ARRAY_INDEX] = out_indices;
 }

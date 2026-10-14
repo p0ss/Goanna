@@ -353,12 +353,36 @@ static int translatePack(const std::string &dir, const std::string &outdir) {
     return failed ? 1 : 0;
 }
 
+static void testVertexLighting() {
+    Program p;
+    p.vsh = "varying vec4 colour; void main() { colour = gl_Color; gl_Position = ftransform(); }";
+    p.fsh = "#define USE_AO\n#if defined(USE_AO)\nconst float ambientOcclusionLevel = 0.7;\n"
+            "#else\nconst float ambientOcclusionLevel = 0.0;\n#endif\n"
+            "varying vec4 colour; void main() { gl_FragData[0] = colour; }";
+    GbuffersOptions o;
+    o.separate_ao = true;
+    GbuffersResult r;
+    std::string err;
+    check(translateGbuffers(p, o, r, err), "separate AO translation: " + err);
+    check(r.ao_level > 0.699f && r.ao_level < 0.701f, "AO comes from the active conditional branch");
+    check(contains(r.code, "#define GOANNA_IRIS_SEPARATE_AO"), "separate AO selects the alpha contract");
+    check(!contains(r.code, "#define GOANNA_IRIS_OLD_LIGHTING"), "legacy face shading defaults off");
+    check(contains(r.code, "goanna_vertex_colour(COLOR, CUSTOM2"), "pack AO uses the corner channel");
+    o.old_lighting = true;
+    check(translateGbuffers(p, o, r, err), "explicit old lighting translates");
+    check(contains(r.code, "#define GOANNA_IRIS_OLD_LIGHTING"), "explicit old lighting is retained");
+    p.fsh = "const float ambientOcclusionLevel = 0.0; varying vec4 colour;"
+            "void main() { gl_FragData[0] = colour; }";
+    check(translateGbuffers(p, o, r, err) && r.ao_level == 0.0f, "a pack can disable vertex AO");
+}
+
 int main(int argc, char **argv) {
     if (argc == 3)
         return translatePack(argv[1], argv[2]);
     testPreprocessor();
     testTranslator();
     testGeometryReads();
+    testVertexLighting();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);
         return 1;

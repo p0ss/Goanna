@@ -56,20 +56,28 @@ float goanna_block_entity(float uv2y) {
 	return float(goanna_iris_block_ids[i]);
 }
 
-// gl_Color: the tile tint, darkened by Goanna's traced occlusion where
-// Minecraft darkens a vertex by its own, and with oldLighting by
+// gl_Color carries local corner AO, without Goanna's broad cone trace.
+// separateAo moves AO into alpha; oldLighting adds
 // Minecraft's directional face shading (top 1.0, bottom 0.5, the faces
 // along z 0.8 and along x 0.6), which a vanilla-like pack expects to find
 // in the colour.
-vec4 goanna_vertex_colour(vec4 tint, vec4 custom0, vec3 normal) {
-	vec3 c = tint.rgb * custom0.b;
+vec4 goanna_vertex_colour(vec4 tint, vec4 custom2, vec3 normal) {
+	float ao = mix(1.0, custom2.r, goanna_iris_ao_level);
+	vec3 c = tint.rgb;
+#ifndef GOANNA_IRIS_SEPARATE_AO
+	c *= ao;
+#endif
 #ifdef GOANNA_IRIS_OLD_LIGHTING
 	vec3 n = normalize(normal);
 	vec3 n2 = n * n;
 	float shade = n2.x * 0.6 + n2.z * 0.8 + n2.y * (n.y > 0.0 ? 1.0 : 0.5);
 	c *= shade;
 #endif
+#ifdef GOANNA_IRIS_SEPARATE_AO
+	return vec4(c, tint.a * ao);
+#else
 	return vec4(c, tint.a);
+#endif
 }
 
 // gl_FragCoord in OpenGL's convention: x and y in pixels from the bottom

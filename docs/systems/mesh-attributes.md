@@ -25,6 +25,7 @@ meshers, both node array shaders and the LOD material in the same commit.
 | `ARRAY_COLOR` | tile tint only, never light | grass and foliage colourisation, `param2` colour; near lava alpha exception below |
 | `ARRAY_CUSTOM0` | `RGBA8_UNORM`: block light, sky light, ambient occlusion, freshness | see below |
 | `ARRAY_CUSTOM1` | near lava only: `RGB_FLOAT` world displacement direction | absent on ordinary node meshes |
+| `ARRAY_CUSTOM2` | `RGBA8_UNORM`: corner AO, raw block/day levels, valid raw levels | native materials retain `CUSTOM0` lighting |
 | `ARRAY_INDEX` | triangles, Godot winding | |
 
 The array layer in `UV2.x` also decides, on the near mesh, which of the
@@ -38,6 +39,21 @@ upstream mesh buffer can become two surfaces. See `docs/systems/materials.md`,
 flags argument of `add_surface_from_arrays`, and its data is a
 `PackedByteArray` of four bytes per vertex. The shader reads it as `CUSTOM0`,
 a `vec4` already scaled to 0 to 1.
+
+`CUSTOM2.r` carries local corner occlusion independently of the broad
+trace in `CUSTOM0.b`. Imported shader packs use this local value, scaled
+by `ambientOcclusionLevel`, in vertex RGB or alpha according to
+`separateAo`. `oldLighting` defaults off and adds directional face shading
+only when the pack enables it. Native materials continue to use the
+combined occlusion in `CUSTOM0.b`.
+
+Exact meshes also carry averaged raw Luanti block and daytime light levels
+in `CUSTOM2.gb`, scaled from 0..15 to 0..255, with `CUSTOM2.a = 255`.
+Coarse meshes carry neutral corner occlusion and mark their raw channels
+invalid (`CUSTOM2.a = 0`); their existing decoded light remains in
+`CUSTOM0.rg`. Daytime light includes artificial sources and is not a
+separate Minecraft skylight measurement. Lava subdivision preserves the
+additional attribute alongside its displacement direction in `CUSTOM1`.
 
 ### Dedicated lava surfaces
 

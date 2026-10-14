@@ -65,8 +65,9 @@ struct GbuffersOptions {
     // (MC_VERSION and the rest). Pack option overrides go here.
     MacroTable defines;
     // Minecraft's directional face shading in gl_Color (shaders.properties
-    // oldLighting). On unless the pack turns it off.
-    bool old_lighting = true;
+    // oldLighting). Iris defaults this to off.
+    bool old_lighting = false;
+    bool separate_ao = false;
     // Whether the translucent program writes depth, as Minecraft's water
     // does, so a screen space chain finds the water surface in depthtex0
     // and not in depthtex1. GoannaIrisGbuffers turns it on only for a pack
@@ -115,6 +116,7 @@ struct GbuffersResult {
     std::vector<std::pair<std::string, std::string>> globals;
     std::vector<std::string> warnings;
     bool moves_vertices = false; // gl_Position is not plain ftransform()
+    float ao_level = 1.0f;
 };
 
 bool translateGbuffers(const Program &p, const GbuffersOptions &o, GbuffersResult &out, std::string &err);

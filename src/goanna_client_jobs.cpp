@@ -70,7 +70,7 @@ struct NearBatchJob : goanna::MeshJob {
         PackedVector3Array verts, norms;
         PackedVector2Array uvs, uv2s;
         PackedColorArray cols;
-        PackedByteArray custom0;
+        PackedByteArray custom0, custom2;
         PackedInt32Array idx;
         bool glow = false;
         // Occluder metadata resolved on the main thread at submit, so the
@@ -111,6 +111,7 @@ struct NearBatchJob : goanna::MeshJob {
             a.uv2s.resize(a.n_verts);
             a.cols.resize(a.n_verts);
             a.custom0.resize(a.n_verts * 4);
+            a.custom2.resize(a.n_verts * 4);
             a.idx.resize(a.n_idx);
         }
         std::map<uint64_t, bool> occludable;
@@ -127,6 +128,8 @@ struct NearBatchJob : goanna::MeshJob {
                 memcpy(acc.uv2s.ptrw() + base, surface.uv2s.ptr(), (size_t)n * sizeof(Vector2));
                 memcpy(acc.cols.ptrw() + base, surface.cols.ptr(), (size_t)n * sizeof(Color));
                 memcpy(acc.custom0.ptrw() + (size_t)base * 4, surface.custom0.ptr(),
+                        (size_t)n * 4);
+                memcpy(acc.custom2.ptrw() + (size_t)base * 4, surface.custom2.ptr(),
                         (size_t)n * 4);
             }
             const int ni = (int)surface.idx.size();
@@ -259,6 +262,7 @@ void GoannaClient::nearRebuild(double budget_ms) {
                 js.uv2s = surface.uv2s;
                 js.cols = surface.cols;
                 js.custom0 = surface.custom0;
+                js.custom2 = surface.custom2;
                 js.idx = surface.idx;
                 js.glow = surface.glow;
                 if (job->build_occluder) {

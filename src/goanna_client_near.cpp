@@ -305,7 +305,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
                 if (group.glow != glow) continue;
                 bytes += group.verts.size() * sizeof(Vector3) + group.norms.size() * sizeof(Vector3) +
                         group.uvs.size() * sizeof(Vector2) + group.uv2s.size() * sizeof(Vector2) +
-                        group.cols.size() * sizeof(Color) + group.custom0.size() +
+                        group.cols.size() * sizeof(Color) + group.custom0.size() + group.custom2.size() +
                         group.idx.size() * sizeof(int32_t);
             }
         }
@@ -324,6 +324,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_CUSTOM2] = acc.custom2;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                     Dictionary(), kNodeSurfaceFlags);
@@ -1066,6 +1067,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
                         tacc.custom0.push_back(vl.sky);
                         tacc.custom0.push_back(vl.ao);
                         tacc.custom0.push_back(255);
+                        tacc.custom2.push_back(vl.corner);
+                        tacc.custom2.push_back(vl.block_level);
+                        tacc.custom2.push_back(vl.day_level);
+                        tacc.custom2.push_back(255);
                         if (debug_light) {
                             ++dl_n;
                             dl_block += vl.block;
@@ -1112,8 +1117,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
                             cacc.uvs.push_back(src.uvs[from]);
                             cacc.uv2s.push_back(src.uv2s[from]);
                             cacc.cols.push_back(src.cols[from]);
-                            for (int c = 0; c < 4; ++c)
+                            for (int c = 0; c < 4; ++c) {
                                 cacc.custom0.push_back(src.custom0[from * 4 + c]);
+                                cacc.custom2.push_back(src.custom2[from * 4 + c]);
+                            }
                             crack_remap[tri[k]] = di;
                             cacc.idx.push_back(di);
                         }
@@ -1156,7 +1163,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
                     bytes += sizeof(NearSurface) + surface.verts.size() * sizeof(Vector3) +
                             surface.norms.size() * sizeof(Vector3) + surface.uvs.size() * sizeof(Vector2) +
                             surface.uv2s.size() * sizeof(Vector2) + surface.cols.size() * sizeof(Color) +
-                            surface.custom0.size() + surface.idx.size() * sizeof(int32_t);
+                            surface.custom0.size() + surface.custom2.size() + surface.idx.size() * sizeof(int32_t);
                 }
             m_shared_near->put(share_key, geometry, bytes);
             ++m_shared_near_misses;
@@ -1180,6 +1187,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_CUSTOM2] = acc.custom2;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             fmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                     Dictionary(), kNodeSurfaceFlags);
@@ -1194,6 +1202,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             surface.uv2s = acc.uv2s;
             surface.cols = acc.cols;
             surface.custom0 = acc.custom0;
+            surface.custom2 = acc.custom2;
             surface.idx = acc.idx;
             surface.glow = glow;
             near_block.surfaces.push_back(std::move(surface));
@@ -1223,6 +1232,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_CUSTOM2] = acc.custom2;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             uint64_t surface_flags = kNodeSurfaceFlags;
             if (m_lava_tex.count(acc.key.texture_id)) {
@@ -1270,6 +1280,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_CUSTOM2] = acc.custom2;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             uint64_t surface_flags = kNodeSurfaceFlags;
             if (m_lava_tex.count(acc.key.texture_id)) {
@@ -1300,6 +1311,7 @@ int GoannaClient::poll_blocks(int max_blocks) {
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_CUSTOM0] = acc.custom0;
+            arrays[Mesh::ARRAY_CUSTOM2] = acc.custom2;
             arrays[Mesh::ARRAY_INDEX] = acc.idx;
             cmesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays, TypedArray<Array>(),
                     Dictionary(), kNodeSurfaceFlags);

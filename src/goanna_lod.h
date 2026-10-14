@@ -237,6 +237,7 @@ struct LodSurface {
     std::vector<v2f> uv, uv2;
     std::vector<u32> col; // 0xAARRGGBB
     std::vector<uint8_t> custom0; // block light, sky light, occlusion, freshness
+    std::vector<uint8_t> custom2; // corner AO, raw block/day levels, validity
     std::vector<u32> idx;
 };
 // Upward ground faces actually emitted by a mesh, in unshifted Luanti nodes.

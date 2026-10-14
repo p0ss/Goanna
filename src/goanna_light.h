@@ -41,7 +41,9 @@ class GoannaSession;
 struct VertexLight {
     uint8_t block = 255; // torches, lava: Luanti's night bank
     uint8_t sky = 255;   // daylight reaching here: Luanti's day bank
-    uint8_t ao = 255;    // 255 is unoccluded
+    uint8_t ao = 255;    // combined traced and corner occlusion, for native materials
+    uint8_t corner = 255; // corner occlusion alone, for imported shader packs
+    uint8_t block_level = 255, day_level = 255; // raw averaged levels scaled to 0..255
 };
 
 // The light and occupancy of one mapblock's 3x3x3 neighbourhood, built once
@@ -69,6 +71,7 @@ private:
     // Light and flags per node in the neighbourhood, indexed like m_occ.
     struct Cell {
         uint8_t day = 255, night = 0, flags = 0;
+        uint8_t day_level = 15, night_level = 0;
     };
     enum : uint8_t { kLit = 1, kSolid = 2, kKnown = 4 };
     const Cell &at(int x, int y, int z) const;

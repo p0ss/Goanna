@@ -153,16 +153,22 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         return false;
     }
     // oldLighting: false, true, or the name of a boolean option.
-    bool old_lighting = true;
+    bool old_lighting = false;
     auto ol = m_pack.properties().find("oldLighting");
     if (ol != m_pack.properties().end()) {
         const std::string v = trim(ol->second);
-        if (v == "false") {
-            old_lighting = false;
-        } else if (v != "true") {
+        if (v == "true") {
+            old_lighting = true;
+        } else if (v != "false") {
             // the pack's options, overrides applied, as the chain sees them
             old_lighting = m_pack.options().count(v) > 0;
         }
+    }
+    bool separate_ao = false;
+    auto sa = m_pack.properties().find("separateAo");
+    if (sa != m_pack.properties().end()) {
+        const std::string v = trim(sa->second);
+        separate_ao = v == "true" || (v != "false" && m_pack.options().count(v) > 0);
     }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
             "gbuffers_terrain_cutout"};
@@ -194,6 +200,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         for (auto &d : m_pack.customUniforms().defs())
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
+        o.separate_ao = separate_ao;
         // Only a pack with a screen space chain reads the water's depth.
         o.translucent_depth = !m_pack.compositeChain().empty();
         // Targets sized in pixels are data maps, read unflipped.
