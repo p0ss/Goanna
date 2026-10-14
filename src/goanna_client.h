@@ -152,6 +152,7 @@ public:
         godot::PackedColorArray cols;
         godot::PackedByteArray custom0, custom2;
         godot::PackedInt32Array idx;
+        godot::PackedFloat32Array tangents;
         bool glow = false;
         int n_verts = 0, n_idx = 0;
         int v_at = 0, i_at = 0;
@@ -557,6 +558,7 @@ public:
     // straight from a Luanti SMaterial as the mesher leaves it.
     godot::Ref<godot::Material> materialFor(const MaterialKey &key);
     godot::Ref<godot::Material> materialForIrr(const video::SMaterial &m, u16 layer = 0);
+    void warmMaterials(double budget_ms);
     // materialFor's case for a key with crack_overlay set.
     godot::Ref<godot::Material> crackOverlayMaterial(const MaterialKey &key);
     // layer_base, when given, receives what to add to the vertex's own array
@@ -1247,7 +1249,11 @@ private:
         m_materials.clear();
         m_anim_materials.clear();
         m_iris_shadow_mats.clear();
+        m_material_warm_node = 0;
+        m_material_warm_layer = 0;
     }
+    uint32_t m_material_warm_node = 0;
+    size_t m_material_warm_layer = 0;
     void refreshProceduralGrass();
     // The node animation clock, seconds in [0, 60) as Client::step keeps it,
     // and a pinned value from set_node_animation_time (below 0 when free).

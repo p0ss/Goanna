@@ -7,12 +7,12 @@
 // regional batches merge a region's blocks by material (nearAssign, nearDrop,
 // nearMarkDirty, nearPublishBatch, nearBoxOccluder, nearClear). Also here:
 // prune_blocks, the bevel setting, and node_tangents, the tangent basis every
-// node surface upload builds. Handing blocks and batches to the mesh workers
+// node surface needs. Handing blocks and batches to the mesh workers
 // and collecting them is in goanna_client_jobs.cpp.
 //
-// Threads: Godot's main thread only. poll_blocks holds the session's map
-// lock while it reads blocks; the ArrayMesh objects are made here, never on
-// a worker.
+// Threads: main thread except node_tangents, which also runs on workers
+// over their private packed arrays. poll_blocks holds the session's map
+// lock while it reads blocks; ArrayMesh objects are made on the main thread.
 
 #include "goanna_client_internal.h"
 
@@ -23,7 +23,7 @@ namespace goanna {
 // Godot's NORMAL_MAP output is tangent-space. Luanti's node mesh carries
 // positions, normals and UVs but no tangents, so merely binding a valid _n
 // array cannot perturb the geometric normal. Build the missing basis once at
-// upload time from the same indexed triangles and UVs the shader will sample.
+// preparation time from the same indexed triangles and UVs the shader samples.
 PackedFloat32Array node_tangents(const PackedVector3Array &verts,
         const PackedVector3Array &norms, const PackedVector2Array &uvs,
         const PackedInt32Array &indices) {
@@ -319,7 +319,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
             arrays.resize(Mesh::ARRAY_MAX);
             arrays[Mesh::ARRAY_VERTEX] = acc.verts;
             arrays[Mesh::ARRAY_NORMAL] = acc.norms;
-			arrays[Mesh::ARRAY_TANGENT] = node_tangents(acc.verts, acc.norms, acc.uvs, acc.idx);
+            arrays[Mesh::ARRAY_TANGENT] = acc.tangents;
             arrays[Mesh::ARRAY_TEX_UV] = acc.uvs;
             arrays[Mesh::ARRAY_TEX_UV2] = acc.uv2s;
             arrays[Mesh::ARRAY_COLOR] = acc.cols;
@@ -620,6 +620,9 @@ int GoannaClient::poll_blocks(int max_blocks) {
         return v ? std::max(1.0, atof(v)) : 6.0;
     }();
     const double poll_budget_ms = m_poll_budget_ms > 0 ? m_poll_budget_ms : default_poll_budget_ms;
+    // Spend part of this slice warming definitions, including while loading.
+    // No session map lock is held during texture or material creation.
+    warmMaterials(std::min(1.0, poll_budget_ms * 0.2));
     const auto t_lock = clock_t_::now();
     std::unique_lock<std::mutex> lk(m_session->mapLock());
     ema(m_ms_poll_lock, ms_since(t_lock));

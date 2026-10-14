@@ -12,6 +12,22 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Warm terrain materials and prepare regional tangents on workers,
+  15 October 2026. Polling now spends part of its existing slice preparing
+  resolved node materials before terrain needs them. Cache invalidation
+  restarts the scan. Near-region jobs calculate tangent arrays before
+  publication, using the same calculation as the previous main-thread path.
+  The live `project/tests/material_warm.gd` probe passed against the render
+  service's local Luanti 5.17.0 Mineclonia fixture, Godot 4.5.1, RTX 3090 in
+  headless gamescope: 444 materials before and after invalidation, with
+  15,644 vertices across seven surfaces carrying finite tangent arrays of
+  the expected length. The dirty checkout was based on `f6e312a1` and also
+  contained unrelated Overseer edits. Native mesh-pool, scheduling and
+  array-routing tests passed. No before/after frame-time comparison was
+  made; fast flight, local multiplayer and long-session memory use remain
+  untested. Occluder batching, staged surface uploads and adaptive frame
+  budgets remain separate work. View-aware scheduling already exists.
+
 - Match imported terrain texture filtering, 15 October 2026. Minecraft's
   live comparison profile uses four mipmap levels and no anisotropy, while
   Goanna's imported terrain sampler previously requested anisotropy.

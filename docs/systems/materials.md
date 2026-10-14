@@ -17,6 +17,22 @@ which this document is meant to inform rather than pre-empt.
 
 [luanti-org/luanti#8854]: https://github.com/luanti-org/luanti/issues/8854
 
+## Preparing materials
+
+Once session content is prepared, `poll_blocks` warms the materials named
+by resolved node tiles, including special tiles. It spends up to 20% of
+the polling slice, capped at 1 ms, before capturing terrain work. The
+budget is soft: one material cannot be interrupted. The scan resumes at
+the next tile layer and restarts whenever the material cache is cleared.
+`render_stats().material_warm_complete` reports when the scan has finished.
+
+Warming uses the publication path's animation-array, opaque-tile and
+special-material routing. Dynamic crack materials and far-terrain variants
+still build on demand. It creates resources on the main thread; it does
+not precompile GPU pipelines. Preparing unused materials can increase
+memory use. Near-region workers also prepare tangent arrays, leaving their
+upload and Godot resource creation on the main thread.
+
 ## What LabPBR carries
 
 Two companion images per texture, eight channels in total.

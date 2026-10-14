@@ -181,8 +181,11 @@ struct NearBatchJob : goanna::MeshJob {
             }
         }
         groups_out.reserve(groups.size());
-        for (auto &kv : groups)
+        for (auto &kv : groups) {
+            Group &group = kv.second;
+            group.tangents = node_tangents(group.verts, group.norms, group.uvs, group.idx);
             groups_out.push_back(std::move(kv.second));
+        }
     }
 };
 

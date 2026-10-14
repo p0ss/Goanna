@@ -403,6 +403,7 @@ Dictionary GoannaClient::render_stats() {
     d["near_regions_built_last"] = m_near_regions_built_last;
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["materials"] = (int)m_materials.size();
+    d["material_warm_complete"] = m_material_warm_node > 0xffff;
     d["resident_blocks"] = m_session ? m_session->residentBlocks() : 0;
     d["light_pool"] = (int)m_light_pool.size();
     d["lights_in_range"] = m_lights_in_range;

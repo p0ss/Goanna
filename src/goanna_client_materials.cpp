@@ -469,6 +469,60 @@ Ref<Material> GoannaClient::materialForIrr(const video::SMaterial &m, u16 layer)
     return materialFor(keyForIrr(m, layer));
 }
 
+void GoannaClient::warmMaterials(double budget_ms) {
+    if (!m_session || !m_session->contentPrepared() || m_material_warm_node > 0xffff)
+        return;
+    const auto started = clock_t_::now();
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    // Use the same resolved tiles and routing as mesh publication. In
+    // particular, animation arrays, special liquid tiles and double-sided
+    // materials must not be guessed from texture names. This creates Godot
+    // resources on the main thread only; it does not compile GPU pipelines.
+    while (m_material_warm_node <= 0xffff) {
+        const ContentFeatures &f = ndef->get((content_t)m_material_warm_node);
+        size_t cursor = 0;
+        if (!f.name.empty() && f.name != "unknown" && f.visuals) {
+            for (const auto *tiles : {&f.visuals->tiles, &f.visuals->special_tiles}) {
+                for (const auto &tile : *tiles) {
+                    for (size_t layer = 0; layer < std::size(tile.layers); ++layer) {
+                        const TileLayer &entry = tile.layers[layer];
+                        if (cursor++ < m_material_warm_layer)
+                            continue;
+                        m_material_warm_layer = cursor;
+                        if (!entry.empty() && entry.texture) {
+                            video::SMaterial material;
+                            material.MaterialType = m_session->shsrc().getShaderInfo(
+                                    entry.shader_id).material;
+                            entry.applyMaterialOptions(material, (int)layer);
+                            u16 layer_base = 0;
+                            MaterialKey key = keyForIrr(material, entry.texture_layer_idx, &layer_base);
+                            if (key.array_texture) {
+                                GoannaTexture *array = m_session->tsrc()->goannaTexture(key.texture_id);
+                                const u16 tile_layer = entry.texture_layer_idx + layer_base;
+                                if (const u32 special = specialLayer(array, tile_layer)) {
+                                    key.array_texture = false;
+                                    key.texture_id = special;
+                                } else {
+                                    key = arrayTileKey(key, array, tile_layer);
+                                }
+                            }
+                            materialFor(key);
+                        }
+                        // One material remains indivisible. Resume at the
+                        // next layer, even for a node with many special tiles.
+                        if (ms_since(started) >= budget_ms)
+                            return;
+                    }
+                }
+            }
+        }
+        ++m_material_warm_node;
+        m_material_warm_layer = 0;
+        if (ms_since(started) >= budget_ms)
+            return;
+    }
+}
+
 MaterialKey GoannaClient::keyForIrr(const video::SMaterial &m, u16 layer, u16 *layer_base,
         MaterialKey *crack_overlay) {
     if (layer_base)
