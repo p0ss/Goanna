@@ -12,6 +12,28 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Audit the suspect Eclipse sky reference, 14 October 2026. The earlier
+  white-sky match demonstrated agreement with shader output, without
+  establishing reference correctness. Verify that the captured source
+  exactly matches the author's checksum-verified Eclipse 1.0 archive;
+  its advertised compatibility stops at Minecraft 1.21.8. Its sky blends
+  an unconfigured cloud sampler at 80%, producing a washout on the 26.2
+  stack. Live shader-free controls show a blue day and a dark night.
+  Removing only the cloud blend in a disposable diagnostic copy restores
+  a blue day and a darker blue night in both clients, with no exposure
+  change. The original pack's midnight sky sample averaged roughly
+  `215, 216, 219`; the diagnostic averaged `70, 84, 104` in Minecraft and
+  `74, 90, 111` in Goanna. Earlier opaque surface measurements remain
+  unchanged. Tested against the unmodified Minecraft Java 26.2 dedicated
+  server, BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0
+  core, Godot 4.5.1 and RTX 3090 in headless gamescope, using the dirty
+  checkout based on `e219204b`. Actual capture clocks matched. Label the
+  earlier visual reference as suspect and retain all captures and source
+  hashes. No production renderer or supplied pack was changed. A
+  supported-version Eclipse run and a different supported third-party
+  shader reference were not tested. See
+  [Minecraft comparison captures](../agents/minecraft-comparison.md).
+
 - Correct Eclipse sky input and blended material routing, 14 October
   2026. The live sky sampler probe found that an unbound `cloudTex` reads
   white in Iris's basic sky path and black in Goanna. Match the observed

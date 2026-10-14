@@ -169,6 +169,21 @@ Disconnected Minecraft captures and Goanna captures with no meshed terrain
 are rejected. Failed runs record `ok: false` and an error. The service stops
 its own processes on success, failure or interruption.
 
+## Qualify the Minecraft reference
+
+An active shader flag and a small image difference establish that clients
+agree with a shader's output. They do not establish that the reference
+output is correct. Before treating appearance as a calibration target,
+capture shader-free noon and midnight controls with the same camera and
+check the recorded clocks. Inspect the pack's source, configuration and
+advertised game versions when the shader result looks implausible.
+
+Keep diagnostic edits in separate pack copies, record the exact change and
+source hashes, and use the same copy in both clients. A diagnostic can
+isolate a broken input without qualifying the whole third-party pack.
+Retain the original captures as evidence and label suspect references
+explicitly in comparison galleries and reports.
+
 ## Lighting input probe
 
 The authored diagnostic pack writes four inputs before lighting or
@@ -306,6 +321,64 @@ Sky sampler regression checks and shader contracts passed. The earlier
 lighting and joining changes were also rebuilt from the clean committed
 checkout, reusing unchanged dependency objects after source verification;
 the clean checkout's shader and joining regressions passed.
+
+### Audit the white sky reference
+
+The earlier white-sky match was agreement with a suspect reference, not
+evidence of a correct sky. On 14 October 2026, the captured Eclipse source
+was verified against the author's SHA-512-checked
+[Eclipse 1.0 release](https://modrinth.com/shader/eclipseshaders/version/1.0).
+Both source trees had fingerprint
+`eadf7fcb8c856e478b7dd4f19f77227f6c06229686f3ce9d918db52064b4f65d`.
+That release advertises support through Minecraft 1.21.8, without 26.2 in
+its compatibility list.
+
+Its basic sky shader mixes in `cloudTex` at 80% of the sample's alpha.
+The published archive contains no `shaders.properties` binding for that
+sampler or definitions for its cloud animation uniforms. The observed
+white sample therefore washes out the sky through day and night on this
+capture stack. Goanna's white fallback reproduces the observed Iris
+binding; that compatibility behaviour does not qualify Eclipse's sky
+appearance as a calibration target.
+
+Live shader-free controls on the same unmodified Minecraft Java 26.2
+dedicated server produced a blue daytime sky and a dark midnight sky.
+A disposable Eclipse copy omitted only this line:
+
+```glsl
+skyCol = mix(skyCol, cloudSample.rgb, cloudSample.a * 0.8);
+```
+
+Both clients then produced a blue day and a darker blue night, with no
+exposure change. Terrain lighting, the sun rotation and post-processing
+remained intact. A fixed near-horizon sample measured these Minecraft RGB
+means, out of 255:
+
+| Reference | Noon | Midnight |
+| --- | --- | --- |
+| Shader-free control | 178, 206, 254 | 9, 11, 17 |
+| Published Eclipse 1.0 | 241, 246, 250 | 215, 216, 219 |
+| Diagnostic without cloud blend | 200, 232, 250 | 70, 84, 104 |
+
+Goanna's diagnostic sample was `201, 235, 255` at noon and `74, 90, 111`
+at midnight. The earlier opaque surface measurements were unchanged by
+removing this sky blend. The tint, light-coordinate, clock and celestial
+direction probes remain evidence for those inputs, independently of the
+suspect sky reference.
+
+These new captures used the dirty checkout based on `e219204b`, Goanna's
+Luanti 5.17.0 core, BridgeTest protocol 52, no Luanti game, Godot 4.5.1 and
+RTX 3090 in headless gamescope. Both clocks matched the requested phase.
+The side-by-side audit, source provenance, exact diagnostic change and
+measurement report are in `build/minecraft/sky-reference-audit/`.
+The earlier comparison viewer now labels original Eclipse captures as
+suspect and offers the explicitly modified diagnostic views.
+
+This isolates the washout on the 26.2 stack. It is not an official Eclipse
+repair or proof of correct rendering for the whole pack. An Eclipse run
+on its advertised supported game version and an alternative supported
+third-party shader reference were not tested. Foliage, glass, cloud
+geometry, ambient occlusion, shadows and animation remain open comparisons.
 
 Run the camera, capture rejection and profile isolation checks with:
 
