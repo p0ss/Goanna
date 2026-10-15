@@ -220,15 +220,15 @@ func _init() -> void:
 		var script: Script = load(path)
 		_check(script != null and script.can_instantiate(), "%s compiles" % path)
 
-	# The row itself builds: a picker that starts with Off, the folder's path
+	# The row itself builds: a picker that starts with None, the folder's path
 	# as text that cannot be edited, and a button to open it. It reads the
 	# player's own settings and folder but writes nothing until used.
 	var row := VBoxContainer.new()
 	get_root().add_child(row)
 	load("res://ui/shader_pack_row.gd").build(row, "description")
 	var pickers := row.find_children("*", "OptionButton", true, false)
-	_check(pickers.size() == 1 and (pickers[0] as OptionButton).get_item_text(0) == "Off",
-			"the row offers Off first")
+	_check(pickers.size() == 1 and (pickers[0] as OptionButton).get_item_text(0) \
+			== load("res://ui/shader_pack_row.gd").NONE_LABEL, "the row offers None first")
 	var paths := row.find_children("*", "LineEdit", true, false)
 	_check(paths.size() == 1 and not (paths[0] as LineEdit).editable
 			and (paths[0] as LineEdit).text == ShaderPacks.folder(), "the folder is shown, read only")

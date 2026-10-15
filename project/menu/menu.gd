@@ -46,6 +46,7 @@ var name_edit: LineEdit
 var pass_edit: LineEdit
 var connect_button: Button
 var join_pbr_option: OptionButton
+var join_shader_option: OptionButton
 # new game
 var game_option: OptionButton
 var world_option: OptionButton
@@ -56,6 +57,9 @@ var terrain_description: Label
 var creative_check: CheckBox
 var damage_check: CheckBox
 var pbr_option: OptionButton
+# The shader pack pickers on Start Game and Join Game (ui/shader_pack_row.gd):
+# the same saved setting as Settings, Graphics, Shader pack.
+var shader_option: OptionButton
 var host_check: CheckBox
 var hosting_box: VBoxContainer
 var server_name_edit: LineEdit
@@ -196,6 +200,12 @@ func _ready() -> void:
 		_on_start_local()
 		return
 	if OS.get_environment("GOANNA_MENU_SHOT") != "":
+		# GOANNA_MENU_SCALE=2 lays the menu out as a 200 percent display
+		# scale would, for checking it stays legible and fits.
+		var scale := float(OS.get_environment("GOANNA_MENU_SCALE"))
+		if scale > 0.0:
+			get_tree().root.content_scale_factor = scale
+			await get_tree().process_frame
 		var want := OS.get_environment("GOANNA_MENU_SCREEN")
 		if want == "new":
 			_show_new_game()
@@ -255,6 +265,14 @@ func _ready() -> void:
 				await get_tree().create_timer(0.5).timeout
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
+		# GOANNA_MENU_SCROLL=<pixels> scrolls the screen's visible scrolling
+		# bodies, so a shot can show what sits below the fold.
+		var scroll_to := OS.get_environment("GOANNA_MENU_SCROLL")
+		if scroll_to != "":
+			for sc in _panel_box.find_children("*", "ScrollContainer", true, false):
+				if (sc as ScrollContainer).is_visible_in_tree():
+					(sc as ScrollContainer).scroll_vertical = int(scroll_to)
+			await RenderingServer.frame_post_draw
 		if want == "join":
 			# The public list is a network round trip; shooting the screen
 			# before it lands photographs the "Fetching ..." placeholder.
@@ -1526,6 +1544,10 @@ func _show_new_game() -> void:
 			{"id": "standard", "path": "", "pbr": false})
 	pbr_option.tooltip_text = "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set."
 	world_page.add_child(pbr_option)
+	var shader_label := Label.new()
+	shader_label.text = "Shaders"
+	world_page.add_child(shader_label)
+	shader_option = ShaderPackRow.build_join_picker(world_page)
 	var compatibility := Label.new()
 	compatibility.text = "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
 	compatibility.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2132,7 +2154,7 @@ func _show_join() -> void:
 	pass_edit = _labelled_edit(grid, "Password", "")
 	pass_edit.secret = true
 	var pbr_label := Label.new()
-	pbr_label.text = "Graphics"
+	pbr_label.text = "Materials"
 	grid.add_child(pbr_label)
 	join_pbr_option = OptionButton.new()
 	join_pbr_option.add_item("PBR: server materials (recommended)")
@@ -2155,6 +2177,10 @@ func _show_join() -> void:
 		join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
 			{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
 	grid.add_child(join_pbr_option)
+	var shader_label := Label.new()
+	shader_label.text = "Shaders"
+	grid.add_child(shader_label)
+	join_shader_option = ShaderPackRow.build_join_picker(grid)
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) == OK:
 		host_edit.text = str(cfg.get_value("server", "host", ""))
@@ -2231,6 +2257,8 @@ func _fetch_server_list() -> void:
 	var root := server_tree.create_item()
 	var loading := server_tree.create_item(root)
 	loading.set_text(0, "Fetching " + SERVER_LIST_URL + " ...")
+	# Back out and in again before the last fetch answered: ask afresh.
+	server_http.cancel_request()
 	var err := server_http.request(SERVER_LIST_URL)
 	if err != OK:
 		_server_list_message("Could not start the request. The address fields below still work.")

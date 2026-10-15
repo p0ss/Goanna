@@ -868,6 +868,9 @@ const RenderFeatures := preload("res://game/render_features.gd")
 # a group as "Tab/Group" (PanelFit.tab_of and group_of). Types: slider,
 # toggle, steps, choice, and the text kinds in TEXT_SETTING_KINDS.
 const SETTINGS := [
+	# First of the Graphics rows, so it sits under the profile picker
+	# rather than folded away at the bottom, where it went unfound.
+	["Graphics", "shader_pack", "shaderpack", "Shader pack", "An Iris or OptiFine shader pack, as made for Minecraft, drawn in place of Goanna's own look. Only part of what packs do is supported yet, so most look different from their screenshots, and some will not load. Applies the next time you join a world. Start Game and Join Game offer the same choice."],
 	["Graphics", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
 	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/systems/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Graphics", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
@@ -934,7 +937,6 @@ const SETTINGS := [
 	["Graphics/Sky and clouds", "light_shafts", "slider", "Light shafts", "Sun and moon light scattering out of the air, so a gap in a canopy or a hillside throws a visible shaft. Strongest near dawn and dusk, and in rain. 0 leaves the air clear.", 0.0, 3.0, 0.1],
 	["Graphics/Sky and clouds", "render_shafts", "toggle", "Screen space light shafts", "Draw rays from the sun across distant ridges. Volumetric fog is controlled separately."],
 	["Graphics/Sky and clouds", "motes", "slider", "Ambient motes", "Drifting specks over leaves, flowers and sand.", 0.0, 4.0, 0.25],
-	["Graphics/Shader pack", "shader_pack", "shaderpack", "Shader pack", "An Iris or OptiFine shader pack, as made for Minecraft, drawn in place of Goanna's own look. Only part of what packs do is supported yet, so most look different from their screenshots, and some will not load. Applies the next time you join a world."],
 	["Graphics/Water, ice and lava", "render_water_waves", "toggle", "Water waves", "Generate detailed wave normals on water."],
 	["Graphics/Water, ice and lava", "render_water_reflections", "toggle", "Water screen reflections", "Reflect visible scenery in water. Off keeps the inexpensive sky reflection."],
 	["Graphics/Water, ice and lava", "render_underwater_volume", "toggle", "Underwater volumetrics", "Draw volumetric scattering underwater. Off keeps ordinary underwater murk."],

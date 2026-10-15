@@ -2,12 +2,13 @@
 # Copyright (C) 2026 the Goanna contributors
 ## The Shader pack row of the Graphics settings, built the same way by the
 ## main menu (menu/menu.gd) and the in-game panel (ui/game_ui.gd) for the
-## "shaderpack" kind of their shared SETTINGS table: a picker of Off and
+## "shaderpack" kind of their shared SETTINGS table: a picker of None and
 ## the packs in the shader pack folder, the folder's path with a button to
 ## open it, how the pack did at the last join, and the selected pack's
-## options. Everything is saved to goanna.cfg through game/shader_packs.gd
-## and applies at the next join, when main.gd loads the pack; nothing here
-## touches a running world. Static only.
+## options. build_join_picker is the same picker, smaller, for the menu's
+## Start Game and Join Game screens. Everything is saved to goanna.cfg
+## through game/shader_packs.gd and applies at the next join, when main.gd
+## loads the pack; nothing here touches a running world. Static only.
 extends RefCounted
 
 const ShaderPacks := preload("res://game/shader_packs.gd")
@@ -15,6 +16,8 @@ const PanelFit := preload("res://ui/panel_fit.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 
 const NOTE := "Saved. Applies the next time you join a world."
+## The first entry of every pack picker: no pack, Goanna's own renderer.
+const NONE_LABEL := "None (Goanna's own look)"
 
 ## Fills `row` (from PanelFit.row) under the setting's name. `description`
 ## is the SETTINGS entry's text.
@@ -29,22 +32,14 @@ static func build(row: VBoxContainer, description: String) -> void:
 	# The folder, as selectable text and a button: on a desktop the button
 	# opens a file manager, and where nothing answers it (a console session)
 	# the path is still there to read or copy.
-	var folder := ShaderPacks.folder()
 	var where := HBoxContainer.new()
 	where.add_theme_constant_override("separation", 8)
 	var path := LineEdit.new()
-	path.text = folder
+	path.text = ShaderPacks.folder()
 	path.editable = false
 	path.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	path.tooltip_text = "Put shader pack zips or folders here"
 	where.add_child(path)
-	var open_button := Button.new()
-	open_button.text = "Open folder"
-	open_button.pressed.connect(func() -> void: OS.shell_open(folder))
-	where.add_child(open_button)
-	var rescan := Button.new()
-	rescan.text = "Look again"
-	where.add_child(rescan)
 	row.add_child(where)
 	_small(row, "Shader pack folder. Put a pack's zip, as downloaded, or its folder here.",
 			Color(1, 1, 1, 0.5))
@@ -53,40 +48,89 @@ static func build(row: VBoxContainer, description: String) -> void:
 	row.add_child(options)
 
 	var fill := func() -> void:
-		picker.clear()
-		picker.add_item("Off")
-		picker.set_item_metadata(0, "")
-		var current := ShaderPacks.chosen()
-		var packs := ShaderPacks.scan()
-		var shown := {}
-		for p in packs:
-			var label := ShaderPacks.display_name(str(p["name"]))
-			if shown.has(label):
-				label = str(p["name"])
-			shown[label] = true
-			picker.add_item(label)
-			picker.set_item_metadata(picker.item_count - 1, str(p["name"]))
-		var selected := 0
-		for i in picker.item_count:
-			if str(picker.get_item_metadata(i)) == current:
-				selected = i
-		if current != "" and selected == 0:
-			# Saved, but gone from the folder: say so rather than show Off,
-			# which would claim the next join runs without one.
-			picker.add_item("%s (not in the folder)" % current)
-			picker.set_item_metadata(picker.item_count - 1, current)
-			selected = picker.item_count - 1
-		picker.select(selected)
-		_show_status(status, current)
+		var current := fill_picker(picker)
+		show_status(status, current)
 		_build_options(options, current, note)
 	fill.call()
-	rescan.pressed.connect(fill)
+	folder_buttons(where, fill)
 	picker.item_selected.connect(func(i: int) -> void:
 		var name := str(picker.get_item_metadata(i))
 		ShaderPacks.set_chosen(name)
 		note.visible = true
-		_show_status(status, name)
+		show_status(status, name)
 		_build_options(options, name, note))
+
+## The compact form the Start Game and Join Game screens put under
+## Materials: the picker, the folder's two buttons and the last join's line,
+## with no pack options. Saved to the same setting as the Settings row, at
+## once, so the join that follows loads it. Returns the picker.
+static func build_join_picker(parent: Control) -> OptionButton:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 8)
+	box.add_child(line)
+	var picker := OptionButton.new()
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.tooltip_text = "An Iris or OptiFine shader pack from the shader pack folder"
+	line.add_child(picker)
+	var status := _small(box, "", Color(1, 1, 1, 0.8))
+	parent.add_child(box)
+	var fill := func() -> void:
+		show_status(status, fill_picker(picker))
+	fill.call()
+	folder_buttons(line, fill)
+	if OS.get_environment("GOANNA_SHADERPACK") != "":
+		_small(box, "GOANNA_SHADERPACK is set, so a join loads that pack instead.",
+				Color(1, 0.85, 0.4))
+	picker.item_selected.connect(func(i: int) -> void:
+		var name := str(picker.get_item_metadata(i))
+		ShaderPacks.set_chosen(name)
+		show_status(status, name))
+	return picker
+
+## Lists None and every pack in the folder in `picker`, selects the saved
+## choice and returns it. The metadata of each item is the name saved.
+static func fill_picker(picker: OptionButton) -> String:
+	picker.clear()
+	picker.add_item(NONE_LABEL)
+	picker.set_item_metadata(0, "")
+	var current := ShaderPacks.chosen()
+	var shown := {}
+	for p in ShaderPacks.scan():
+		var label := ShaderPacks.display_name(str(p["name"]))
+		if shown.has(label):
+			label = str(p["name"])
+		shown[label] = true
+		picker.add_item(label)
+		picker.set_item_metadata(picker.item_count - 1, str(p["name"]))
+	var selected := 0
+	for i in picker.item_count:
+		if str(picker.get_item_metadata(i)) == current:
+			selected = i
+	if current != "" and selected == 0:
+		# Saved, but gone from the folder: say so rather than show None,
+		# which would claim the next join runs without one.
+		picker.add_item("%s (not in the folder)" % current)
+		picker.set_item_metadata(picker.item_count - 1, current)
+		selected = picker.item_count - 1
+	picker.select(selected)
+	return current
+
+## Open folder and Look again, added to `box`; Look again calls `rescan`.
+static func folder_buttons(box: Container, rescan: Callable) -> void:
+	var folder := ShaderPacks.folder()
+	var open_button := Button.new()
+	open_button.text = "Open folder"
+	open_button.tooltip_text = folder
+	open_button.pressed.connect(func() -> void: OS.shell_open(folder))
+	box.add_child(open_button)
+	var again := Button.new()
+	again.text = "Look again"
+	again.tooltip_text = "List the shader pack folder again, after adding a pack"
+	again.pressed.connect(rescan)
+	box.add_child(again)
 
 static func _small(row: VBoxContainer, text: String, colour: Color) -> Label:
 	var l := Label.new()
@@ -97,8 +141,9 @@ static func _small(row: VBoxContainer, text: String, colour: Color) -> Label:
 	row.add_child(l)
 	return l
 
-# How the pack did at the last join that loaded it from this setting.
-static func _show_status(status: Label, name: String) -> void:
+## How the pack did at the last join that loaded it from this setting, in
+## `status`, hidden when there is nothing to say about pack `name`.
+static func show_status(status: Label, name: String) -> void:
 	var last := ShaderPacks.last_status()
 	if name == "" or last.is_empty() or str(last.get("pack", "")) != name:
 		status.text = ""

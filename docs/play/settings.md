@@ -76,7 +76,10 @@ works is in [procedural grass](../systems/procedural-grass.md).
 ## Shader packs
 
 Settings, Graphics, Shader pack runs an Iris or OptiFine shader pack, the
-kind made for Minecraft, in place of Goanna's own look. Only part of what
+kind made for Minecraft, in place of Goanna's own look. It sits under the
+graphics profile, and the Shaders row of Start Game and Join Game, under
+Materials, makes the same choice: the two always show the same pack, and
+changing either changes both. Only part of what
 packs do is supported so far, so most packs look different from their
 screenshots and some will not load at all; what each popular pack does is
 in [shader pack status](../develop/shaderpack-status.md).
@@ -89,7 +92,10 @@ as a folder holding `shaders/`. A zip is unpacked once, the first time it
 is used, into `shaderpack_cache` beside the folder, and again only if the
 zip is replaced. Look again lists the folder afresh after adding a pack.
 
-The picker offers Off and every pack in the folder by name. Under it, Pack
+The picker offers None (Goanna's own look) and every pack in the folder
+by name. Start Game and Join Game have the picker, Open folder and Look
+again, and the last join's line, but not the options. Under the Settings
+picker, Pack
 options lists the selected pack's switches and lists of values, under the
 pack's own headings and names, as Iris shows them; Pack defaults forgets
 every change made to that pack. Options that are numbers written into the
