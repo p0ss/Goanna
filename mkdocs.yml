@@ -189,6 +189,7 @@ nav:
   - Releases:
       - releases/index.md
       - Unreleased: releases/unreleased.md
+      - 0.15.1-alpha: releases/v0.15.1-alpha.md
       - 0.15.0-alpha: releases/v0.15.0-alpha.md
       - 0.14.0-alpha: releases/v0.14.0-alpha.md
       - 0.13.0-alpha: releases/v0.13.0-alpha.md
