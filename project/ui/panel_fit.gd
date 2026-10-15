@@ -16,6 +16,7 @@
 extends RefCounted
 
 const GlassStyle := preload("res://ui/glass_style.gd")
+const InfoIcon := preload("res://ui/info_icon.gd")
 const MAX_WIDE := Vector2(980, 860)
 const MAX_COMPACT_WIDTH := 520.0
 
@@ -47,7 +48,9 @@ static func page_padding() -> MarginContainer:
 # One settings row on `page`: the setting's name on the left of `head`, where
 # a switch or a slider's value goes on the right, and anything wider (a
 # slider, a picker, a path) below it in the returned row. Returns
-# [row, head]. Rows after the first are separated by a faint rule.
+# [row, head]. Rows after the first are separated by a faint rule. The name
+# is followed by a spacer, so describe() can put its (i) right after the
+# name and the row's own controls still sit at the far end.
 static func row(page: VBoxContainer, title: String) -> Array:
 	var n := page.get_child_count()
 	if n > 0 and not page.get_child(n - 1).has_meta("heading"):
@@ -64,13 +67,26 @@ static func row(page: VBoxContainer, title: String) -> Array:
 	var name_label := Label.new()
 	name_label.text = title
 	name_label.add_theme_font_size_override("font_size", 17)
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_child(name_label)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(spacer)
 	return [r, head]
 
-# The explanation under a row, dimmer and smaller than its name.
-static func describe(r: VBoxContainer, text: String, alpha := 0.55) -> Label:
+# The explanation of a row from row(): an (i) beside its name that shows
+# the text under the row's controls on demand (ui/info_icon.gd). Call it
+# after the controls are added, so the text sits below them. A container
+# that is not such a row gets the text as a visible line, as before.
+static func describe(r: VBoxContainer, text: String, alpha := 0.55) -> Control:
+	var head := r.get_child(0) as HBoxContainer if r.get_child_count() > 0 else null
+	if head == null or head.get_child_count() == 0 or not (head.get_child(0) is Label):
+		return note(r, text, alpha)
+	return info(r, head, text, r, 1, alpha)
+
+# A small line of text under a row that stays in view: state, such as a
+# value not recorded yet, rather than explanation.
+static func note(r: Container, text: String, alpha := 0.55) -> Label:
 	var desc := Label.new()
 	desc.text = text
 	desc.add_theme_font_size_override("font_size", 13)
@@ -78,6 +94,23 @@ static func describe(r: VBoxContainer, text: String, alpha := 0.55) -> Label:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	r.add_child(desc)
 	return desc
+
+# An (i) in `beside` (at `index`, or the end) explaining `owner`, whose text
+# is a hidden line added at the end of `text_parent` as it is now. The text
+# shows while the pointer is on the icon, stays when it is clicked or
+# tapped, and shows while the keyboard or controller focus is on `owner` or
+# inside it, where the narrator reads it too (see ui/info_icon.gd).
+static func info(owner: Control, beside: Container, text: String, text_parent: Container,
+		index := -1, alpha := 0.55) -> InfoIcon:
+	var icon := InfoIcon.new()
+	icon.owner_control = owner
+	icon.label = note(text_parent, text, alpha)
+	icon.label.visible = false
+	owner.set_meta(InfoIcon.META, text)
+	beside.add_child(icon)
+	if index >= 0:
+		beside.move_child(icon, mini(index, beside.get_child_count() - 1))
+	return icon
 
 # A heading over a group of rows within a tab (Controls: Mouse, Movement).
 static func heading(page: VBoxContainer, text: String) -> void:

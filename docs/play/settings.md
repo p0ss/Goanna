@@ -3,6 +3,14 @@
 Settings opens from the main menu and from the pause menu in a game. Most
 options take effect at once.
 
+What a setting does is behind the (i) beside its name, as is what a menu
+screen, the graphics profile and a few of Start Game's and Join Game's
+pickers are for. Point at the (i) to read it, click or tap it to keep it
+open, and click or tap again to close it. With a keyboard or a controller
+the text opens by itself while the focus is on that setting, and Read
+aloud reads it. Warnings, progress and anything that has gone wrong stay
+in view.
+
 ## Graphics quality
 
 The graphics quality profile picks one of five tiers, Lowest, Low, Medium, High

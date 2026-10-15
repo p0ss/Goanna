@@ -44,7 +44,10 @@ It reads:
   example "Buy bread, button", "Haggle, checkbox, checked", "Stone, 12" or
   "View distance, slider, 22". This interrupts whatever was being said,
   since only the newest one matters, and is read again when its state
-  changes.
+  changes;
+- then what that control is for, the text behind the (i) beside it, the
+  first time the focus comes to it (not again when only its state
+  changes), whether or not the text is open on screen.
 
 ## Keyboard
 
@@ -64,6 +67,10 @@ Then:
 - on text with links in it, such as the choices in a conversation, `Up`
   and `Down` choose a link and `Enter` follows it;
 - `Escape` closes the form, and `I` closes the inventory.
+
+The (i) beside a setting or a picker never takes the focus, so `Tab` and
+the arrow keys go from control to control without stopping on it.
+Instead its text opens under the control while the focus is on it.
 
 When the game sends a form again, after a button or a tab, the focus stays
 on the same control. Luanti's own client does not let the keyboard reach

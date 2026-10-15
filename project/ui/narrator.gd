@@ -22,12 +22,15 @@
 #   - the wielded item, when it changes;
 #   - health, when it changes;
 #   - a form or menu when it opens, then the element under the pointer or the
-#     keyboard focus, with what kind of control it is and its state.
+#     keyboard focus, with what kind of control it is and its state, and the
+#     explanation behind the (i) beside it (ui/info_icon.gd) when the focus
+#     first moves onto what it explains, whether or not it is showing.
 # The first five wait their turn; the last interrupts, since only the newest
 # focus matters.
 extends Node
 
 const FormspecScript := preload("res://ui/formspec.gd")
+const InfoIcon := preload("res://ui/info_icon.gd")
 
 # How long a HUD text or infotext must hold still before it is read.
 const SETTLE_S := 0.5
@@ -66,6 +69,7 @@ var _hp := -1
 var _hp_since := 0.0
 var _window_key := ""
 var _focus_name := ""
+var _info_owner := 0                  # whose (i) text was read last, by instance id
 var _focus_queues := false            # the first focus after an opening waits its turn
 var _held_stack := ""                 # what is on the cursor in a form, as last read
 var _form_root := 0                   # the open form's build, by instance id
@@ -236,6 +240,7 @@ func _process(delta: float) -> void:
 ## then whatever takes the focus after it.
 func announce(text: String) -> void:
 	_focus_name = ""
+	_info_owner = 0
 	_focus_queues = true
 	if enabled:
 		say(text, true)
@@ -324,6 +329,7 @@ func _window() -> void:
 	if key != _window_key:
 		_window_key = key
 		_focus_name = ""
+		_info_owner = 0
 		_held_stack = ""
 		if w != null:
 			var summary := _summary(w)
@@ -446,6 +452,15 @@ func _focus_in(root: Control) -> void:
 	# The focus a window opens with is read after its summary, not over it.
 	say(describe(c), not _focus_queues)
 	_focus_queues = false
+	# Then what it is for, once each time the focus comes to it: the text
+	# that used to sit under it as a paragraph and was read with it, now
+	# behind an (i), which is hidden until asked for but read all the same.
+	var about := InfoIcon.explained(c)
+	var about_id := about.get_instance_id() if about != null else 0
+	if about_id != _info_owner:
+		_info_owner = about_id
+		if about != null:
+			say(String(about.get_meta(InfoIcon.META)))
 
 # Text as it should be heard: the disclosure arrows Goanna's menus draw on a
 # group's header said as words, and runs of spaces closed up, so a voice does

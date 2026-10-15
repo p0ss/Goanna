@@ -53,7 +53,10 @@ var world_option: OptionButton
 var world_edit: LineEdit
 var generator_option: OptionButton
 var terrain_preview: TextureRect
-var terrain_description: Label
+# The (i) beside World generator: what Terrain Diffusion supports, and the
+# chosen terrain world's own description.
+var generator_info: Button
+var _world_edit_label: Label
 var creative_check: CheckBox
 var damage_check: CheckBox
 var pbr_option: OptionButton
@@ -265,6 +268,12 @@ func _ready() -> void:
 				await get_tree().create_timer(0.5).timeout
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
+		# GOANNA_MENU_INFO=1 opens every (i) on the screen, to see their text.
+		if OS.get_environment("GOANNA_MENU_INFO") != "":
+			for b in _panel_box.find_children("*", "Button", true, false):
+				if b.has_method("set_info"):
+					(b as Button).button_pressed = true
+			await RenderingServer.frame_post_draw
 		# GOANNA_MENU_SCROLL=<pixels> scrolls the screen's visible scrolling
 		# bodies, so a shot can show what sits below the fold.
 		var scroll_to := OS.get_environment("GOANNA_MENU_SCROLL")
@@ -285,6 +294,8 @@ func _ready() -> void:
 
 var _panel_box: VBoxContainer
 var _screen_title := ""
+# The (i) beside the screen's title, when it has an explanation.
+var screen_info: Button
 
 
 # The still is loaded rather than preloaded so a missing or not yet imported
@@ -444,6 +455,7 @@ func _stop_showcase() -> void:
 func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	_screen_title = title
 	_wide = title != ""
+	screen_info = null
 	for c in _panel_box.get_children():
 		c.queue_free()
 	var t := Label.new()
@@ -451,12 +463,25 @@ func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	t.add_theme_font_size_override("font_size", 30)
 	_panel_box.add_child(t)
 	if title != "":
+		# The title, and what the screen is for behind an (i) beside it
+		# (ui/info_icon.gd) rather than as a paragraph above every screen.
+		var head := VBoxContainer.new()
+		head.add_theme_constant_override("separation", 6)
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 10)
+		head.add_child(line)
 		var h := Label.new()
 		h.text = title
 		h.add_theme_font_size_override("font_size", 18)
 		GlassStyle.tint_text(h, Color(1, 1, 1, 0.85))
-		_panel_box.add_child(h)
-	if subtitle != "":
+		line.add_child(h)
+		_panel_box.add_child(head)
+		if subtitle != "":
+			var about := PanelFit.info(head, line, subtitle, head, -1, 0.6)
+			about.label.add_theme_font_size_override("font_size", 15)
+			screen_info = about
+	elif subtitle != "":
+		# The main menu's one line, which says what Goanna is.
 		var s := Label.new()
 		s.text = subtitle
 		GlassStyle.tint_text(s, Color(1, 1, 1, 0.6))
@@ -1139,13 +1164,20 @@ func _show_settings() -> void:
 # The menu has no client to ask, so everything here reads and writes
 # goanna.cfg directly and takes effect on the next connect.
 func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
+	# The profile's name, its picker, and what the profile is about behind
+	# an (i) beside the name.
+	var profile := VBoxContainer.new()
+	profile.add_theme_constant_override("separation", 8)
+	box.add_child(profile)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	profile.add_child(line)
 	var head := Label.new()
 	head.text = "Graphics profile"
-	box.add_child(head)
+	line.add_child(head)
 	var picker := OptionButton.new()
-	var blurb := Label.new()
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	GlassStyle.tint_text(blurb, Color(1, 1, 1, 0.72))
+	profile.add_child(picker)
+	var blurb := PanelFit.info(profile, line, "", profile, -1, 0.72)
 	var names: Array = GraphicsProfiles.ORDER.duplicate()
 	names.append("custom")
 	for i in names.size():
@@ -1160,7 +1192,7 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 	var show_current := func() -> void:
 		var name: String = GraphicsProfiles.matches(stored.call())
 		picker.select(maxi(0, names.find(name)))
-		blurb.text = GraphicsProfiles.BLURBS[name]
+		blurb.set_info(GraphicsProfiles.BLURBS[name])
 	picker.item_selected.connect(func(i: int) -> void:
 		var name: String = names[i]
 		if name == "custom":
@@ -1171,8 +1203,6 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 		cfg.set_value("settings", "graphics_profile", name)
 		cfg.save(CFG_PATH)
 		_show_settings())
-	box.add_child(picker)
-	box.add_child(blurb)
 	show_current.call()
 	var groups := {}
 	var order: Array = []
@@ -1253,8 +1283,9 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		steps.item_selected.connect(func(i: int) -> void:
 			_save_setting(key, float(steps.get_item_metadata(i))))
 		box.add_child(steps)
-		PanelFit.describe(box, str(row[4]) if known else str(row[4])
-				+ "\n(not recorded yet: join a world once, or set it here)")
+		if not known:
+			PanelFit.note(box, NOT_RECORDED)
+		PanelFit.describe(box, str(row[4]))
 		return
 	if kind == "pack":
 		# The same dropdown the in-game panel builds (ui/game_ui.gd): the packs
@@ -1337,14 +1368,16 @@ func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 		h.add_child(sl)
 		head.add_child(val)
 		box.add_child(h)
-	var desc_text := str(row[4])
 	if not known:
 		# The client records what it is actually running with the first time a
 		# world is joined (ui/game_ui.gd, _load_apply_settings). Until then the
-		# menu has nothing to read and is showing a placeholder, so say so
-		# rather than presenting a guess as the current state.
-		desc_text += "\n(not recorded yet: join a world once, or set it here)"
-	PanelFit.describe(box, desc_text)
+		# menu has nothing to read and is showing a placeholder, so say so,
+		# in view rather than behind the (i), since it is state and not
+		# explanation.
+		PanelFit.note(box, NOT_RECORDED)
+	PanelFit.describe(box, str(row[4]))
+
+const NOT_RECORDED := "Not recorded yet: join a world once, or set it here."
 
 # What a setting is before anything was saved, for the rows whose default is
 # not "on" or the middle of the slider.
@@ -1479,6 +1512,7 @@ func _show_new_game() -> void:
 		world_option.set_item_metadata(world_option.item_count - 1, entry)
 	grid.add_child(world_option)
 	world_edit = _labelled_edit(grid, "New world name", "my_world")
+	_world_edit_label = grid.get_child(world_edit.get_index() - 1) as Label
 	var glabel := Label.new()
 	glabel.text = "Game"
 	grid.add_child(glabel)
@@ -1490,9 +1524,7 @@ func _show_new_game() -> void:
 		game_option.add_item(LocalServer.game_title(_local_data_dir, g))
 		game_option.set_item_metadata(game_option.item_count - 1, g)
 	grid.add_child(game_option)
-	var gen_label := Label.new()
-	gen_label.text = "World generator"
-	grid.add_child(gen_label)
+	var gen_line := _grid_label(grid, "World generator")
 	generator_option = OptionButton.new()
 	generator_option.add_item("Game default")
 	generator_option.set_item_metadata(0, "default")
@@ -1506,16 +1538,14 @@ func _show_new_game() -> void:
 	generator_option.set_item_metadata(generator_option.item_count - 1, "terrain_generate")
 	generator_option.set_item_disabled(generator_option.item_count - 1, true)
 	grid.add_child(generator_option)
+	_level(gen_line, generator_option)
+	generator_info = PanelFit.info(generator_option, gen_line, TERRAIN_SUPPORT, world_page)
 	terrain_preview = TextureRect.new()
 	terrain_preview.custom_minimum_size = Vector2(288, 288)
 	terrain_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	terrain_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	terrain_preview.visible = false
 	world_page.add_child(terrain_preview)
-	terrain_description = Label.new()
-	terrain_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	terrain_description.visible = false
-	world_page.add_child(terrain_description)
 	terrain_download_label = Label.new()
 	terrain_download_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	GlassStyle.tint_text(terrain_download_label, Color(1, 1, 1, 0.6))
@@ -1527,9 +1557,12 @@ func _show_new_game() -> void:
 	damage_check.text = "Enable damage"
 	damage_check.button_pressed = true
 	world_page.add_child(damage_check)
+	var pbr_line := HBoxContainer.new()
+	pbr_line.add_theme_constant_override("separation", 10)
 	var pbr_label := Label.new()
 	pbr_label.text = "Materials"
-	world_page.add_child(pbr_label)
+	pbr_line.add_child(pbr_label)
+	world_page.add_child(pbr_line)
 	pbr_option = OptionButton.new()
 	pbr_option.add_item("PBR materials (recommended)")
 	pbr_option.set_item_metadata(0, {"id": "bundled", "path": "", "pbr": true})
@@ -1542,17 +1575,15 @@ func _show_new_game() -> void:
 	pbr_option.add_item("Standard, no PBR")
 	pbr_option.set_item_metadata(pbr_option.item_count - 1,
 			{"id": "standard", "path": "", "pbr": false})
-	pbr_option.tooltip_text = "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set."
 	world_page.add_child(pbr_option)
+	PanelFit.info(pbr_option, pbr_line, "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set.", world_page)
+	var shader_line := HBoxContainer.new()
+	shader_line.add_theme_constant_override("separation", 10)
 	var shader_label := Label.new()
 	shader_label.text = "Shaders"
-	world_page.add_child(shader_label)
-	shader_option = ShaderPackRow.build_join_picker(world_page)
-	var compatibility := Label.new()
-	compatibility.text = "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
-	compatibility.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	GlassStyle.tint_text(compatibility, Color(1, 1, 1, 0.55))
-	world_page.add_child(compatibility)
+	shader_line.add_child(shader_label)
+	world_page.add_child(shader_line)
+	shader_option = ShaderPackRow.build_join_picker(world_page, shader_line)
 
 	var mods_scroll := ScrollContainer.new()
 	mods_scroll.name = "Mods"
@@ -1674,6 +1705,10 @@ func _on_world_selected(index: int) -> void:
 	var is_new := entry.is_empty()
 	world_edit.editable = is_new
 	world_edit.visible = is_new
+	# Its label goes with it: a grid cell left behind shifted every row
+	# below it a column, so Game sat beside World generator's picker.
+	if is_instance_valid(_world_edit_label):
+		_world_edit_label.visible = is_new
 	if delete_button:
 		delete_button.visible = not is_new
 	game_option.disabled = not is_new
@@ -1713,6 +1748,8 @@ func _on_world_selected(index: int) -> void:
 		(mod_checks[mod] as CheckBox).button_pressed = selected_mods.has(mod)
 	_refresh_terrain_download_state()
 
+const TERRAIN_SUPPORT := "Terrain Diffusion uses any game's registered biomes. Mineclonia currently has the fullest vegetation support."
+
 # The catalogue id behind the current selection, or "" when the selection is
 # not one of the downloadable worlds.
 func _selected_terrain_id() -> String:
@@ -1730,12 +1767,11 @@ func _refresh_terrain_download_state() -> void:
 	terrain_download_label.visible = shown
 	if is_instance_valid(terrain_preview):
 		terrain_preview.visible = shown
-	if is_instance_valid(terrain_description):
-		terrain_description.visible = shown
+	if is_instance_valid(generator_info):
+		var about := str(world.get("description", "")) if shown else ""
+		generator_info.set_info(TERRAIN_SUPPORT if about == "" else about + "\n\n" + TERRAIN_SUPPORT)
 	if not shown:
 		return
-	if is_instance_valid(terrain_description):
-		terrain_description.text = str(world.get("description", ""))
 	if is_instance_valid(terrain_preview):
 		var art := str(world.get("preview", ""))
 		terrain_preview.texture = load(art) if art != "" and ResourceLoader.exists(art) else null
@@ -2151,7 +2187,8 @@ func _show_join() -> void:
 	host_edit = _labelled_edit(grid, "Server address", "127.0.0.1")
 	port_edit = _labelled_edit(grid, "Port", "30000")
 	name_edit = _labelled_edit(grid, "Player name", "")
-	pass_edit = _labelled_edit(grid, "Password", "")
+	pass_edit = _labelled_edit(grid, "Password", "",
+		"On a server that allows registration, a new name is registered with this password.")
 	pass_edit.secret = true
 	var pbr_label := Label.new()
 	pbr_label.text = "Materials"
@@ -2177,10 +2214,9 @@ func _show_join() -> void:
 		join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
 			{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
 	grid.add_child(join_pbr_option)
-	var shader_label := Label.new()
-	shader_label.text = "Shaders"
-	grid.add_child(shader_label)
-	join_shader_option = ShaderPackRow.build_join_picker(grid)
+	var shader_line := _grid_label(grid, "Shaders")
+	join_shader_option = ShaderPackRow.build_join_picker(grid, shader_line)
+	_level(shader_line, join_shader_option.get_parent() as Control)
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) == OK:
 		host_edit.text = str(cfg.get_value("server", "host", ""))
@@ -2194,7 +2230,6 @@ func _show_join() -> void:
 				break
 	if OS.get_environment("GOANNA_PORT") != "":
 		port_edit.text = OS.get_environment("GOANNA_PORT")
-	status_label.text = "On a server that allows registration, a new name is registered with this password."
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 8)
@@ -2380,16 +2415,47 @@ func _on_connect() -> void:
 
 # --- helpers -----------------------------------------------------------------
 
-func _labelled_edit(grid: GridContainer, label_text: String, placeholder: String) -> LineEdit:
-	var label := Label.new()
-	label.text = label_text
-	grid.add_child(label)
+# A label and a text field, in two cells of `grid`. With `info`, an (i)
+# beside the label explains the field, under it in its own cell.
+func _labelled_edit(grid: GridContainer, label_text: String, placeholder: String,
+		info := "") -> LineEdit:
 	var edit := LineEdit.new()
 	edit.placeholder_text = placeholder
 	edit.custom_minimum_size = Vector2(260, 0)
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_child(edit)
+	if info == "":
+		var label := Label.new()
+		label.text = label_text
+		grid.add_child(label)
+		grid.add_child(edit)
+		return edit
+	var line := _grid_label(grid, label_text)
+	var cell := VBoxContainer.new()
+	cell.add_theme_constant_override("separation", 4)
+	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cell.add_child(edit)
+	grid.add_child(cell)
+	_level(line, edit)
+	PanelFit.info(edit, line, info, cell)
 	return edit
+
+# A grid's label cell with room for an (i) beside the label: a line at the
+# top of the cell, so the label and icon stay beside the control when the
+# (i) text opens under it and the row grows. _level makes it the control's
+# height, so the label sits level with the other rows' labels.
+func _grid_label(grid: GridContainer, text: String) -> HBoxContainer:
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var label := Label.new()
+	label.text = text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	line.add_child(label)
+	grid.add_child(line)
+	return line
+
+func _level(line: Control, beside: Control) -> void:
+	line.custom_minimum_size.y = beside.get_combined_minimum_size().y
 
 func _local_pbr_enabled() -> bool:
 	return bool(_local_pbr_selection().get("pbr", true))

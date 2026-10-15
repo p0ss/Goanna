@@ -18,6 +18,9 @@ const GlassStyle := preload("res://ui/glass_style.gd")
 const NOTE := "Saved. Applies the next time you join a world."
 ## The first entry of every pack picker: no pack, Goanna's own renderer.
 const NONE_LABEL := "None (Goanna's own look)"
+const FOLDER_HINT := "Put a pack's zip, as downloaded, or its folder in the shader pack folder, then press Look again."
+## The (i) beside Shaders on Start Game and Join Game.
+const JOIN_INFO := "An Iris or OptiFine shader pack, as made for Minecraft, drawn in place of Goanna's own look. Only part of what packs do is supported yet, so most look different from their screenshots, and some will not load. " + FOLDER_HINT + " The same choice as Settings, Graphics, Shader pack, where a pack's own options are."
 
 ## Fills `row` (from PanelFit.row) under the setting's name. `description`
 ## is the SETTINGS entry's text.
@@ -28,7 +31,7 @@ static func build(row: VBoxContainer, description: String) -> void:
 	var note := _small(row, NOTE, Color(1, 0.85, 0.4))
 	note.visible = false
 	var status := _small(row, "", Color(1, 1, 1, 0.8))
-	PanelFit.describe(row, description, 0.5)
+	PanelFit.describe(row, description + " " + FOLDER_HINT, 0.5)
 	# The folder, as selectable text and a button: on a desktop the button
 	# opens a file manager, and where nothing answers it (a console session)
 	# the path is still there to read or copy.
@@ -41,8 +44,6 @@ static func build(row: VBoxContainer, description: String) -> void:
 	path.tooltip_text = "Put shader pack zips or folders here"
 	where.add_child(path)
 	row.add_child(where)
-	_small(row, "Shader pack folder. Put a pack's zip, as downloaded, or its folder here.",
-			Color(1, 1, 1, 0.5))
 	var options := VBoxContainer.new()
 	options.add_theme_constant_override("separation", 10)
 	row.add_child(options)
@@ -63,8 +64,9 @@ static func build(row: VBoxContainer, description: String) -> void:
 ## The compact form the Start Game and Join Game screens put under
 ## Materials: the picker, the folder's two buttons and the last join's line,
 ## with no pack options. Saved to the same setting as the Settings row, at
-## once, so the join that follows loads it. Returns the picker.
-static func build_join_picker(parent: Control) -> OptionButton:
+## once, so the join that follows loads it. With `beside` (the line holding
+## the row's label), an (i) there explains it. Returns the picker.
+static func build_join_picker(parent: Control, beside: Container = null) -> OptionButton:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -84,6 +86,8 @@ static func build_join_picker(parent: Control) -> OptionButton:
 	if OS.get_environment("GOANNA_SHADERPACK") != "":
 		_small(box, "GOANNA_SHADERPACK is set, so a join loads that pack instead.",
 				Color(1, 0.85, 0.4))
+	if beside != null:
+		PanelFit.info(box, beside, JOIN_INFO, box)
 	picker.item_selected.connect(func(i: int) -> void:
 		var name := str(picker.get_item_metadata(i))
 		ShaderPacks.set_chosen(name)
@@ -173,6 +177,8 @@ static func _build_options(box: VBoxContainer, name: String, note: Label) -> voi
 	reset.tooltip_text = "Forget the options changed for this pack"
 	bar.add_child(reset)
 	box.add_child(bar)
+	PanelFit.info(bar, bar, "Switches and lists only: options that are numbers set in the pack's "
+			+ "own code (const lines) and option profiles are not offered.", box, 1, 0.5)
 	var pad := MarginContainer.new()
 	pad.add_theme_constant_override("margin_left", 12)
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -208,9 +214,6 @@ static func _fill_options(body: VBoxContainer, name: String, note: Label) -> voi
 	if layout.is_empty():
 		_small(body, "This pack has no options Goanna can set.", Color(1, 1, 1, 0.6))
 		return
-	_small(body, "Switches and lists only: options that are numbers set in the pack's "
-			+ "own code (const lines) and option profiles are not offered.",
-			Color(1, 1, 1, 0.5))
 	var saved := ShaderPacks.saved_options(name)
 	for item in layout:
 		if item.has("heading"):

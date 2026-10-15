@@ -1518,15 +1518,23 @@ func _save_setting_text(key: String, value: String) -> void:
 # The Graphics tab: a profile, the few settings a player can judge by eye,
 # then everything else behind one toggle.
 func _build_graphics_page(page: VBoxContainer) -> void:
+	# The profile's name with an (i) for what the profile is about, its
+	# picker, and a line that shows only while a profile is being applied.
+	var profile := VBoxContainer.new()
+	profile.add_theme_constant_override("separation", 8)
+	page.add_child(profile)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	profile.add_child(line)
 	var picker := OptionButton.new()
 	var head := Label.new()
 	head.text = "Graphics profile"
 	head.add_theme_font_size_override("font_size", 17)
-	page.add_child(head)
-	var blurb := Label.new()
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	blurb.add_theme_font_size_override("font_size", 13)
-	GlassStyle.tint_text(blurb, Color(1, 1, 1, 0.72))
+	line.add_child(head)
+	profile.add_child(picker)
+	var applying := PanelFit.note(profile, "", 0.72)
+	applying.visible = false
+	var blurb := PanelFit.info(profile, line, "", profile, -1, 0.72)
 	var names: Array = GraphicsProfiles.ORDER.duplicate()
 	names.append("custom")
 	for i in names.size():
@@ -1539,20 +1547,19 @@ func _build_graphics_page(page: VBoxContainer) -> void:
 	var show_current := func() -> void:
 		var name: String = current.call()
 		picker.select(maxi(0, names.find(name)))
-		blurb.text = GraphicsProfiles.BLURBS[name]
+		blurb.set_info(GraphicsProfiles.BLURBS[name])
 	picker.item_selected.connect(func(i: int) -> void:
 		var name: String = names[i]
 		if name == "custom" or profile_changing:
 			show_current.call()
 			return
 		picker.disabled = true
-		blurb.text = "Applying %s..." % GraphicsProfiles.LABELS[name]
+		applying.text = "Applying %s..." % GraphicsProfiles.LABELS[name]
+		applying.visible = true
 		await change_profile(name)
 		# Rebuild the panel only if the player is still looking at it.
 		if is_instance_valid(picker) and picker.is_inside_tree():
 			_open_settings())
-	page.add_child(picker)
-	page.add_child(blurb)
 	show_current.call()
 	# Explain saved values relative to the initial preset without claiming
 	# that adapter type and core count establish the machine's capability.
