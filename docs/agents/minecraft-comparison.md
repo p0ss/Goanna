@@ -582,3 +582,85 @@ Reference reuse requires matching Minecraft and render-mod versions,
 bridge binary, fixture commands, shader and resource pack content hashes,
 clock, shader options and calibration camera. It is a convenience for
 controlled renderer changes, not permission to compare different inputs.
+
+## Face culling and shader block IDs, 2026-10-18
+
+The glass double frame was a material culling error. Imported
+single-texture cut-out and translucent programs disabled raster culling to
+share one shader across plants and cubes. They did not preserve each
+material's back-face flag. The bridge sends `cull=true` for oak leaves and
+glass, and `cull=false` for cross-shaped saplings. A per-material
+`single_sided` discard now preserves that distinction in colour and
+secondary outputs. Native waving leaves use the same flag. Imported
+shadow programs keep their separate culling policy.
+
+Culling-only Goanna reruns reuse the matched Minecraft references above.
+No bridge, fixture, pack, clock or camera input changed. The duplicate
+glass frame disappears in Eclipse, Complementary, Mellow and MakeUp. The
+fixed calibration glass sample's maximum mean channel differences are:
+
+| Pack | Before | Culling corrected |
+| --- | --- | --- |
+| Diagnostic Eclipse | 20.80 | 9.93 |
+| Complementary Reimagined | 12.31 | 8.71 |
+| Mellow | 26.53 | 6.84 |
+| MakeUp Ultra Fast | 26.07 | 12.80 |
+
+Remaining glass shading is not established as AO alone. Pass selection,
+material buffers and refraction inputs still differ. The culling change
+also ran with Goanna's native shaders on the same comparison server,
+without client script or shader errors. These are Minecraft Java 26.2
+through BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0
+core, Godot 4.5.1 and RTX 3090 in headless gamescope. Runs began on the
+dirty checkout based on `7c5ef8b8`, including unrelated Overseer changes.
+The culling correction is committed as `b6dbb4dc`.
+
+A separate authored shader renders leaves as green cut-outs, with all
+lighting and shadows removed. It identifies foliage by the verified
+plains vertex tint. In the close foliage camera, top-region visible
+coverage is 95.11% in Minecraft and 95.92% in Goanna. Forcing mip level
+zero changes those to 95.12% and 95.92%. The front region differs by less
+than 0.2 percentage points. This measures the union of visible leaf
+fragments, not individual faces, layer depth or more distant foliage.
+It does not justify a global leaf opacity adjustment. The CPU mipmap
+input mismatch remains real but is not isolated as the dominant cause at
+this close camera.
+
+The first coverage control selected leaves by `mc_Entity` and failed to
+identify any Goanna leaves. Those frames are excluded from the opacity
+comparison. That failure exposed a separate setup bug: comparison
+profiles left `GOANNA_TEXTURE_MAP` empty. Media loaded under BridgeTest's
+flat names, but the semantic material table had no texture-to-block map.
+Pack block IDs therefore did not reach the geometry's `mc_Entity` input.
+
+Profiles now generate a map from `block-oak_leaves.png` to
+`block/oak_leaves.png`, and corresponding entries for the installed block
+textures, even without a resource pack. The profile records the map's
+entry count and SHA-256 and rejects missing block textures. This
+installation generates 1269 entries. The original ID-based probe now
+selects the leaves correctly: its fixed top region changes from 0% green
+to 95.92%, matching the tint-based Goanna control. This establishes ID
+transport; it does not establish every pack's leaf lighting as correct.
+Texture-derived IDs still approximate block states and non-cube shapes;
+the existing 512-slot shader table remains a limit.
+
+Culling-only, mapped, native and raw coverage captures are separate under
+`build/minecraft/face-culling-20261018/`. Its divider gallery can select
+Minecraft, original Goanna or the culling-only control as the left image.
+The `*-mapped` runs add the ID correction. Correct IDs enable pack-specific
+leaf effects and can expose further rendering differences: Complementary's
+fixed foliage sample grows from 1.52 to 35.30 levels with IDs restored,
+while its floor improves from 2.52 to 0.64. The earlier numerical agreement
+was not proof that its leaf material inputs were complete. Do not suppress
+those IDs to recover that accidental agreement.
+
+MakeUp's fixed foliage sample improves from 14.29 in the culling-only run
+to 6.37 with IDs restored. The final glass samples remain 9.93 for Eclipse,
+8.78 for Complementary, 6.85 for Mellow and 12.64 for MakeUp. This is not
+complete visual parity: Complementary's leaf material response, emissive
+material coverage, glass pass inputs and distant leaf mipmaps remain open.
+All fourteen follow-up captures, including the excluded ID controls,
+reported no Goanna client script or shader errors. The gallery audits all
+eight pack/pose entries and their image links. The native shader contract
+and twelve comparison-tool tests pass. These are visual and input tests,
+not performance measurements. The clients exited and the GPU was released.

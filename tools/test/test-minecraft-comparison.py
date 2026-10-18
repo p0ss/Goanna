@@ -138,6 +138,14 @@ class ComparisonTests(unittest.TestCase):
                     unpack(archive, root / 'profile')
             self.assertFalse((root / 'escape').exists())
 
+    def test_profile_rejects_missing_block_semantics(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            out = root / 'capture'
+            out.mkdir()
+            with self.assertRaisesRegex(ValueError, 'block textures are missing'):
+                prepare(root, out, {})
+
     def test_profiles_reset_without_changing_source_assets(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -164,12 +172,18 @@ class ComparisonTests(unittest.TestCase):
             self.assertEqual((Path(record['bridge_data']) / 'bridgetest/textures/block/stone.png')
                              .read_bytes(), b'override')
             self.assertEqual(env['GOANNA_SHADERPACK_OPTIONS'], 'SSAO=false')
+            self.assertIn('block-stone.png,block/stone.png',
+                          Path(env['GOANNA_TEXTURE_MAP']).read_text())
+            self.assertEqual(record['texture_map']['entries'], 1)
             clean = root / 'clean'
             clean.mkdir()
             env, record = prepare(root, clean, {})
             self.assertEqual(env['GOANNA_SHADERPACK'], '')
             self.assertEqual(env['GOANNA_SHADERPACK_OPTIONS'], '')
             self.assertEqual(env['GOANNA_PACK'], '')
+            self.assertIn('block-stone.png,block/stone.png',
+                          Path(env['GOANNA_TEXTURE_MAP']).read_text())
+            self.assertEqual(record['texture_map']['entries'], 1)
             self.assertIn('enableShaders=false', (root / 'client/config/iris.properties').read_text())
             self.assertIn('resourcePacks:[]', (root / 'client/options.txt').read_text())
 

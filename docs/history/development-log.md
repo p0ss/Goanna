@@ -12,6 +12,32 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Preserve face culling and restore comparison shader block IDs,
+  18 October 2026. Shared imported single-texture shaders now respect each
+  material's back-face flag in colour and secondary outputs. Native waving
+  leaves use the same flag. The duplicate glass frame disappears across
+  Eclipse, Complementary, Mellow and MakeUp. Culling alone reduces Mellow's
+  fixed glass mean channel error from 26.53 to 6.84 levels.
+  A flat leaf-coverage control finds nearly equal close-camera coverage,
+  with or without base-level sampling. Its first ID-based variant exposed
+  missing semantic inputs: comparison profiles loaded the media but had no
+  texture-to-block map. Generate and record that map, reject missing block
+  textures, and verify that the authored leaf-ID probe now selects leaves.
+  Correct IDs improve MakeUp's sampled foliage difference from 14.29 to
+  6.37 but expose a larger Complementary leaf-lighting mismatch, from 1.52
+  to 35.30. Keep that discrepancy visible rather than disabling correct IDs.
+  Tested on the unmodified Minecraft Java 26.2 dedicated server through
+  BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core,
+  Godot 4.5.1 and RTX 3090 in headless gamescope. Captures began on the
+  dirty checkout based on `7c5ef8b8`, with unrelated Overseer changes.
+  Fourteen follow-up captures report no client script or shader errors;
+  two initial coverage controls are excluded because they failed to tag
+  Goanna leaves. Native shader contract tests, twelve comparison-tool
+  checks and strict documentation validation pass. Native and imported
+  rendering were observed; night, underwater rendering, distant foliage
+  and performance were not tested in this follow-up. The GPU was released.
+  See the [comparison report](../agents/minecraft-comparison.md).
+
 - Correct Iris shadow and foliage inputs, 18 October 2026. Matched
   captures locate Eclipse's floor bias in the shadow matrix split:
   the light-eye offset belongs in the projection rather than modelview.

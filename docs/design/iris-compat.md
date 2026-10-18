@@ -28,6 +28,12 @@ by per-pack colour adjustments. See
 [the comparison report](../agents/minecraft-comparison.md) for measured runs
 and [the pack status](../develop/shaderpack-status.md) for remaining gaps.
 
+The later face-culling follow-up removes duplicate glass faces and restores
+comparison shader block IDs. Correct material IDs expose additional leaf
+shading differences; the earlier close means did not establish complete
+material inputs. Native cloud geometry, emissive material coverage and
+translucent pass ordering still need work.
+
 The earlier checkpoints below retain their dates. Their observations do not
 replace the later matched comparisons.
 

@@ -6,6 +6,34 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Face culling and block IDs, 2026-10-18
+
+The later follow-up corrects two shared input problems. Per-material
+back-face culling removes the duplicate glass frame across all four
+comparison packs. Mellow's fixed glass mean channel difference falls from
+26.53 to 6.84 levels; Eclipse falls from 20.80 to 9.93. Native waving leaves
+also preserve the server's culling flag. Imported shadow culling retains
+its separate policy.
+
+The comparison profile also lacked a texture-to-block map. Textures
+loaded, but shader block IDs were absent. Profiles now generate and record
+that map, and an authored leaf-ID probe confirms the corrected transport.
+The mapped comparisons enable pack-specific material effects, exposing
+further differences rather than guaranteeing a smaller image error.
+In particular Complementary's leaf shading still differs substantially
+with IDs restored. MakeUp's sampled foliage difference improves from
+14.29 to 6.37; Complementary's grows from 1.52 to 35.30. A close-camera
+flat cut-out control has nearly equal
+visible foliage coverage in the two engines; its result does not justify
+changing global leaf opacity. Distant mipmaps remain a separate gap.
+
+The controls and before/after gallery are under
+`build/minecraft/face-culling-20261018/`. See the
+[comparison report](../agents/minecraft-comparison.md) for the measured
+samples, server and renderer versions, excluded probe and limitations.
+The earlier matrix below used the missing-map setup and remains evidence
+of that checkpoint, not complete pack material fidelity.
+
 ## Matched fidelity checkpoint, 2026-10-18
 
 The current checkpoint uses paired captures from the same unmodified

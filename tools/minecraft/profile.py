@@ -113,6 +113,20 @@ def prepare(root, out, job):
         resource_names = ['file/comparison']
         result['resource'] = {'source': str(Path(job['resource_pack']).resolve()),
                               'sha256_tree': fingerprint(resource)}
+    # BridgeTest flattens block/oak_leaves.png to block-oak_leaves.png.
+    # The media still loads without a map, but Goanna's semantic table
+    # then supplies -1 to mc_Entity and packs miss their leaf/glass branches.
+    texture_root = Path(result.get('bridge_data', root / 'data')) / 'bridgetest/textures'
+    mapping = profile / 'minecraft-texture-map.csv'
+    paths = sorted(p.relative_to(texture_root).as_posix()
+                   for p in (texture_root / 'block').rglob('*.png'))
+    if not paths:
+        raise ValueError('Minecraft block textures are missing; run comparison setup first')
+    mapping.write_text('game_texture,pack_path\n' +
+                       ''.join(path.replace('/', '-') + ',' + path + '\n' for path in paths))
+    env['GOANNA_TEXTURE_MAP'] = str(mapping.resolve())
+    result['texture_map'] = {'entries': len(paths),
+                             'sha256': hashlib.sha256(mapping.read_bytes()).hexdigest()}
     option_file(root / 'client/options.txt', {'resourcePacks': json.dumps(resource_names),
                                              'incompatibleResourcePacks': '[]',
                                              'textureFiltering': 0, 'mipmapLevels': 4})
