@@ -275,6 +275,14 @@ static void testTranslator() {
     check(err.empty() && !contains(code, "iris_alphaTestRef"),
             "modern outputs own their discard; packed output alpha is not opacity");
 
+    for (auto surface : {GbuffersSurface::SingleCutout, GbuffersSurface::Translucent}) {
+        code = translateOne("void main() { gl_Position = ftransform(); }\n",
+                "void main() { gl_FragData[0] = vec4(1.0); }\n", surface, r, err);
+        check(err.empty() && contains(code, "uniform bool single_sided = false;") &&
+                        contains(code, "single_sided && !FRONT_FACING"),
+                "shared single-texture programs preserve per-material face culling");
+    }
+
     // Globals initialised from uniforms become functions.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",
             "uniform ivec2 eyeBrightnessSmooth;\nfloat inCave = 1.0 - float(eyeBrightnessSmooth.y)/240;\n"
@@ -310,6 +318,8 @@ static void testGeometryReads() {
     o.shadow_pass = true;
     check(translateGbuffers(p, o, r, err) && r.reads.empty(), "shadow programs never sample scene targets");
     check(!contains(r.code, "hint_depth_texture"), "shadow programs never request scene depth");
+    check(!contains(r.code, "single_sided && !FRONT_FACING"),
+            "visible material culling does not override the shadow pass policy");
 }
 
 static int translatePack(const std::string &dir, const std::string &outdir) {

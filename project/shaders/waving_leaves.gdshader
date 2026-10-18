@@ -15,6 +15,8 @@ uniform float sway = 0.06;
 uniform float speed = 1.4;
 // Set by materialFor from the tile's Luanti material type.
 uniform bool waving = true;
+// Cube leaves may be culled even though this shader also serves both sides.
+uniform bool single_sided = false;
 // The same sky fill the terrain adds (nodes_array_common.gdshaderinc);
 // without it a canopy went near black at dawn and dusk while the ground
 // under it stayed lit. See waving_plants.gdshader.
@@ -71,6 +73,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (single_sided && !FRONT_FACING) {
+		discard;
+	}
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec4 tex = texture(albedo_tex, UV) * COLOR;
 	ALBEDO = tex.rgb;

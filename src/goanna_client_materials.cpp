@@ -1307,6 +1307,12 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         else if (sh == m_sh_leaves || sh == m_sh_plants || sh == m_sh_glass_clear ||
                 sh == m_sh_glass_double)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_FOLIAGE);
+        // Single-texture pack shaders are shared by culled cubes and
+        // double-sided surfaces. Keep each tile's server-supplied policy.
+        // Native leaves use the same flag; their shared shader is double sided.
+        if (sh == m_sh_leaves || (m_iris_gbuffers.is_valid() &&
+                sm->get_shader() != sh))
+            sm->set_shader_parameter("single_sided", key.backface_culling);
         if (sh == m_sh_leaves && m_iris_gbuffers.is_valid())
             sm->set_shader_parameter("iris_alphaTestRef",
                     m_iris_gbuffers->alpha_test_ref(GoannaIrisGbuffers::SURFACE_FOLIAGE, 0.5f));

@@ -2574,6 +2574,14 @@ bool Translator::run(const Program &p, std::string &err) {
 
     // ---- the fragment stage
     fo << "void fragment() {\n";
+    if (!m_o.shadow_pass && (m_o.surface == GbuffersSurface::SingleCutout ||
+            m_o.surface == GbuffersSurface::Translucent)) {
+        // One translated shader serves cube leaves, glass and double-sided
+        // plants. Preserve the server's per-material culling in colour and
+        // secondary outputs, without changing the shadow pass's policy.
+        addDecl("uniform bool single_sided = false;");
+        fo << "\tif (single_sided && !FRONT_FACING)\n\t\tdiscard;\n";
+    }
     if (m_fin.count("goanna_gl_FragCoord")) {
         needGlobal("iris_gbufferProjection", "mat4");
         fo << "\t" << stageBuiltin("goanna_gl_FragCoord", Stage::Fragment) << "\n";

@@ -17,6 +17,19 @@ which this document is meant to inform rather than pre-empt.
 
 [luanti-org/luanti#8854]: https://github.com/luanti-org/luanti/issues/8854
 
+## Face culling on shared shaders
+
+A single-texture imported program can serve both cube leaves or glass and
+double-sided plants. Its raster state allows both sides, but a per-material
+`single_sided` uniform preserves the server's back-face culling flag with
+an early fragment discard. The discard also applies to secondary material
+outputs. Otherwise an extra rear glass face reaches both colour and AO
+inputs, and rear leaf faces can fill cut-out holes.
+
+Native waving leaves use the same material flag. Double-sided tiles keep
+both sides. Imported shadow programs retain their separate culling policy;
+this uniform does not change shadow caster selection.
+
 ## Preparing materials
 
 Once session content is prepared, `poll_blocks` warms the materials named
