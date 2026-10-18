@@ -12,6 +12,36 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Correct Iris shadow and foliage inputs, 18 October 2026. Matched
+  captures locate Eclipse's floor bias in the shadow matrix split:
+  the light-eye offset belongs in the projection rather than modelview.
+  Supply material alpha references and imported foliage corner shading,
+  and leave modern fragment outputs in charge of their discard logic.
+  Fixed-region maximum mean channel errors in the diagnostic Eclipse
+  comparison are 0.19 for floor, 0.08 for wood and 0.33 for foliage.
+  The raw leaf vertex-colour error fell from 37.18 to 0.36 levels.
+  Honour custom image filtering and addressing metadata; Mellow's
+  procedural cloud noise is smooth and an authored four-sampler GPU proof
+  passes. An unmodified, supported Mellow release supplies a healthy
+  day/night sky reference. Its native-cloud control exposes the missing
+  cloud geometry path. Explicit plains calibration and the bridge's
+  existing water tint lookup correct fixture input mismatches.
+  Tested against the unmodified Minecraft Java 26.2 dedicated server,
+  BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core,
+  Godot 4.5.1 and RTX 3090 in headless gamescope. Runs began on the dirty
+  checkout based on `48cbb9d6`, with unrelated Overseer changes.
+  The final matrix contains 25 paired views: Mellow day, dusk and night,
+  Complementary Reimagined and MakeUp Ultra Fast day and night, plus the
+  Eclipse and native-cloud controls. Every enabled chain pass compiles,
+  with no reported Goanna client errors. MakeUp's lamp is absent, exposing
+  the native emissive fallback as a material-buffer coverage gap requiring
+  a separate isolated correction. Glass and local lighting still differ.
+  Native shadow and translator tests, comparison validation checks and the
+  strict documentation build pass. Glass AO, distant foliage mipmaps,
+  native cloud geometry and broader scene coverage remain incomplete.
+  No performance claim is made. See the
+  [matched comparison report](../agents/minecraft-comparison.md).
+
 - Warm far materials and stage far mesh uploads, 15 October 2026. The
   material scan now includes far array variants, liquids and the colour
   fallback. Far-region and baked-surface workers prepare packed vertex

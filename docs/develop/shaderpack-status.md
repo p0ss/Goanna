@@ -6,6 +6,86 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Matched fidelity checkpoint, 2026-10-18
+
+The current checkpoint uses paired captures from the same unmodified
+Minecraft Java 26.2 dedicated server, through BridgeTest protocol 52,
+with no Luanti game. Goanna uses its Luanti 5.17.0 core, Godot 4.5.1 and
+RTX 3090 in headless gamescope. Captures began on the dirty checkout based
+on `48cbb9d6`, including unrelated Overseer edits; renderer fixes are in
+`7ab84df3` and `32114307`. No performance was measured.
+
+Mellow 3.4.1a, Complementary Reimagined r5.9.3 and MakeUp Ultra Fast 9.5g
+were selected from release metadata explicitly listing Minecraft 26.2.
+Their archives match the published SHA-512 hashes. The Eclipse control is
+a diagnostic copy omitting the suspect unbound cloud blend; it is not the
+sky reference. All comparisons use explicit plains calibration, matching
+pack content in both clients and recorded camera, clock and shader state.
+
+The final gallery contains 25 paired views, 50 frames in total. Each
+listed phase includes calibration, close foliage and sky poses, except
+the two diagnostic controls. Every run reports an active chain, all its
+passes compiled, no geometry translation errors and no Goanna client
+script or shader errors. Successful capture does not establish fidelity.
+
+| Pack or control | Phases | Compiled chain passes per phase | Paired views |
+| --- | --- | --- | --- |
+| Diagnostic Eclipse | Day | 3 of 3 | 2 |
+| Mellow 3.4.1a, default | Day, dusk, night | 9 of 9 | 9 |
+| Mellow, native-cloud control | Day | 9 of 9 | 2 |
+| Complementary Reimagined r5.9.3 | Day, night | 9 of 9 | 6 |
+| MakeUp Ultra Fast 9.5g | Day, night | 6 of 6, including `prepare` | 6 |
+
+Mellow's unmodified default has blue daytime sky, warm dusk and a dark
+night sky in both clients. Its nine screen passes compile and run across
+all three phases. Honouring the cloud-noise image's `blur` metadata removes
+Goanna's blocky procedural clouds. Cloud placement and some colour still
+differ. At night a fixed sky-camera region averages RGB 19.52, 24.34, 35.40
+in Minecraft and 21.01, 25.55, 36.54 in Goanna. These means establish
+neither pixel equality nor a general sky fidelity score.
+
+Mellow's separate `CLOUD_STYLE=0` control selects Minecraft native `FANCY`
+clouds. They appear in Minecraft and are absent in Goanna: native cloud
+geometry still has no pack program. The default procedural clouds use a
+different path. Glass, lamp appearance, water and distant foliage also
+remain visibly different.
+
+Complementary Reimagined also runs nine screen passes at day and night,
+with no reported client errors. The daytime fixed floor sample differs by
+2.30 levels and foliage by 1.59. At night the floor difference grows to
+16.75, with a visibly different lamp and pool of light, while the sampled
+sky differs by 1.75. A separate sky-camera region's channel means differ
+by at most 0.14 levels. Glass, water reflection and foliage softness remain
+different. This is a useful shared renderer backlog, not evidence of
+complete pack compatibility or a diagnosed cause for every mismatch.
+
+MakeUp Ultra Fast's daytime run has six active screen passes, including
+`prepare`, with no geometry translation errors. Its sky and procedural
+clouds render, but the lamp is absent, glass has dark patches and water
+reflections differ. The native emissive material fallback in
+`src/goanna_client_materials.cpp` bypasses the imported geometry shader;
+that path needs pack material-buffer coverage. This code gap is consistent
+with the lamp mismatch, but has not yet been isolated by a corrected run.
+The daytime floor sample differs by 7.06 levels and foliage by 14.32.
+Its six passes also run at night without client errors; the lamp remains
+absent and the floor differs by 13.49 levels. The sky-camera region's
+night means differ by at most 0.91 levels, while individual stars and
+clouds do not match.
+
+The diagnostic Eclipse now differs by 0.19 RGB levels for the floor,
+0.08 for wood and 0.33 for foliage in fixed-region mean channel samples.
+Actual shader-uniform captures exposed the shadow eye offset in the wrong
+matrix; raw leaf inputs exposed the wrong alpha reference and missing
+canopy corner shading. This supersedes the earlier attribution of the
+soft-shadow discrepancy solely to Eclipse's filter arithmetic. Its glass
+AO remains different. Leaf mipmap generation remains different too.
+
+The paired frames, per-pass reports, metrics and divider gallery are under
+`build/minecraft/iris-fidelity-20261018/`. The
+[comparison report](../agents/minecraft-comparison.md) records isolation
+controls, excluded diagnostics and remaining input limitations. Earlier
+sections below retain their dates and do not describe the latest build.
+
 ## What was run, 2026-10-11
 
 Only the offline compile check. Every result below comes from

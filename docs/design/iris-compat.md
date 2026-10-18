@@ -9,7 +9,29 @@ rather than a matter of effort.
 What 22 popular packs actually ask for, and the order of work that follows
 from it, is in the [survey of popular shader packs](shaderpack-survey.md).
 
-## Status, 2026-10-11
+## Status, 2026-10-18
+
+All seven original rungs have implementations and live evidence. They are
+partial compatibility, not seven completed renderer subsystems. The terrain,
+cut-out, water, sky and shadow programs run alongside the screen space chain.
+Entities, hands, particles and native cloud geometry still lack their pack
+programs. Compute-dependent packs remain outside the supported surface.
+
+Matched Minecraft captures now distinguish input errors from pack rendering
+differences. The current follow-up corrects the shadow projection's eye
+offset, per-material alpha references and foliage corner shading, and honours
+custom image `blur` and `clamp` metadata. A supported Mellow release provides
+an unmodified day, dusk and night sky reference. Matched Complementary
+and MakeUp captures extend the evidence beyond Eclipse; their remaining
+lamp, glass, water and foliage differences are recorded, not corrected
+by per-pack colour adjustments. See
+[the comparison report](../agents/minecraft-comparison.md) for measured runs
+and [the pack status](../develop/shaderpack-status.md) for remaining gaps.
+
+The earlier checkpoints below retain their dates. Their observations do not
+replace the later matched comparisons.
+
+## Earlier checkpoint, 2026-10-11
 
 Rungs 1 and 3 below are done for the screen space chain, and rung 4 runs
 every program a pack enables. What has been observed live is still only the
@@ -684,14 +706,17 @@ only. The parts, and the choices behind them:
   native test). `shadowModelView` looks from the light at the player:
   view +z is the direction to the sun by day and the moon by night (the
   same choice as `shadowLightPosition`), x stays across the sun's path so
-  the map does not spin, the player is 100 nodes out, and the frame snaps
+  the map does not spin, and the frame snaps
   to `shadowIntervalSize` (2 by default) so texels do not crawl as the
-  player walks. `shadowProjection` is the orthographic box above. Both are
-  built from Goanna's own sun, not from `sunAngle` and the pack's
-  `sunPathRotation`: the shadows have to fall from the sun the server
-  shows, so `sunPathRotation` is read, reported and not applied. The
+  player walks. `shadowProjection` is the orthographic box above and owns
+  the light's 100 node eye offset. Keeping that offset in modelview made
+  the combined transform plausible but changed packs' projected-normal
+  bias calculations. The pinned Minecraft 26.2 shader uniforms establish
+  the split, including the near extent towards the light. Both matrices
+  use the celestial direction after the pack's `sunPathRotation`. The
   settings come from the pack's const directives (`shadowMapResolution`,
-  `shadowDistance`, `shadowIntervalSize`), an option's name resolved to its
+  `shadowDistance`, `shadowIntervalSize`, `shadowNearPlane`,
+  `shadowFarPlane`), an option's name resolved to its
   value; a perspective map (`shadowMapFov`) is reported and drawn
   orthographic. `GoannaIrisGbuffers::update` sets the matrices for the
   shadow program and every gbuffers program, `main.gd` moves the culling
@@ -1024,7 +1049,7 @@ implemented. Missing custom samplers read transparent black and are reported.
   and foliage near terrain only; see the end of "The shadow map, as
   built" for what it leaves out: translucent casters and so `shadowtex1`
   and coloured shadows, entities, the far tiers, glow and Goanna's own
-  grass, `shadowcomp`, the per program shadow variants, `sunPathRotation`.
+  grass, `shadowcomp` and the per program shadow variants.
   Its cost is not measured: a second scene render of the near terrain,
   with Godot's depth prepass, each frame.
 - **Other scene geometry**: entities, clouds, the hand, particles

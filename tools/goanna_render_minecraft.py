@@ -125,6 +125,27 @@ def validate_clock_state(renderer, state, time_ticks):
                                      'rebuild the comparison bridge' % (observed, expected))
 
 
+def validate_stage_state(nodes):
+    for key, expected in {'red': 'red_concrete', 'gold': 'gold_block'}.items():
+        if nodes.get(key, '').removeprefix('minecraft:') != expected:
+            raise render.RenderError('Goanna calibration landmark %s is %r, expected %s' %
+                                     (key, nodes.get(key), expected))
+
+
+def validate_shader_state(reports):
+    chain, geometry = reports.get('chain', {}), reports.get('gbuffers', {})
+    active = bool(geometry.get('terrain', {}).get('translated'))
+    if chain:
+        passes = chain.get('passes', [])
+        if chain.get('load_error') or chain.get('dead') or (passes and not chain.get('gpu_ready')):
+            raise render.RenderError('Goanna shader chain failed: ' + str(chain))
+        if any(p.get('error') or not p.get('compiled') for p in passes):
+            raise render.RenderError('Goanna shader passes did not compile: ' + str(passes))
+        active = active or bool(passes)
+    if not active:
+        raise render.RenderError('Goanna did not activate the requested shader pack')
+
+
 def fixture(server):
     """A small calibration stage in the dedicated comparison world only."""
     server.send('forceload add -16 -16 32 32')
@@ -142,6 +163,9 @@ def fixture(server):
         'gamerule minecraft:advance_time false',
         'time set noon', 'weather clear', 'tick freeze',
         'fill -8 99 -8 24 115 28 air',
+        # The bridge's colormap is fixed to plains. Keep the calibration
+        # biome explicit so foliage and water compare the same inputs.
+        'fillbiome -8 96 -8 24 112 28 minecraft:plains',
         'fill -8 99 -8 24 99 28 smooth_stone',
         'fill 0 100 0 0 104 0 red_concrete',
         'fill 16 100 0 16 104 0 blue_concrete',
@@ -363,6 +387,12 @@ def capture(args):
                     control.run('main.cam.fov = %s\nmain.ui.visible = false\nreturn true' % mc['fov'])
                     state = control.send('status')
                 settle()
+                stage_nodes = None
+                if renderer == 'goanna':
+                    stage_nodes = control.run(
+                        'return {"red": main.client.node_name_at(Vector3(-1, 100, 0)),\n'
+                        '\t"gold": main.client.node_name_at(Vector3(-9, 100, -8))}')
+                    validate_stage_state(stage_nodes)
                 if control:
                     validate_frame_state(renderer, control.send('status'))
                 path = out / (render.safe_name(pose['name']) + '-' + renderer + '.png')
@@ -382,6 +412,7 @@ def capture(args):
                 if renderer == 'minecraft' and job.get('shader_pack') and not state.get('shader_active'):
                     raise render.RenderError('Iris did not activate the requested shader pack')
                 if renderer == 'goanna':
+                    state['fixture_nodes'] = stage_nodes
                     state['render_settings'] = control.send('settings')
                     state['sky'] = control.run('return main.client.sky_state()')
                     state['camera_fov_vertical'] = control.run('return main.cam.fov')
@@ -390,8 +421,8 @@ def capture(args):
                     state['shader_reports'] = control.run(
                         'return {"chain": main.iris.report() if main.iris != null else {},\n'
                         '\t"gbuffers": main.iris_gbuffers.report() if main.iris_gbuffers != null else {}}')
-                    if job.get('shader_pack') and not any(state['shader_reports'].values()):
-                        raise render.RenderError('Goanna did not activate the requested shader pack')
+                    if job.get('shader_pack'):
+                        validate_shader_state(state['shader_reports'])
                 validate_clock_state(renderer, state, time_ticks)
                 frame = {'renderer': renderer, 'path': str(path), 'pose': pose,
                          'camera': mc if renderer == 'minecraft' else goanna,

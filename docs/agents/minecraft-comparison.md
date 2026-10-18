@@ -474,7 +474,8 @@ discard behaviour.
 Reports are in `build/minecraft/shadows-foliage-20261018/leaf-mips-final/`
 and `stone-mips-final/`. No server or rendered frame was used for this probe.
 The first new paired capture was refused because an existing Godot process
-held the GPU. No renderer correction has been validated by this investigation.
+held the GPU. At that CPU-only checkpoint, no renderer correction had been
+validated.
 
 The same investigation prepared disposable Eclipse controls for a constant
 shadow-noise angle and base-level texture sampling, plus hard-shadow and
@@ -488,5 +489,96 @@ metadata explicitly lists Minecraft 26.2 for Mellow 3.4.1a (`jIbGxrnZ`),
 Complementary Reimagined r5.9.3 (`Bqen1mJX`) and MakeUp Ultra Fast 9.5g
 (`pgb0JjoN`). Downloaded archives were verified against the published SHA-512
 hashes; metadata and day, dusk and night jobs are saved beside that manifest.
-These qualify version selection only. None of these prepared jobs has been
-rendered in this investigation, and none establishes a correct sky reference.
+At that checkpoint these qualified version selection only. The prepared
+jobs had not been rendered and did not establish a correct sky reference.
+The subsequent GPU follow-up below records their live evidence.
+
+## Shadow, foliage and supported sky follow-up, 2026-10-18
+
+The GPU became available after the CPU investigation above. Paired captures
+used the unmodified Minecraft Java 26.2 dedicated server, BridgeTest
+protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core, Godot 4.5.1 and
+RTX 3090 in headless gamescope. The checkout was dirty, based on
+`48cbb9d6`, with unrelated Overseer edits. These are visual calibration
+runs, not performance measurements or a full game compatibility test.
+
+The diagnostic Eclipse copy still omits only the suspect unbound cloud
+blend. A constant shadow-noise angle did not remove the floor discrepancy.
+Disabling normal bias did. An authored shader encoded the actual shadow
+uniform matrices into RGB, establishing that Iris puts the 100-node eye
+offset in `shadowProjection`, while Goanna put it in `shadowModelView`.
+Eclipse projects normals with `w = 1` in its bias calculation, so an
+otherwise equivalent matrix product does not preserve that calculation.
+The helper's `shadow_state.projection` records Iris's native 0 to 1 depth
+projection; it is not the OpenGL projection exposed to shader uniforms.
+Use the encoded shader probe when checking that convention.
+The corrected matrix split reduces the sampled floor's maximum mean
+channel error from 6.31 to 0.19 levels on the 0 to 255 scale. This corrects
+the inputs rather than reducing the pack's shadow strength.
+
+Separate raw-input captures found a leaf discard threshold of 0.5 in Iris,
+against Goanna's former global 0.1, and missing leaf corner occlusion.
+Alpha references are now per material, including supported
+`alphaTest.<program>` overrides. Imported corner shading averages the four
+adjacent shade values, including leaf interiors; native corner and traced
+AO retain their existing calculation. A raw leaf vertex-colour sample's
+maximum mean channel error fell from 37.18 to 0.36 levels. The final lit
+Eclipse calibration samples differ by 0.33 levels for foliage, 0.19 for the
+floor and 0.08 for wood. These are fixed-region means, not whole-frame
+pixel errors. Animation, distant mipmaps and partial node shapes remain
+limitations. The CPU mipmap mismatch above has not been corrected.
+
+The calibration biome is now explicitly plains because BridgeTest's tint
+table uses plains colours. Its liquid-definition path now uses the same
+existing tint lookup as its other tiles. Minecraft sidecars record the
+actual water and foliage tints. This makes the fixture's inputs comparable;
+it does not add general biome tint transport to BridgeTest. A new bridge
+binary and changed fixture require a fresh Minecraft reference.
+
+Mellow 3.4.1a provides an unmodified, explicitly supported Minecraft 26.2
+sky reference. Day and night have distinct, plausible sky output. Its
+cloud-noise images specify `texture.blur = true` in `.png.mcmeta`; honouring
+this metadata removes Goanna's blocky sampling of its procedural clouds.
+The custom image loader now honours both `blur` and `clamp`. An authored
+four-sampler GPU proof verifies nearest/linear and repeat/clamp separately;
+see [shader pack testing](../develop/shaderpack-testing.md).
+
+A separate Mellow `CLOUD_STYLE=0` control makes Minecraft's effective cloud
+setting `FANCY`. Minecraft draws native cloud geometry; Goanna draws none.
+Mellow's default procedural clouds do not establish native cloud support.
+The bridge also reports cloud height 196 against Minecraft's 192.33 for
+this world. Neither native cloud geometry nor that height mismatch is
+corrected here. Glass AO remains visibly different in the Eclipse control.
+
+The broader matrix captured Mellow at day, dusk and night, and
+Complementary Reimagined and MakeUp Ultra Fast at day and night, with
+calibration, close foliage and sky cameras. With the Eclipse and native
+cloud controls, this produces 25 paired views. All enabled chain passes
+compile: Eclipse 3, Mellow 9, Complementary 9 and MakeUp 6, including its
+`prepare` entry. No Goanna script or shader errors were reported. The
+[pack status](../develop/shaderpack-status.md) records the visible gaps,
+including MakeUp's absent lamp and the native emissive material path that
+still bypasses imported geometry shading. These captures do not establish
+correct general pass ordering or full pack compatibility.
+
+Final paired captures, metrics and the comparison gallery are under
+`build/minecraft/iris-fidelity-20261018/`. Earlier isolation probes and the
+sampler proof are under `build/minecraft/shadows-foliage-20261018/`.
+The rejected `shadow-projection-fixed` diagnostic has unusable scene
+coverage and is excluded from reported improvements. The temporary
+`shadow-alpha-fixed` diagnostic had a water alpha reference of zero and
+black glass interiors; its glass metric is also excluded. Production water
+retains its 0.1 fallback.
+
+Capture validation now rejects missing calibration landmarks and failed or
+inactive shader chains. A Goanna-only rerun can reuse a reference:
+
+```sh
+python tools/minecraft/light_metrics.py /path/to/goanna-rerun \
+  --reference /path/to/paired-reference --out /tmp/comparison-metrics.json
+```
+
+Reference reuse requires matching Minecraft and render-mod versions,
+bridge binary, fixture commands, shader and resource pack content hashes,
+clock, shader options and calibration camera. It is a convenience for
+controlled renderer changes, not permission to compare different inputs.

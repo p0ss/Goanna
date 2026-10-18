@@ -38,6 +38,20 @@ def mirrored_sky_marker(source):
     return source.replace(old, new)
 
 
+def liquid_tile_tints(source):
+    # Liquid definitions bypass BlockMapping.get_tiledefs, which normally
+    # applies the bridge's existing colormap. Keep the same water tint.
+    marker = b'fn generate_liquid_feature('
+    if source.count(marker) != 1:
+        raise ValueError('BridgeTest liquid definition changed')
+    prefix, liquid = source.split(marker)
+    old = b'color_rgb: None,'
+    if liquid.count(old) != 1:
+        raise ValueError('BridgeTest liquid tile definition changed')
+    new = b'color_rgb: utils::get_colormap(&s2c::media::LuantiTexture::from_luanti_safe(name)),'
+    return prefix + marker + liquid.replace(old, new)
+
+
 def checkout(url, revision, destination):
     if not destination.exists():
         subprocess.run(['git', 'clone', '--no-checkout', url, str(destination)], check=True)
@@ -85,9 +99,10 @@ def main():
     previous_rules = original_rules.replace(old, new)
     neutral_rules = neutral_node_colours(previous_rules)
     comparison_rules = mirrored_sky_marker(neutral_rules)
-    if rules.read_bytes() not in (original_rules, previous_rules, neutral_rules, comparison_rules):
+    tinted_rules = liquid_tile_tints(comparison_rules)
+    if rules.read_bytes() not in (original_rules, previous_rules, neutral_rules, comparison_rules, tinted_rules):
         raise ValueError('Unexpected edits in the bridge rule definitions')
-    rules.write_bytes(comparison_rules)
+    rules.write_bytes(tinted_rules)
     player = bridge / 'src/s2c/player.rs'
     original_player = subprocess.check_output(['git', '-C', str(bridge), 'show',
                                                'HEAD:src/s2c/player.rs'])
@@ -140,6 +155,7 @@ def main():
               'toolchain': TOOLCHAIN, 'binary_sha256': sha,
               'overlay': {'minecraft:scute': entries['minecraft:scute']},
               'node_base_colour': [255, 255, 255],
+              'liquid_tile_colormap': 'utils::get_colormap',
               'sky_coordinate_group': 'goanna_sky_mirror_x',
               'comparison_privileges': ['fly', 'noclip'],
               'comparison_camera_env': 'GOANNA_COMPARISON_CAMERA=1',

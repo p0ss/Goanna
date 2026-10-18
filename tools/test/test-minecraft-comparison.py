@@ -4,6 +4,7 @@
 """Check camera alignment, capture rejection and isolated pack preparation."""
 
 import json
+import copy
 from pathlib import Path
 import sys
 import tempfile
@@ -12,12 +13,68 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import goanna_render as render
-from goanna_render_minecraft import camera, validate_clock_state, validate_frame_state
+from goanna_render_minecraft import (camera, validate_clock_state, validate_frame_state,
+                                    validate_stage_state, validate_shader_state)
 from minecraft.profile import fingerprint, prepare, unpack
-from minecraft.build_bridge import mirrored_sky_marker, neutral_node_colours
+from minecraft.build_bridge import mirrored_sky_marker, neutral_node_colours, liquid_tile_tints
+from minecraft.light_metrics import validate_reference
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_failed_shader_chains_are_not_accepted_as_active(self):
+        chain = {'gpu_ready': True, 'passes': [{'compiled': True, 'error': ''}]}
+        validate_shader_state({'chain': chain})
+        validate_shader_state({'gbuffers': {'terrain': {'translated': True}}})
+        for reports in ({}, {'chain': dict(chain, gpu_ready=False)},
+                        {'chain': dict(chain, dead=True)},
+                        {'chain': dict(chain, passes=[{'compiled': False}])}):
+            with self.subTest(reports=reports), self.assertRaises(render.RenderError):
+                validate_shader_state(reports)
+
+    def test_liquid_patch_retains_existing_colormap_rules(self):
+        other = b'color_rgb: None,\n'
+        liquid = b'fn generate_liquid_feature() { color_rgb: None, }'
+        corrected = liquid_tile_tints(other + liquid)
+        self.assertTrue(corrected.startswith(other))
+        self.assertIn(b'utils::get_colormap(&s2c::media::LuantiTexture::from_luanti_safe(name))', corrected)
+        with self.assertRaises(ValueError):
+            liquid_tile_tints(other)
+
+    def test_reused_reference_must_match_the_inputs(self):
+        original = {'bridge_sha256': 'bridge', 'fixture_commands': ['stage'],
+                    'installation': {'minecraft': '26.2'},
+                    'client_mods': {'iris.jar': 'renderer', 'goanna-comparison.jar': 'probe'},
+                    'job': {'poses': [{'name': 'calibration', 'pos': [1, 2, 3]}]},
+                    'packs': {'shader': {'sha256_tree': 'shader'}, 'resource': None}}
+        validate_reference(original, copy.deepcopy(original))
+        metadata_only = copy.deepcopy(original)
+        metadata_only['client_mods']['goanna-comparison.jar'] = 'new-probe'
+        validate_reference(original, metadata_only)
+        for key, value in [('bridge_sha256', 'other'), ('fixture_commands', ['other']),
+                           ('client_mods', {'iris.jar': 'other'}),
+                           ('job', {'poses': [{'name': 'calibration', 'pos': [4, 5, 6]}]})]:
+            changed = copy.deepcopy(original)
+            changed[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_reference(original, changed)
+        for section, key, value in [('job', 'time_ticks', 18000),
+                                    ('job', 'shader_options', {'SOFT_SHADOWS': False}),
+                                    ('packs', 'shader', {'sha256_tree': 'other'}),
+                                    ('packs', 'resource', {'sha256_tree': 'other'}),
+                                    ('installation', 'minecraft', '1.21.8')]:
+            changed = copy.deepcopy(original)
+            changed[section][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_reference(original, changed)
+
+    def test_missing_calibration_landmarks_are_rejected(self):
+        validate_stage_state({'red': 'red_concrete', 'gold': 'gold_block'})
+        validate_stage_state({'red': 'minecraft:red_concrete', 'gold': 'minecraft:gold_block'})
+        for nodes in ({}, {'red': 'ignore', 'gold': 'gold_block'},
+                      {'red': 'red_concrete', 'gold': 'air'}):
+            with self.subTest(nodes=nodes), self.assertRaises(render.RenderError):
+                validate_stage_state(nodes)
+
     def test_capture_clocks_use_the_same_phase(self):
         for ticks, tod in [(0, 0.25), (6000, 0.5), (12000, 0.75), (18000, 0)]:
             validate_clock_state('minecraft', {'world_time': ticks}, ticks)

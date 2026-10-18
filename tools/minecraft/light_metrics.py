@@ -24,6 +24,8 @@ SURFACES = {
     'gold': (628, 378, 650, 413),
     'wood_right': (574, 325, 578, 370),
     'glass': (722, 328, 780, 348),
+    'foliage': (770, 435, 880, 485),
+    'water': (430, 460, 490, 490),
     'sky': (500, 200, 700, 235),
 }
 # The current Goanna screen-space UV convention swaps the probe's rows.
@@ -46,18 +48,51 @@ def measure(reference, candidate):
             'maximum_mean_channel_error': max(abs(b - a) for a, b in zip(*means))}
 
 
+def validate_reference(candidate, reference):
+    for key in ('bridge_sha256', 'fixture_commands'):
+        if candidate.get(key) != reference.get(key):
+            raise ValueError('reference differs in ' + key)
+    if candidate['installation']['minecraft'] != reference['installation']['minecraft']:
+        raise ValueError('reference uses another Minecraft version')
+    mods = [{k: v for k, v in r.get('client_mods', {}).items()
+             if k != 'goanna-comparison.jar'} for r in (candidate, reference)]
+    if mods[0] != mods[1]:
+        raise ValueError('reference uses different Minecraft render mods')
+    for key, default in (('time_ticks', 6000), ('shader_options', {})):
+        if candidate['job'].get(key, default) != reference['job'].get(key, default):
+            raise ValueError('reference differs in ' + key)
+    for kind in ('shader', 'resource'):
+        a, b = candidate['packs'].get(kind), reference['packs'].get(kind)
+        if (a or {}).get('sha256_tree') != (b or {}).get('sha256_tree'):
+            raise ValueError('reference uses another ' + kind + ' pack')
+    poses = [next(p for p in r['job']['poses'] if p['name'] == 'calibration')
+             for r in (candidate, reference)]
+    if poses[0] != poses[1]:
+        raise ValueError('reference uses another calibration camera')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('capture', type=Path)
     parser.add_argument('--inputs', action='store_true', help='measure the light-inputs probe')
     parser.add_argument('--out', type=Path, help='write the complete JSON report here')
+    parser.add_argument('--reference', type=Path,
+                        help='reuse a matched Minecraft capture for a Goanna-only rerun')
     args = parser.parse_args()
     root = args.capture.resolve()
     result = json.loads((root / 'result.json').read_text())
     if not result['ok']:
         parser.error('the comparison capture failed')
-    images = [Image.open(root / ('calibration-' + renderer + '.png')).convert('RGB')
-              for renderer in ('minecraft', 'goanna')]
+    reference = args.reference.resolve() if args.reference else root
+    reference_result = json.loads((reference / 'result.json').read_text())
+    if not reference_result['ok']:
+        parser.error('the reference capture failed')
+    try:
+        validate_reference(result, reference_result)
+    except ValueError as error:
+        parser.error(str(error))
+    images = [Image.open(reference / 'calibration-minecraft.png').convert('RGB'),
+              Image.open(root / 'calibration-goanna.png').convert('RGB')]
     pose = next(p for p in result['job']['poses'] if p['name'] == 'calibration')
     if (any(im.size != (1280, 720) for im in images) or
             pose.get('pos') != [8.5, 106, 24.5] or
@@ -71,7 +106,8 @@ def main():
     else:
         for name, box in SURFACES.items():
             rows[name] = measure(*(im.crop(box) for im in images))
-    report = {'capture': str(root), 'inputs': args.inputs, 'samples': rows,
+    report = {'capture': str(root), 'reference_capture': str(reference),
+              'inputs': args.inputs, 'samples': rows,
               'time_ticks': result['job'].get('time_ticks', 6000),
               'shader_options': result['job'].get('shader_options', {}),
               'goanna': result['goanna'], 'bridge_sha256': result['bridge_sha256'],
