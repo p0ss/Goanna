@@ -427,3 +427,66 @@ clocks were 6000. The captures, filtering metadata, input metrics and
 interactive before/after gallery are under `build/minecraft/filtering-audit/`.
 Foliage transparency, mipmap alpha coverage, soft-shadow depth and noise,
 glass AO inputs and baseline cloud geometry remain to be investigated.
+
+## CPU foliage mipmap probe
+
+The paired screenshots alone cannot distinguish a different alpha threshold
+from different mipmap pixels. Run both engines' image generators without a
+renderer to inspect that input first:
+
+```sh
+python tools/minecraft/mipmap_probe.py \
+  build/minecraft/data/bridgetest/textures/block/oak_leaves.png \
+  --out build/minecraft/leaf-mipmap-probe
+```
+
+The probe calls the installed Minecraft 26.2 client's public
+`MipmapGenerator.generateMipLevels` API. It reads `mipmap_strategy` and
+`alpha_cutoff_bias` from the adjacent `.png.mcmeta`, then exports Godot's
+ordinary `Image.generate_mipmaps` result from an isolated dummy-renderer
+project. It neither starts a game client nor uses the GPU. The output
+contains PNGs at each mip level, logs and `report.json`, with source hashes,
+engine versions, alpha means, coverage at 0.1 and 0.5, and visible RGB means.
+Pass `--name minecraft:item/NAME` for an item: the default sprite identifier
+is `minecraft:block/` followed by the filename stem. `--strategy` overrides
+the metadata for a diagnostic control. Use a fresh output directory.
+
+On 18 October 2026, the installed oak-leaf texture's metadata selected
+`dark_cutout`. The CPU probe against Minecraft 26.2 and Godot 4.5.1 measured:
+
+| Input | Minecraft | Godot |
+| --- | --- | --- |
+| Leaf base level, mean alpha | 171.33 | 171.33 |
+| Leaf mip 2, mean alpha | 136.13 | 171.50 |
+| Leaf mip 2, mean visible red | 121.63 | 97.06 |
+| Leaf mip 2, coverage at alpha 0.5 | 68.75% | 100% |
+| Stone mip 2, mean red | 159.88 | 159.00 |
+
+Visible base-level leaf RGB matched exactly. Minecraft also changed RGB in
+fully transparent base texels. Goanna's terrain array builder currently
+generates ordinary Godot mipmaps without this metadata. This is a measured
+input mismatch, not proof that it explains the live foliage difference:
+shader alpha thresholds, atlas coordinates, face culling and shadow sampling
+still need paired captures. At alpha 0.1, both engines retained every leaf
+texel at mip 2, so coverage at 0.5 must not be treated as the pack's actual
+discard behaviour.
+
+Reports are in `build/minecraft/shadows-foliage-20261018/leaf-mips-final/`
+and `stone-mips-final/`. No server or rendered frame was used for this probe.
+The first new paired capture was refused because an existing Godot process
+held the GPU. No renderer correction has been validated by this investigation.
+
+The same investigation prepared disposable Eclipse controls for a constant
+shadow-noise angle and base-level texture sampling, plus hard-shadow and
+normal-bias option controls. The first two passed the headless Godot 4.5.1
+geometry front end. Their exact changes, source hashes and pending capture
+jobs are recorded in
+`build/minecraft/shadows-foliage-20261018/prepared-jobs.json`.
+
+For the subsequent sky and broader pack comparisons, the Modrinth release
+metadata explicitly lists Minecraft 26.2 for Mellow 3.4.1a (`jIbGxrnZ`),
+Complementary Reimagined r5.9.3 (`Bqen1mJX`) and MakeUp Ultra Fast 9.5g
+(`pgb0JjoN`). Downloaded archives were verified against the published SHA-512
+hashes; metadata and day, dusk and night jobs are saved beside that manifest.
+These qualify version selection only. None of these prepared jobs has been
+rendered in this investigation, and none establishes a correct sky reference.
