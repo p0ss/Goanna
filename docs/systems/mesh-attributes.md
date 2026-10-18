@@ -47,6 +47,13 @@ by `ambientOcclusionLevel`, in vertex RGB or alpha according to
 only when the pack enables it. Native materials continue to use the
 combined occlusion in `CUSTOM0.b`.
 
+The imported corner term averages four adjacent shade values: open cells
+contribute 1 and full solid cubes or all-faces foliage contribute 0.2.
+Including foliage and the face's front cell matters inside a canopy, where
+all four cells can be leaves. Native tracing and corner shading retain
+their existing solid occupancy and curve. Partial shapes and distant
+foliage remain approximations.
+
 Exact meshes derive `CUSTOM2.gb` from raw Luanti levels before averaging.
 Both light coordinates use the 0..15 level domain. Luanti's ordinary lamps
 reach 14, while sunlight reaches 15; that game difference is preserved.

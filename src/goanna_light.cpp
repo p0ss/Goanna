@@ -59,9 +59,12 @@ bool BlockLightField::build(GoannaSession &session, v3s16 bp) {
                                 continue;
                             const ContentFeatures &f = ndef->get(n);
                             const bool solid = f.visuals && f.visuals->solidness == 2;
+                            const bool pack_shade = solid || f.drawtype == NDT_ALLFACES ||
+                                    f.drawtype == NDT_ALLFACES_OPTIONAL;
                             const bool lit = f.param_type == CPT_LIGHT && !solid;
                             Cell &cell = m_cells[((size_t)(oz + z) * m_side + (oy + y)) * m_side + (ox + x)];
-                            cell.flags = kKnown | (solid ? kSolid : 0) | (lit ? kLit : 0);
+                            cell.flags = kKnown | (solid ? kSolid : 0) | (lit ? kLit : 0) |
+                                    (pack_shade ? kPackShade : 0);
                             if (lit) {
                                 ContentLightingFlags lf = f.getLightingFlags();
                                 cell.day_level = n.getLight(LIGHTBANK_DAY, lf);
@@ -178,6 +181,7 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
         const float comp = axis == 0 ? nn.X : (axis == 1 ? nn.Y : nn.Z);
         const int front = comp > 0.0f ? 1 : 0;
         int solid = 0;
+        int pack_shade = 0;
         for (int dz = 0; dz < 2; ++dz)
             for (int dy = 0; dy < 2; ++dy)
                 for (int dx = 0; dx < 2; ++dx) {
@@ -187,9 +191,15 @@ VertexLight BlockLightField::sample(const v3f &p, const v3f &n) const {
                     const Cell &c = at(lx + dx, ly + dy, lz + dz);
                     if ((c.flags & kKnown) && (c.flags & kSolid))
                         ++solid;
+                    if ((c.flags & kKnown) && (c.flags & kPackShade))
+                        ++pack_shade;
                 }
         static const float curve[4] = {1.0f, 0.75f, 0.58f, 0.45f};
-        out.corner = (uint8_t)std::lround(255.0f * curve[std::min(solid, 3)]);
+        // Imported packs need leaf interiors to occlude corners too. Average
+        // the four adjacent shade values (open 1, full cube/leaf 0.2),
+        // including the face's front cell when it is inside a canopy.
+        // Native tracing and corner shading keep their existing occupancy.
+        out.corner = (uint8_t)std::lround(255.0f * (1.0f - 0.2f * pack_shade));
         out.ao = (uint8_t)std::lround(out.ao * curve[std::min(solid, 3)]);
     }
     return out;

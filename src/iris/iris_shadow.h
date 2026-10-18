@@ -32,9 +32,9 @@ struct ShadowSettings {
     // does, so the map's texels stay put on the ground; 0 follows the
     // camera exactly.
     float interval = 2.0f;
-    // The orthographic depth range: the light's eye is 100 nodes from the
-    // player towards the light, so geometry more than about 100 nodes
-    // above the player towards the sun is clipped, as in Iris.
+    // Depth extents about an eye 100 nodes towards the light. The near
+    // extent is towards the light, the far extent away from it. The eye
+    // offset is carried by shadowProjection, not shadowModelView.
     float near_plane = 0.05f;
     float far_plane = 256.0f;
     // The pack's orbit rotation in degrees, applied to the server's sun and
@@ -56,9 +56,9 @@ using Mat4 = float[16];
 // shadowModelView: player space (world less the camera position) to the
 // light's view space, whose -z looks from the light at the player. `light`
 // points from the scene towards the sun or moon (need not be unit length);
-// `camera` is the camera's world position. The player sits 100 nodes in
-// front of the light's eye, offset by the camera's position modulo the
-// interval, so the frame snaps to a grid of `interval` nodes.
+// `camera` is the camera's world position. Its offset modulo the interval
+// snaps the frame to a grid of `interval` nodes. The separate projection
+// carries the light's 100 node eye offset.
 void shadowModelView(const float light[3], const float camera[3], float interval, Mat4 out);
 
 // shadowProjection: an orthographic box `distance` nodes either side of

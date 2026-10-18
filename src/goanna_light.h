@@ -95,7 +95,7 @@ private:
         uint8_t day = 255, night = 0, flags = 0;
         uint8_t day_level = 15, night_level = 0;
     };
-    enum : uint8_t { kLit = 1, kSolid = 2, kKnown = 4 };
+    enum : uint8_t { kLit = 1, kSolid = 2, kKnown = 4, kPackShade = 8 };
     const Cell &at(int x, int y, int z) const;
     Cell cellAtNode(const v3f &p) const;
 

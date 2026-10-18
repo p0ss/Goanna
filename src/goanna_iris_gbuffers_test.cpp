@@ -266,6 +266,14 @@ static void testTranslator() {
     code = translateOne("void main() { gl_Position = ftransform(); }\n",
             "void main() { gl_FragData[0] = vec4(1.0); }\n", GbuffersSurface::ArrayCutout, r, err);
     check(contains(code, "< iris_alphaTestRef"), "cutout alpha test");
+    check(contains(code, "uniform float iris_alphaTestRef = 0.1;") &&
+                    !contains(code, "global uniform float iris_alphaTestRef"),
+            "the alpha threshold belongs to each material, not the view");
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "out vec4 art;\nvoid main() { art = vec4(0.0); }\n",
+            GbuffersSurface::ArrayCutout, r, err);
+    check(err.empty() && !contains(code, "iris_alphaTestRef"),
+            "modern outputs own their discard; packed output alpha is not opacity");
 
     // Globals initialised from uniforms become functions.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",

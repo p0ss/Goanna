@@ -57,6 +57,9 @@ static void testSettings() {
     check(big.resolution == 8192 && !big.notes.empty(), "resolution clamped and noted");
     ShadowSettings fov = readShadowSettings({{"shadowMapFov", "90.0"}}, {});
     check(!fov.notes.empty(), "a perspective shadow map is noted as unsupported");
+    ShadowSettings planes = readShadowSettings(
+            {{"shadowNearPlane", "1.0f"}, {"shadowFarPlane", "384.0f"}}, {});
+    check(near(planes.near_plane, 1.0f) && near(planes.far_plane, 384.0f), "pack depth extents read");
 }
 
 static void testMatrices() {
@@ -78,11 +81,11 @@ static void testMatrices() {
             check(near(dot, a == b ? 1.0f : 0.0f), "orthonormal " + std::to_string(a) + std::to_string(b));
         }
     // The grid point under the camera (10, 64, -6 for a 2 node interval)
-    // is 100 nodes in front of the eye, on its axis.
+    // is at the modelview origin; projection owns the eye offset.
     float grid[4] = {10.0f - cam[0], 64.0f - cam[1], -6.0f - cam[2], 1.0f};
     transform(mv, grid, out);
-    check(near(out[0], 0.0f, 1e-3f) && near(out[1], 0.0f, 1e-3f) && near(out[2], -100.0f, 1e-3f),
-            "grid point on the axis, 100 out: " + std::to_string(out[0]) + " " + std::to_string(out[1]) + " " +
+    check(near(out[0], 0.0f, 1e-3f) && near(out[1], 0.0f, 1e-3f) && near(out[2], 0.0f, 1e-3f),
+            "grid point at modelview origin: " + std::to_string(out[0]) + " " + std::to_string(out[1]) + " " +
                     std::to_string(out[2]));
     // Something above the player is nearer the sun's eye.
     float up[4] = {0.0f, 10.0f, 0.0f, 1.0f}, base[4] = {0.0f, 0.0f, 0.0f, 1.0f}, o2[4];
@@ -106,7 +109,7 @@ static void testMatrices() {
     Mat4 mv0;
     shadowModelView(sun, cam, 0.0f, mv0);
     transform(mv0, base, out);
-    check(near(out[0], 0.0f) && near(out[1], 0.0f) && near(out[2], -100.0f), "interval 0: the player on the axis");
+    check(near(out[0], 0.0f) && near(out[1], 0.0f) && near(out[2], 0.0f), "interval 0: the player at origin");
     // A low sun in the east: its direction is still +z, and the light's x
     // axis stays across the sun's path (no spin as the sun moves).
     const float east[3] = {1.0f, 0.2f, 0.0f};
@@ -120,16 +123,20 @@ static void testMatrices() {
 
     Mat4 proj;
     shadowProjection(120.0f, 0.05f, 256.0f, proj);
-    float corner[4] = {120.0f, 120.0f, -0.05f, 1.0f};
+    // Captured shader uniform values on Minecraft 26.2 / Iris 1.11.4.
+    // These catch relocating the eye offset into modelview, which breaks
+    // packs that project a normal with w = 1 for their shadow bias.
+    check(near(proj[10], -0.007810975f, 1e-7f), "observed shadow depth scale");
+    check(near(proj[14], -0.218512f, 1e-6f), "observed shadow depth offset");
+    float corner[4] = {120.0f, 120.0f, 100.05f, 1.0f};
     transform(proj, corner, out);
     check(near(out[0], 1.0f) && near(out[1], 1.0f) && near(out[2], -1.0f) && near(out[3], 1.0f),
             "near corner to (1, 1, -1)");
-    float back[4] = {-120.0f, -120.0f, -256.0f, 1.0f};
+    float back[4] = {-120.0f, -120.0f, -156.0f, 1.0f};
     transform(proj, back, out);
     check(near(out[0], -1.0f) && near(out[1], -1.0f) && near(out[2], 1.0f), "far corner to (-1, -1, 1)");
-    // The player, 100 out, lies between: the map has room for the ground
-    // and for what stands up to 100 nodes above it.
-    float player[4] = {0.0f, 0.0f, -100.0f, 1.0f};
+    // The player lies between: projection contains the 100 node eye offset.
+    float player[4] = {0.0f, 0.0f, 0.0f, 1.0f};
     transform(proj, player, out);
     check(out[2] > -1.0f && out[2] < 1.0f, "the player inside the depth range");
     // The depth convention through the shell and the copy: the shell writes

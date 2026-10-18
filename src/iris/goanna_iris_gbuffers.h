@@ -59,6 +59,7 @@ public:
     bool load_pack(const godot::String &path);
     // The translated shader for a surface, or null when the pack has none.
     godot::Ref<godot::Shader> shader(int surface) const;
+    float alpha_test_ref(int surface, float fallback, bool shadow = false) const;
     bool has_terrain() const { return m_shaders[SURFACE_TERRAIN].is_valid(); }
     // The pack's block.properties number for each of the client's block
     // names (MaterialTable::block_names, UV2.y's table), -1 where it lists

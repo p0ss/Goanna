@@ -154,6 +154,9 @@ bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface,
     if (sh.is_null())
         return false;
     sm->set_shader(sh);
+    const float alpha_ref = surface == GoannaIrisGbuffers::SURFACE_CUTOUT ? 0.5f :
+            surface == GoannaIrisGbuffers::SURFACE_TERRAIN ? 0.0f : 0.1f;
+    sm->set_shader_parameter("iris_alphaTestRef", m_iris_gbuffers->alpha_test_ref(surface, alpha_ref));
     if (surface == GoannaIrisGbuffers::SURFACE_WATER && water_override) {
         // Every water surface is the one block; Mineclonia's water has no
         // entry in the texture map the block table is built from.
@@ -203,6 +206,10 @@ Ref<Material> GoannaClient::irisShadowMaterial(const Ref<Material> &base) {
             if (v.get_type() != Variant::NIL)
                 m->set_shader_parameter(name, v);
         }
+        Variant alpha_ref = sm->get_shader_parameter("iris_alphaTestRef");
+        m->set_shader_parameter("iris_alphaTestRef", m_iris_gbuffers->alpha_test_ref(
+                GoannaIrisGbuffers::SURFACE_TERRAIN,
+                alpha_ref.get_type() == Variant::FLOAT ? (float)alpha_ref : 0.1f, true));
         out = m;
     } else {
         if (m_iris_shadow_none.is_null()) {
@@ -1300,6 +1307,9 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         else if (sh == m_sh_leaves || sh == m_sh_plants || sh == m_sh_glass_clear ||
                 sh == m_sh_glass_double)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_FOLIAGE);
+        if (sh == m_sh_leaves && m_iris_gbuffers.is_valid())
+            sm->set_shader_parameter("iris_alphaTestRef",
+                    m_iris_gbuffers->alpha_test_ref(GoannaIrisGbuffers::SURFACE_FOLIAGE, 0.5f));
         if (sh == m_sh_lava) {
             const LavaTile &lava = m_lava_tex.at(key.texture_id);
             GoannaTexture *surface = m_session->tsrc()->goannaTexture(lava.surface_texture);

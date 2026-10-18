@@ -25,13 +25,14 @@ static func celestial_state(state: Dictionary, degrees: float) -> Dictionary:
 	return out
 
 
-func make_surface(mesh: Mesh, shader: Shader) -> MeshInstance3D:
+func make_surface(mesh: Mesh, shader: Shader, kind: int) -> MeshInstance3D:
 	var surface := MeshInstance3D.new()
 	surface.mesh = mesh
 	surface.layers = 1 | NODE_LAYER
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var material := ShaderMaterial.new()
 	material.shader = shader
+	material.set_shader_parameter("iris_alphaTestRef", gbuffers.alpha_test_ref(kind, 0.1))
 	surface.material_override = material
 	add_child(surface)
 	return surface
@@ -44,14 +45,14 @@ func initialise(pack: GoannaIrisGbuffers) -> void:
 	sphere.height = RADIUS * 2.0
 	sphere.radial_segments = 32
 	sphere.rings = 16
-	dome = make_surface(sphere, pack.shader(4))
-	stars = make_surface(ArrayMesh.new(), pack.shader(4))
+	dome = make_surface(sphere, pack.shader(4), 4)
+	stars = make_surface(ArrayMesh.new(), pack.shader(4), 4)
 	var shader: Shader = pack.shader(5)
 	if shader != null:
 		for name in ["sun", "moon"]:
 			var quad := QuadMesh.new()
 			quad.size = Vector2.ONE
-			discs[name] = make_surface(quad, shader)
+			discs[name] = make_surface(quad, shader, 5)
 
 
 func update(camera: Camera3D, state: Dictionary, colour: Color, client: GoannaClient) -> void:

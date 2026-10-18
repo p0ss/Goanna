@@ -57,6 +57,8 @@ ShadowSettings readShadowSettings(const std::map<std::string, std::string> &cons
     }
     if (constNumber(consts, options, "shadowDistance", v) && v > 0.0) s.distance = (float)v;
     if (constNumber(consts, options, "shadowIntervalSize", v) && v >= 0.0) s.interval = (float)v;
+    if (constNumber(consts, options, "shadowNearPlane", v) && v >= 0.0) s.near_plane = (float)v;
+    if (constNumber(consts, options, "shadowFarPlane", v) && v > 0.0) s.far_plane = (float)v;
     if (constNumber(consts, options, "sunPathRotation", v)) {
         s.sun_path_rotation = (float)v;
     }
@@ -147,7 +149,6 @@ void shadowModelView(const float light[3], const float camera[3], float interval
     for (int row = 0; row < 3; ++row) {
         for (int col = 0; col < 3; ++col) o[col * 4 + row] = (float)rows[row][col];
         double t = rows[row][0] * off[0] + rows[row][1] * off[1] + rows[row][2] * off[2];
-        if (row == 2) t -= 100.0;
         o[12 + row] = (float)t;
     }
     o[15] = 1.0f;
@@ -157,11 +158,16 @@ void shadowModelView(const float light[3], const float camera[3], float interval
 void shadowProjection(float distance, float near_plane, float far_plane, Mat4 out) {
     float o[16] = {};
     const float d = std::max(distance, 1e-3f);
-    const float depth = std::max(far_plane - near_plane, 1e-3f);
+    // The 100 node eye offset belongs to the projection, not the modelview.
+    // A pack may project a normal with w = 1 when computing its shadow bias,
+    // so moving that offset between matrices changes the pack's arithmetic
+    // even when their product is unchanged. Measured from shader uniforms on
+    // Minecraft 26.2 / Iris 1.11.4, including the near extent towards the light.
+    const float depth = std::max(far_plane + near_plane, 1e-3f);
     o[0] = 1.0f / d;
     o[5] = 1.0f / d;
     o[10] = -2.0f / depth;
-    o[14] = -(far_plane + near_plane) / depth;
+    o[14] = (200.0f - far_plane + near_plane) / depth;
     o[15] = 1.0f;
     std::memcpy(out, o, sizeof(o));
 }

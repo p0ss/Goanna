@@ -26,6 +26,7 @@
 #include <regex>
 #include <set>
 #include <sstream>
+#include <utility>
 
 using namespace godot;
 
@@ -91,6 +92,8 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_pack", "path"), &GoannaIrisGbuffers::load_pack);
     ClassDB::bind_method(D_METHOD("lighting_state"), &GoannaIrisGbuffers::lighting_state);
     ClassDB::bind_method(D_METHOD("shader", "surface"), &GoannaIrisGbuffers::shader);
+    ClassDB::bind_method(D_METHOD("alpha_test_ref", "surface", "fallback", "shadow"),
+            &GoannaIrisGbuffers::alpha_test_ref, DEFVAL(false));
     ClassDB::bind_method(D_METHOD("has_terrain"), &GoannaIrisGbuffers::has_terrain);
     ClassDB::bind_method(D_METHOD("block_ids", "block_names"), &GoannaIrisGbuffers::block_ids);
     ClassDB::bind_method(D_METHOD("block_id", "name"), &GoannaIrisGbuffers::block_id);
@@ -151,6 +154,15 @@ Dictionary GoannaIrisGbuffers::lighting_state() const {
     d["eye_brightness_smooth"] = Vector2i(m_eye_smooth.round());
     d["eye_seen"] = m_eye_seen;
     d["eye_half_seconds"] = m_eye_half_seconds;
+    // Column-major, like the Minecraft capture helper's JOML matrices.
+    for (const auto &entry : {std::make_pair("shadow_model_view", m_shadow_mv),
+                 std::make_pair("shadow_projection", m_shadow_proj)}) {
+        Array values;
+        for (int col = 0; col < 4; ++col)
+            for (int row = 0; row < 4; ++row)
+                values.push_back(entry.second.columns[col][row]);
+        d[entry.first] = values;
+    }
     for (const char *name : {"sunPosition", "moonPosition", "shadowLightPosition", "sunAngle", "worldTime"}) {
         auto it = m_builtin.find(name);
         if (it != m_builtin.end()) d[name] = it->second;
@@ -573,7 +585,6 @@ void GoannaIrisGbuffers::update(Camera3D *camera, const Dictionary &state) {
     }
     setGlobal("iris_eyeBrightness", m_eye_light);
     setGlobal("iris_eyeBrightnessSmooth", Vector2i(m_eye_smooth.round()));
-    setGlobal("iris_alphaTestRef", 0.1f);
     setGlobal("iris_screenBrightness", 1.0f);
     setGlobal("iris_ambientLight", 0.0f);
     setGlobal("iris_hasSkylight", 1);
@@ -718,6 +729,23 @@ PackedInt32Array GoannaIrisGbuffers::translucent_targets() const {
     return out;
 }
 
+float GoannaIrisGbuffers::alpha_test_ref(int surface, float fallback, bool shadow) const {
+    if (surface < 0 || surface >= SURFACE_COUNT) return fallback;
+    const std::string program = shadow ? m_shadow_program : m_program[surface];
+    const auto &properties = m_pack.properties();
+    auto it = properties.find("alphaTest." + program);
+    if (it == properties.end()) return fallback;
+    const std::string value = trim(it->second);
+    if (value == "false" || value == "off" || value == "OFF") return 0.0f;
+    std::stringstream input(value);
+    std::string function;
+    float reference;
+    if ((input >> function >> reference) && (function == "GREATER" || function == "GEQUAL") &&
+            std::isfinite(reference) && reference >= 0.0f && reference <= 1.0f)
+        return reference;
+    return fallback;
+}
+
 Dictionary GoannaIrisGbuffers::report() const {
     Dictionary d;
     d["pack"] = String(m_pack.name().c_str());
@@ -727,6 +755,9 @@ Dictionary GoannaIrisGbuffers::report() const {
         Dictionary e;
         e["program"] = String(m_program[s].c_str());
         e["translated"] = m_shaders[s].is_valid();
+        auto alpha = m_pack.properties().find("alphaTest." + m_program[s]);
+        if (alpha != m_pack.properties().end())
+            e["alpha_test"] = String(alpha->second.c_str());
         if (!m_error[s].empty()) e["error"] = String(m_error[s].c_str());
         PackedStringArray w;
         for (auto &x : m_warnings[s]) w.push_back(String(x.c_str()));
@@ -866,7 +897,10 @@ void GoannaIrisGbuffers::updateShadow(const Vector3 &camera, const Vector3 &ligh
     Basis eb;
     for (int col = 0; col < 3; ++col)
         for (int row = 0; row < 3; ++row) eb.rows[row][col] = eye[col * 4 + row];
-    m_shadow_eye = Transform3D(eb, Vector3(eye[12], eye[13], eye[14]));
+    // The shader projection owns the eye offset. Keep Godot's culling
+    // camera at the same light-space eye as before that split.
+    m_shadow_eye = Transform3D(eb, Vector3(eye[12], eye[13], eye[14]) +
+            eb.get_column(2) * 100.0f);
     if (m_shadow.is_valid() && m_shadow->sync()) {
         setGlobal("iris_shadowtex0", m_shadow->shadowtex());
         setGlobal("iris_shadowtex1", m_shadow->shadowtex());
@@ -881,7 +915,7 @@ Dictionary GoannaIrisGbuffers::shadow_state() const {
     d["shadow_projection"] = m_shadow_proj;
     d["camera_transform"] = m_shadow_eye;
     d["size"] = 2.0f * m_shadow_settings.distance;
-    d["near"] = m_shadow_settings.near_plane;
+    d["near"] = std::max(0.001f, m_shadow_settings.near_plane);
     d["far"] = m_shadow_settings.far_plane;
     d["resolution"] = m_shadow_settings.resolution;
     return d;

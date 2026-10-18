@@ -382,6 +382,7 @@ private:
         return t.n == 4 ? n : "vec4(" + n + pad[t.n] + ")";
     }
     std::set<int> m_out_written;
+    bool m_legacy_fragment_output = false;
     std::set<int> m_reads; // colortex targets sampled (GbuffersResult::reads)
     // Varyings carried in packed slots (packVaryings), per stage, by pack
     // name. A struct varying lists its fields.
@@ -449,6 +450,12 @@ private:
             m_decl_lines.push_back(line);
     }
     std::string needGlobal(const std::string &name, const std::string &type) {
+        if (name == "iris_alphaTestRef") {
+            // Iris changes this per draw: opaque terrain, mipmapped leaves
+            // and ordinary plants do not share one discard threshold.
+            addDecl("uniform float iris_alphaTestRef = 0.1;");
+            return name;
+        }
         if (!m_global_types.count(name)) {
             m_global_types[name] = type;
             std::string hint;
@@ -750,6 +757,7 @@ Val Translator::builtinIdent(const std::string &n, bool &found) {
             return v;
         }
         if (n == "gl_FragColor") {
+            m_legacy_fragment_output = true;
             m_out_written.insert(0);
             v.code = "goanna_out_0";
             v.t = Ty::vec(Ty::Float, 4);
@@ -1478,6 +1486,7 @@ Val Translator::expr(const ExprP &ep) {
                 }
                 int k = std::atoi(ix.text.c_str());
                 if (n == "gl_FragData") {
+                    m_legacy_fragment_output = true;
                     m_out_written.insert(k);
                     return {"goanna_out_" + std::to_string(k), Ty::vec(Ty::Float, 4), false};
                 }
@@ -2620,7 +2629,8 @@ bool Translator::run(const Program &p, std::string &err) {
             m_o.surface == GbuffersSurface::SkyTextured;
     if (colour >= 0) {
         std::string c = outVec4(colour);
-        if (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout) {
+        if (m_legacy_fragment_output &&
+                (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout)) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }
