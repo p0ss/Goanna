@@ -12,6 +12,17 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Give shader packs their own tabs, 18 October 2026. Start Game places the
+  full picker and pack options beside Mods; both Settings screens have a
+  Shader packs tab. Join Game retains its compact picker. Shorten the help
+  text and cap last-load status at two lines, preserving the full text in
+  its tooltip. Scratch-profile headless tests pass on Godot 4.5.1:
+  menu shader packs (21 checks), info icons (28 checks), and shader pack
+  storage and option handling. These are interface tests with no server or
+  GPU; rendered layout and the reported shader speckling are not verified.
+  The pending conditional shadow-settings fix is separate from this UI
+  change and still awaits rendered validation.
+
 - Correct imported clear-glass routing and legacy translucent alpha tests,
   18 October 2026. Clear glass selects the pack's translucent program with
   its own block ID. Legacy translucent outputs discard below the material

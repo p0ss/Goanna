@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-## The Shaders row of the menu's Start Game and Join Game screens
-## (ui/shader_pack_row.gd, build_join_picker): it lists the packs in a
+## The shader pack tab and Join Game picker in the menu
+## (ui/shader_pack_row.gd): it lists the packs in a
 ## scratch user://shaderpacks, writes the same saved setting as Settings,
-## Graphics, Shader pack, the Settings picker shows what it wrote and the
+## Shader packs, the Settings picker shows what it wrote and the
 ## other way round, a join loads it, and the last join's line shows. Also
-## that the Settings picker is no longer folded away. Headless, no server
-## or GPU. It writes user://goanna.cfg and user://shaderpacks, so it
-## refuses to run without a scratch XDG_DATA_HOME:
+## that Start Game and Settings expose a dedicated Shader packs tab.
+## Headless, no server or GPU. It writes user://goanna.cfg and
+## user://shaderpacks, so it refuses to run without a scratch XDG_DATA_HOME:
 ## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/menu_shader_pack.gd
 extends SceneTree
 
@@ -103,10 +103,15 @@ func _run() -> void:
 	print("settings")
 	menu._show_settings()
 	await process_frame
+	var settings_tabs: TabContainer = menu._find_tabs(menu.screen)
+	for i in settings_tabs.get_tab_count():
+		if settings_tabs.get_tab_title(i) == "Shader packs":
+			settings_tabs.current_tab = i
+	await process_frame
 	var settings_picker := _settings_picker(menu.screen)
 	check(settings_picker != null, "Settings has the shader pack picker")
 	if settings_picker != null:
-		check(settings_picker.is_visible_in_tree(), "without unfolding anything")
+		check(settings_picker.is_visible_in_tree(), "on its own Shader packs tab")
 		check(settings_picker.get_item_text(settings_picker.selected) == "Beta",
 				"and shows what Join Game chose")
 		check(_select(settings_picker, "Alpha"), "Alpha can be chosen in Settings")
@@ -124,7 +129,17 @@ func _run() -> void:
 	await process_frame
 	if menu.shader_option != null and is_instance_valid(menu.shader_option) \
 			and menu.shader_option.is_inside_tree():
+		var start_tabs: TabContainer = menu._find_tabs(menu.screen)
+		var shader_tab := -1
+		var mods_tab := -1
+		for i in start_tabs.get_tab_count():
+			if start_tabs.get_tab_title(i) == "Shader packs": shader_tab = i
+			if start_tabs.get_tab_title(i) == "Mods": mods_tab = i
+		check(shader_tab >= 0 and mods_tab >= 0, "Start Game has sibling Shader packs and Mods tabs")
+		if shader_tab >= 0: start_tabs.current_tab = shader_tab
+		await process_frame
 		var start: OptionButton = menu.shader_option
+		check(start.is_visible_in_tree(), "the picker is visible on the Shader packs tab")
 		check(start.get_item_text(start.selected) == "Alpha", "Start Game shows the same choice")
 		check(_select(start, ShaderPackRow.NONE_LABEL), "None can be chosen on Start Game")
 		check(ShaderPacks.chosen() == "", "None saves no pack")
@@ -135,6 +150,13 @@ func _run() -> void:
 	var j := ShaderPacks.prepare_join()
 	check(str(j.get("path", "")) == ProjectSettings.globalize_path(ShaderPacks.DIR).path_join("Alpha"),
 			"the join that follows loads the chosen pack (got %s)" % str(j))
+
+	var status := Label.new()
+	ShaderPackRow._compact_status(status)
+	ShaderPackRow.show_status(status, "Alpha")
+	check(status.max_lines_visible == 2 and status.tooltip_text == status.text,
+			"last-load text stays compact while the tooltip retains the full status")
+	status.free()
 
 	menu.free()
 	await process_frame

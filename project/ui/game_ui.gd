@@ -868,9 +868,7 @@ const RenderFeatures := preload("res://game/render_features.gd")
 # a group as "Tab/Group" (PanelFit.tab_of and group_of). Types: slider,
 # toggle, steps, choice, and the text kinds in TEXT_SETTING_KINDS.
 const SETTINGS := [
-	# First of the Graphics rows, so it sits under the profile picker
-	# rather than folded away at the bottom, where it went unfound.
-	["Graphics", "shader_pack", "shaderpack", "Shader pack", "An Iris or OptiFine shader pack, as made for Minecraft, drawn in place of Goanna's own look. Only part of what packs do is supported yet, so most look different from their screenshots, and some will not load. Applies the next time you join a world. Start Game and Join Game offer the same choice."],
+	["Shader packs", "shader_pack", "shaderpack", "Shader pack", ShaderPackRow.DESCRIPTION],
 	["Graphics", "view_range", "slider", "View distance", "How much world to ask the server for, in blocks of 16 nodes. Most servers cap this near 12, so higher values may change nothing.", 4.0, 40.0, 1.0],
 	["Graphics", "far_distance", "slider", "Far draw distance", "How far past the live range the far tiers draw, in nodes. Capped by what the server actually granted (docs/systems/far-rendering.md); raising this past the grant changes nothing. Defaults to the grant itself, so this only needs touching to draw less than the server allows. A local single player server grants this same setting, so on your own worlds this is the one knob.", 0.0, 8192.0, 32.0],
 	["Graphics", "procedural_grass", "toggle", "Procedural grass", "Dense, wind-swept grass that bends around players and animals. Improves edge smoothing and increases graphics cost."],
@@ -995,7 +993,7 @@ const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 # (_build_graphics_page): the profile picker, which is what moves the settings
 # a profile is about (project/game/graphics_profiles.gd), the few ungrouped
 # settings, then each group folded away.
-const PLAIN_TABS := ["Controls", "Appearance", "Audio", "Display", "Updates"]
+const PLAIN_TABS := ["Shader packs", "Controls", "Appearance", "Audio", "Display", "Updates"]
 
 # Settings handled here rather than through the client (window, camera, UI).
 const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "view_bobbing", "fov",

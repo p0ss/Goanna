@@ -199,8 +199,12 @@ func _in_game() -> void:
 		if (p as OptionButton).item_count > 0 \
 				and (p as OptionButton).get_item_text(0) == preload("res://ui/shader_pack_row.gd").NONE_LABEL:
 			pack_picker = p
+	for tabs in panel.find_children("*", "TabContainer", true, false):
+		for i in tabs.get_tab_count():
+			if tabs.get_tab_title(i) == "Shader packs": tabs.current_tab = i
+	await process_frame
 	check(pack_picker != null and pack_picker.is_visible_in_tree(),
-			"the shader pack picker is in view on the Graphics tab, not folded away")
+			"the shader pack picker is visible on its own Shader packs tab")
 	panel.queue_free()
 	game.queue_free()
 	await process_frame

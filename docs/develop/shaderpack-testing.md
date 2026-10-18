@@ -146,11 +146,11 @@ Several packs have since run this way; see
 
 ## The Shader pack setting
 
-Players, and anyone trying packs by hand, choose a pack in Settings,
-Graphics, Shader pack (`project/ui/shader_pack_row.gd`, built by both the
-main menu and the in-game panel), or in the Shaders row of the menu's
-Start Game and Join Game screens (`build_join_picker` in the same file),
-from the packs in `user://shaderpacks`. Both write the one setting.
+Players choose a pack in Settings, Shader packs
+(`project/ui/shader_pack_row.gd`, built by both the main menu and the
+in-game panel), or on Start Game's Shader packs tab beside Mods
+(`build_tab`). Join Game keeps a compact Shaders row (`build_join_picker`).
+All list the packs in `user://shaderpacks` and write the same setting.
 `project/game/shader_packs.gd` does the rest:
 
 - A pack is a directory holding `shaders/`, or a `.zip` with `shaders/` at

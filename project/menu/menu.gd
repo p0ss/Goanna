@@ -1577,13 +1577,7 @@ func _show_new_game() -> void:
 			{"id": "standard", "path": "", "pbr": false})
 	world_page.add_child(pbr_option)
 	PanelFit.info(pbr_option, pbr_line, "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set.", world_page)
-	var shader_line := HBoxContainer.new()
-	shader_line.add_theme_constant_override("separation", 10)
-	var shader_label := Label.new()
-	shader_label.text = "Shaders"
-	shader_line.add_child(shader_label)
-	world_page.add_child(shader_line)
-	shader_option = ShaderPackRow.build_join_picker(world_page, shader_line)
+	shader_option = ShaderPackRow.build_tab(tabs)
 
 	var mods_scroll := ScrollContainer.new()
 	mods_scroll.name = "Mods"
