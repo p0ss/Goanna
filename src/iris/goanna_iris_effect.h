@@ -179,6 +179,7 @@ private:
         std::string key; // "noise", or "<stage>:<sampler>"
         int w = 0, h = 0;
         int depth = 0; // a 3D texture's depth; 0 for 2D
+        bool blur = false, clamp = false; // image .mcmeta sampling flags
         godot::RenderingDevice::DataFormat format = godot::RenderingDevice::DATA_FORMAT_R8G8B8A8_UNORM;
         godot::PackedByteArray rgba; // the texels, in format
         godot::RID tex;

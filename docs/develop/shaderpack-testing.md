@@ -305,3 +305,33 @@ colour darkening changed it much more. Dusk already produced warmer
 sunlight with the unmodified pack. These are Goanna-side observations,
 not a matched Iris comparison or a validated lighting fix. Minecraft
 reference captures and performance measurements remain outstanding.
+
+## Custom texture sampling proof
+
+The authored `texture-sampling` pack checks adjacent `.png.mcmeta` sampling
+metadata for custom shader images. Four 2x1 black/white textures declare
+nearest or linear filtering and clamp or repeat addressing. The final pass
+encodes midpoint, left-outside and right-outside samples into RGB. Each of
+the four combinations must appear, within one level of quantisation.
+
+```sh
+tools/goanna-render minecraft tools/minecraft/texture-sampling.json \
+  --only goanna --out /tmp/goanna-texture-sampling
+python tools/test/check-iris-texture-sampling.py \
+  /tmp/goanna-texture-sampling/calibration-goanna.png
+```
+
+Use a fresh output directory. The render service holds the GPU lock and
+starts the disposable comparison server. This is a Goanna GPU contract
+probe, not a visual comparison against Iris. It passed on 18 October 2026
+against the unmodified Minecraft Java 26.2 dedicated server through
+BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core,
+Godot 4.5.1 and RTX 3090 in headless gamescope. The observed colours were
+`(127, 0, 255)`, `(255, 0, 255)`, `(127, 255, 0)` and `(255, 255, 0)`.
+
+Custom images default to nearest filtering and repeat addressing. Valid
+boolean `texture.blur` and `texture.clamp` fields select the other modes;
+malformed metadata is reported. This covers ordinary custom image files,
+not Minecraft's terrain mipmap strategy metadata. Native cloud geometry
+still has no `gbuffers_clouds` path, independently of procedural cloud
+textures sampling correctly.

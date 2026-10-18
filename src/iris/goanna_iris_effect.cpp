@@ -13,6 +13,7 @@
 
 #include <godot_cpp/classes/framebuffer_cache_rd.hpp>
 #include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/rd_framebuffer_pass.hpp>
 #include <godot_cpp/classes/rd_pipeline_color_blend_state.hpp>
@@ -830,7 +831,8 @@ RID GoannaIrisEffect::samplerFor(const Pass &p, const iris::Translated::Sampler 
     for (auto &c : m_custom_tex)
         if (c.tex.is_valid() && c.fits(s.type) &&
                 (c.key == p.stage + ":" + s.name || (s.name == "noisetex" && c.key == "noise")))
-            return c.depth > 0 ? m_sampler_repeat : m_sampler_nearest_repeat;
+            return c.clamp ? (c.blur || c.depth > 0 ? m_sampler_linear : m_sampler_nearest)
+                           : (c.blur || c.depth > 0 ? m_sampler_repeat : m_sampler_nearest_repeat);
     if (s.name == "noisetex")
         return m_sampler_repeat;
     if (s.name.rfind("depthtex", 0) == 0 || s.name.rfind("shadowtex", 0) == 0)
@@ -972,8 +974,36 @@ void GoannaIrisEffect::loadCustomTextures() {
         c.w = img->get_width();
         c.h = img->get_height();
         c.rgba = img->get_data();
+        // Shader textures carry sampling metadata too. Ignoring blur made
+        // Mellow's cloud-noise texture visibly blocky; clamp also matters
+        // for lookup tables and the SMAA area/search textures.
+        std::ifstream metadata(path + ".mcmeta");
+        if (metadata) {
+            std::stringstream text;
+            text << metadata.rdbuf();
+            Variant parsed = JSON::parse_string(String::utf8(text.str().c_str()));
+            if (parsed.get_type() == Variant::DICTIONARY) {
+                Dictionary root = parsed;
+                Variant texture = root.get("texture", Dictionary());
+                if (texture.get_type() == Variant::DICTIONARY) {
+                    Dictionary sampling = texture;
+                    Variant blur = sampling.get("blur", false), clamp = sampling.get("clamp", false);
+                    if (blur.get_type() == Variant::BOOL && clamp.get_type() == Variant::BOOL) {
+                        c.blur = blur;
+                        c.clamp = clamp;
+                    } else {
+                        m_texture_notes.push_back(key + ": invalid sampling flags in .mcmeta");
+                    }
+                } else {
+                    m_texture_notes.push_back(key + ": invalid texture metadata in .mcmeta");
+                }
+            } else {
+                m_texture_notes.push_back(key + ": cannot parse .mcmeta");
+            }
+        }
         m_custom_tex.push_back(c);
-        m_texture_notes.push_back(key + ": " + value + " loaded");
+        m_texture_notes.push_back(key + ": " + value + " loaded (" +
+                (c.blur ? "linear" : "nearest") + ", " + (c.clamp ? "clamp" : "repeat") + ")");
     }
 }
 
