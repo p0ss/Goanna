@@ -2638,7 +2638,9 @@ bool Translator::run(const Program &p, std::string &err) {
     if (colour >= 0) {
         std::string c = outVec4(colour);
         if (m_legacy_fragment_output &&
-                (m_o.surface == GbuffersSurface::ArrayCutout || m_o.surface == GbuffersSurface::SingleCutout)) {
+                (m_o.surface == GbuffersSurface::ArrayCutout ||
+                 m_o.surface == GbuffersSurface::SingleCutout ||
+                 m_o.surface == GbuffersSurface::Translucent)) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }

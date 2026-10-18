@@ -30,6 +30,13 @@ Native waving leaves use the same material flag. Double-sided tiles keep
 both sides. Imported shadow programs retain their separate culling policy;
 this uniform does not change shadow caster selection.
 
+Imported clear glass uses `gbuffers_water`, like blended glass and ice,
+while retaining its own block ID. The server's cut-out texture policy does
+not select the pack's foliage program. Legacy translucent outputs also
+apply the material's `alphaTestRef` before colour or secondary writes, so
+invisible fragments cannot leave depth in front of later geometry.
+Modern outputs retain the pack's own discard policy.
+
 ## Preparing materials
 
 Once session content is prepared, `poll_blocks` warms the materials named

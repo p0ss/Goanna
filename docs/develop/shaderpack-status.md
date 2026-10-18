@@ -6,6 +6,22 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Translucent glass and foliage inputs, 2026-10-18
+
+Clear glass now selects the translucent program with its glass block ID.
+Legacy translucent outputs apply the material alpha test before every
+target write. This removes MakeUp's black clear-glass panels in both
+calibration and close-foliage captures. The previous mapped control and
+the new frames are retained in the labelled side-by-side gallery under
+`build/minecraft/glass-leaf-inputs-20261018/`.
+
+Paired authored probes find close foliage AO means within two image
+levels, and Goanna's sampled skylight slightly lower than Minecraft's.
+Neither result explains Complementary's much brighter mapped foliage.
+Its material lighting and shadow response remain under investigation;
+glass top edges and distant foliage also remain open. See the
+[comparison report](../agents/minecraft-comparison.md) for scope and values.
+
 ## Face culling and block IDs, 2026-10-18
 
 The later follow-up corrects two shared input problems. Per-material

@@ -12,6 +12,28 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Correct imported clear-glass routing and legacy translucent alpha tests,
+  18 October 2026. Clear glass selects the pack's translucent program with
+  its own block ID. Legacy translucent outputs discard below the material
+  threshold before depth and secondary writes; modern outputs keep their
+  authored discard policy. MakeUp's black clear-glass panels disappear in
+  calibration and close-foliage captures. Authored lightmap and separate AO
+  probes narrow the remaining foliage investigation: sampled Goanna
+  skylight is slightly lower, and foliage AO means differ by less than two
+  image levels. Complementary's mapped leaf lighting remains visibly
+  different. Tested against unmodified Minecraft Java 26.2 through
+  BridgeTest protocol 52, no Luanti game, Goanna Luanti 5.17.0 core,
+  Godot 4.5.1 and RTX 3090 in headless gamescope. Captures use the dirty
+  checkout based on `d5a20e76`, including unrelated Overseer edits.
+  Corrected calibration and close-foliage captures complete across
+  Eclipse, Complementary, Mellow and MakeUp without client script or
+  shader errors. Translator regression tests, twelve comparison-tool
+  checks and strict documentation validation pass. The GPU is released.
+  An initial read-only material audit snippet failed to parse; the
+  corrected snippet ran, and the error is recorded with the probe.
+  Night, underwater and performance were not tested. See the
+  [comparison report](../agents/minecraft-comparison.md).
+
 - Preserve face culling and restore comparison shader block IDs,
   18 October 2026. Shared imported single-texture shaders now respect each
   material's back-face flag in colour and secondary outputs. Native waving

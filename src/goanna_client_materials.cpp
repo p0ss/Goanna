@@ -1297,15 +1297,14 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         sm->set_shader_parameter("albedo_tex", tex);
         if (sh == m_sh_water)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER);
-        // Blended glass and ice are translucent terrain too. Keep their
-        // block IDs so the pack does not give them water waves or tint.
-        else if (sh == m_sh_glass || sh == m_sh_ice)
-            applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER, false);
-        // Clear glass is alpha tested by the game. It must write the pack's
-        // material buffers too, rather than native lit RGB that a deferred
-        // pack would decode as packed normals and material flags.
-        else if (sh == m_sh_leaves || sh == m_sh_plants || sh == m_sh_glass_clear ||
+        // Iris draws glass through its translucent terrain program even
+        // when the server clips its texture. Use the pack's translucent
+        // lighting, alpha and material outputs for clear glass too.
+        // Keep its block ID so it is not given water waves or tint.
+        else if (sh == m_sh_glass || sh == m_sh_ice || sh == m_sh_glass_clear ||
                 sh == m_sh_glass_double)
+            applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_WATER, false);
+        else if (sh == m_sh_leaves || sh == m_sh_plants)
             applyIrisGbuffers(sm, GoannaIrisGbuffers::SURFACE_FOLIAGE);
         // Single-texture pack shaders are shared by culled cubes and
         // double-sided surfaces. Keep each tile's server-supplied policy.

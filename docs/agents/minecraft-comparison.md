@@ -645,8 +645,9 @@ Texture-derived IDs still approximate block states and non-cube shapes;
 the existing 512-slot shader table remains a limit.
 
 Culling-only, mapped, native and raw coverage captures are separate under
-`build/minecraft/face-culling-20261018/`. Its divider gallery can select
-Minecraft, original Goanna or the culling-only control as the left image.
+`build/minecraft/face-culling-20261018/`. Its labelled side-by-side or
+divider gallery can select Minecraft, original Goanna or the culling-only
+control as the left image.
 The `*-mapped` runs add the ID correction. Correct IDs enable pack-specific
 leaf effects and can expose further rendering differences: Complementary's
 fixed foliage sample grows from 1.52 to 35.30 levels with IDs restored,
@@ -664,3 +665,54 @@ reported no Goanna client script or shader errors. The gallery audits all
 eight pack/pose entries and their image links. The native shader contract
 and twelve comparison-tool tests pass. These are visual and input tests,
 not performance measurements. The clients exited and the GPU was released.
+
+### Glass pass and foliage input follow-up, 2026-10-18
+
+The mapped control is intentionally retained: enabling correct block IDs
+reveals pack effects which the culling-only control never exercised. A
+second follow-up separates geometry, lightmap and AO inputs from the
+pack's lighting response. Captures use the same unmodified Minecraft Java
+26.2 server through BridgeTest protocol 52, no Luanti game, Luanti 5.17.0
+core, Godot 4.5.1 and RTX 3090 in headless gamescope. The checkout is dirty,
+based on `d5a20e76`, including unrelated Overseer changes.
+
+An authored probe outputs lightmap UVs directly. Goanna's mean encoded
+skylight is about five levels lower than Minecraft's in the sampled leaf
+regions, not higher. These are image channel values, not integer light
+levels. They do not support excess skylight as the explanation for the
+bright Complementary leaves. A second probe requests `separateAo=true`
+and outputs vertex alpha as grey. Using the intersection of the earlier
+flat leaf masks, top means are 220.71 in Minecraft and 219.83 in Goanna;
+front means are 192.68 and 193.59; rear-top means are 233.20 and 231.59.
+These close-camera averages do not establish per-vertex or distant parity.
+A control-channel audit also finds mesh vertex alpha intact at 1.0; the
+shell supplies separate corner AO. An initial read-only audit snippet had
+an indentation parse error; the corrected audit ran successfully. That
+injected error is not a renderer failure.
+
+Clear glass now uses the pack's translucent `gbuffers_water` program,
+retaining its glass ID. Routing alone did not remove MakeUp's black
+panels. Legacy translucent shaders also need their alpha test: without
+it, fully invisible fragments can still write depth and hide later sky
+or geometry. Apply the material threshold before all colour and secondary
+writes. Modern output declarations keep their authored discard policy.
+Corrected MakeUp calibration and close-foliage frames have clear glass
+again. The fixed calibration glass region's maximum mean channel error
+falls from 12.64 in the previous mapped control to 10.03. This regional
+average understates the black-panel change visible in the close view.
+
+Captures and probe metrics are under
+`build/minecraft/glass-leaf-inputs-20261018/`. The side-by-side gallery
+labels both engines and allows the previous mapped Goanna frame as a
+control. Glass top edges, Complementary leaf lighting, emissive coverage
+and distant mipmaps remain open; this is not full shader parity or a
+performance measurement.
+
+The final correction was captured at calibration and close-foliage poses
+for Eclipse, Complementary Reimagined, Mellow and MakeUp. All four runs
+succeeded without client script or shader errors. The eight-view gallery
+checks every source image and report link, and its JavaScript passes a
+syntax check. Translator regression tests, twelve comparison-tool checks,
+style and strict documentation validation pass. All clients exited and
+the GPU is free. The separate authored AO probe retains the audit parse
+error described above; it is excluded from the error-free pack-run claim.

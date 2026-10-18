@@ -275,6 +275,20 @@ static void testTranslator() {
     check(err.empty() && !contains(code, "iris_alphaTestRef"),
             "modern outputs own their discard; packed output alpha is not opacity");
 
+    // Invisible legacy translucent fragments must not write depth in front
+    // of the sky or later transparent geometry, including second outputs.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "/* DRAWBUFFERS:1 */\nvoid main() { gl_FragData[0] = vec4(0.0); }\n",
+            GbuffersSurface::Translucent, r, err);
+    check(err.empty() && contains(code, "< iris_alphaTestRef") &&
+                    code.find("< iris_alphaTestRef") < code.find("uint goanna_pass"),
+            "legacy translucent alpha test precedes every target write");
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "out vec4 art;\nvoid main() { art = vec4(0.0); }\n",
+            GbuffersSurface::Translucent, r, err);
+    check(err.empty() && !contains(code, "iris_alphaTestRef"),
+            "modern translucent outputs retain their own discard policy");
+
     for (auto surface : {GbuffersSurface::SingleCutout, GbuffersSurface::Translucent}) {
         code = translateOne("void main() { gl_Position = ftransform(); }\n",
                 "void main() { gl_FragData[0] = vec4(1.0); }\n", surface, r, err);

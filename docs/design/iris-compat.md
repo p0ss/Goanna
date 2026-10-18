@@ -580,8 +580,12 @@ Built 2026-10-11 by rungs 5 to 7 above. The parts:
   four surfaces: opaque array tiles (`gbuffers_terrain`), cut-out array
   tiles (`gbuffers_terrain_cutout`, alpha tested at `alphaTestRef`), the
   single texture leaves and plants (the cut-out program again), and water
-  (`gbuffers_water`, blended). The far tiers share the array materials, so
-  they take the same programs with nothing added for them.
+  (`gbuffers_water`, blended). Glass and ice use that translucent program
+  with their own block IDs, including clear glass whose server texture is
+  cut out. Legacy translucent outputs apply `alphaTestRef` before depth
+  and material writes; modern outputs keep their authored discard logic.
+  The far tiers share the array materials, so they take the same programs
+  with nothing added for them.
 
 `GOANNA_SHADERPACK` loads it beside the screen space chain, and
 `GOANNA_SHADERPACK_GBUFFERS=0` leaves it out for comparison. Without a pack
