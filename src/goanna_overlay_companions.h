@@ -78,6 +78,33 @@ std::string firstImage(const std::string &texture);
 // mask's own companion would leave the shading layer flat.
 std::vector<std::string> companionNames(const std::string &image, const char *suffix);
 
+// Whether `image` is a colouring mask: a plain file whose stem ends in
+// "_mask", as companionNames reads it. Laid over a base with no companion
+// of its own (under either of its names), such a mask recolours a region
+// the base already paints, so it keeps the base's maps there rather than
+// flattening them to the neutral an unauthored layer gives: DorfCraft's
+// tame wolf is "wolf_carved_tame.png^(wolf_carved_tame_collar_mask.png^
+// [multiply:#rrggbb)", the collar already drawn, and its relief, in the
+// base. EntityRenderer's overlay composite and composeCompanion both apply
+// this. A mask at the bottom of a stack (Mineclonia's skins) is unaffected.
+bool isColouringMask(const std::string &image);
+
+// The image whose companions a texture may borrow when neither
+// parseOverlayLayers nor composeCompanion can read it: the base, the first
+// part (read into a leading group), provided nothing after it moves the
+// base's texels in UV space. Overlays, groups, [combine and [png laid into
+// it, [fill, [lowpart, [crack, [mask, [opacity and the colour modifiers
+// paint or recolour in place, and [resize scales the whole image, which UVs
+// do not see; the base's maps still fit. [transform, [sheet,
+// [verticalframe, [inventorycube and any modifier not listed change what
+// lies where, so the base's maps would sit on the wrong texels, and the
+// result is empty: the texture gets no authored maps. A texture that starts
+// with a generator ([combine, [fill, [png) has no base and is empty too: a
+// [combine crop of a skin is not the skin. A DorfCraft creature with a
+// seeping wound is its skin with "^[combine:WxH:x,y=[png\:..." laid in,
+// which composeCompanion does not read, and takes its skin's maps here.
+std::string companionFallbackImage(const std::string &texture);
+
 // A plain RGBA8 image, rows top to bottom. Empty (w == 0) means none.
 struct Rgba8 {
     int w = 0, h = 0;

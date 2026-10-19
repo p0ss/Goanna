@@ -149,7 +149,10 @@ Ref<Texture2D> EntityRenderer::compositeCompanion(GoannaSession &session,
         auto *agt = dynamic_cast<GoannaTexture *>(session.tsrc()->getTexture(layers[i].image));
         if (agt)
             albedos[i] = toRgba8(agt->image());
-        inputs[i] = {&albedos[i], &comps[i], layers[i].opacity};
+        // A colouring mask with nothing authored recolours what the layers
+        // under it already paint, and covers nothing here (isColouringMask).
+        const bool recolours = i > 0 && comps[i].empty() && isColouringMask(layers[i].image);
+        inputs[i] = {recolours ? nullptr : &albedos[i], &comps[i], layers[i].opacity};
     }
     // With nothing authored in any layer there is nothing to composite, and
     // the caller's fallbacks (inferred relief, the class) apply as before.
@@ -365,9 +368,11 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             // gets its companions composed the way the texture is built
             // (composeCompanion), each part's maps placed and turned with
             // the part, and a [mask cut (a standing banner's pole and
-            // cloth) covering what the mask leaves. Anything neither reads
-            // (a frame cut), or a single image, takes the first image's
-            // companions.
+            // cloth) covering what the mask leaves. A single image takes
+            // its own companions. Anything neither reads (a seeping wound's
+            // [png laid in by [combine) takes its base image's, unless a
+            // modifier moves the base's texels (a frame cut, a [combine
+            // crop), when it takes none (companionFallbackImage).
             std::vector<OverlayLayer> layers;
             if (parseOverlayLayers(texture, layers) && layers.size() > 1) {
                 normal_tex = compositeCompanion(session, texture, layers, "_n");
@@ -390,9 +395,12 @@ Ref<Material> EntityRenderer::materialForMeshTexture(GoannaSession &session,
             if (composite_layers || composed) {
                 // Composed above.
             } else {
-                std::string base = layers.size() == 1 ? layers[0].image : firstImage(texture);
-                normal_tex = companionTexture(session, base, "_n");
-                spec_tex = companionTexture(session, base, "_s");
+                const std::string base = layers.size() == 1 ? layers[0].image
+                        : companionFallbackImage(texture);
+                if (!base.empty()) {
+                    normal_tex = companionTexture(session, base, "_n");
+                    spec_tex = companionTexture(session, base, "_s");
+                }
             }
         }
     }

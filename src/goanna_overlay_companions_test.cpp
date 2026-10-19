@@ -584,6 +584,80 @@ void testFirstImage() {
     check(firstImage("[combine:16x16") == "", "a combine with no part names nothing");
 }
 
+// DorfCraft's creatures, with the strings its mods build (deeprock pack):
+// a stone troll, a corpse, a seeping wound, a dyed collar, a gore crop.
+void testFallback() {
+    auto fb = [](const char *t) { return companionFallbackImage(t); };
+    check(fb("troll_carved_adult.png^[colorize:#77756d:215") == "troll_carved_adult.png",
+            "a recoloured troll borrows its skin's maps");
+    check(fb("wolf_carved_adult.png^[colorize:#9a2f26:170^[colorize:#3d3a24:140") ==
+            "wolf_carved_adult.png", "a corpse's tints keep its maps");
+    check(fb("wolf_carved_adult.png^[opacity:120") == "wolf_carved_adult.png",
+            "a fading body keeps its maps");
+    check(fb("wolf_carved_tame.png^(wolf_carved_tame_collar_mask.png^[multiply:#aa2222)"
+            "^[combine:132x130:40,12=[png\\:iVBORw0KGgo=:41,13=[png\\:iVBORw0KGgo=") ==
+            "wolf_carved_tame.png", "a seeping wound laid in by [combine keeps the skin's maps");
+    check(fb("(wolf.png^[multiply:#808080)^wound.png") == "wolf.png",
+            "a leading group is read into for its base");
+    check(fb("wolf.png^[resize:64x64^x.png") == "wolf.png", "a [resize keeps the UVs");
+    check(fb("wolf.png^(x.png^[transformR90)") == "wolf.png",
+            "a turn inside an overlay group moves only the overlay");
+    check(fb("flesh.png^[sheet:7x7:1,2") == "", "a [sheet crop takes no maps");
+    check(fb("flesh.png^[verticalframe:4:1") == "", "a frame cut takes no maps");
+    check(fb("wolf.png^[transformR90^[combine:8x8:0,0=[png\\:AA==") == "",
+            "a turned base takes no maps when it cannot be composed");
+    check(fb("[combine:3x3:-4,-7=wolf_carved_adult.png") == "",
+            "a [combine crop of a skin is not the skin");
+    check(fb("wolf.png^[inventorycube{a.png{b.png{c.png") == "", "a cube takes no maps");
+    check(fb("wolf.png^[unknownmod:1") == "", "an unknown modifier takes no maps");
+    check(fb("a.png^(b.png") == "", "unbalanced brackets take no maps");
+
+    check(isColouringMask("wolf_carved_tame_collar_mask.png"), "a _mask image is a colouring mask");
+    check(!isColouringMask("wolf_carved_tame.png") && !isColouringMask("_mask.png"),
+            "other names are not");
+}
+
+// A dyed collar over a base that already paints it: the base's maps stay
+// under the mask, where an unauthored clothes layer would flatten them.
+void testRecolourMask() {
+    Fake f;
+    const uint8_t fur[4] = {200, 60, 255, 200}, collar[4] = {40, 200, 180, 90};
+    Rgba8 base_n = fill(8, 8, fur);
+    for (int x = 0; x < 8; ++x)
+        setPx(base_n, x, 2, collar[0], collar[1], collar[2], collar[3]);
+    f.albedo["wolf.png"] = solid(4, 4, 100, 100, 100, 255);
+    f.comp["wolf.png"] = base_n;
+    Rgba8 mask = solid(4, 4, 0, 0, 0, 0);
+    for (int x = 0; x < 4; ++x)
+        setPx(mask, x, 1, 122, 122, 122, 255);
+    f.albedo["wolf_collar_mask.png"] = mask;
+    f.albedo["patch.png"] = mask;
+    Rgba8 out;
+    check(composeCompanion("wolf.png^(wolf_collar_mask.png^[multiply:#aa2222)", kNormalKind,
+            f.sources(), out) == Composed::Done && out.w == 8,
+            "a dyed collar composes");
+    check(same(px(out, 3, 2), 40, 200, 180, 90) && same(px(out, 3, 4), 200, 60, 255, 200),
+            "the collar keeps the base's relief under its mask");
+    composeCompanion("wolf.png^(patch.png^[multiply:#aa2222)", kNormalKind, f.sources(), out);
+    check(same(px(out, 3, 2), 128, 128, 255, 255),
+            "a layer that is not a mask is still neutral where it covers");
+    f.comp["wolf_collar_mask.png"] = solid(4, 4, 70, 70, 255, 255);
+    composeCompanion("wolf.png^(wolf_collar_mask.png^[multiply:#aa2222)", kNormalKind,
+            f.sources(), out);
+    check(same(px(out, 3, 2), 70, 70, 255, 255) && same(px(out, 3, 4), 200, 60, 255, 200),
+            "a mask with maps of its own lays them in");
+    // The bottom of Mineclonia's skins is a mask; a part over it still covers.
+    Rgba8 part = solid(4, 4, 0, 0, 0, 0);
+    setPx(part, 0, 0, 10, 10, 10, 255);
+    f.albedo["part.png"] = part;
+    f.comp["part.png"] = solid(4, 4, 30, 30, 255, 255);
+    f.comp.erase("wolf_collar_mask.png");
+    check(composeCompanion("wolf_collar_mask.png^[colorize:#eeb592:alpha^part.png", kNormalKind,
+            f.sources(), out) == Composed::Done && same(px(out, 0, 0), 30, 30, 255, 255) &&
+            same(px(out, 3, 3), 128, 128, 255, 255),
+            "a mask at the bottom of a stack is neutral, the part over it covers");
+}
+
 } // namespace
 
 int main() {
@@ -595,6 +669,8 @@ int main() {
     testCompose();
     testCuts();
     testFirstImage();
+    testFallback();
+    testRecolourMask();
     testPackResolution();
     std::printf("overlay companions: %d checks, %d failure(s)\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

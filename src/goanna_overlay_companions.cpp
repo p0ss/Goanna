@@ -191,6 +191,82 @@ std::vector<std::string> companionNames(const std::string &image, const char *su
     return names;
 }
 
+bool isColouringMask(const std::string &image) {
+    return plainImage(image) && companionNames(image, "_n").size() > 1;
+}
+
+namespace {
+
+// splitTopLevel, with an escaped character (inside a [combine part) never a
+// separator or a bracket.
+bool splitTopLevelEscaped(const std::string &s, std::vector<std::string> &parts) {
+    parts.clear();
+    int depth = 0;
+    std::string cur;
+    for (size_t i = 0; i < s.size(); ++i) {
+        const char c = s[i];
+        if (c == '\\' && i + 1 < s.size()) {
+            cur += c;
+            cur += s[++i];
+            continue;
+        }
+        if (c == '(')
+            ++depth;
+        else if (c == ')' && --depth < 0)
+            return false;
+        if (c == '^' && depth == 0) {
+            parts.push_back(cur);
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    parts.push_back(cur);
+    return depth == 0;
+}
+
+// Whether a part after the base leaves every base texel where it was in UV
+// space (see companionFallbackImage).
+bool keepsBaseInPlace(const std::string &part) {
+    if (part.empty())
+        return false;
+    if (part.front() == '(')
+        return true; // an overlay group: its own modifiers move only it
+    if (part.front() != '[')
+        return plainImage(part);
+    static const char *const in_place[] = {"[opacity:", "[mask:", "[noalpha", "[makealpha:",
+            "[invert:", "[combine:", "[png:", "[fill:", "[lowpart:", "[crack", "[overlay:",
+            "[hardlight:", "[resize:", "[applyfiltersformesh"};
+    for (const char *p : in_place)
+        if (startsWith(part, p))
+            return true;
+    return colourOnly(part);
+}
+
+std::string fallbackImage(const std::string &texture, int depth) {
+    std::vector<std::string> parts;
+    if (depth > 8 || !splitTopLevelEscaped(texture, parts) || parts.empty())
+        return std::string();
+    const std::string &first = parts[0];
+    std::string base;
+    if (first.size() > 2 && first.front() == '(' && first.back() == ')')
+        base = fallbackImage(first.substr(1, first.size() - 2), depth + 1);
+    else if (plainImage(first))
+        base = first;
+    if (base.empty())
+        return std::string();
+    for (size_t i = 1; i < parts.size(); ++i)
+        if (!keepsBaseInPlace(parts[i]))
+            return std::string();
+    return base;
+}
+
+} // namespace
+
+std::string companionFallbackImage(const std::string &texture) {
+    return fallbackImage(texture, 0);
+}
+
 Rgba8 compositeCompanions(const std::vector<CompanionLayer> &layers, const CompanionKind &kind) {
     Rgba8 out;
     if (layers.empty())
@@ -329,6 +405,9 @@ struct Value {
     // transparent: an image with no colour at all but an _n of its own, or
     // a value such an image was placed into. _n only; see the header.
     bool cuts = false;
+    // A colouring mask with no companion (isColouringMask): placed over
+    // another value it changes no companion, only the art.
+    bool recolours = false;
     bool any() const { return !comp.empty(); }
 };
 
@@ -391,7 +470,7 @@ void blitTexel(const uint8_t *src, uint8_t *dst) {
 // alpha at the finer of the two companion scales, or laid in as a cut where
 // `top` cuts and is transparent.
 void place(Value &base, const Value &top, int ox, int oy, const CompanionKind &kind) {
-    if (base.any() || top.any()) {
+    if ((base.any() || top.any()) && !top.recolours) {
         auto scale = [](const Value &v, bool x) {
             if (!v.any())
                 return 1.0;
@@ -448,6 +527,7 @@ void place(Value &base, const Value &top, int ox, int oy, const CompanionKind &k
         base.comp = std::move(out);
     }
     base.cuts = base.cuts || top.cuts;
+    base.recolours = base.recolours && top.recolours;
     for (int y = 0; y < top.albedo.h; ++y) {
         const int by = oy + y;
         if (by < 0 || by >= base.albedo.h)
@@ -574,6 +654,7 @@ private:
                 return false;
             leaf.comp = m_src.companion(part);
             leaf.cuts = m_kind.tangent && leaf.any() && allTransparent(leaf.albedo);
+            leaf.recolours = !leaf.any() && !m_kind.albedo && isColouringMask(part);
             if (!have) {
                 base = std::move(leaf);
                 have = true;
