@@ -168,17 +168,19 @@ inert, whatever else is correct.
 
 ## Which shader draws a tile
 
-Two shaders draw node arrays, and they differ by more than the alpha
-test. `nodes_array.gdshader` has the parallax occlusion march and its sun
-self shadow (`parallax_strength`, `parallax_depth`, `parallax_range`,
-`parallax_shadow_strength`, `parallax_silhouette`, the per layer
-`layer_depth` and the class table `goanna_class_depth`), and folds that
-shadow into `AO` and `AO_LIGHT_AFFECT`. `nodes_array_scissor.gdshader` has
-none of it and writes `ALPHA` and `ALPHA_SCISSOR_THRESHOLD`. Everything
-else (the LabPBR decode, per class tiling, far flattening, rain, fill,
-lamp bake) is the same code in both. The uniforms all live in
-`nodes_array_common.gdshaderinc`, so both declare every one of them, and
-a slider such as `mat_parallax` reaches both but only moves the first.
+Two shaders draw node arrays, and they differ by more than the alpha test.
+`nodes_array.gdshader` has the parallax occlusion march and its sun self shadow
+(`parallax_strength`, `parallax_depth`, `parallax_range`,
+`parallax_shadow_strength`, `parallax_silhouette`, the per layer `layer_depth`
+and the class table `goanna_class_depth`), and hands that shadow to `light()` in
+`v_micro`, which applies it to the sun alone. Until 2026-10-18 it was folded
+into `AO`, which scales ambient too, so every joint wall facing away from the
+sun went black. `nodes_array_scissor.gdshader` has none of it and writes `ALPHA`
+and `ALPHA_SCISSOR_THRESHOLD`. Everything else (the LabPBR decode, per class
+tiling, far flattening, rain, fill, lamp bake) is the same code in both. The
+uniforms all live in `nodes_array_common.gdshaderinc`, so both declare every one
+of them, and a slider such as `mat_parallax` reaches both but only moves the
+first.
 
 That a cut-out has no march is deliberate: a march would have to alpha
 test at the offset coordinate, so a leaf's holes would move with the view,

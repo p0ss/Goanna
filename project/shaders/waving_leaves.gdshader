@@ -162,7 +162,7 @@ void fragment() {
 	v_specular = SPECULAR;
 	// The micro shadow (direct_light.gdshaderinc) from the pack's occlusion,
 	// in full for every light: foliage has no parallax march.
-	v_micro = vec2(pack_ao, 1.0);
+	v_micro = vec3(pack_ao, 1.0, 1.0);
 	v_sun_view = vec3(0.0);
 	v_rim = vec2(0.0);
 	// The water between the eye and this surface, per colour (underwater.gdshaderinc).

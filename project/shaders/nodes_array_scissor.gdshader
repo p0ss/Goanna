@@ -348,7 +348,7 @@ void fragment() {
 	v_specular = SPECULAR;
 	// The micro shadow (direct_light.gdshaderinc): no march here, so every
 	// light takes it in full.
-	v_micro = vec2(pack_ao, 1.0);
+	v_micro = vec3(pack_ao, 1.0, 1.0);
 	v_sun_view = (VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz;
 	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
 	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);

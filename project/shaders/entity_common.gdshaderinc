@@ -575,19 +575,11 @@ void fragment() {
 	// light(); see direct_light.gdshaderinc. An entity without node_light
 	// keeps the default (0, 1), full sky, as before.
 	v_sun_gate = goanna_sun_gate(v_wall_light.g, v_wall_light.r);
-	// The parallax self shadow reaches direct light through AO, folded in
-	// exactly as nodes_array.gdshader folds it: direct light is scaled by
-	// mix(1, AO, AO_LIGHT_AFFECT), which this makes the shadow itself.
-	if (self_shadow < 0.999) {
-		AO = clamp(AO * self_shadow, 0.0, 1.0);
-		AO_LIGHT_AFFECT = clamp(max(AO_LIGHT_AFFECT,
-				(1.0 - self_shadow) / max(1.0 - AO, 1e-3)), 0.0, 1.0);
-		SPECULAR *= self_shadow;
-	}
 	v_specular = SPECULAR;
 	// The micro shadow (direct_light.gdshaderinc), less the sun's share the
-	// march's self shadow already traced.
-	v_micro = vec2(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0));
+	// march's self shadow already traced, and that self shadow, which only
+	// the sun pays: through AO it took the sky light as well.
+	v_micro = vec3(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0), self_shadow);
 	v_sun_view = (VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz;
 #ifdef GOANNA_DIAMOND_TRANSMISSION
 	// Only dedicated item/armour shaders enter the transparent pipeline.

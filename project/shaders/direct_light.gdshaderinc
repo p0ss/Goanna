@@ -109,9 +109,13 @@ varying vec2 v_rim;
 // self shadow already traced the height field toward the sun: that is the
 // real occlusion this approximates, and both together darkened the same
 // joint twice. Every other light (moon, bounce, lamps) is never traced by
-// the march and takes the full effect. v_sun_view is the sun's direction in
-// view space, so light() can tell the sun from the other directional lights.
-varying vec2 v_micro;
+// the march and takes the full effect. z is the march's self shadow itself,
+// which only the sun's light pays: a shadow takes the sun away and leaves
+// the sky, so it cannot go through AO, which scales ambient too and left
+// every joint wall facing away from the sun black. v_sun_view is the sun's
+// direction in view space, so light() can tell the sun from the other
+// directional lights.
+varying vec3 v_micro;
 varying vec3 v_sun_view;
 // The "micro_shadow" material strength (GoannaClient::set_material_strength,
 // the mat_micro_shadow setting): 0 is off, 1 the published form, which
@@ -320,9 +324,14 @@ void light() {
 	}
 #endif
 #ifdef GOANNA_MICRO_SHADOW
+	bool is_sun = LIGHT_IS_DIRECTIONAL && dot(LIGHT, v_sun_view) > 0.999;
+	if (is_sun) {
+		diffuse *= v_micro.z;
+		spec *= v_micro.z;
+	}
 	if (micro_shadow_strength > 0.001 && v_micro.x < 0.999) {
 		float share = micro_shadow_strength;
-		if (LIGHT_IS_DIRECTIONAL && dot(LIGHT, v_sun_view) > 0.999)
+		if (is_sun)
 			share *= v_micro.y;
 		float micro = mix(1.0, goanna_micro_shadow(v_micro.x, dot(NORMAL, LIGHT)), share);
 		diffuse *= micro;

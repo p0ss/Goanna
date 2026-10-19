@@ -511,18 +511,9 @@ void fragment() {
 	float occ = mix(1.0, v_nodelight.b, vertex_ao_strength);
 	AO = clamp(pack_ao * occ * sky_vis, 0.0, 1.0);
 	AO_LIGHT_AFFECT = vertex_ao_light_strength;
-	// The parallax self shadow is a shadow, so it has to reach direct light,
-	// which only AO_LIGHT_AFFECT can do. Godot scales direct light by
-	// mix(1, AO, AO_LIGHT_AFFECT); folding the shadow into AO and raising
-	// the affect to (1 - shadow) / (1 - AO) makes that product exactly the
-	// shadow wherever AO is at or above it, and the ambient path pays only
-	// the shadow on top of the occlusion it already had.
-	if (self_shadow < 0.999) {
-		AO = clamp(AO * self_shadow, 0.0, 1.0);
-		AO_LIGHT_AFFECT = clamp(max(vertex_ao_light_strength,
-				(1.0 - self_shadow) / max(1.0 - AO, 1e-3)), 0.0, 1.0);
-		SPECULAR *= self_shadow;
-	}
+	// The parallax self shadow is not folded in here: AO scales ambient as
+	// well, and a shadow takes only the sun. light() applies it to the sun
+	// alone, through v_micro (direct_light.gdshaderinc).
 	// The fill is emission so that the sun's shadow does not darken it: it is
 	// the light the sky light channel says reaches here, see the include.
 	// Emission is also outside Godot's AO path, and the fill is most of the
@@ -559,7 +550,7 @@ void fragment() {
 	v_specular = SPECULAR;
 	// The pack's occlusion for the micro shadow, and how much of it the
 	// sun takes: none where the march's self shadow already traced it.
-	v_micro = vec2(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0));
+	v_micro = vec3(pack_ao, 1.0 - clamp(march_shadow, 0.0, 1.0), self_shadow);
 	v_sun_view = (VIEW_MATRIX * vec4(goanna_sun_dir, 0.0)).xyz;
 	// The water between the eye and this surface, per colour (underwater.gdshaderinc).
 	vec3 goanna_uw = goanna_underwater_keep(VERTEX, INV_VIEW_MATRIX, CAMERA_POSITION_WORLD);
