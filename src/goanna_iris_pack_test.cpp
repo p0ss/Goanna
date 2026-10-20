@@ -205,7 +205,18 @@ void testPackOptions() {
             "#define BLOOM // Bloom on or off\n"
             "//#define GODRAYS\n"
             "#define SHADOW_QUALITY 2 // [0 1 2 3]\n"
-            "#define FUNC(x) (x * 2)\n");
+            "#define FUNC(x) (x * 2)\n"
+            "#ifdef BLOOM\n"
+            "  #if SHADOW_QUALITY == 2\n"
+            "    const int shadowMapResolution = 840;\n"
+            "  #else\n"
+            "    const int shadowMapResolution = 420;\n"
+            "  #endif\n"
+            "  /* const bool colortex2MipmapEnabled = true; */\n"
+            "#else\n"
+            "  const int shadowMapResolution = 100;\n"
+            "  const float inactiveOnly = 1.0;\n"
+            "#endif\n");
     writeFile(sh / "composite.fsh", "#version 120\n#include \"/lib/settings.glsl\"\nvoid main() { gl_FragColor = vec4(1.0); }\n");
     writeFile(sh / "composite1.fsh", "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }\n");
     writeFile(sh / "composite2.fsh", "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }\n");
@@ -232,6 +243,11 @@ void testPackOptions() {
         Pack p;
         std::string err;
         check(p.load(root.string(), err), "temporary pack loads");
+        check(p.consts().at("shadowMapResolution") == "840" &&
+                        !p.consts().count("inactiveOnly"),
+                "inactive fallback constants cannot overwrite the selected branch");
+        check(p.consts().at("colortex2MipmapEnabled") == "true",
+                "commented constant directives survive in active branches");
         bool relative = false;
         float x = 0, y = 0;
         check(p.bufferSize(2, relative, x, y) && relative && x == 0.5f && y == 0.25f,
@@ -256,6 +272,10 @@ void testPackOptions() {
         p.setOptionOverrides({{"BLOOM", "false"}, {"GODRAYS", "true"}, {"SHADOW_QUALITY", "1"}, {"NOPE", "1"}});
         std::string err;
         check(p.load(root.string(), err), "temporary pack loads with overrides");
+        check(p.consts().at("shadowMapResolution") == "100" &&
+                        p.consts().count("inactiveOnly") &&
+                        !p.consts().count("colortex2MipmapEnabled"),
+                "constant branches follow option overrides, including commented directives");
         check(!p.options().count("BLOOM") && p.options().count("GODRAYS"), "booleans switched by override");
         auto chain = p.compositeChain();
         check(chain.size() == 2 && chain[1] == "final", "both toggled programs now off");
@@ -266,6 +286,13 @@ void testPackOptions() {
         p.program("composite", prog, err);
         check(prog.fsh.find("//#define BLOOM") != std::string::npos, "override rewrites the source define");
         check(prog.fsh.find("#define SHADOW_QUALITY 1") != std::string::npos, "value override rewrites the source");
+    }
+    {
+        Pack p;
+        p.setOptionOverrides({{"SHADOW_QUALITY", "1"}});
+        std::string err;
+        check(p.load(root.string(), err) && p.consts().at("shadowMapResolution") == "420",
+                "numeric overrides select the nested constant branch");
     }
     // Prepare is a producer for geometry inputs such as MakeUp's sky.
     // Numbered programs retain numerical order, and conditional programs

@@ -46,7 +46,7 @@ public:
     // options, so a key inside a dead #if branch is absent.
     const std::map<std::string, std::string> &properties() const { return m_props; }
     // const int colortex0Format = RGBA16F; and friends, gathered from every
-    // program source, comments included. Last one read wins, as in Iris.
+    // program's active branches, comments included. Last one read wins.
     const std::map<std::string, std::string> &consts() const { return m_consts; }
     // Options the sources declare, as each will be compiled: a value option
     // maps to its value, a boolean that is on maps to "" and one that is off

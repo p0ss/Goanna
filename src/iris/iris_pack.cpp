@@ -183,14 +183,20 @@ bool Pack::load(const std::string &dir, std::string &err) {
         err = "no programs (*.fsh) in " + m_shaders;
         return false;
     }
-    // consts and options from every source, comments included
+    // Discover options in raw text, including commented-out booleans. Const
+    // directives must instead come from live branches, just like programs;
+    // an inactive fallback must not replace the active shadow map settings.
     for (auto &n : m_programs) {
         for (const char *ext : {".vsh", ".fsh"}) {
             std::string path = findProgramFile(n, ext);
             if (path.empty()) continue;
             std::string e2, src = readResolved(path, 0, e2);
-            scanConsts(src, m_consts);
             scanOptions(src);
+            auto macros = standardMacros();
+            std::vector<std::string> errors;
+            scanConsts(runConditionals(src, macros, &errors), m_consts);
+            for (auto &e : errors)
+                m_prop_warnings.push_back(path + " #if: " + e);
         }
     }
     readProperties();
