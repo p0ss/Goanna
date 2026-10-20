@@ -105,6 +105,11 @@ struct GbuffersOptions {
     // sees nothing), and its colour reaches ALBEDO as written, for
     // shadowcolor0. `surface` still says which shell it is drawn on.
     bool shadow_pass = false;
+    // shadowtex0 and shadowtex1 compare with linear filtering
+    // (ShadowSettings::linear_compare): shadow2D weighs four texels'
+    // comparisons, as GL's filtered comparison sampler does, instead of
+    // comparing the nearest one.
+    bool shadow_linear_compare[2] = {false, false};
 };
 
 struct GbuffersResult {

@@ -40,6 +40,11 @@ struct ShadowSettings {
     // The pack's orbit rotation in degrees, applied to the server's sun and
     // moon before supplying lighting, shadow and celestial geometry inputs.
     float sun_path_rotation = 0.0f;
+    // Whether shadowtex0 and shadowtex1 compare with linear filtering, as
+    // Iris binds them when shadowHardwareFiltering (or its per map form) is
+    // on and the map's shadowtexNNearest is not: each shadow2D then weighs
+    // the comparisons of four texels, rather than comparing one.
+    bool linear_compare[2] = {false, false};
     // Things the pack asked for that are not honoured, for report().
     std::vector<std::string> notes;
 };

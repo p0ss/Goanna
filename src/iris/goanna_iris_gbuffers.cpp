@@ -214,6 +214,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         const std::string v = trim(cm->second);
         if (v == "off" || v == "fast" || v == "fancy") m_clouds_mode = v;
     }
+    // Read before translating: the shadow lookups follow the maps' filtering.
+    m_shadow_settings = iris::readShadowSettings(m_pack.consts(), m_pack.options());
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
             "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured", "gbuffers_terrain",
             "gbuffers_clouds"};
@@ -256,6 +258,8 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
         o.old_lighting = old_lighting;
         o.separate_ao = separate_ao;
+        o.shadow_linear_compare[0] = m_shadow_settings.linear_compare[0];
+        o.shadow_linear_compare[1] = m_shadow_settings.linear_compare[1];
         o.raw_colour = !m_pack.compositeChain().empty();
         o.packed_targets = m_packed_targets;
         // Only a pack with a screen space chain reads the water's depth.
@@ -804,6 +808,10 @@ Dictionary GoannaIrisGbuffers::report() const {
     sh["resolution"] = m_shadow_settings.resolution;
     sh["distance"] = m_shadow_settings.distance;
     sh["sun_path_rotation"] = m_shadow_settings.sun_path_rotation;
+    PackedInt32Array linear;
+    for (int i = 0; i < 2; ++i)
+        if (m_shadow_settings.linear_compare[i]) linear.push_back(i);
+    sh["linear_compare"] = linear;
     if (m_shadow.is_valid()) sh["capture"] = m_shadow->report();
     d["shadow"] = sh;
     return d;
@@ -835,7 +843,6 @@ void GoannaIrisGbuffers::set_shadow(const Ref<GoannaIrisShadow> &shadow) { m_sha
 // drops water (Eclipse moves it out of the clip volume) and the
 // translucent shadowtex0 against shadowtex1 split is not drawn yet.
 void GoannaIrisGbuffers::loadShadow(const iris::GbuffersOptions &base) {
-    m_shadow_settings = iris::readShadowSettings(m_pack.consts(), m_pack.options());
     if (!m_pack.hasProgram("shadow") || !m_pack.programEnabled("shadow")) {
         m_shadow_error = m_pack.hasProgram("shadow") ? "shadow program disabled" : "no program";
         return;

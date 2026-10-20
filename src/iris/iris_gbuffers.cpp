@@ -1032,6 +1032,10 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         std::string read = lod.empty() ? "texture(" + tex + ", (" + c + ").xy).r"
                                        : "textureLod(" + tex + ", (" + c + ").xy, " + lod + ").r";
         std::string cmp = "step((" + c + ").z, " + read + ")";
+        // A filtered comparison sampler compares before it filters; the
+        // lod a pack names is ignored, as the map has no mipmaps.
+        if (m_o.shadow_linear_compare[role == SamplerRole::ShadowDepth1 ? 1 : 0])
+            cmp = "goanna_shadow_compare_linear(" + tex + ", " + c + ")";
         if (fn.rfind("shadow2D", 0) == 0)
             return {"vec4(" + cmp + ")", Ty::vec(Ty::Float, 4), false};
         return {cmp, Ty::scalar(Ty::Float), false};

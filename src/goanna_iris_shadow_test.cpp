@@ -60,6 +60,17 @@ static void testSettings() {
     ShadowSettings planes = readShadowSettings(
             {{"shadowNearPlane", "1.0f"}, {"shadowFarPlane", "384.0f"}}, {});
     check(near(planes.near_plane, 1.0f) && near(planes.far_plane, 384.0f), "pack depth extents read");
+    check(!d.linear_compare[0] && !d.linear_compare[1], "maps compare unfiltered by default");
+    // Complementary's line, and a map asked for nearest as MakeUp's are.
+    ShadowSettings hw = readShadowSettings({{"shadowHardwareFiltering", "true"}}, {});
+    check(hw.linear_compare[0] && hw.linear_compare[1], "shadowHardwareFiltering filters both maps");
+    ShadowSettings mixed = readShadowSettings({{"shadowHardwareFiltering", "true"}, {"shadowtex0Nearest", "true"},
+            {"shadowtex1Nearest", "false"}}, {});
+    check(!mixed.linear_compare[0] && mixed.linear_compare[1], "a nearest map compares one texel");
+    ShadowSettings one = readShadowSettings({{"shadowHardwareFiltering1", "true"}}, {});
+    check(!one.linear_compare[0] && one.linear_compare[1], "the per map form filters that map only");
+    ShadowSettings opt = readShadowSettings({{"shadowHardwareFiltering", "SOFT"}}, {{"SOFT", "true"}});
+    check(opt.linear_compare[0] && opt.linear_compare[1], "filtering through a boolean option");
 }
 
 static void testMatrices() {
@@ -165,7 +176,7 @@ static void testMatrices() {
 }
 
 static std::string translate(const std::string &vsh, const std::string &fsh, GbuffersSurface s, bool shadow,
-        GbuffersResult &r, std::string &err) {
+        GbuffersResult &r, std::string &err, bool linear_compare = false) {
     Program p;
     p.name = shadow ? "shadow" : "test";
     p.vsh = vsh;
@@ -173,6 +184,7 @@ static std::string translate(const std::string &vsh, const std::string &fsh, Gbu
     GbuffersOptions o;
     o.surface = s;
     o.shadow_pass = shadow;
+    o.shadow_linear_compare[0] = o.shadow_linear_compare[1] = linear_compare;
     o.label = "test";
     err.clear();
     if (!translateGbuffers(p, o, r, err)) return "";
@@ -237,6 +249,18 @@ static void testTranslation() {
             "shadow2D compares against the map");
     check(contains(code, "global uniform sampler2D iris_shadowtex0 : filter_nearest, repeat_disable;"),
             "the map is sampled nearest, unrepeated");
+
+    // Hardware filtering: four comparisons weighed, not one interpolated
+    // depth compared; plain reads stay plain.
+    code = translate("void main() { gl_Position = ftransform(); }\n",
+            "uniform sampler2D shadowtex0;\nuniform sampler2DShadow shadowtex1;\nvarying vec4 sp;\nvoid main() {\n"
+            " float a = texture2D(shadowtex0, sp.xy).r;\n float d = shadow2D(shadowtex1, sp.xyz).r;\n"
+            " gl_FragData[0] = vec4(a, d, 0.0, 1.0);\n}\n",
+            GbuffersSurface::ArrayOpaque, false, r, err, true);
+    check(err.empty(), "filtered shadow reads translate: " + err);
+    check(contains(code, "vec4(goanna_shadow_compare_linear(iris_shadowtex1, sp.xyz))"),
+            "a filtered shadow2D weighs four comparisons: " + code);
+    check(contains(code, "texture(iris_shadowtex0, "), "a plain read of a filtered map stays a read");
 }
 
 int main(int argc, char **argv) {

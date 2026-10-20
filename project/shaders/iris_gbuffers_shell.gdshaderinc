@@ -111,6 +111,25 @@ vec4 goanna_gl_depth(vec4 d) {
 	return vec4(vec3(1.0 - d.r), 1.0);
 }
 
+// A shadow map compare through a linearly filtered comparison sampler,
+// which Iris binds when a pack asks for shadowHardwareFiltering: each of
+// the four texels around the point is compared with the reference (lit
+// where the reference is no further than it), and the four results are
+// weighed bilinearly. Comparing one interpolated depth instead would be a
+// different answer at every depth edge, the leaves' holes among them.
+float goanna_shadow_compare_linear(sampler2D map, vec3 c) {
+	ivec2 size = textureSize(map, 0);
+	vec2 p = c.xy * vec2(size) - 0.5;
+	ivec2 i = ivec2(floor(p));
+	vec2 f = p - floor(p);
+	ivec2 hi = size - 1;
+	float s00 = step(c.z, texelFetch(map, clamp(i, ivec2(0), hi), 0).r);
+	float s10 = step(c.z, texelFetch(map, clamp(i + ivec2(1, 0), ivec2(0), hi), 0).r);
+	float s01 = step(c.z, texelFetch(map, clamp(i + ivec2(0, 1), ivec2(0), hi), 0).r);
+	float s11 = step(c.z, texelFetch(map, clamp(i + ivec2(1, 1), ivec2(0), hi), 0).r);
+	return mix(mix(s00, s10, f.x), mix(s01, s11, f.x), f.y);
+}
+
 // at_midBlock: from the vertex to the centre of its node, in sixty
 // fourths of a node. A node's centre is at integer coordinates and its
 // faces half a node out, so half a node back along the normal is inside it.

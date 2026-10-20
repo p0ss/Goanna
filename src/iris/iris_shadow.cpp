@@ -43,6 +43,26 @@ bool constNumber(const std::map<std::string, std::string> &consts, const std::ma
     return false;
 }
 
+// A boolean const: true or false, or the name of a boolean option, which
+// is on when the options hold it.
+bool constFlag(const std::map<std::string, std::string> &consts, const std::map<std::string, std::string> &options,
+        const std::string &name, bool &out) {
+    auto it = consts.find(name);
+    if (it == consts.end()) return false;
+    std::string v = it->second;
+    while (!v.empty() && std::isspace((unsigned char)v.back())) v.pop_back();
+    size_t a = 0;
+    while (a < v.size() && std::isspace((unsigned char)v[a])) ++a;
+    v = v.substr(a);
+    if (v == "true" || v == "false") {
+        out = v == "true";
+        return true;
+    }
+    auto o = options.find(v);
+    out = o != options.end() && o->second != "false";
+    return true;
+}
+
 } // namespace
 
 ShadowSettings readShadowSettings(const std::map<std::string, std::string> &consts,
@@ -61,6 +81,15 @@ ShadowSettings readShadowSettings(const std::map<std::string, std::string> &cons
     if (constNumber(consts, options, "shadowFarPlane", v) && v > 0.0) s.far_plane = (float)v;
     if (constNumber(consts, options, "sunPathRotation", v)) {
         s.sun_path_rotation = (float)v;
+    }
+    bool hardware = false, flag = false;
+    constFlag(consts, options, "shadowHardwareFiltering", hardware);
+    for (int i = 0; i < 2; ++i) {
+        bool filtered = hardware;
+        if (constFlag(consts, options, "shadowHardwareFiltering" + std::to_string(i), flag)) filtered = flag;
+        bool nearest = false;
+        constFlag(consts, options, "shadowtex" + std::to_string(i) + "Nearest", nearest);
+        s.linear_compare[i] = filtered && !nearest;
     }
     if (constNumber(consts, options, "shadowMapFov", v) && v > 0.0)
         s.notes.push_back("shadowMapFov (a perspective shadow map) is not supported; the map is orthographic");
