@@ -371,7 +371,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
         }
         if (!node) {
             node = memnew(MeshInstance3D);
-            node->set_layer_mask(glow ? GLOW_LAYER : 1u | NODE_SURFACE_LAYER);
+            node->set_layer_mask(glow ? GLOW_LAYER | NODE_SURFACE_LAYER : 1u | NODE_SURFACE_LAYER);
             add_child(node);
         }
         // A regional mesh is deliberately culled as a region. Use its full
@@ -389,8 +389,7 @@ void GoannaClient::nearPublishBatch(const v3s16 &key, NearRegion &region,
                 if (group.glow == glow && !group.verts.is_empty() && !group.idx.is_empty())
                     node->set_surface_override_material(surface++, materialFor(group.key));
         }
-        if (!glow)
-            irisShadowTwin(node);
+        irisShadowTwin(node);
     };
     apply(region.node, mesh, false);
     apply(region.glow_node, glow_mesh, true);
@@ -1371,9 +1370,10 @@ int GoannaClient::poll_blocks(int max_blocks) {
         if (gsi > 0) {
             gmi = memnew(MeshInstance3D);
             gmi->set_extra_cull_margin(0.2f);
-            gmi->set_layer_mask(GLOW_LAYER);
+            gmi->set_layer_mask(GLOW_LAYER | NODE_SURFACE_LAYER);
             mi->add_child(gmi);
             gmi->set_mesh(gmesh);
+            irisShadowTwin(gmi);
         }
         // Hung off the block mesh like the glow mesh. The glow layer keeps
         // node lamps off it, as off every glowing surface; the margin covers

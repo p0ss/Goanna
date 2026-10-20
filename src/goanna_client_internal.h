@@ -92,7 +92,9 @@ inline void ema(double &acc, double sample) { acc = acc * 0.9 + sample * 0.1; }
 const uint64_t kNodeSurfaceFlags =
         (uint64_t)godot::Mesh::ARRAY_CUSTOM_RGBA8_UNORM << godot::Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT;
 // Light-emitting faces sit outside node lights' shadow caster mask. The sun
-// still sees this layer.
+// still sees this layer. They carry NODE_SURFACE_LAYER too, as a shader
+// pack draws them like any other block, so node lights leave that layer
+// out of their mask and take terrain casters from layer 1.
 const uint32_t GLOW_LAYER = 1u << 1;
 const uint32_t ICE_LAYER = 1u << 2;
 // Every node surface a shader pack's geometry programs draw, near and far,

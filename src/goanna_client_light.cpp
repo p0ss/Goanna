@@ -487,7 +487,7 @@ void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
         // Torchlight is a small, local, moving contribution that GI was not
         // selling anyway; the sun and sky still light the scene through SDFGI.
         ol->set_bake_mode(Light3D::BAKE_DISABLED);
-        ol->set_shadow_caster_mask(0xFFFFFFFFu & ~GLOW_LAYER);
+        ol->set_shadow_caster_mask(0xFFFFFFFFu & ~(GLOW_LAYER | NODE_SURFACE_LAYER));
         add_child(ol);
         m_light_pool.push_back(ol);
         m_light_slot.push_back(LightSlot());

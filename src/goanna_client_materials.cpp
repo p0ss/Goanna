@@ -155,7 +155,8 @@ bool GoannaClient::applyIrisGbuffers(const Ref<ShaderMaterial> &sm, int surface,
         return false;
     sm->set_shader(sh);
     const float alpha_ref = surface == GoannaIrisGbuffers::SURFACE_CUTOUT ? 0.5f :
-            surface == GoannaIrisGbuffers::SURFACE_TERRAIN ? 0.0f : 0.1f;
+            surface == GoannaIrisGbuffers::SURFACE_TERRAIN ||
+            surface == GoannaIrisGbuffers::SURFACE_SINGLE ? 0.0f : 0.1f;
     sm->set_shader_parameter("iris_alphaTestRef", m_iris_gbuffers->alpha_test_ref(surface, alpha_ref));
     if (surface == GoannaIrisGbuffers::SURFACE_WATER && water_override) {
         // Every water surface is the one block; Mineclonia's water has no
@@ -186,7 +187,7 @@ Ref<Material> GoannaClient::irisShadowMaterial(const Ref<Material> &base) {
         // Which of the pack's surfaces the base is, by its shader; the
         // shadow program was translated for each of them.
         for (int s : {GoannaIrisGbuffers::SURFACE_TERRAIN, GoannaIrisGbuffers::SURFACE_CUTOUT,
-                     GoannaIrisGbuffers::SURFACE_FOLIAGE})
+                     GoannaIrisGbuffers::SURFACE_FOLIAGE, GoannaIrisGbuffers::SURFACE_SINGLE})
             if (sm->get_shader() == m_iris_gbuffers->shader(s)) {
                 shadow = m_iris_gbuffers->shadow_shader(s);
                 break;
@@ -1290,7 +1291,11 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         UtilityFunctions::print((sh == m_sh_lava ? "LAVA " : sh == m_sh_ice ? "ICE " : sh == m_sh_glass || sh == m_sh_glass_clear || sh == m_sh_glass_double ? "GLASS " : sh == m_sh_plants ? "PLANTS " : sh == m_sh_leaves ? "LEAVES " : "WATER "),
                 "'", String(m_session->tsrc()->getTextureName(key.texture_id).c_str()), "' mtype=", (int)mtype,
                 " cull=", key.backface_culling, " texvalid=", tex.is_valid());
-    if (sh.is_valid() && tex.is_valid() && (emissive == 0 || sh == m_sh_lava)) {
+    // A shader pack's geometry programs draw an emissive block like any
+    // other, by its block ID; Iris has no separate glow path. The native
+    // emission below is for Goanna's own shading only.
+    const bool pack_geometry = m_iris_gbuffers.is_valid() && m_iris_gbuffers->has_terrain();
+    if (sh.is_valid() && tex.is_valid() && (emissive == 0 || sh == m_sh_lava || pack_geometry)) {
         Ref<ShaderMaterial> sm;
         sm.instantiate();
         sm->set_shader(sh);
@@ -1381,6 +1386,35 @@ Ref<Material> GoannaClient::materialFor(const MaterialKey &key) {
         if (sh != m_sh_water && sh != m_sh_lava)
             noteAnimatedMaterial(key, sm);
         return sm;
+    }
+
+    // A pack draws the remaining single texture tiles as well: emissive
+    // cubes (a sea lantern) and textures no array holds. Iris gives them
+    // its terrain programs with their block IDs and lightmap. The standard
+    // material below drew them outside the pack, with none of its material
+    // buffers, so MakeUp, which keeps its colour in colortex1, lost the
+    // lamp altogether. Cut-out tiles take the cut-out program and blended
+    // ones the translucent program, as Iris sorts them.
+    if (pack_geometry && tex.is_valid()) {
+        buildFakeLiquidTextures();
+        const bool blended = base == video::EMT_TRANSPARENT_ALPHA_CHANNEL &&
+                !(m_solid_ice && m_fake_liquid_tex.count(key.texture_id));
+        const bool cutout = !blended && (base == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF ||
+                (gt && gt->hasAlpha()));
+        const int surface = blended ? GoannaIrisGbuffers::SURFACE_WATER
+                : cutout ? GoannaIrisGbuffers::SURFACE_FOLIAGE : GoannaIrisGbuffers::SURFACE_SINGLE;
+        Ref<ShaderMaterial> sm;
+        sm.instantiate();
+        if (applyIrisGbuffers(sm, surface, false)) {
+            sm->set_shader_parameter("albedo_tex", tex);
+            sm->set_shader_parameter("single_sided", key.backface_culling);
+            if (cutout)
+                sm->set_shader_parameter("iris_alphaTestRef",
+                        m_iris_gbuffers->alpha_test_ref(GoannaIrisGbuffers::SURFACE_FOLIAGE, 0.5f));
+            m_materials[key.hash()] = sm;
+            noteAnimatedMaterial(key, sm);
+            return sm;
+        }
     }
 
     // --- standard material ---
