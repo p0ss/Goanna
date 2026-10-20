@@ -50,6 +50,41 @@ Minecraft, so close leaf lighting is not yet equal. The
 [comparison report](../agents/minecraft-comparison.md) has the probes,
 server and renderer versions and the remaining limits.
 
+## Combined checkpoint, 2026-10-20
+
+All of the day's fixes together, on main at `6e365337`: emissive tiles
+through the pack, native clouds, the live branch const scan and filtered
+shadow compares. Goanna-only reruns of the nine 2026-10-18 jobs reused
+their matched Minecraft references (Minecraft Java 26.2 through
+BridgeTest protocol 52, no Luanti game, Luanti 5.17.0 core, Godot 4.5.1,
+RTX 3090 in headless gamescope). The checkout was dirty only with
+uncommitted Overseer files. Every run validated and compiled its chain.
+
+The first combined run found a merge fault: the cloud deck was built for
+packs with `clouds=off`, drawn with no shader, as flat boxes over
+Complementary and black ones over MakeUp at night. `6e365337` fixed it,
+and the numbers below are from the rerun. Maximum mean channel error,
+2026-10-18 against now; the lamp sample did not exist on 2026-10-18.
+
+| Run | Floor | Foliage | Glass | Lamp | Gold |
+| --- | --- | --- | --- | --- | --- |
+| Mellow, day | 4.7, 4.7 | 8.0, 8.0 | 26.5, 6.8 | 8.9 | 11.1, 11.1 |
+| Mellow, night | 5.3, 5.3 | 1.4, 1.4 | 19.8, 10.4 | 22.6 | 2.8, 2.8 |
+| Complementary, day | 2.3, 1.9 | 1.6, 4.7 | 12.3, 5.7 | 6.6 | 20.2, 11.5 |
+| Complementary, night | 16.7, 17.8 | 1.9, 3.8 | 11.4, 12.6 | 1.0 | 42.0, 13.8 |
+| MakeUp, day | 7.1, 7.0 | 14.3, 3.8 | 26.1, 7.7 | 43.4 | 4.9, 4.5 |
+| MakeUp, night | 13.5, 13.5 | 6.2, 3.8 | 20.1, 17.1 | 68.6 | 19.6, 19.3 |
+| Eclipse control, day | 0.2, 0.2 | 0.3, 0.3 | 20.8, 9.9 | 24.5 | 1.2, 1.2 |
+
+Complementary's day foliage of 1.6 on 2026-10-18 was before block IDs
+reached the pack; with them it was 35.18 until the const scan fix. Its
+4.7 here is a little above the 2.21 to 3.69 spread of the earlier repeat
+runs. Mellow's native cloud control keeps its box deck, though the cells
+are far larger than Minecraft's. Water samples move with animation and
+are left out. Frames and metrics are under
+`build/minecraft/combined-fix-20261020/`; the faulty first run is kept
+under `build/minecraft/combined-20261020/`.
+
 ## Emissive material coverage, 2026-10-20
 
 Emissive node tiles now go through the pack's geometry programs. Before,
