@@ -51,9 +51,12 @@ public:
     // cutout program. SURFACE_SINGLE is every other opaque single texture
     // tile, which would otherwise take a StandardMaterial3D: emissive
     // nodes, and textures no array holds. Iris draws those with the
-    // terrain program like any other block.
+    // terrain program like any other block. SURFACE_CLOUDS is Luanti's
+    // cloud boxes (project/game/effects/iris_clouds.gd), drawn with
+    // gbuffers_clouds.
     enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_FOLIAGE = 3,
-            SURFACE_SKY = 4, SURFACE_SKY_TEXTURED = 5, SURFACE_SINGLE = 6, SURFACE_COUNT = 7 };
+            SURFACE_SKY = 4, SURFACE_SKY_TEXTURED = 5, SURFACE_SINGLE = 6, SURFACE_CLOUDS = 7,
+            SURFACE_COUNT = 8 };
 
     // Translates the pack's terrain, cutout and water programs (each with
     // Iris's fallbacks) and registers the globals they read. True when at
@@ -64,6 +67,11 @@ public:
     godot::Ref<godot::Shader> shader(int surface) const;
     float alpha_test_ref(int surface, float fallback, bool shadow = false) const;
     bool has_terrain() const { return m_shaders[SURFACE_TERRAIN].is_valid(); }
+    // The pack's say over the client's own clouds, shaders.properties
+    // `clouds` after its conditionals: "off" (the pack draws its own, or
+    // none, and no cloud program is translated), "fast" (flat), "fancy"
+    // (boxes), or "" when it says nothing and the player's setting holds.
+    godot::String clouds_mode() const { return godot::String(m_clouds_mode.c_str()); }
     // The pack's block.properties number for each of the client's block
     // names (MaterialTable::block_names, UV2.y's table), -1 where it lists
     // none. Sized to the shell's goanna_iris_block_ids array.
@@ -149,7 +157,8 @@ private:
     godot::Ref<GoannaIrisEffect> m_chain;
     bool m_chain_bound = false;
     std::string m_error[SURFACE_COUNT];
-    bool m_moves[SURFACE_COUNT] = {false, false, false, false};
+    bool m_moves[SURFACE_COUNT] = {};
+    std::string m_clouds_mode;
     std::string m_load_error, m_dump_dir;
     // Godot global name -> type, for every global some program reads.
     std::map<std::string, std::string> m_globals;

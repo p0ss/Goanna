@@ -29,6 +29,47 @@ Eclipse control did not regress; Eclipse's lamp sample falls from 42.51 to
 investigated further. See the
 [comparison report](../agents/minecraft-comparison.md) for the runs.
 
+## Native clouds through the pack, 2026-10-20
+
+While a pack draws the sky, Goanna now builds Luanti's cloud deck as
+geometry and draws it with the pack's `gbuffers_clouds` program, falling
+back to `gbuffers_textured` and then `gbuffers_basic` as Iris does. The deck
+is what a vanilla Luanti client draws from the server's cloud parameters:
+64 node cells filled by noise under the density, boxes `thickness` tall at
+`height`, Luanti's face shading in the vertex colour and its cloud colour
+and opacity on top. The vertices carry zero texture coordinates and full
+light, the texture reads white, `renderStage` is 20 and the program's
+`alphaTest` is honoured. A pack's `clouds=off` translates no cloud program,
+so packs drawing their own clouds keep exactly their previous path;
+`clouds=fast` gives a flat deck.
+
+Runs used the unmodified Minecraft Java 26.2 dedicated server through
+BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0 core, Godot
+4.5.1 and RTX 3090 in headless gamescope, from a worktree based on
+`820ead32` with this change uncommitted. Goanna-only reruns reused the
+2026-10-18 Minecraft references, which `light_metrics.py` accepted as
+matched; Eclipse was captured paired, with a sky pose added.
+
+| Run | Cloud program | Result |
+| --- | --- | --- |
+| Mellow, `CLOUD_STYLE=0` | `gbuffers_clouds` | Box clouds now drawn by the pack; none before |
+| Mellow default | none, `clouds=off` | Sky frame identical to 2026-10-18 |
+| Complementary Reimagined | none, `clouds=off` | Own clouds only, drifted with time |
+| MakeUp Ultra Fast | none, `clouds=off` | Own clouds only |
+| Diagnostic Eclipse | `gbuffers_textured` | Box clouds in both engines |
+
+Calibration samples moved by at most 0.3 levels against the previous
+runs: the floor reads 4.75 for Mellow, 0.64 for Complementary, 7.03 for
+MakeUp and 0.19 for Eclipse. The cell pattern cannot match Minecraft's,
+which comes from its own cloud texture, not the protocol, and Luanti's 64
+node cells are over five times wider than its 12. The bridge sends cloud
+height 196 from a constant in its own source, not from Minecraft's 192.33
+(191.83 in the bridge's half-node shifted frame), so the decks also sit
+about four nodes apart. Goanna's cloud colour in
+Eclipse is greyer and slightly violet where Minecraft's is sky tinted. See
+the [comparison report](../agents/minecraft-comparison.md) for the numbers
+and frames under `build/minecraft/native-clouds-20261020/`.
+
 ## Translucent glass and foliage inputs, 2026-10-18
 
 Clear glass now selects the translucent program with its glass block ID.

@@ -49,6 +49,9 @@ enum class GbuffersSurface {
     SkyTextured, // sun and moon textures, blended over the sky
     SingleCutout, // waving_leaves and waving_plants: one texture, alpha tested, both sides
     SingleOpaque, // any other single texture node tile: one texture, no alpha test
+    // Luanti's cloud boxes (project/game/effects/iris_clouds.gd): untextured
+    // faces shaded through the vertex colour, blended, writing depth.
+    Clouds,
 };
 
 // The second outputs. A camera drawing a translated program's colortex N
@@ -132,7 +135,8 @@ bool translateGbuffers(const Program &p, const GbuffersOptions &o, GbuffersResul
 
 // Iris's fallback order for a geometry program, the program itself first:
 // gbuffers_terrain_cutout falls to gbuffers_terrain, then textured_lit,
-// textured and basic; gbuffers_water to gbuffers_terrain and on.
+// textured and basic; gbuffers_water to gbuffers_terrain and on;
+// gbuffers_clouds to textured and basic, skipping textured_lit.
 std::vector<std::string> gbuffersFallback(const std::string &program);
 
 // The Godot name and type of the global a known Iris uniform or fixed

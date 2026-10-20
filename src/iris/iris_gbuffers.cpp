@@ -942,7 +942,8 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
     // what Iris's depthtex1 holds while it draws. Godot gives a transparent
     // material exactly that through hint_depth_texture, so depthtex0 to 2
     // all read it there (Iris's depthtex0 is the buffer being drawn into).
-    if (role == SamplerRole::White && m_o.surface == GbuffersSurface::Translucent && !m_o.shadow_pass &&
+    if (role == SamplerRole::White && !m_o.shadow_pass &&
+            (m_o.surface == GbuffersSurface::Translucent || m_o.surface == GbuffersSurface::Clouds) &&
             (sampler.compare(0, 8, "depthtex") == 0 || sampler == "gdepthtex"))
         role = SamplerRole::SceneDepth;
     // A colortex (gaux1 and the other legacy names included): what the
@@ -2195,8 +2196,20 @@ std::string Translator::stageBuiltin(const std::string &local, Stage st) {
                 addDecl("uniform vec4 goanna_sky_colour = vec4(1.0);");
                 return "vec4 goanna_gl_Color = goanna_sky_colour;";
             }
+            if (m_o.surface == GbuffersSurface::Clouds) {
+                // The face shade in the vertex colour, times the deck's
+                // colour and opacity as Luanti's cloud material applies it.
+                addDecl("uniform vec4 goanna_cloud_colour = vec4(1.0);");
+                return "vec4 goanna_gl_Color = COLOR * goanna_cloud_colour;";
+            }
             return "vec4 goanna_gl_Color = goanna_vertex_colour(COLOR, CUSTOM2, mat3(MODEL_MATRIX) * NORMAL);";
         }
+        // Cloud geometry has no texture or light coordinates; Iris gives
+        // such a vertex format zero texture coordinates and full light.
+        if (local == "goanna_gl_MultiTexCoord0" && m_o.surface == GbuffersSurface::Clouds)
+            return "vec4 goanna_gl_MultiTexCoord0 = vec4(0.0, 0.0, 0.0, 1.0);";
+        if (local == "goanna_gl_MultiTexCoord1" && m_o.surface == GbuffersSurface::Clouds)
+            return "vec4 goanna_gl_MultiTexCoord1 = vec4(240.0, 240.0, 0.0, 1.0);";
         if (local == "goanna_gl_MultiTexCoord0") return "vec4 goanna_gl_MultiTexCoord0 = vec4(UV, 0.0, 1.0);";
         if (local == "goanna_gl_MultiTexCoord1") return "vec4 goanna_gl_MultiTexCoord1 = vec4(CUSTOM2.gb * 240.0, 0.0, 1.0);";
         if (local == "goanna_gl_Entity") return "vec4 goanna_gl_Entity = vec4(goanna_block_entity(UV2.y), -1.0, 0.0, 0.0);";
@@ -2635,13 +2648,14 @@ bool Translator::run(const Program &p, std::string &err) {
         warn("outputs to " + list + " cannot be expressed and are dropped");
     }
     const bool blended = m_o.surface == GbuffersSurface::Translucent ||
-            m_o.surface == GbuffersSurface::SkyTextured;
+            m_o.surface == GbuffersSurface::SkyTextured || m_o.surface == GbuffersSurface::Clouds;
     if (colour >= 0) {
         std::string c = outVec4(colour);
         if (m_legacy_fragment_output &&
                 (m_o.surface == GbuffersSurface::ArrayCutout ||
                  m_o.surface == GbuffersSurface::SingleCutout ||
-                 m_o.surface == GbuffersSurface::Translucent)) {
+                 m_o.surface == GbuffersSurface::Translucent ||
+                 m_o.surface == GbuffersSurface::Clouds)) {
             std::string ref = needGlobal("iris_alphaTestRef", "float");
             fo << "\tif (" << c << ".a < " << ref << ")\n\t\tdiscard;\n";
         }
@@ -2705,6 +2719,10 @@ bool Translator::run(const Program &p, std::string &err) {
     else if (m_o.surface == GbuffersSurface::SingleCutout ||
             m_o.surface == GbuffersSurface::SingleOpaque || m_o.shadow_pass)
         o << "cull_disabled;\n";
+    // Minecraft's cloud boxes write depth, so a nearer box hides the faces
+    // behind it rather than blending over them.
+    else if (m_o.surface == GbuffersSurface::Clouds)
+        o << "blend_mix, cull_back, depth_draw_always;\n";
     else
         o << "cull_back;\n";
     if (m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout)
@@ -2745,6 +2763,7 @@ std::vector<std::string> gbuffersFallback(const std::string &program) {
     }
     if (program == "gbuffers_skybasic") return {program, "gbuffers_basic"};
     if (program == "gbuffers_skytextured") return {program, "gbuffers_textured", "gbuffers_basic"};
+    if (program == "gbuffers_clouds") return {program, "gbuffers_textured", "gbuffers_basic"};
     if (program == "gbuffers_water") out.push_back("gbuffers_terrain");
     for (const char *n : {"gbuffers_textured_lit", "gbuffers_textured", "gbuffers_basic"})
         if (std::find(out.begin(), out.end(), n) == out.end()) out.push_back(n);

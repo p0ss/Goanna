@@ -95,6 +95,7 @@ void GoannaIrisGbuffers::_bind_methods() {
     ClassDB::bind_method(D_METHOD("alpha_test_ref", "surface", "fallback", "shadow"),
             &GoannaIrisGbuffers::alpha_test_ref, DEFVAL(false));
     ClassDB::bind_method(D_METHOD("has_terrain"), &GoannaIrisGbuffers::has_terrain);
+    ClassDB::bind_method(D_METHOD("clouds_mode"), &GoannaIrisGbuffers::clouds_mode);
     ClassDB::bind_method(D_METHOD("block_ids", "block_names"), &GoannaIrisGbuffers::block_ids);
     ClassDB::bind_method(D_METHOD("block_id", "name"), &GoannaIrisGbuffers::block_id);
     ClassDB::bind_method(D_METHOD("update", "camera", "state"), &GoannaIrisGbuffers::update);
@@ -207,15 +208,28 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         if (format != m_pack.consts().end() && (format->second == "RGBA16" || format->second == "RGB16" ||
                 format->second == "RG16" || format->second == "R16")) m_packed_targets.insert(ct);
     }
+    // clouds: off, fast or fancy, as Iris reads it; anything else is unset.
+    auto cm = m_pack.properties().find("clouds");
+    if (cm != m_pack.properties().end()) {
+        const std::string v = trim(cm->second);
+        if (v == "off" || v == "fast" || v == "fancy") m_clouds_mode = v;
+    }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
-            "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured", "gbuffers_terrain"};
+            "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured", "gbuffers_terrain",
+            "gbuffers_clouds"};
     const iris::GbuffersSurface kinds[SURFACE_COUNT] = {iris::GbuffersSurface::ArrayOpaque,
             iris::GbuffersSurface::ArrayCutout, iris::GbuffersSurface::Translucent,
             iris::GbuffersSurface::SingleCutout, iris::GbuffersSurface::SkyBasic, iris::GbuffersSurface::SkyTextured,
-            iris::GbuffersSurface::SingleOpaque};
+            iris::GbuffersSurface::SingleOpaque, iris::GbuffersSurface::Clouds};
     const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage", "sky", "sky_textured",
-            "single"};
+            "single", "clouds"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
+        // With clouds off Iris draws no cloud geometry, so nothing of the
+        // program (its second outputs included) may reach the chain.
+        if (s == SURFACE_CLOUDS && m_clouds_mode == "off") {
+            m_error[s] = "clouds=off";
+            continue;
+        }
         std::string chosen;
         for (auto &n : iris::gbuffersFallback(wanted[s]))
             if (m_pack.hasProgram(n) && m_pack.programEnabled(n)) {
@@ -236,7 +250,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         }
         iris::GbuffersOptions o;
         o.surface = kinds[s];
-        const int stages[SURFACE_COUNT] = {8, 8, 17, 8, 1, 4, 8};
+        const int stages[SURFACE_COUNT] = {8, 8, 17, 8, 1, 4, 8, 20};
         o.render_stage = stages[s];
         for (auto &d : m_pack.customUniforms().defs())
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
@@ -723,7 +737,7 @@ PackedInt32Array GoannaIrisGbuffers::translucent_targets() const {
         return out;
     std::set<int> opaque;
     for (int s = 0; s < SURFACE_COUNT; ++s)
-        if (s != SURFACE_WATER && m_shaders[s].is_valid())
+        if (s != SURFACE_WATER && s != SURFACE_CLOUDS && m_shaders[s].is_valid())
             opaque.insert(m_second[s].begin(), m_second[s].end());
     std::set<int> water(m_second[SURFACE_WATER].begin(), m_second[SURFACE_WATER].end());
     for (int ct : water)
@@ -753,7 +767,7 @@ Dictionary GoannaIrisGbuffers::report() const {
     d["pack"] = String(m_pack.name().c_str());
     if (!m_load_error.empty()) d["error"] = String(m_load_error.c_str());
     const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage", "sky", "sky_textured",
-            "single"};
+            "single", "clouds"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         Dictionary e;
         e["program"] = String(m_program[s].c_str());
@@ -778,6 +792,7 @@ Dictionary GoannaIrisGbuffers::report() const {
         d[names[s]] = e;
     }
     d["block_ids"] = (int)m_block_ids.size();
+    d["clouds_mode"] = String(m_clouds_mode.c_str());
     Dictionary sh;
     sh["program"] = String(m_shadow_program.c_str());
     sh["translated"] = has_shadow();

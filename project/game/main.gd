@@ -351,6 +351,10 @@ var iris: GoannaIrisEffect
 var iris_gbuffers: GoannaIrisGbuffers
 # The pack's sky geometry, when its sky program translated.
 var iris_sky: Node3D
+# Luanti's cloud boxes drawn with the pack's cloud program
+# (game/effects/iris_clouds.gd); null when the pack turns clouds off, has
+# no program for them, or draws no sky of its own.
+var iris_clouds: Node3D
 # The cameras drawing the geometry programs' second outputs for the chain
 # (game/effects/iris_targets.gd); null without both halves of a pack.
 var iris_targets: Node
@@ -867,6 +871,12 @@ func _ready() -> void:
 		iris_sky.initialise(iris_gbuffers)
 		env.environment.background_mode = Environment.BG_COLOR
 		env.environment.background_color = Color.BLACK
+		# The pack's sky hides Goanna's marched clouds; the client's cloud
+		# boxes take their place, as Iris draws Minecraft's.
+		if iris_gbuffers.shader(6) != null:
+			iris_clouds = preload("res://game/effects/iris_clouds.gd").new()
+			add_child(iris_clouds)
+			iris_clouds.initialise(iris_gbuffers)
 	_setup_iris_shadow()
 	# The chain's targets the geometry programs sample (gaux1 and the rest).
 	if iris and iris_gbuffers:
@@ -4242,6 +4252,10 @@ func _apply_sky() -> void:
 			"cloud_height": cloud_height, "eye_brightness": pack_eye})
 	if iris_sky != null:
 		iris_sky.update(get_viewport().get_camera_3d(), pack_state, top, client)
+	if iris_clouds != null:
+		iris_clouds.update(get_viewport().get_camera_3d(), clouds_now,
+				bool(sky.get("clouds", true)) and render_features["render_sky_clouds"],
+				cdim, get_process_delta_time())
 	if iris_gbuffers:
 		# The pack's terrain does its own fog, so it is told where Goanna's
 		# would have begun and closed.

@@ -469,6 +469,29 @@ static void testSky() {
             "unsupported terrain samplers retain their existing fallback");
 }
 
+static void testClouds() {
+    Program p;
+    p.vsh = "varying vec4 colour; varying vec2 uv, light; void main() { colour = gl_Color; "
+            "uv = gl_MultiTexCoord0.xy; light = gl_MultiTexCoord1.xy; gl_Position = ftransform(); }";
+    p.fsh = "uniform sampler2D gtexture; uniform float cloudHeight; varying vec4 colour; varying vec2 uv, light; "
+            "void main() { gl_FragData[0] = texture2D(gtexture, uv) * colour * light.y / 240.0 + cloudHeight; }";
+    GbuffersOptions o;
+    o.surface = GbuffersSurface::Clouds;
+    o.render_stage = 20;
+    GbuffersResult r;
+    std::string err;
+    check(translateGbuffers(p, o, r, err), "cloud translation: " + err);
+    check(contains(r.code, "COLOR * goanna_cloud_colour"), "cloud colour is the face shade times the deck");
+    check(contains(r.code, "vec4(0.0, 0.0, 0.0, 1.0)") && contains(r.code, "vec4(240.0, 240.0, 0.0, 1.0)"),
+            "cloud geometry has zero texture coordinates and full light");
+    check(contains(r.code, "blend_mix, cull_back, depth_draw_always"), "clouds blend, cull and write depth");
+    check(contains(r.code, "ALPHA = clamp("), "cloud opacity reaches the blend");
+    check(contains(r.code, "iris_cloudHeight"), "cloudHeight is read through its global");
+    check(gbuffersFallback("gbuffers_clouds") ==
+                    std::vector<std::string>({"gbuffers_clouds", "gbuffers_textured", "gbuffers_basic"}),
+            "clouds fall back to textured and basic, as Iris does");
+}
+
 int main(int argc, char **argv) {
     if (argc == 3)
         return translatePack(argv[1], argv[2]);
@@ -477,6 +500,7 @@ int main(int argc, char **argv) {
     testGeometryReads();
     testVertexLighting();
     testSky();
+    testClouds();
     testColourHandoff();
     if (g_failures) {
         std::printf("%d failure(s)\n", g_failures);

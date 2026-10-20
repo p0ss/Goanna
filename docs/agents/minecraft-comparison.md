@@ -800,3 +800,79 @@ keep their native materials under a pack and are not covered by this fix.
 Frames and metrics are under
 `build/minecraft/emissive-coverage-20261020/`, in `before/`, `after/`,
 `probe-before/` and `probe-after/`.
+
+## Native clouds through the pack, 2026-10-20
+
+The 2026-10-18 Mellow `CLOUD_STYLE=0` control showed Minecraft's `FANCY`
+clouds and none in Goanna. Goanna's own clouds are marched in its sky
+shader, which a pack's sky program replaces and no pack program can run
+on. Goanna now builds Luanti's cloud deck as geometry while a pack draws
+the sky, and draws it with the pack's `gbuffers_clouds`, falling back to
+`gbuffers_textured` and `gbuffers_basic`. Shaders.properties `clouds=off`
+translates no cloud program; `fast` gives a flat deck. `cloudHeight` was
+already supplied from the server's cloud height; a translator test now
+also checks that the cloud program reads it.
+
+Captures used the unmodified Minecraft Java 26.2 dedicated server through
+BridgeTest protocol 52 (binary `15dac257`, unchanged since 2026-10-18), no
+Luanti game, Goanna's Luanti 5.17.0 core, Godot 4.5.1 and RTX 3090 in
+headless gamescope. The Goanna build was a worktree based on `820ead32`
+with the change uncommitted. Mellow, Complementary and MakeUp were
+Goanna-only reruns against the 2026-10-18 Minecraft references in
+`build/minecraft/iris-fidelity-20261018/`; `light_metrics.py` accepted
+each reference as matched. Eclipse was captured paired, with the sky pose
+added to its job. No performance was measured.
+
+Every rerun reported its chain active and no Goanna client script or
+shader errors. The geometry report records the cloud program and the
+pack's `clouds` value:
+
+| Run | `clouds` | Cloud program | Floor | Sky sample |
+| --- | --- | --- | --- | --- |
+| Mellow, `CLOUD_STYLE=0` | unset | `gbuffers_clouds` | 4.75 | 6.00 |
+| Mellow default | `off` | none | 4.75 | 5.78 |
+| Complementary Reimagined | `off` | none | 0.64 | 1.22 |
+| MakeUp Ultra Fast | `off` | none | 7.03 | 7.21 |
+| Diagnostic Eclipse, paired | unset | `gbuffers_textured` | 0.19 | 4.00 |
+
+Floor and sky columns are the calibration pose's maximum mean channel
+errors, in levels of 255. Against the previous Goanna frames they moved
+by at most 0.3 levels, apart from MakeUp's sky sample, which improved by
+0.8. Eclipse's wood, foliage and glass samples stay at 0.08, 0.33 and
+9.93. Mellow's `alphaTest.gbuffers_clouds` (`GREATER 0.005`) is applied.
+
+In the Mellow control's sky pose, the share of low-saturation pixels above
+the horizon band was 0.0002 before, 0.41 now and 0.16 in Minecraft. The
+mean colour of those pixels is RGB 125.6, 140.5, 173.9 in Goanna and
+139.5, 162.4, 191.4 in Minecraft. Mellow's default sky frame is identical
+to its 2026-10-18 frame. Complementary and MakeUp show only their own
+procedural clouds, Complementary's moved on by its clock. Eclipse has no
+`shaders.properties`, so both engines draw box clouds through its
+`gbuffers_textured`; in its sky pose a cloud underside is RGB 153, 153,
+175 in Goanna and 171, 188, 206 in Minecraft.
+
+These frames establish that the client's clouds reach the pack, not that
+they match. Luanti's deck is what a vanilla Luanti client draws: 64 node
+cells against Minecraft's 12, from Goanna's noise rather than Minecraft's
+cloud texture, which the protocol does not carry. Coverage therefore
+differs. BridgeTest sends `height: 196.0`, a constant in `src/s2c/defs.rs`,
+and thickness 4. Minecraft's base is 192.33, which is 191.83 in the bridge's
+frame, shifted half a node like the camera (106 becomes 105.5). The height
+difference is the bridge's, not Goanna's: Goanna reports and uses the
+server's value. It was not corrected here because rebuilding the shared
+bridge would change the binary every matched reference depends on.
+
+Frames, logs and metrics are under
+`build/minecraft/native-clouds-20261020/`: `mellow-clouds`, `mellow-day`,
+`complementary-reimagined-day`, `makeup-ultra-fast-shaders-day` and
+`eclipse-day-sky-paired`. The earlier control frame without clouds stays
+in `iris-fidelity-20261018/mellow-baseline-clouds/`.
+
+Goanna's own clouds without a pack were checked through the render
+service on the Mineclonia fixture, served by the Luanti 5.17.0 Flatpak
+server, at a sky pose. Main's build at the time and this worktree's build
+drew the same marched clouds, with a mean pixel difference of 1.3, 0.8
+and 0.5 levels per channel from the clouds' drift between captures and
+no shader errors in either. The frames are under
+`build/native-clouds-20261020-nopack/`. Main's checkout carried
+unrelated Overseer edits.

@@ -1062,9 +1062,14 @@ implemented. Missing custom samplers read transparent black and are reported.
   grass, `shadowcomp` and the per program shadow variants.
   Its cost is not measured: a second scene render of the near terrain,
   with Godot's depth prepass, each frame.
-- **Other scene geometry**: entities, clouds, the hand, particles
-  and the procedural grass keep Godot's shaders; their programs
-  (`gbuffers_entities`, `gbuffers_clouds` and the rest) are not loaded.
+- **Other scene geometry**: entities, the hand, particles and the
+  procedural grass keep Godot's shaders; their programs
+  (`gbuffers_entities` and the rest) are not loaded. Clouds are the
+  exception: while a pack draws the sky, Luanti's cloud boxes are built as
+  geometry (`project/game/effects/iris_clouds.gd`) and drawn with
+  `gbuffers_clouds`, falling back to `gbuffers_textured` and
+  `gbuffers_basic`, unless the pack's `clouds=off` hands the sky to its
+  own clouds. See the [pack status](../develop/shaderpack-status.md).
 - `atlasSize` is a single tile's 16 by 16 because there is no atlas, so a
   pack that does arithmetic on atlas coordinates (parallax, neighbouring
   tiles) is not answered; `moonPhase` and `worldDay` remain constants.
