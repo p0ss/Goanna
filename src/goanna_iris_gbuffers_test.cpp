@@ -289,13 +289,24 @@ static void testTranslator() {
     check(err.empty() && !contains(code, "iris_alphaTestRef"),
             "modern translucent outputs retain their own discard policy");
 
-    for (auto surface : {GbuffersSurface::SingleCutout, GbuffersSurface::Translucent}) {
+    for (auto surface : {GbuffersSurface::SingleCutout, GbuffersSurface::SingleOpaque,
+                 GbuffersSurface::Translucent}) {
         code = translateOne("void main() { gl_Position = ftransform(); }\n",
                 "void main() { gl_FragData[0] = vec4(1.0); }\n", surface, r, err);
         check(err.empty() && contains(code, "uniform bool single_sided = false;") &&
                         contains(code, "single_sided && !FRONT_FACING"),
                 "shared single-texture programs preserve per-material face culling");
     }
+    // Emissive cubes and other single texture tiles take the terrain
+    // program as solid geometry: one texture, no alpha test, culled per
+    // material rather than by the render mode.
+    code = translateOne("void main() { gl_Position = ftransform(); }\n",
+            "uniform sampler2D texture;\nvarying vec2 uv;\n"
+            "void main() { gl_FragData[0] = texture2D(texture, uv); }\n",
+            GbuffersSurface::SingleOpaque, r, err);
+    check(err.empty() && contains(code, "albedo_tex") && !contains(code, "albedo_array") &&
+                    !contains(code, "< iris_alphaTestRef") && contains(code, "cull_disabled;"),
+            "single opaque tiles sample one texture without an alpha test: " + err);
 
     // Globals initialised from uniforms become functions.
     code = translateOne("void main() { gl_Position = ftransform(); }\n",

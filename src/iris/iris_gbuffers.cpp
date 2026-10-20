@@ -2575,6 +2575,7 @@ bool Translator::run(const Program &p, std::string &err) {
     // ---- the fragment stage
     fo << "void fragment() {\n";
     if (!m_o.shadow_pass && (m_o.surface == GbuffersSurface::SingleCutout ||
+            m_o.surface == GbuffersSurface::SingleOpaque ||
             m_o.surface == GbuffersSurface::Translucent)) {
         // One translated shader serves cube leaves, glass and double-sided
         // plants. Preserve the server's per-material culling in colour and
@@ -2701,7 +2702,8 @@ bool Translator::run(const Program &p, std::string &err) {
     else if (m_o.surface == GbuffersSurface::Translucent)
         o << "blend_mix, cull_disabled, " << (m_o.translucent_depth ? "depth_draw_always" : "depth_draw_opaque")
           << ";\n";
-    else if (m_o.surface == GbuffersSurface::SingleCutout || m_o.shadow_pass)
+    else if (m_o.surface == GbuffersSurface::SingleCutout ||
+            m_o.surface == GbuffersSurface::SingleOpaque || m_o.shadow_pass)
         o << "cull_disabled;\n";
     else
         o << "cull_back;\n";

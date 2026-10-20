@@ -48,6 +48,7 @@ enum class GbuffersSurface {
     SkyBasic, // camera-centred sky dome, behind all geometry
     SkyTextured, // sun and moon textures, blended over the sky
     SingleCutout, // waving_leaves and waving_plants: one texture, alpha tested, both sides
+    SingleOpaque, // any other single texture node tile: one texture, no alpha test
 };
 
 // The second outputs. A camera drawing a translated program's colortex N

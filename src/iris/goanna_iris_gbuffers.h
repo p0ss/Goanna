@@ -48,9 +48,12 @@ public:
     // Which surface a shader is for, as materialFor asks.
     // SURFACE_FOLIAGE is the single texture leaves and plants
     // (waving_leaves.gdshader, waving_plants.gdshader), drawn with the
-    // cutout program.
+    // cutout program. SURFACE_SINGLE is every other opaque single texture
+    // tile, which would otherwise take a StandardMaterial3D: emissive
+    // nodes, and textures no array holds. Iris draws those with the
+    // terrain program like any other block.
     enum Surface { SURFACE_TERRAIN = 0, SURFACE_CUTOUT = 1, SURFACE_WATER = 2, SURFACE_FOLIAGE = 3,
-            SURFACE_SKY = 4, SURFACE_SKY_TEXTURED = 5, SURFACE_COUNT = 6 };
+            SURFACE_SKY = 4, SURFACE_SKY_TEXTURED = 5, SURFACE_SINGLE = 6, SURFACE_COUNT = 7 };
 
     // Translates the pack's terrain, cutout and water programs (each with
     // Iris's fallbacks) and registers the globals they read. True when at
@@ -100,7 +103,7 @@ public:
 
     // The pack's own shadow map (docs/design/iris-compat.md, rung 7). The
     // shadow program is translated once per surface it can be drawn on
-    // (SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE); GoannaClient
+    // (SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE, SURFACE_SINGLE); GoannaClient
     // draws a copy of each near terrain mesh with it on SHADOW_LAYER, and
     // main.gd's shadow camera sees that layer alone. update() works out the
     // pack's shadow matrices each frame and sets them for every program.

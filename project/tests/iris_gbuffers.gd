@@ -19,11 +19,13 @@ extends SceneTree
 
 const BASE := "res://tests/shaderpacks/base-shader"
 # What GoannaClient::materialFor and applyIrisGbuffers set on a pack
-# material for the array tiles; the water and the foliage (leaves and
-# plants) take albedo_tex instead.
+# material for the array tiles; the water, the foliage (leaves and
+# plants) and the other single texture tiles take albedo_tex instead.
+# Surface 6 is that last: emissive nodes and textures no array holds.
 const ARRAY_UNIFORMS := ["albedo_array", "layer_anim", "goanna_iris_block_ids"]
 const SINGLE_UNIFORMS := {2: ["albedo_tex", "goanna_iris_entity_override"],
-		3: ["albedo_tex", "goanna_iris_block_ids"]}
+		3: ["albedo_tex", "goanna_iris_block_ids"],
+		6: ["albedo_tex", "goanna_iris_block_ids", "single_sided"]}
 
 var failures := 0
 
@@ -73,9 +75,9 @@ func _test_pack() -> void:
 	camera.free()
 	var report: Dictionary = g.report()
 	print("iris_gbuffers: ", report)
-	for surface in [0, 1, 2, 3]:
+	for surface in [0, 1, 2, 3, 6]:
 		var shader: Shader = g.shader(surface)
-		var name: String = ["terrain", "cutout", "water", "foliage"][surface]
+		var name: String = ["terrain", "cutout", "water", "foliage", "", "", "single"][surface]
 		check(shader != null, name + " was not translated: %s" % report.get(name))
 		if shader == null:
 			continue
@@ -90,7 +92,7 @@ func _test_pack() -> void:
 	# second_targets() is every surface's second outputs together, the
 	# colortex numbers game/effects/iris_targets.gd may draw.
 	var union := {}
-	for name in ["terrain", "cutout", "water", "foliage", "sky", "sky_textured"]:
+	for name in ["terrain", "cutout", "water", "foliage", "sky", "sky_textured", "single"]:
 		if report[name]["translated"]:
 			for ct in report[name]["second_colortex"]:
 				check(ct >= 1 and ct <= 15, name + " has a second output outside colortex1 to 15")
@@ -101,7 +103,7 @@ func _test_pack() -> void:
 	# translucent_targets() is the water's second outputs no other surface
 	# writes.
 	var opaque := {}
-	for name in ["terrain", "cutout", "foliage", "sky", "sky_textured"]:
+	for name in ["terrain", "cutout", "foliage", "sky", "sky_textured", "single"]:
 		if report[name]["translated"]:
 			for ct in report[name]["second_colortex"]:
 				opaque[ct] = true
@@ -130,6 +132,7 @@ func _test_pack() -> void:
 		check(String(report["terrain"]["program"]) == "gbuffers_terrain", "terrain program")
 		check(String(report["cutout"]["program"]) == "gbuffers_terrain_cutout", "cutout program")
 		check(String(report["water"]["program"]) == "gbuffers_terrain", "water falls back to terrain")
+		check(String(report["single"]["program"]) == "gbuffers_terrain", "single tiles use terrain")
 		for s in ["terrain", "cutout", "water"]:
 			check((report[s]["dropped_colortex"] as PackedInt32Array).is_empty(), s + " drops a target")
 			check(not report[s]["moves_vertices"], s + " moves vertices")
@@ -145,9 +148,9 @@ func _test_pack() -> void:
 	if bundled:
 		check(not g.has_shadow(), "Base-Shader has no shadow program")
 	elif g.has_shadow():
-		for surface in [0, 1, 3]:
+		for surface in [0, 1, 3, 6]:
 			var shadow: Shader = g.shadow_shader(surface)
-			var sname: String = "shadow " + ["terrain", "cutout", "", "foliage"][surface]
+			var sname: String = "shadow " + ["terrain", "cutout", "", "foliage", "", "", "single"][surface]
 			check(shadow != null, sname + " was not translated: %s" % report.get("shadow"))
 			if shadow == null:
 				continue

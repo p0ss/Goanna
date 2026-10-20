@@ -208,11 +208,13 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
                 format->second == "RG16" || format->second == "R16")) m_packed_targets.insert(ct);
     }
     const char *wanted[SURFACE_COUNT] = {"gbuffers_terrain", "gbuffers_terrain_cutout", "gbuffers_water",
-            "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured"};
+            "gbuffers_terrain_cutout", "gbuffers_skybasic", "gbuffers_skytextured", "gbuffers_terrain"};
     const iris::GbuffersSurface kinds[SURFACE_COUNT] = {iris::GbuffersSurface::ArrayOpaque,
             iris::GbuffersSurface::ArrayCutout, iris::GbuffersSurface::Translucent,
-            iris::GbuffersSurface::SingleCutout, iris::GbuffersSurface::SkyBasic, iris::GbuffersSurface::SkyTextured};
-    const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage", "sky", "sky_textured"};
+            iris::GbuffersSurface::SingleCutout, iris::GbuffersSurface::SkyBasic, iris::GbuffersSurface::SkyTextured,
+            iris::GbuffersSurface::SingleOpaque};
+    const char *files[SURFACE_COUNT] = {"terrain", "terrain_cutout", "water", "foliage", "sky", "sky_textured",
+            "single"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         std::string chosen;
         for (auto &n : iris::gbuffersFallback(wanted[s]))
@@ -234,7 +236,7 @@ bool GoannaIrisGbuffers::load_pack(const String &path) {
         }
         iris::GbuffersOptions o;
         o.surface = kinds[s];
-        const int stages[SURFACE_COUNT] = {8, 8, 17, 8, 1, 4};
+        const int stages[SURFACE_COUNT] = {8, 8, 17, 8, 1, 4, 8};
         o.render_stage = stages[s];
         for (auto &d : m_pack.customUniforms().defs())
             if (d.is_uniform) o.custom_uniforms.insert(d.name);
@@ -750,7 +752,8 @@ Dictionary GoannaIrisGbuffers::report() const {
     Dictionary d;
     d["pack"] = String(m_pack.name().c_str());
     if (!m_load_error.empty()) d["error"] = String(m_load_error.c_str());
-    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage", "sky", "sky_textured"};
+    const char *names[SURFACE_COUNT] = {"terrain", "cutout", "water", "foliage", "sky", "sky_textured",
+            "single"};
     for (int s = 0; s < SURFACE_COUNT; ++s) {
         Dictionary e;
         e["program"] = String(m_program[s].c_str());
@@ -829,11 +832,11 @@ void GoannaIrisGbuffers::loadShadow(const iris::GbuffersOptions &base) {
         m_shadow_error = perr;
         return;
     }
-    const int surfaces[] = {SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE};
+    const int surfaces[] = {SURFACE_TERRAIN, SURFACE_CUTOUT, SURFACE_FOLIAGE, SURFACE_SINGLE};
     const iris::GbuffersSurface kinds[] = {iris::GbuffersSurface::ArrayOpaque, iris::GbuffersSurface::ArrayCutout,
-            iris::GbuffersSurface::SingleCutout};
-    const char *files[] = {"shadow_terrain", "shadow_cutout", "shadow_foliage"};
-    for (int i = 0; i < 3; ++i) {
+            iris::GbuffersSurface::SingleCutout, iris::GbuffersSurface::SingleOpaque};
+    const char *files[] = {"shadow_terrain", "shadow_cutout", "shadow_foliage", "shadow_single"};
+    for (int i = 0; i < 4; ++i) {
         iris::GbuffersOptions o = base;
         o.surface = kinds[i];
         o.shadow_pass = true;
