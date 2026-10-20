@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 ## Checks the colour grade (game/effects/look_grade.gd): no correction at
-## twilight or night, the curve's endpoints and monotonicity, and its
-## texture cache. Headless, no server or GPU:
+## twilight or night, the curve's endpoints and monotonicity, its texture
+## cache, and vividness: neutral at 0, grey kept grey, muted colours lifted
+## more than strong ones. Headless, no server or GPU:
 ## godot --headless --path project --script res://tests/look_grade.gd
 extends SceneTree
 
@@ -39,5 +40,20 @@ func _initialize() -> void:
 	assert(grade.correction(0.7) == texture)
 	assert(grade.correction(0) == null)
 	assert(grade.correction(0.7) == texture)
-	print("look grade: night/twilight bypass, black/white endpoints, monotonicity and cache passed")
+	# Vividness 0 is the plain grade; above it the curve moves into a 3D
+	# texture, at night too, and that is cached the same way.
+	assert(grade.correction(0.7, 0.0) == texture)
+	var lut := grade.correction(0.0, 0.5)
+	assert(lut is ImageTexture3D and lut.get_width() == Grade.LUT_SIZE)
+	assert(grade.correction(0.0, 0.5) == lut)
+	var grey := Grade.vivid(Color(0.4, 0.4, 0.4), 1.0)
+	assert(grey.is_equal_approx(Color(0.4, 0.4, 0.4)))
+	var spread := func(c: Color) -> float: return maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b))
+	var muted := Color(0.45, 0.4, 0.35)
+	var strong := Color(0.9, 0.2, 0.1)
+	var muted_gain: float = spread.call(Grade.vivid(muted, 0.5)) / spread.call(muted)
+	var strong_gain: float = spread.call(Grade.vivid(strong, 0.5)) / spread.call(strong)
+	assert(muted_gain > strong_gain and strong_gain >= 1.0)
+	assert(Grade.vivid(muted, 0.0).is_equal_approx(muted))
+	print("look grade: night/twilight bypass, black/white endpoints, monotonicity, cache and vividness passed")
 	quit()

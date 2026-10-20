@@ -947,6 +947,10 @@ const SETTINGS := [
 	["Appearance", "look_strength", "slider", "Natural look", "Adds depth to high daylight and enables the night sky lighting control. Dawn and sunset keep their existing colour treatment. 0 restores the original grade and sky lighting.", 0.0, 1.0, 0.05],
 	["Appearance", "night_visibility", "slider", "Night visibility", "A faint blue upper sky provides cool ambient and bounced light in exposed areas. Keeps the existing night grading and horizon colour. 0 restores the original sky. Works with Natural look.", 0.0, 1.0, 0.05],
 	["Appearance", "bloom_strength", "slider", "Bloom", "Glow around bright light sources, relative to the world's lighting. 0 removes the glow.", 0.0, 2.0, 0.05],
+	["Appearance", "eye_adaptation", "toggle", "Eye adaptation", "Let the exposure follow what you look at, as eyes do: a cave or a dark room slowly opens up and a bright snowfield or beach calms down. It moves at most one stop either way, so night never turns into day. Off keeps the exposure fixed."],
+	["Appearance", "look_vividness", "slider", "Vividness", "Raises the colour of muted surfaces more than of already strong ones, so stone, soil and shade gain colour before bright colours glare. 0 adds none.", 0.0, 1.0, 0.05],
+	["Appearance", "look_saturation", "slider", "Saturation", "How colourful everything is. 1 is the usual look, 0 is black and white.", 0.0, 2.0, 0.05],
+	["Appearance", "look_contrast", "slider", "Contrast", "The difference between light and dark. 1 is the usual look.", 0.5, 1.5, 0.05],
 	["Controls/Mouse", "mouse_sensitivity", "slider", "Mouse sensitivity", "How far the view turns per mouse movement.", 0.02, 0.5, 0.01],
 	["Controls/Mouse", "invert_mouse", "toggle", "Invert mouse", "Push the mouse forward to look up instead of down."],
 	["Controls/Game controller", "pad_enabled", "toggle", "Game controller", "Play with a connected game controller, and move a cursor with it in menus and forms. Turn off if a controller you are not using sends stray input."],
@@ -1004,7 +1008,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "material_updates", "update_check",
-	"look_strength", "night_visibility", "bloom_strength", "shader_weather"]
+	"look_strength", "night_visibility", "bloom_strength", "eye_adaptation", "look_vividness", "look_saturation", "look_contrast", "shader_weather"]
 var settings_menu: Control
 var graphics_groups_open := {}  # which Graphics groups are open, kept across reopens
 # While a staged preset change runs, lighting keys and render switches are
@@ -1077,7 +1081,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 		"show_position":
 			show_position = on
 			hud.queue_redraw()
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength", "eye_adaptation", "look_vividness", "look_saturation", "look_contrast":
 			var ml := _main_node()
 			if ml != null:
 				ml.set(key, value)
@@ -1120,7 +1124,7 @@ func _local_value(key: String) -> float:
 		"terrain_occlusion": return 1.0 if get_viewport().use_occlusion_culling else 0.0
 		"shader_weather": return 1.0 if shader_weather else 0.0
 		"show_position": return 1.0 if show_position else 0.0
-		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength":
+		"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao", "light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing", "light_ssil", "screen_space_detail", "shadow_detail", "look_strength", "night_visibility", "bloom_strength", "eye_adaptation", "look_vividness", "look_saturation", "look_contrast":
 			return float(m.get(key)) if m != null else 1.0
 		"volume": return audio.volume if audio != null else 0.8
 		"muted": return 1.0 if (audio != null and audio.muted) else 0.0

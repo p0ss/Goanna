@@ -56,13 +56,21 @@ Goanna's important visual systems are adjustable while connected:
   With lamp shadows enabled, their budget also limits direct lamp count so
   excess lamps cannot shine through walls. Distant lighting uses propagated
   block light. Zero shadow-casting lamps explicitly disables lamp shadows.
-- The Appearance tab has Natural look, Night visibility and Bloom controls.
+- The Appearance tab has Natural look, Night visibility, Bloom, Eye
+  adaptation, Vividness, Saturation and Contrast controls.
   Natural look adds depth in high daylight; night, dawn and sunset keep their
   existing grade. Night visibility defaults to 0.5 and adds a faint blue
   upper sky, supplying cool ambient and bounced light through the existing
   lighting system. It leaves the horizon colour and night grade unchanged;
-  zero restores the original sky. These preferences are independent of the
-  graphics quality profile.
+  zero restores the original sky. Eye adaptation lets the exposure follow
+  the view, opening up a cave and calming a snowfield by at most one stop
+  either way, so it never turns night into day. Vividness lifts the colour of muted
+  surfaces more than of strong ones, and Saturation and Contrast scale the
+  grade's own; each leaves the picture unchanged at its default. Exposure
+  itself is under Graphics, Light. With a shader pack that does its own
+  final grade, eye adaptation is off and the other three apply on top of
+  the pack's. These preferences are independent of the graphics quality
+  profile.
 - Volumetric atmosphere controls the local valley-mist volume; set it to zero
   to disable that froxel cost on slower hardware. The raymarched cumulus
   stay in the sky pass and share the terrain's sun, twilight and

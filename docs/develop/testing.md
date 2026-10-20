@@ -74,7 +74,7 @@ On a machine whose default podman storage is broken, set `PODMAN` to the
 command with `--root` and `--runroot` (both scripts say how).
 
 The Appearance grade's twilight and night bypass, its curve endpoints and
-monotonicity, and its texture cache are checked with:
+monotonicity, its texture cache and its vividness are checked with:
 
 ```sh
 godot --headless --path project --script res://tests/look_grade.gd

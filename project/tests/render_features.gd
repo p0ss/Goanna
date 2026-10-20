@@ -126,6 +126,12 @@ func _run() -> void:
 	check(not first.env.environment.volumetric_fog_enabled, "Quality zero also disables underwater volume")
 	first.ui._apply_setting("bloom_strength", 0.0)
 	check(not first.env.environment.glow_enabled, "Bloom zero stops its pass")
+	first.ui._apply_setting("eye_adaptation", 1.0)
+	check(first.env.camera_attributes is CameraAttributesPractical
+			and first.env.camera_attributes.auto_exposure_enabled, "Eye adaptation turns auto exposure on")
+	check(second.env.camera_attributes == null, "Other player keeps a fixed exposure")
+	first.ui._apply_setting("eye_adaptation", 0.0)
+	check(first.env.camera_attributes == null, "Eye adaptation off removes it")
 	first.ui._apply_setting("light_shafts", 0.0)
 	check(not first.shaft_quad.visible, "Shaft zero removes its draw")
 	first.ui._save_setting("render_ssao", 0.0)

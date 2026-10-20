@@ -208,6 +208,14 @@ var light_exposure := 0.46
 var look_strength := 1.0
 var night_visibility := 0.5
 var bloom_strength := 1.0
+# The rest of the Appearance tab, the image controls. Each leaves the picture
+# as it was at its default: saturation and contrast multiply the grade's own,
+# vividness 0 adds no vibrance (look_grade.gd) and eye adaptation 0 is off.
+var look_saturation := 1.0
+var look_contrast := 1.0
+var look_vividness := 0.0
+var eye_adaptation := 0.0
+var eye_attributes: CameraAttributesPractical
 # Sky fill strength: Luanti's sky light added by the node shaders as a flat
 # fill in the horizon colour (nodes_array_common.gdshaderinc). 0 turns it off.
 var light_fill := 0.4
@@ -3185,6 +3193,7 @@ func apply_lighting() -> void:
 	# player is actually looking.
 	e.ssao_light_affect = clampf(light_ssao * 0.09, 0.0, 0.72)
 	_apply_screen_space()
+	_apply_eye_adaptation()
 	# exposure and the sky fill follow on the next _apply_sky, which scales
 	# them by the server's correction and the time of day. The shafts are
 	# shaped there too, by the sun's elevation and the weather, so ask for
@@ -3339,6 +3348,40 @@ func _aim_light(light: DirectionalLight3D, dir: Vector3, aimed: Vector3) -> Vect
 	var up := Vector3.UP if absf(d.y) < 0.999 else Vector3.FORWARD
 	light.transform = Transform3D(Basis.looking_at(-d, up), Vector3.ZERO)
 	return d
+
+
+# Eye adaptation is Godot's auto exposure, held to EYE_RANGE either side of
+# the fixed exposure so a cave opens up and a snowfield calms down without
+# night turning into day. It scales the exposure by EYE_REFERENCE over the
+# scene's mean brightest channel, before exposure, clamped to that range;
+# EYE_REFERENCE is that mean for a sunlit view, where it changes nothing:
+# measured 2026-10-20 on the render fixture at noon (stone floor, sky,
+# Mineclonia, Godot 4.5.1), where 0.6 left the open view darker than the
+# fixed exposure and 1.2 brighter, crossing at about 0.73. Darker open
+# ground than that floor, grass and forest, comes out a little brighter.
+# Godot takes the bounds as sensitivities, luminance = ISO * 0.00125 at its
+# default 100 ISO (CameraAttributesPractical::_update_auto_exposure).
+const EYE_REFERENCE := 0.75
+const EYE_RANGE := 2.0
+const EYE_ISO_LUMINANCE := 0.00125
+
+func _apply_eye_adaptation() -> void:
+	if env == null:
+		return
+	# A pack with its own final stage owns its exposure.
+	if eye_adaptation < 0.5 or _pack_owns_colour():
+		env.camera_attributes = null
+		return
+	if eye_attributes == null:
+		# GOANNA_EYE_REFERENCE and GOANNA_EYE_SPEED are for measuring them.
+		var reference := _envf("GOANNA_EYE_REFERENCE", EYE_REFERENCE)
+		eye_attributes = CameraAttributesPractical.new()
+		eye_attributes.auto_exposure_enabled = true
+		eye_attributes.auto_exposure_speed = _envf("GOANNA_EYE_SPEED", 0.5)
+		eye_attributes.auto_exposure_scale = reference
+		eye_attributes.auto_exposure_min_sensitivity = reference / EYE_RANGE / EYE_ISO_LUMINANCE
+		eye_attributes.auto_exposure_max_sensitivity = reference * EYE_RANGE / EYE_ISO_LUMINANCE
+	env.camera_attributes = eye_attributes
 
 
 # Map Luanti's sky and lighting state onto Godot's sun, moon, sky, fog and
@@ -4061,21 +4104,23 @@ func _apply_sky() -> void:
 		_apply_water_murk()
 	var lighting: Dictionary = st["lighting"]
 	# Server saturation on top of our base grade, not instead of it.
-	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0)
+	e.adjustment_saturation = clamp(1.12 * float(lighting["saturation"]), 0.0, 2.0) * look_saturation
 	# The LUT shapes high daylight only. Night and twilight retain their
 	# original contrast, saturation and black level, including the horizon.
-	e.adjustment_contrast = 1.05
-	e.adjustment_color_correction = look_grade.correction(look_weights.x)
+	e.adjustment_contrast = 1.05 * look_contrast
+	e.adjustment_color_correction = look_grade.correction(look_weights.x, look_vividness)
 	e.tonemap_exposure = clamp(light_exposure * (1.0 + float(lighting["exposure_correction"]) * 0.25), 0.1, 3.0)
 	e.glow_intensity = clamp(0.3 + float(lighting["bloom_intensity"]) * 2.0, 0.0, 2.0) * bloom_strength
 	e.glow_enabled = render_features["render_bloom"] and bloom_strength > 0.001
 	# A pack with a final stage owns its exposure and grade, and so does one
 	# whose terrain program writes the colour of the world directly.
+	# The player's image controls still apply on top, neutral by default.
 	if _pack_owns_colour():
-		e.adjustment_color_correction = null
-		e.adjustment_contrast = 1.0
-		e.adjustment_saturation = 1.0
+		e.adjustment_color_correction = look_grade.correction(0.0, look_vividness)
+		e.adjustment_contrast = look_contrast
+		e.adjustment_saturation = look_saturation
 		e.tonemap_exposure = 1.0
+	_apply_eye_adaptation()
 	# --- light shafts, and the air they are shafts in ---
 	# Luanti's volumetric_light_strength is the server asking for god rays,
 	# 0 to 1. Take it the way shadow_intensity is taken above, as a floor on
