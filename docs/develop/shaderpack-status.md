@@ -22,9 +22,8 @@ leaves shade them. Leaf block IDs only exposed this; without IDs the
 leaves took the ordinary face shading path.
 
 The correction is the const scan following live preprocessor branches.
-That change is another session's uncommitted work in `src/iris/iris_pack.cpp`;
-it was applied, uncommitted, for these runs. Separately, this session's
-commit makes `shadow2D` follow `shadowHardwareFiltering` as Iris binds it:
+It was written in another session and applied uncommitted for these runs;
+it landed afterwards as `d9cc51a3`. Separately, `0d9a2b50` makes `shadow2D` follow `shadowHardwareFiltering` as Iris binds it:
 the four neighbouring texels are each compared with the reference and the
 results weighted bilinearly, unless the pack asks for a nearest map.
 Complementary, MakeUp and Mellow ask for filtered maps; Eclipse asks for
