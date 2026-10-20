@@ -6,6 +6,29 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Emissive material coverage, 2026-10-20
+
+Emissive node tiles now go through the pack's geometry programs. Before,
+the native emission fallback gave them a `StandardMaterial3D`, and their
+faces sat on the glow render layer alone, which the second output cameras
+do not see. An authored probe pack confirmed both: the sea lantern had no
+pack marker, block ID or lightmap in any second output. MakeUp, which
+keeps its colour in `colortex1`, therefore drew no lamp at all. A new
+single texture opaque surface translates `gbuffers_terrain` for these
+tiles, and glowing faces now carry the node surface layer and a pack
+shadow copy. Goanna's native lamps are unchanged.
+
+MakeUp's night lamp is now drawn, and its fixed lamp sample's maximum mean
+channel error falls from 232.37 to 70.59 levels; by day from 74.52 to
+47.29. Its floor (13.48 at night) and Complementary's floor and light pool
+(17.76 at night) did not change, so the lamp gap does not explain them.
+The lamp still differs: BridgeTest sends the whole five-frame sea lantern
+strip as one still texture, and MakeUp's halo is absent. Mellow and the
+Eclipse control did not regress; Eclipse's lamp sample falls from 42.51 to
+24.51, and Mellow's lamp pixels did not change at all, which was not
+investigated further. See the
+[comparison report](../agents/minecraft-comparison.md) for the runs.
+
 ## Translucent glass and foliage inputs, 2026-10-18
 
 Clear glass now selects the translucent program with its glass block ID.

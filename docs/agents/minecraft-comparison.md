@@ -716,3 +716,87 @@ syntax check. Translator regression tests, twelve comparison-tool checks,
 style and strict documentation validation pass. All clients exited and
 the GPU is free. The separate authored AO probe retains the audit parse
 error described above; it is excluded from the error-free pack-run claim.
+
+## Emissive material coverage, 2026-10-20
+
+These runs used the unmodified Minecraft Java 26.2 dedicated server
+through BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0
+core, Godot 4.5.1 and RTX 3090 in headless gamescope. Goanna-only reruns
+reuse the matched `iris-fidelity-20261018` references; no bridge, fixture,
+pack, clock or calibration camera changed. The "before" runs used a clean
+checkout at `820ead32`. The "after" runs used `d6299921`, with only the
+lamp sample below added to `light_metrics.py` uncommitted. These are
+visual input tests, not performance measurements.
+
+An authored probe pack wrote the texture, lightmap, block ID and a constant
+marker from its gbuffers programs into four targets, with
+`block.properties` numbering the sea lantern, gold and smooth stone. A
+copy of the pack and its job are kept as `lamp-probe-pack/` and
+`lamp-probe-job.json` beside the frames listed at the end. The Goanna
+"before" probe ran from the clean `820ead32` build while the uncompiled
+fix sat in the working tree, so its `result.json` reports a dirty
+checkout. Minecraft's lantern carried the marker, ID 10 and full block
+and sky light. Goanna's showed in the colour target only, drawn by its
+native emissive `StandardMaterial3D`, and had no marker, ID or lightmap
+in any second output. Two causes followed from the code:
+
+- emissive tiles, and single texture tiles with no native special shader,
+  took a `StandardMaterial3D` in `materialFor`, bypassing the pack;
+- glowing faces were drawn on `GLOW_LAYER` alone. The cameras drawing a
+  pack's second outputs see only `NODE_SURFACE_LAYER`, and the glow mesh
+  had no pack shadow copy.
+
+The fix routes those tiles to the pack's terrain, cut-out or translucent
+program, as Iris sorts them, through a new single texture opaque surface
+(`SURFACE_SINGLE`, translated from `gbuffers_terrain`). Glowing faces now
+carry `NODE_SURFACE_LAYER` and a shadow copy. Node lights leave that layer
+out of their shadow caster mask, so a lamp still does not shadow its own
+light; terrain still casts from layer 1. After the fix, the probe's
+lantern carries the marker and ID 10 in Goanna too. Its encoded lightmap
+reads 218.82 and 247 for block and sky light, against Minecraft's 247 and
+247: the face's block light is lower in Goanna.
+
+Fixed calibration samples, maximum mean channel error in levels against
+the Minecraft reference:
+
+| Pack and phase | Lamp before | Lamp after | Floor before | Floor after |
+| --- | --- | --- | --- | --- |
+| MakeUp Ultra Fast, night | 232.37 | 70.59 | 13.54 | 13.48 |
+| MakeUp Ultra Fast, day | 74.52 | 47.29 | 7.12 | 7.13 |
+| Complementary Reimagined, night | 1.04 | 1.06 | 17.74 | 17.76 |
+| Complementary Reimagined, day | 2.04 | 2.03 | 0.63 | 0.63 |
+| Mellow 3.4.1a, day | 8.92 | 8.92 | 4.75 | 4.75 |
+| Diagnostic Eclipse, day | 42.51 | 24.51 | 0.19 | 0.19 |
+
+The lamp sample is the lantern's front face, `(628, 300, 652, 328)`, now
+part of `light_metrics.py`. Complementary's lantern saturates that sample
+in both engines; its earlier native emission happened to match, and the
+pack's own emission now produces it. A sample of the light pool just in
+front of the pillar is unchanged by the fix: MakeUp's night pool reads
+RGB 121.01, 95.90, 77.19 against Minecraft's 143.25, 116.15, 94.69, and
+Complementary's 122.10, 106.22, 115.37 against 106.82, 91.08, 97.68. The
+night floor and pool differences of both packs are therefore not caused by
+the missing pack lamp; they remain open.
+
+The lantern still looks different. BridgeTest sends the five-frame
+`sea_lantern.png` strip with no animation, so Goanna draws all five frames
+squashed onto each face, where Minecraft shows one. MakeUp's halo around
+the lamp is also absent in Goanna. Mellow's lantern pixels were identical
+before and after; why its chain hides the material change was not
+investigated. Mellow's water sample moved from 13.13 to 41.28, but the
+"before" run was the outlier: the earlier Goanna Mellow runs read red
+channel means of 92.4 to 101.7 there, like the "after" run's 99.3. Water
+reflections vary between runs and were not changed here.
+
+Goanna's native shaders, with no pack, drew the lamp identically before
+and after: the lantern regions of the calibration and close lamp poses
+have equal means at day and night, and whole-frame mean differences stay
+under 1.6 levels, from cloud and foliage motion. Translator tests,
+`goanna_iris_shadow_test` and the Godot front-end check of the bundled
+pack, MakeUp, Complementary and Mellow pass. All eighteen captures
+reported no Goanna script or shader errors. Torch flames, ice and lava
+keep their native materials under a pack and are not covered by this fix.
+
+Frames and metrics are under
+`build/minecraft/emissive-coverage-20261020/`, in `before/`, `after/`,
+`probe-before/` and `probe-after/`.
