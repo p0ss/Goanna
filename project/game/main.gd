@@ -873,8 +873,9 @@ func _ready() -> void:
 		env.environment.background_color = Color.BLACK
 		# The pack's sky hides Goanna's marched clouds; the client's cloud
 		# boxes take their place, as Iris draws Minecraft's.
-		if iris_gbuffers.shader(6) != null:
-			iris_clouds = preload("res://game/effects/iris_clouds.gd").new()
+		var IrisClouds := preload("res://game/effects/iris_clouds.gd")
+		if iris_gbuffers.shader(IrisClouds.SURFACE_CLOUDS) != null:
+			iris_clouds = IrisClouds.new()
 			add_child(iris_clouds)
 			iris_clouds.initialise(iris_gbuffers)
 	_setup_iris_shadow()
