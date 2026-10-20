@@ -27,6 +27,8 @@ SURFACES = {
     'foliage': (770, 435, 880, 485),
     'water': (430, 460, 490, 490),
     'sky': (500, 200, 700, 235),
+    # The sea lantern's front face, above the gold pillar.
+    'lamp': (628, 300, 652, 328),
 }
 # The current Goanna screen-space UV convention swaps the probe's rows.
 # Pair the same buffers explicitly, rather than comparing different inputs.
