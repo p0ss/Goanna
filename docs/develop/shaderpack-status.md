@@ -6,6 +6,51 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Complementary leaf lighting, 2026-10-20
+
+Complementary Reimagined's bright mapped foliage came from its shadow
+settings, not its leaf material. Its `sunPathRotation` and
+`shadowMapResolution` are `const` lines inside `#if` branches. Goanna read
+every branch and kept the last value, so it drew Complementary with a sun
+path rotation of -60 degrees and a 1024 texel map. Iris, with the default
+options, gives 0 degrees and 2048 texels. Complementary lights leaves only
+through the shadow map: its leaf branch sets subsurface mode 2, which
+replaces the face's sun angle with 1.0. With the sun tilted 60 degrees
+towards the camera, the leaves' vertical faces had nothing above them in
+the map and stayed fully lit. Under Iris's overhead noon sun, the upper
+leaves shade them. Leaf block IDs only exposed this; without IDs the
+leaves took the ordinary face shading path.
+
+The correction is the const scan following live preprocessor branches.
+That change is another session's uncommitted work in `src/iris/iris_pack.cpp`;
+it was applied, uncommitted, for these runs. Separately, this session's
+commit makes `shadow2D` follow `shadowHardwareFiltering` as Iris binds it:
+the four neighbouring texels are each compared with the reference and the
+results weighted bilinearly, unless the pack asks for a nearest map.
+Complementary, MakeUp and Mellow ask for filtered maps; Eclipse asks for
+nearest maps.
+
+Fixed calibration foliage, maximum mean channel difference from the
+matched Minecraft reference:
+
+| Build | Day | Night |
+| --- | --- | --- |
+| Before, main at `820ead32` | 35.18 | not rerun |
+| Const scan only, older main build | 3.29 | 3.94 |
+| Const scan and filtered compare, rebased | 2.21 | 3.88 |
+
+The const scan explains the large error. The filtered compare is an input
+correction; its effect on this foliage sample is within the spread of
+repeated runs, 2.21 to 3.69. Eclipse's opaque samples were identical and
+Mellow's within 0.7 levels. With both changes, MakeUp's foliage improved
+from 6.16 to 3.55 by day and from 6.18 to 3.76 at night (that earlier
+night run lacked block IDs), and its wood and glass samples also
+improved. Animated water samples moved both ways between runs. An
+authored probe still finds the lower leaf layer less shaded than in
+Minecraft, so close leaf lighting is not yet equal. The
+[comparison report](../agents/minecraft-comparison.md) has the probes,
+server and renderer versions and the remaining limits.
+
 ## Emissive material coverage, 2026-10-20
 
 Emissive node tiles now go through the pack's geometry programs. Before,

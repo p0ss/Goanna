@@ -876,3 +876,93 @@ and 0.5 levels per channel from the clouds' drift between captures and
 no shader errors in either. The frames are under
 `build/native-clouds-20261020-nopack/`. Main's checkout carried
 unrelated Overseer edits.
+
+## Complementary leaf lighting, 2026-10-20
+
+The mapped Complementary Reimagined r5.9.3 run's fixed foliage sample
+differed by 35.30 levels. The first rerun on main at `820ead32`, reusing
+the matched day reference, reproduced it at 35.18. The leaf code in
+`lib/materials/specificMaterials/terrain/leaves.glsl` sets subsurface
+mode 2. In `lib/lighting/mainLighting.glsl` that mode replaces the face's
+sun angle term with 1.0, so a leaf face is darkened only by the shadow
+map. Goanna's shader report gave that run a sun path rotation of -60
+degrees and a 1024 texel map. Minecraft's sidecar gives 0 degrees, the
+sun overhead at noon, and 2048 texels. Both values are `const` lines
+inside `#if SUN_ANGLE` and `#if SHADOW_QUALITY` branches in
+`lib/common.glsl`. Goanna read every branch and kept the last.
+
+A disposable copy of the pack isolated the leaf inputs. It removed the
+`deferred1` and `composite*` programs, made `final` an identity pass
+with the sky black, and added a `LEAF_PROBE` option to `gbuffers_terrain`.
+It wrote one input in place of the lit colour. The same copy and option ran
+in both clients. All probe runs below used the const scan correction.
+Shadow factor means in the close foliage camera, on a 0 to 255 scale:
+
+| Region | Minecraft | Goanna | Goanna, filtered compare |
+| --- | --- | --- | --- |
+| Leaf tops | 248.3 | 246.3 | 247.2 |
+| Upper front faces | 100.5 | 97.6 | 96.5 |
+| Lower front faces | 52.1 | 96.3 | 94.6 |
+
+The vertical faces now get the right overall shading. The lower leaf layer
+remains brighter than in Minecraft: Minecraft's front faces darken towards
+the bottom, while Goanna's form vertical bands. Turning off
+`WAVING_LEAVES` in both clients left this pattern unchanged, at 51.6
+against 101.3 for the lower faces. A raw lookup without the leaf bias
+differed by at most 10.87 levels in the leaf regions. World normals matched in shape: Goanna's
+player space is Minecraft's turned 180 degrees about the vertical, which
+the shader's leaf bias does not depend on. `mc_midTexCoord` signs matched.
+Its magnitude did not, because Goanna's per-tile texture coordinates span
+the whole tile rather than an atlas cell; the Complementary paths that use
+`absMidCoordPos` were off in these runs. The cause of the lower layer
+difference is not isolated. An internal leaf plane missing from the shadow
+map is one suspect; a direct map view could not test it, because
+Minecraft's comparison sampler returns comparisons rather than depths.
+
+The probe also showed Goanna comparing shadows against one nearest texel.
+With `shadowHardwareFiltering`, Iris binds shadowtex0 and shadowtex1 as
+linearly filtered comparison samplers unless the pack asks for
+`shadowtexNNearest`. Goanna now compares each of the four neighbouring
+texels and weights the results bilinearly. The shader report lists the
+filtered maps under `linear_compare`. Complementary, MakeUp and Mellow
+request them; Eclipse does not.
+
+Goanna-only reruns reused the matched references from
+`iris-fidelity-20261018/` and validated them through
+`light_metrics.py --reference`. The final runs used the filtered compare
+commit rebased onto main at `ab4c1c18`, recorded as `fa631449`, with the
+const scan applied uncommitted.
+Maximum mean channel differences:
+
+| Pack and phase | Sample | Before | After |
+| --- | --- | --- | --- |
+| Complementary, day | foliage | 35.18 | 2.21 |
+| Complementary, day | glass | 8.69 | 4.52 |
+| Complementary, night | foliage | 1.87 | 3.88 |
+| MakeUp, day | foliage | 6.16 | 3.55 |
+| MakeUp, night | foliage | 6.18 | 3.76 |
+| Mellow, day | foliage | 7.23 | 7.92 |
+| Eclipse, day | foliage | 0.33 | 0.33 |
+
+The Complementary day "before" is this session's rerun on `820ead32`.
+The others are the latest earlier runs, from 18 October; the two night
+"before" values come from the checkpoint run that still lacked block IDs.
+Complementary's night foliage was close then because its leaves took the
+ordinary face shading path without their ID. Its night
+floor still differs by 17.74, near the lamp. A const scan only control,
+on main's older build, gave 3.29 by day and 3.94 at night. Repeated day
+runs ranged from 2.21 to 3.69, so the filtered compare's own effect on
+this sample is not resolved. Eclipse's opaque samples were identical.
+Animated water samples moved in both directions between runs. One night
+run on the build before rebasing had a much brighter sky, 39.64 levels
+different; after rebasing the same job gave 2.28. That run was not
+isolated further.
+
+These captures used the unmodified Minecraft Java 26.2 dedicated server
+through BridgeTest protocol 52, no Luanti game, Goanna's Luanti 5.17.0
+core, Godot 4.5.1 and RTX 3090 in headless gamescope. They are fixed
+region means, not whole-frame parity or performance measurements. Frames,
+the probe pack, jobs and metrics are under
+`build/minecraft/leaf-material-20261020/`. The final runs are the
+`*-rebased` directories; `cr-day-before` is the control; `probe*` hold
+the probes.
