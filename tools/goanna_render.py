@@ -437,15 +437,38 @@ def ensure_imported(root, godot, logdir):
 def write_profile(xdg, tier, table, pack, maps):
     cfg_dir = xdg / "godot" / "app_userdata" / "Goanna"
     cfg_dir.mkdir(parents=True, exist_ok=True)
+    # material_updates, not asset_updates: the key was renamed in 0.13.0 and
+    # the old one is no longer read, so every launch downloaded and composed
+    # about 440 MB of material bundles the job's own pack then overrode.
     lines = ["[settings]", "", 'graphics_profile="%s"' % tier,
-             'texture_pack="%s"' % (pack or ""), "show_body=0", "asset_updates=false"]
+             'texture_pack="%s"' % (pack or ""), "show_body=0",
+             "material_updates=false", "update_check=false"]
     values = dict(table)
     if not maps:
         values["auto_bump"] = 0.0
     lines += ["%s=%s" % (k, v) for k, v in sorted(values.items())]
     path = cfg_dir / "goanna.cfg"
     path.write_text("\n".join(lines) + "\n")
+    share_caches(cfg_dir)
     return path
+
+
+# Caches every launch can share. Each launch still gets a fresh profile, but
+# the server media cache and Godot's shader cache are keyed by content hash,
+# so sharing them carries no settings across, and only one GPU client runs at
+# a time. Unshared, each launch fetched and rewrote them again.
+SHARED_CACHE = pathlib.Path(os.environ.get("XDG_CACHE_HOME") or
+                            pathlib.Path.home() / ".cache") / "goanna-render" / "shared"
+
+
+def share_caches(cfg_dir):
+    for name in ("cache/media", "shader_cache"):
+        shared = SHARED_CACHE / name
+        shared.mkdir(parents=True, exist_ok=True)
+        link = cfg_dir / name
+        link.parent.mkdir(parents=True, exist_ok=True)
+        if not link.exists():
+            link.symlink_to(shared, target_is_directory=True)
 
 
 # --- the server --------------------------------------------------------------

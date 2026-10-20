@@ -345,7 +345,10 @@ def capture(args):
                     xdg = out / 'goanna-data'
                     profile = xdg / 'godot/app_userdata/Goanna'
                     profile.mkdir(parents=True, exist_ok=True)
-                    (profile / 'goanna.cfg').write_text('[settings]\nshow_body=0\nasset_updates=false\n')
+                    # material_updates: asset_updates stopped being read in 0.13.0.
+                    (profile / 'goanna.cfg').write_text('[settings]\nshow_body=0\n'
+                                                        'material_updates=false\nupdate_check=false\n')
+                    render.share_caches(profile)
                     client = render.gh.start_goanna(goanna_build, port=30985, name=name,
                                                     width=width, height=height, software=opt.software,
                                                     env=dict(pack_env, XDG_DATA_HOME=str(xdg),
