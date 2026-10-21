@@ -535,6 +535,42 @@ Built 2026-10-11 by rungs 5 to 7 above. The parts:
   inputs it reads as `in` ones, which costs no interpolator; functions are
   emitted callees first; and a function both stages include is emitted
   once.
+- Since 2026-10-21 it also covers the rest of what GL drivers take and
+  Godot 4.5.1 refuses, found by running all 22 surveyed packs through
+  Godot's front end and then a battery of the neighbouring constructions
+  (`tests/iris_gbuffers_glsl.gd`, one pack per construction):
+  - Constructors. A vector or scalar constructor gets each argument
+    converted to its base type and cut to fit, as GLSL does implicitly:
+    `vec3(m * p)` keeps `.xyz`, `ivec2(float)` and `bvec2(float, int)`
+    convert each component, and a square matrix argument gives its columns.
+  - Constants. Godot takes a built in call in a constant initialiser only
+    when no argument itself calls, indexes or selects (`max(vec3(A), B)`,
+    `min(float(N), 3.0)` and `max(V.x, 1.0)` are refused; a constructor's
+    arguments and the top level are free). Such an argument becomes a
+    `goanna_const` of its own, declared first, so the constant stays a
+    constant for array sizes. A local `const` whose initialiser is not
+    constant, or would break that rule, is declared without `const`. A
+    `const` parameter loses the qualifier, which in Godot refuses a uniform
+    as its argument.
+  - Two stages, one unit. A constant or struct the fragment stage defines
+    differently under a name the vertex stage used is renamed (Bliss's two
+    TAA offset tables differ in one entry), as functions already were.
+  - Names. A pack function named like a sampler call (Solas's
+    `texture2DShadow`) is an ordinary call, `...ARB` and `...EXT`
+    spellings are the built in, and overloads take GLSL's implicit int to
+    uint conversion as well as int to float (Kappa's `const uint` steps).
+  - Operators. A shift's right operand takes the left one's signedness, a
+    matrix is negated as `m * -1.0`, and a scalar's swizzle (`u.xxx`) is a
+    broadcast. An array return type keeps its size, and a `for`
+    initialiser keeps its declarators on one line.
+  - Inputs. An attribute is read at the width and type the pack declared
+    (Noble's `vec3 at_midBlock`), as GL drops trailing components. A
+    sampler Goanna binds nothing to that is not a plain 2D one (voxel
+    volumes, integer samplers, arrays) reads zero of its type, a custom
+    image load reads zero and a store is dropped, as an unbound unit
+    behaves. `MC_NORMAL_MAP` and `MC_SPECULAR_MAP` are defined, as Iris
+    defines them unconditionally, and `normals` reads a flat normal where
+    no normal array is bound, as Iris's default does.
 - Varyings are packed (since 2026-10-13). On the GPU Godot counts each
   varying declaration as one against a limit of 32, with its own spatial
   varyings included: MakeUp's terrain declared 21 and Godot counted 33. The

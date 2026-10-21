@@ -349,6 +349,15 @@ private:
     std::set<std::string> m_structs;
     std::map<std::string, const StructDef *> m_struct_defs;
     std::vector<std::string> m_struct_code;
+    // A struct the fragment stage defines differently under a name the
+    // vertex stage has used: pack name -> Godot name, per stage.
+    std::map<std::string, std::string> m_struct_alias[2];
+    std::map<std::string, std::string> m_struct_text;
+    std::string structName(const std::string &n) const {
+        auto &a = m_struct_alias[si(m_stage)];
+        auto it = a.find(n);
+        return it == a.end() ? n : it->second;
+    }
 
     // Globals of one stage: pack name -> symbol. Varyings, outputs,
     // uniforms, consts and lazy globals all live here.
@@ -405,6 +414,17 @@ private:
     bool m_layer_needed = false;
     bool m_texmat1 = false;
     std::string m_mc_entity_type = "vec4";
+    // Attributes as the pack declared them, by name. GL hands a narrower
+    // declaration the leading components (Noble's vec3 at_midBlock).
+    std::map<std::string, std::string> m_attr_types;
+    Val declaredAttr(const std::string &n, Val v) {
+        auto it = m_attr_types.find(n);
+        if (it == m_attr_types.end()) return v;
+        Ty t = tyFromName(it->second, m_structs);
+        if (!t.known() || t.isMatrix() || t.array || t.n > v.t.n) return v;
+        if (t.n < v.t.n) v = {"(" + v.code + ")." + std::string("xyzw").substr(0, t.n), Ty::vec(v.t.b, t.n), false};
+        return castBase(v, t.b);
+    }
     std::string m_mc_midtex_type = "vec4";
 
     // Emission state
@@ -471,7 +491,7 @@ private:
     }
 
     Ty specTy(const TypeSpec &ts) {
-        Ty t = tyFromName(ts.name, m_structs);
+        Ty t = tyFromName(structName(ts.name), m_structs);
         if (ts.array) t.array = true;
         if (!t.known())
             warn("unknown type '" + ts.name + "'");
@@ -515,6 +535,48 @@ private:
             return v;
         }
         return v;
+    }
+    // v converted to base b at its own width, as Godot spells it.
+    Val castBase(const Val &v, Ty::B b) {
+        if (v.t.b == b) return v;
+        Ty to = v.t;
+        to.b = b;
+        if (b == Ty::Float || ((b == Ty::Int || b == Ty::Uint) && (v.t.b == Ty::Int || v.t.b == Ty::Uint))) {
+            Val c = conv(v, to);
+            if (c.t == to) return c;
+        }
+        if (b == Ty::Bool && v.t.n > 1) {
+            const char *zero = v.t.b == Ty::Float ? "0.0" : v.t.b == Ty::Uint ? "0u" : "0";
+            return {"notEqual(" + v.code + ", " + v.t.godot() + "(" + zero + "))", to, false};
+        }
+        return {to.godot() + "(" + v.code + ")", to, false};
+    }
+    // Whether emitted code calls, indexes or selects a member. Godot takes
+    // such an argument to a built in function in a constant initialiser
+    // only through a constant of its own (hoistConst); constructor
+    // arguments and the top level are free.
+    static bool callish(const std::string &code) {
+        for (size_t i = 0; i < code.size(); ++i) {
+            char c = code[i];
+            if (c == '[') return true;
+            if (c == '.' && i + 1 < code.size() && std::isalpha((unsigned char)code[i + 1])) return true;
+            if (c == '(' && i > 0) {
+                size_t j = i;
+                while (j > 0 && code[j - 1] == ' ') --j;
+                if (j > 0 && (std::isalnum((unsigned char)code[j - 1]) || code[j - 1] == '_')) return true;
+            }
+        }
+        return false;
+    }
+    // Inside a global constant's initialiser (m_const_ctx), a value Godot
+    // would refuse as a built in function's argument becomes a constant of
+    // its own, declared just before the one being emitted.
+    bool m_const_ctx = false;
+    void hoistConst(Val &v) {
+        if (!m_const_ctx || !v.t.known() || v.t.array || !callish(v.code)) return;
+        std::string n = uniqueGlobal("goanna_const");
+        addDecl("const " + v.t.godot() + " " + n + " = " + v.code + ";");
+        v.code = n;
     }
     // Promote two operands of an arithmetic or comparison operator.
     void promote(Val &a, Val &b) {
@@ -568,7 +630,7 @@ private:
     Val textureCall(const std::string &fn, const std::string &sampler, std::vector<Val> &args, const Expr &e);
     Val member(const Expr &e);
     std::string stmt(const StmtP &s, int indent);
-    std::string declStmt(const Stmt &s, const std::string &pad);
+    std::string declStmt(const Stmt &s, const std::string &pad, bool for_init = false);
     FuncSym *resolve(const std::string &name, std::vector<Val> &args);
     void emitFunction(FuncSym &f);
     std::string emitMain(Stage st, std::string &err);
@@ -699,8 +761,8 @@ Val Translator::builtinIdent(const std::string &n, bool &found) {
             v.t = Ty::vec(Ty::Float, k);
             return v;
         }
-        if (n == "at_tangent") return input("goanna_gl_Tangent", Ty::vec(Ty::Float, 4));
-        if (n == "at_midBlock") return input("goanna_gl_MidBlock", Ty::vec(Ty::Float, 4));
+        if (n == "at_tangent") return declaredAttr(n, input("goanna_gl_Tangent", Ty::vec(Ty::Float, 4)));
+        if (n == "at_midBlock") return declaredAttr(n, input("goanna_gl_MidBlock", Ty::vec(Ty::Float, 4)));
         if (n == "gl_VertexID") { v.code = "VERTEX_ID"; v.t = Ty::scalar(Ty::Int); return v; }
         if (n == "gl_InstanceID") { v.code = "INSTANCE_ID"; v.t = Ty::scalar(Ty::Int); return v; }
         if (n == "gl_Position") {
@@ -899,6 +961,11 @@ Val Translator::member(const Expr &e) {
         default: break;
         }
     }
+    // A scalar's swizzle (GLSL 4.20's u.xxx) is a broadcast.
+    if (o.t.isScalar() && sw.find_first_not_of('x') == std::string::npos) {
+        Ty t = Ty::vec(o.t.b, (int)sw.size());
+        return {sw.size() == 1 ? o.code : t.godot() + "(" + o.code + ")", t, false};
+    }
     r.code = o.code + "." + sw;
     r.t = o.t.known() ? Ty::vec(o.t.b, (int)sw.size()) : Ty();
     return r;
@@ -918,7 +985,10 @@ FuncSym *Translator::resolve(const std::string &name, std::vector<Val> &args) {
             const Ty &p = f.params[i], &a = args[i].t;
             if (!a.known() || p == a) {
                 score += 2;
-            } else if (p.b == Ty::Float && a.numericInt() && p.n == a.n) {
+            } else if (p.n == a.n && !p.isMatrix() && !p.array &&
+                    ((p.b == Ty::Float && a.numericInt()) || (p.b == Ty::Uint && a.b == Ty::Int))) {
+                // GLSL's implicit conversions: int and uint to float, int
+                // to uint (Kappa passes 6 for a const uint).
                 score += 1;
             } else {
                 ok = false;
@@ -960,6 +1030,23 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
         // basic sky uses white there, observed with the cloudTex probe.
         role = SamplerRole::White;
     }
+    if (role == SamplerRole::Black && declaration != m_globals[si(m_stage)].end() &&
+            declaration->second.t.name != "sampler2D" && declaration->second.t.name.find("Shadow") == std::string::npos) {
+        // A voxel volume, an integer sampler or an array Goanna binds
+        // nothing to (Solas's and Rethinking Voxels's light volumes): it
+        // reads zero, as an unbound unit does, of the type the pack expects.
+        const std::string &dn = declaration->second.t.name;
+        warn("sampler '" + sampler + "' (" + dn + ") reads zero");
+        if (fn == "textureSize") {
+            int d = dn.find("3D") != std::string::npos || dn.find("Array") != std::string::npos ? 3
+                    : dn.find("1D") != std::string::npos                                        ? 1
+                                                                                                 : 2;
+            return {d == 1 ? "1" : "ivec" + std::to_string(d) + "(1)", Ty::vec(Ty::Int, d), false};
+        }
+        Ty::B b = dn[0] == 'u' ? Ty::Uint : dn[0] == 'i' ? Ty::Int : Ty::Float;
+        Ty t = Ty::vec(b, 4);
+        return {t.godot() + (b == Ty::Float ? "(0.0)" : b == Ty::Uint ? "(0u)" : "(0)"), t, false};
+    }
     const bool array = m_o.surface == GbuffersSurface::ArrayOpaque || m_o.surface == GbuffersSurface::ArrayCutout;
     auto coord = [&](const Val &uv) {
         if (!array) return uv.code;
@@ -991,7 +1078,7 @@ Val Translator::textureCall(const std::string &fn, const std::string &sampler, s
             tex = "normal_array";
             layered = true;
         } else {
-            tex = needGlobal("iris_tex_black", "sampler2D");
+            tex = needGlobal("iris_tex_flat_normal", "sampler2D");
         }
         break;
     case SamplerRole::Specular:
@@ -1128,10 +1215,17 @@ Val Translator::call(const Expr &e) {
         warn("method ." + e.text + "() not supported");
         return {o.code + "." + e.text + "()", Ty(), false};
     }
-    const std::string &fn = e.text;
-    // Sampler calls: the first argument names the sampler.
-    bool texfn = fn.rfind("texture", 0) == 0 || fn.rfind("shadow2D", 0) == 0 || fn.rfind("texelFetch", 0) == 0 ||
-            fn == "texelFetchOffset";
+    // texture2DGradARB and the rest: the extension's spelling of a built in.
+    std::string fn = e.text;
+    if ((fn.rfind("texture", 0) == 0 || fn.rfind("shadow2D", 0) == 0) && fn.size() > 3 && !m_funcs[si(m_stage)].count(fn) &&
+            (fn.compare(fn.size() - 3, 3, "ARB") == 0 || fn.compare(fn.size() - 3, 3, "EXT") == 0))
+        fn.resize(fn.size() - 3);
+    // Sampler calls: the first argument names the sampler. A pack function
+    // of its own named like one (Solas's texture2DShadow) is an ordinary
+    // call.
+    bool texfn = (fn.rfind("texture", 0) == 0 || fn.rfind("shadow2D", 0) == 0 || fn.rfind("texelFetch", 0) == 0 ||
+                         fn == "texelFetchOffset") &&
+            !m_funcs[si(m_stage)].count(fn);
     if (texfn && !e.a.empty() && e.a[0]->kind == Expr::Ident) {
         const std::string &s = e.a[0]->text;
         auto &g = m_globals[si(m_stage)];
@@ -1166,6 +1260,30 @@ Val Translator::call(const Expr &e) {
             return textureCall(fn, s, args, e);
         }
     }
+    // Image load/store on a custom image (Rethinking Voxels's voxel maps),
+    // which Goanna binds nothing to: a load reads zero of the image's type,
+    // a size is one, and a store or atomic writes nowhere.
+    if (fn.rfind("image", 0) == 0 && !e.a.empty() && e.a[0]->kind == Expr::Ident && !m_funcs[si(m_stage)].count(fn)) {
+        auto g = m_globals[si(m_stage)].find(e.a[0]->text);
+        if (g != m_globals[si(m_stage)].end() && g->second.t.name.find("image") != std::string::npos) {
+            const std::string &dn = g->second.t.name;
+            warn("image '" + e.a[0]->text + "' (" + dn + ") is not bound: loads read zero, stores are dropped");
+            Ty::B b = dn[0] == 'u' ? Ty::Uint : dn[0] == 'i' ? Ty::Int : Ty::Float;
+            const char *zero = b == Ty::Float ? "0.0" : b == Ty::Uint ? "0u" : "0";
+            if (fn == "imageStore") return {"", Ty::scalar(Ty::Void), false};
+            if (fn == "imageSize") {
+                int d = dn.find("3D") != std::string::npos || dn.find("Array") != std::string::npos ? 3
+                        : dn.find("1D") != std::string::npos                                        ? 1
+                                                                                                     : 2;
+                return {d == 1 ? "1" : "ivec" + std::to_string(d) + "(1)", Ty::vec(Ty::Int, d), false};
+            }
+            if (fn == "imageLoad") {
+                Ty t = Ty::vec(b, 4);
+                return {t.godot() + "(" + zero + ")", t, false};
+            }
+            return {zero, Ty::scalar(b), false};
+        }
+    }
     if (fn == "ftransform" && m_stage == Stage::Vertex) {
         bool f;
         Val vtx = builtinIdent("gl_Vertex", f);
@@ -1185,7 +1303,7 @@ Val Translator::call(const Expr &e) {
         return s;
     };
     // Constructors
-    Ty ct = tyFromName(fn, m_structs);
+    Ty ct = tyFromName(structName(fn), m_structs);
     if (ct.known() && ct.b != Ty::Sampler && ct.b != Ty::Void) {
         if (e.array_ctor) {
             Ty el = ct;
@@ -1213,6 +1331,48 @@ Val Translator::call(const Expr &e) {
         }
         if (!ct.isMatrix() && ct.n == 1 && args.size() == 1 && args[0].t == ct)
             return {"(" + args[0].code + ")", ct, false};
+        if (!ct.isMatrix()) {
+            // GLSL builds a vector or scalar from any mix of scalars, vectors
+            // and square matrices (by columns) of any base type, converting
+            // each component and dropping what the last argument has left
+            // over: vec3(gbufferModelViewInverse * p), ivec2(float),
+            // bvec2(float, int). Godot takes only arguments of the target's
+            // base type that fill it exactly, so each is converted and cut.
+            std::vector<Val> parts;
+            bool ok = true;
+            for (auto &a : args) {
+                if (!a.t.known() || a.t.array || a.t.b == Ty::Struct || a.t.b == Ty::Sampler ||
+                        (a.t.isMatrix() && a.t.cols != a.t.rows)) {
+                    ok = false;
+                    break;
+                }
+                if (a.t.isMatrix()) {
+                    for (int c = 0; c < a.t.cols; ++c)
+                        parts.push_back({"(" + a.code + ")[" + std::to_string(c) + "]", Ty::vec(Ty::Float, a.t.rows),
+                                false});
+                } else {
+                    parts.push_back(a);
+                }
+            }
+            if (ok && !parts.empty()) {
+                bool broadcast = parts.size() == 1 && parts[0].t.n == 1;
+                std::vector<Val> cut;
+                int have = 0;
+                for (auto &p : parts) {
+                    if (have >= ct.n) break;
+                    Val q = p;
+                    if (!broadcast && have + q.t.n > ct.n) {
+                        int keep = ct.n - have;
+                        q = {"(" + q.code + ")." + std::string("xyzw").substr(0, keep), Ty::vec(q.t.b, keep), false};
+                    }
+                    q = castBase(q, ct.b);
+                    have += broadcast ? ct.n : q.t.n;
+                    cut.push_back(q);
+                }
+                if (ct.n == 1) return {cut[0].code, ct, cut[0].int_lit};
+                return {ct.godot() + "(" + join(cut) + ")", ct, false};
+            }
+        }
         if (ct.isMatrix() && ct.cols != ct.rows) {
             // Godot has square matrices only. A CxR matrix becomes the
             // square one of the larger size, its columns padded with zeros
@@ -1282,6 +1442,10 @@ Val Translator::call(const Expr &e) {
         return {f->emitted + "(" + join(args) + ")", f->ret, false};
     }
     // Built in functions
+    auto bjoin = [&](std::vector<Val> &v) {
+        for (auto &x : v) hoistConst(x);
+        return join(v);
+    };
     Ty widest;
     bool anyFloat = false;
     for (auto &a : args) {
@@ -1300,7 +1464,7 @@ Val Translator::call(const Expr &e) {
                 }
             if (widest.known()) widest.b = Ty::Float;
         }
-        return {fn + "(" + join(args) + ")", widest, false};
+        return {fn + "(" + bjoin(args) + ")", widest, false};
     }
     auto withFloats = [&]() {
         for (auto &a : args)
@@ -1312,7 +1476,7 @@ Val Translator::call(const Expr &e) {
     };
     if (fn == "length" || fn == "distance" || fn == "dot" || fn == "determinant") {
         withFloats();
-        return {fn + "(" + join(args) + ")", Ty::scalar(Ty::Float), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::scalar(Ty::Float), false};
     }
     if (fn == "modf" && args.size() == 2) {
         // Godot has it, with the whole part an out parameter as in GLSL;
@@ -1322,42 +1486,42 @@ Val Translator::call(const Expr &e) {
             to.b = Ty::Float;
             args[0] = conv(args[0], to);
         }
-        return {fn + "(" + join(args) + ")", args[0].t, false};
+        return {fn + "(" + bjoin(args) + ")", args[0].t, false};
     }
     if (fn == "cross") {
         withFloats();
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Float, 3), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Float, 3), false};
     }
     if (fn == "outerProduct") {
         withFloats();
         int c = args.size() > 1 ? args[1].t.n : 4, r = args.empty() ? 4 : args[0].t.n;
-        return {fn + "(" + join(args) + ")", Ty::mat(c, r), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::mat(c, r), false};
     }
     if (fn == "all" || fn == "any")
-        return {fn + "(" + join(args) + ")", Ty::scalar(Ty::Bool), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::scalar(Ty::Bool), false};
     if (fn == "not")
-        return {fn + "(" + join(args) + ")", args.empty() ? Ty() : args[0].t, false};
+        return {fn + "(" + bjoin(args) + ")", args.empty() ? Ty() : args[0].t, false};
     if (fn == "lessThan" || fn == "lessThanEqual" || fn == "greaterThan" || fn == "greaterThanEqual" ||
             fn == "equal" || fn == "notEqual") {
         if (args.size() == 2) promote(args[0], args[1]);
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Bool, widest.n), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Bool, widest.n), false};
     }
     if (fn == "isnan" || fn == "isinf")
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Bool, widest.n), false};
-    if (fn == "floatBitsToInt") return {fn + "(" + join(args) + ")", Ty::vec(Ty::Int, widest.n), false};
-    if (fn == "floatBitsToUint") return {fn + "(" + join(args) + ")", Ty::vec(Ty::Uint, widest.n), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Bool, widest.n), false};
+    if (fn == "floatBitsToInt") return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Int, widest.n), false};
+    if (fn == "floatBitsToUint") return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Uint, widest.n), false};
     if (fn == "intBitsToFloat" || fn == "uintBitsToFloat")
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Float, widest.n), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Float, widest.n), false};
     if (fn == "packUnorm2x16" || fn == "packSnorm2x16" || fn == "packUnorm4x8" || fn == "packSnorm4x8" ||
             fn == "packHalf2x16")
-        return {fn + "(" + join(args) + ")", Ty::scalar(Ty::Uint), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::scalar(Ty::Uint), false};
     if (fn == "unpackUnorm2x16" || fn == "unpackSnorm2x16" || fn == "unpackHalf2x16")
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Float, 2), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Float, 2), false};
     if (fn == "unpackUnorm4x8" || fn == "unpackSnorm4x8")
-        return {fn + "(" + join(args) + ")", Ty::vec(Ty::Float, 4), false};
+        return {fn + "(" + bjoin(args) + ")", Ty::vec(Ty::Float, 4), false};
     if (fn == "bitCount" || fn == "findLSB" || fn == "findMSB" || fn == "bitfieldExtract" ||
             fn == "bitfieldInsert" || fn == "bitfieldReverse")
-        return {fn + "(" + join(args) + ")", widest, false};
+        return {fn + "(" + bjoin(args) + ")", widest, false};
     if (fn == "texture2D" || fn.compare(0, 7, "texture") == 0) {
         warn("texture call on a sampler expression not translated");
         return {"vec4(0.0)", Ty::vec(Ty::Float, 4), false};
@@ -1384,6 +1548,9 @@ Val Translator::expr(const ExprP &ep) {
         Val o = expr(e.a[0]);
         if (o.int_lit && e.text == "-")
             return {"-" + o.code, o.t, true};
+        // Godot negates no matrix.
+        if (o.t.isMatrix() && e.text == "-")
+            return {"(" + o.code + " * -1.0)", o.t, false};
         return {e.text + "(" + o.code + ")", o.t, false};
     }
     case Expr::Postfix: {
@@ -1407,6 +1574,10 @@ Val Translator::expr(const ExprP &ep) {
                 return {"mod(" + l.code + ", " + r.code + ")", l.t.n >= r.t.n ? l.t : r.t, false};
             }
             if (op != "<<" && op != ">>") promote(l, r);
+            // A shift's operands may differ in signedness in GLSL, never in
+            // Godot; the result has the left operand's type either way.
+            if ((op == "<<" || op == ">>") && l.t.numericInt() && r.t.numericInt() && l.t.b != r.t.b)
+                r = castBase(r, l.t.b);
             // GLSL lets an integer vector meet a scalar here; Godot wants
             // the scalar widened (Photon's ivec2 & int).
             auto widen = [](Val &s, const Ty &v) {
@@ -1528,9 +1699,21 @@ Val Translator::expr(const ExprP &ep) {
 
 // ---- statements
 
-std::string Translator::declStmt(const Stmt &s, const std::string &pad) {
+// A for loop's initialiser keeps its declarators on one line (for (int i =
+// 0, j = 4; ...)); anywhere else each is a statement of its own.
+std::string Translator::declStmt(const Stmt &s, const std::string &pad, bool for_init) {
     std::string out;
     Ty base = specTy(s.type);
+    // GLSL compilers take a local const from a value only known at run time;
+    // Godot holds a local const to a constant initialiser, and to the same
+    // rule for built in function arguments as a global one (hoistConst).
+    // A local that would break either is declared without const.
+    std::vector<std::string> ones;
+    bool keep_const = s.is_const && std::all_of(s.decls.begin(), s.decls.end(), [&](const Declarator &d) {
+        return d.has_list ? std::all_of(d.init_list.begin(), d.init_list.end(),
+                                    [&](const ExprP &x) { return constExpr(x, m_stage); })
+                          : constExpr(d.init, m_stage);
+    });
     for (auto &d : s.decls) {
         Ty t = base;
         std::string size;
@@ -1550,8 +1733,15 @@ std::string Translator::declStmt(const Stmt &s, const std::string &pad) {
             init = conv(expr(d.init), t).code;
         }
         std::string name = declareLocal(d.name, t);
-        out += pad + (s.is_const ? "const " : "") + base.elem().godot() + " " + name +
-                (array ? "[" + size + "]" : "") + (init.empty() ? "" : " = " + init) + ";\n";
+        ones.push_back(name + (array ? "[" + size + "]" : "") + (init.empty() ? "" : " = " + init));
+        if (callish(init)) keep_const = false;
+    }
+    std::string type = (keep_const ? "const " : "") + base.elem().godot() + " ";
+    for (size_t i = 0; i < ones.size(); ++i) {
+        if (for_init)
+            out += (i ? ", " : type) + ones[i];
+        else
+            out += pad + type + ones[i] + ";\n";
     }
     return out;
 }
@@ -1583,7 +1773,10 @@ std::string Translator::stmt(const StmtP &sp, int indent) {
         };
         split(s.e);
         std::string o;
-        for (auto &x : parts) o += pad + expr(x).code + ";\n";
+        for (auto &x : parts) {
+            std::string c = expr(x).code;
+            if (!c.empty()) o += pad + c + ";\n";
+        }
         return o;
     }
     case Stmt::If: {
@@ -1599,7 +1792,9 @@ std::string Translator::stmt(const StmtP &sp, int indent) {
     case Stmt::For: {
         m_scopes.emplace_back();
         std::string init;
-        if (s.s1) {
+        if (s.s1 && s.s1->kind == Stmt::Decl) {
+            init = declStmt(*s.s1, "", true);
+        } else if (s.s1) {
             init = stmt(s.s1, 0);
             while (!init.empty() && (init.back() == '\n' || init.back() == ';')) init.pop_back();
         }
@@ -1761,13 +1956,17 @@ void Translator::emitFunction(FuncSym &f) {
     m_cur_func = &f;
     m_loop_depth = m_switch_depth = 0;
 
-    std::string sig = f.ret.godot() + (f.ret.array ? "[]" : "") + " " + f.emitted + "(";
+    // Godot wants an array return type's size written out.
+    std::string sig = f.ret.godot() + (f.ret.array ? "[" + (f.f->ret.size ? expr(f.f->ret.size).code : "") + "]" : "") +
+            " " + f.emitted + "(";
     for (size_t i = 0; i < f.f->params.size(); ++i) {
         const Param &p = f.f->params[i];
         Ty t = f.params[i];
         if (i) sig += ", ";
         if (!p.qual.empty() && p.qual != "in") sig += p.qual + " ";
-        if (p.is_const && (p.qual.empty() || p.qual == "in")) sig += "const ";
+        // GLSL's const parameter is only read-only; Godot's refuses a
+        // uniform as its argument (Shrimple's getJitterOffset(frameCounter)),
+        // so it is left off.
         std::string name = declareLocal(p.name.empty() ? "goanna_unused" + std::to_string(i) : p.name, t);
         sig += t.elem().godot() + " " + name;
         if (t.array) sig += "[" + (p.size ? expr(p.size).code : (f.f->params[i].type.size ? expr(f.f->params[i].type.size).code : "")) + "]";
@@ -1826,26 +2025,36 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
     Unit &u = m_unit[si(st)];
     auto &globals = m_globals[si(st)];
     // Structs are shared: both stages see the same definition, emitted once.
+    // GLSL compiles the stages apart, so the fragment stage may define a
+    // different struct under the same name; that one is renamed.
     for (auto &it : u.items) {
         if (it.kind != Item::StructItem) continue;
-        if (m_struct_defs.count(it.def.name)) continue;
-        m_structs.insert(it.def.name);
-        m_struct_defs[it.def.name] = &it.def;
-        std::string code = "struct " + it.def.name + " {\n";
-        for (auto &f : it.def.fields) {
-            Ty t = specTy(f.type);
-            std::string size = f.size ? "" : "";
-            code += "\t" + t.godot() + " " + f.name;
-            if (f.array) {
-                m_scopes.emplace_back();
-                code += "[" + (f.size ? expr(f.size).code : "") + "]";
-                m_scopes.pop_back();
+        auto text = [&](const std::string &name) {
+            std::string code = "struct " + name + " {\n";
+            for (auto &f : it.def.fields) {
+                Ty t = specTy(f.type);
+                code += "\t" + t.godot() + " " + f.name;
+                if (f.array) {
+                    m_scopes.emplace_back();
+                    code += "[" + (f.size ? expr(f.size).code : "") + "]";
+                    m_scopes.pop_back();
+                }
+                code += ";\n";
             }
-            code += ";\n";
+            return code + "};";
+        };
+        std::string name = it.def.name;
+        if (m_struct_defs.count(name)) {
+            if (text(name) == m_struct_text[name]) continue;
+            name = uniqueGlobal(name + "_frag");
+            m_struct_alias[si(st)][it.def.name] = name;
         }
-        code += "};";
+        m_structs.insert(name);
+        m_struct_defs[name] = &it.def;
+        std::string code = text(name);
+        m_struct_text[name] = code;
         m_struct_code.push_back(code);
-        m_used_names.insert(it.def.name);
+        m_used_names.insert(name);
     }
     m_scopes.clear();
     m_scopes.emplace_back();
@@ -2022,6 +2231,7 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
             }
             if (st == Stage::Vertex && (st_ == "attribute" || st_ == "in")) {
                 bool found = false;
+                m_attr_types[d.name] = g.type.name;
                 if (d.name == "mc_Entity") m_mc_entity_type = g.type.name;
                 if (d.name == "mc_midTexCoord") m_mc_midtex_type = g.type.name;
                 // Known attributes resolve through builtinIdent on use.
@@ -2059,19 +2269,19 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                                 : constExpr(d.init, st));
             if (st_ == "const" || promote_const) {
                 m_consts[si(st)].insert(d.name);
+                m_const_ctx = true;
+                // An element of a constant list is held to the same rule as
+                // a built in function's argument.
+                auto element = [&](const ExprP &x) {
+                    Val v = conv(expr(x), t.elem());
+                    hoistConst(v);
+                    return v.code;
+                };
                 std::string init = d.has_list ? "" : (d.init ? conv(expr(d.init), t).code : "");
                 if (d.has_list) {
                     for (size_t i = 0; i < d.init_list.size(); ++i)
-                        init += (i ? ", " : "") + conv(expr(d.init_list[i]), t.elem()).code;
+                        init += (i ? ", " : "") + element(d.init_list[i]);
                     init = "{" + init + "}";
-                }
-                auto &other = m_globals[1 - si(st)];
-                auto o = other.find(d.name);
-                std::string name;
-                if (o != other.end() && o->second.t == t) {
-                    name = o->second.emitted;
-                } else {
-                    name = uniqueGlobal(d.name);
                 }
                 std::string size = d.array ? "[" + (d.size ? expr(d.size).code : "") + "]" : "";
                 // Godot wants a global const array sized and initialised
@@ -2079,13 +2289,29 @@ bool Translator::collectGlobals(Stage st, std::string &err) {
                 if (d.array && d.init && d.init->kind == Expr::Call && d.init->array_ctor) {
                     init.clear();
                     for (size_t i = 0; i < d.init->a.size(); ++i)
-                        init += (i ? ", " : "") + conv(expr(d.init->a[i]), t.elem()).code;
+                        init += (i ? ", " : "") + element(d.init->a[i]);
                     init = "{" + init + "}";
                     if (!d.size) size = "[" + std::to_string(d.init->a.size()) + "]";
                 } else if (d.array && d.has_list && !d.size) {
                     size = "[" + std::to_string(d.init_list.size()) + "]";
                 }
-                addDecl("const " + t.elem().godot() + " " + name + size + " = " + init + ";");
+                m_const_ctx = false;
+                // The stages are one unit in Godot and two in GLSL: the
+                // other stage's constant of this name is reused only when it
+                // is the same constant (Bliss's two TAA offset tables
+                // differ in one entry).
+                auto line = [&](const std::string &n) {
+                    return "const " + t.elem().godot() + " " + n + size + " = " + init + ";";
+                };
+                auto &other = m_globals[1 - si(st)];
+                auto o = other.find(d.name);
+                std::string name;
+                if (o != other.end() && o->second.t == t && m_decl_seen.count(line(o->second.emitted))) {
+                    name = o->second.emitted;
+                } else {
+                    name = uniqueGlobal(d.name);
+                }
+                addDecl(line(name));
                 globals[d.name] = {name, t};
                 continue;
             }

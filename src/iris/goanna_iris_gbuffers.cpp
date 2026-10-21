@@ -409,6 +409,8 @@ void GoannaIrisGbuffers::makeTextures() {
     };
     m_white = solid(Color(1, 1, 1, 1));
     m_black = solid(Color(0, 0, 0, 0));
+    // Iris's default normal map where the resource pack has none: flat.
+    m_flat_normal = solid(Color(0.5, 0.5, 1, 1));
     // noisetex: white noise per channel, 256 square, as packs expect by
     // default (noiseTextureResolution). Seeded, so a frame is reproducible.
     Ref<Image> noise = Image::create_empty(256, 256, false, Image::FORMAT_RGBA8);
@@ -430,6 +432,7 @@ void GoannaIrisGbuffers::makeTextures() {
     m_lightmap = ImageTexture::create_from_image(lm);
     setGlobal("iris_tex_white", m_white);
     setGlobal("iris_tex_black", m_black);
+    setGlobal("iris_tex_flat_normal", m_flat_normal);
     setGlobal("iris_noisetex", m_noise);
     setGlobal("iris_lightmap", m_lightmap);
     // The shadow map until a shadow pass has drawn one: depth 1.0, so

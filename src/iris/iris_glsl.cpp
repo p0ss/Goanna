@@ -795,7 +795,7 @@ bool translate(const Program &p, const TranslateOptions &o, Translated &out, std
     for (auto &m : standardMacros())
         pre << "#define " << m.first << (m.second.empty() ? "" : " " + m.second) << "\n";
     if (o.labpbr)
-        pre << "#define MC_NORMAL_MAP\n#define MC_SPECULAR_MAP\n#define MC_TEXTURE_FORMAT_LAB_PBR\n";
+        pre << "#define MC_TEXTURE_FORMAT_LAB_PBR\n";
     for (auto f : kFormatNames)
         pre << "#define " << f << " 0\n";
     pre << o.extraDefines;

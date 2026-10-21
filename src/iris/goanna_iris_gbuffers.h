@@ -165,7 +165,7 @@ private:
     // block.properties: exact name and tag -> number
     std::map<std::string, int> m_block_ids;
     std::vector<std::pair<std::string, int>> m_block_tags;
-    godot::Ref<godot::ImageTexture> m_lightmap, m_noise, m_white, m_black;
+    godot::Ref<godot::ImageTexture> m_lightmap, m_noise, m_white, m_black, m_flat_normal;
     uint64_t m_t0 = 0, m_last_us = 0;
     int m_frame = 0;
     float m_rain = 0.0f, m_wetness = 0.0f;

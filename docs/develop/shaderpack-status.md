@@ -6,6 +6,52 @@ run is in [Shader pack testing](shaderpack-testing.md); why the chain alone
 cannot show any of these packs as its author intended is in the
 [survey of popular shader packs](../design/shaderpack-survey.md).
 
+## Every surveyed pack at the coastal village, 2026-10-20 and 21
+
+All 22 packs of the survey, at the versions in its table (downloaded again
+from Modrinth, Chocapic13 from CurseForge), were rendered at the two
+western village poses of the 13 October checkpoint: a copy of
+`goanna_coastal_reference_20261013`, time 0.42, 1920 by 1080, live range 40
+blocks and far terrain to 2048 nodes, with a native frame beside them. RTX
+3090 through the render service, Luanti 5.17.0, Mineclonia release 38561,
+Godot 4.5.1. Before this only the five packs of the Minecraft comparison
+had been run live.
+
+The first pass (20 October, at `f75aee56`) had Godot refuse translated
+geometry programs in 11 packs, five kinds of error between them, each a
+construction GL drivers take and Godot's shading language does not.
+Running every pack through Godot's front end headless, then a battery of
+neighbouring constructions, found the rest; the translator now handles
+them (`docs/design/iris-compat.md`, "The gbuffers translator, as built",
+and `tests/iris_gbuffers_glsl.gd`). Every surface of all 22 packs passes
+Godot's front end, and the second pass (21 October) logged no shader
+error in any pack.
+
+What the frames show after the second pass:
+
+| Pack | Village and shore |
+| --- | --- |
+| Complementary Reimagined, Complementary Unbound, BSL, MakeUp, Mellow, Photon, Miniature, Base-Shader | the whole scene in the pack's own look; unchanged by the fixes except BSL's sky, which now comes from its sky program |
+| AstraLex | the whole scene under heavy haze; its own sky and clouds now draw |
+| Chocapic13 | the whole scene with water and clouds (black terrain before); its clouds are flat slabs |
+| Solas, Rethinking Voxels | textured terrain and water, Rethinking Voxels bright (untextured white before); their voxel light volumes read zero |
+| Sildur's Vibrant | the scene with solid black water |
+| Super Duper Vanilla | the village under a pink haze; the shore frame is pure black |
+| Eclipse | overexposed white with dark speckles |
+| Shrimple | refused at load (compute shaders, custom images), so the native look |
+| Bliss | dark blue silhouettes |
+| Insanity | a grey, nearly flat scene |
+| Kappa | mostly sky; terrain only in a band near the horizon |
+| Nostalgia, Sildur's Enhanced Default | white |
+| Noble | terrain blown out white (untextured before) |
+
+The broken ones now compile and run, so what is left is a different
+class: translations that run and compute the wrong thing, or inputs a pack
+reads that Goanna does not yet give it. These are visual observations, not
+compatibility or performance claims. Frames and the job's results are under
+`build/shaderpack-coastal-20261020/` and `build/shaderpack-coastal-20261021/`
+in the checkout that ran them.
+
 ## Complementary leaf lighting, 2026-10-20
 
 Complementary Reimagined's bright mapped foliage came from its shadow

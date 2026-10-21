@@ -80,6 +80,17 @@ monotonicity, its texture cache and its vividness are checked with:
 godot --headless --path project --script res://tests/look_grade.gd
 ```
 
+The shader pack gbuffers translator's handling of GLSL that Godot's
+shading language refuses (implicit conversions in constructors, constant
+initialisers, names shared by the two stages and the rest listed in
+`docs/design/iris-compat.md`) is checked case by case, each one translated
+and compiled by Godot's own front end; `GOANNA_GLSL_CASE=name` runs one and
+prints its translation:
+
+```sh
+godot --headless --path project --script res://tests/iris_gbuffers_glsl.gd
+```
+
 An asset bundle's archive hash, payload hashes and composed profile are
 checked by installing one into a scratch root. It names the bundle and the
 hash it must match, so it also demonstrates that a superseded hash is

@@ -642,6 +642,9 @@ const std::map<std::string, std::string> &standardMacros() {
         {"MC_GL_VENDOR_OTHER", ""}, {"MC_GL_RENDERER_OTHER", ""}, {"MC_RENDER_QUALITY", "1.0"},
         {"MC_SHADOW_QUALITY", "1.0"}, {"MC_HAND_DEPTH", "0.125"}, {"IS_IRIS", ""}, {"IRIS_VERSION", "10800"},
         {"GOANNA", "1"},
+        // Iris defines both whatever the resource pack has, binding flat
+        // defaults; Bliss's geometry programs do not compile without them.
+        {"MC_NORMAL_MAP", ""}, {"MC_SPECULAR_MAP", ""},
         {"MC_RENDER_STAGE_NONE", "0"}, {"MC_RENDER_STAGE_SKY", "1"},
         {"MC_RENDER_STAGE_SUNSET", "2"}, {"MC_RENDER_STAGE_CUSTOM_SKY", "3"},
         {"MC_RENDER_STAGE_SUN", "4"}, {"MC_RENDER_STAGE_MOON", "5"},
