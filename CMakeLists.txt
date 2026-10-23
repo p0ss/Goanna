@@ -80,6 +80,7 @@ add_library(goanna SHARED
     src/goanna_radial_form.cpp
     src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
+    src/goanna_light_volume.cpp
     src/goanna_lod.cpp
     src/goanna_lod_storage.cpp
     src/goanna_horizon.cpp
@@ -136,6 +137,14 @@ add_executable(goanna_light_test EXCLUDE_FROM_ALL
 )
 target_include_directories(goanna_light_test PRIVATE src)
 target_link_libraries(goanna_light_test PRIVATE luanti_core)
+
+# The coloured block light flood fill behind the light volume, on grids
+# whose answer is known by inspection.
+add_executable(goanna_light_volume_test EXCLUDE_FROM_ALL
+    src/goanna_light_volume_test.cpp
+    src/goanna_light_volume.cpp
+)
+target_include_directories(goanna_light_volume_test PRIVATE src)
 
 # The shader pack gbuffers translator and its preprocessor, offline: the
 # text it writes, and with a pack directory the pack's programs translated.
@@ -354,6 +363,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_iris_shadow_test
     goanna_item_icon_test
     goanna_light_test
+    goanna_light_volume_test
     goanna_limbs_test
     goanna_lod_storage_test
     goanna_lod_test

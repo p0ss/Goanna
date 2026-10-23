@@ -42,6 +42,8 @@ code disagree, the code is right.
 
 - [Graphics tiers](graphics-tiers.md): the five presets and what each one
   sets.
+- [Light volume](light-volume.md): experimental coloured block light that
+  spreads by Luanti's rules round the camera, instead of the lamp pool.
 - [Render feature switches](render-feature-switches.md): the twenty
   switches that turn a rendering feature's work off.
 

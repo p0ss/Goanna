@@ -209,6 +209,10 @@ public:
     // set_solid_ice in the implementation for the trade it makes.
     void set_lamp_occlusion(bool enabled) { m_lamp_occlusion = enabled; }
     bool lamp_occlusion() const { return m_lamp_occlusion; }
+    // Coloured block light from a flood fill around the camera instead of
+    // the lamp pool (docs/systems/light-volume.md). Experimental.
+    void set_light_volume(bool enabled) { m_light_volume = enabled; }
+    bool light_volume() const { return m_light_volume; }
     void set_shadow_lamps(int n);
     int shadow_lamps() const { return m_shadow_lamps; }
     void set_lamp_shadow_distance(float distance) { m_lamp_shadow_distance = std::clamp(distance, 4.0f, 96.0f); }
@@ -607,6 +611,18 @@ private:
     double m_ms_lamp_occlusion = 0;
     std::chrono::steady_clock::time_point m_lamp_occlusion_updated{};
     void updateLampOcclusion(const godot::Vector3 &around);
+    bool m_light_volume = false;
+    godot::Ref<godot::ImageTexture3D> m_light_volume_tex;
+    std::string m_light_volume_signature;
+    double m_ms_light_volume = 0;
+    double m_ms_light_volume_scan = 0;
+    std::chrono::steady_clock::time_point m_light_volume_updated{};
+    // Each content's emitter colour, by content id, for the definitions
+    // counted by m_light_colour_defs.
+    std::vector<godot::Color> m_light_colour;
+    uint64_t m_light_colour_defs = UINT64_MAX;
+    godot::Color blockLightColour(const ContentFeatures &f, bool warm = true);
+    void updateLightVolume(const godot::Vector3 &around);
     std::unique_ptr<goanna::RenderScope> m_render_scope;
     double m_poll_budget_ms = 0.0;
     bool m_carve_active = false;

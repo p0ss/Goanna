@@ -153,6 +153,7 @@ nav:
           - Particle coverage: systems/particle-coverage.md
       - Graphics settings:
           - Graphics tiers: systems/graphics-tiers.md
+          - Light volume: systems/light-volume.md
           - Render feature switches: systems/render-feature-switches.md
       - Players and interface:
           - First person body: systems/first-person-body.md

@@ -538,8 +538,15 @@ void fragment() {
 	// past the pool's reach so a mid-distance village stays lit.
 	float lamp_bake = max(block_light_emission,
 			smoothstep(goanna_lamp_reach, goanna_lamp_reach * 1.5 + 48.0, length(VERTEX)));
-	if (lamp_bake > 0.0)
-		EMISSION += ALBEDO * v_nodelight.r * lamp_bake;
+	// Inside the light volume its coloured light stands in for both the
+	// lamp pool and the bake (nodes_array_common.gdshaderinc).
+	vec4 light_volume = goanna_block_light_volume(v_world, v_wnormal, fill_normal);
+	vec3 block_light = mix(vec3(v_nodelight.r * lamp_bake), light_volume.rgb, light_volume.a);
+	EMISSION += ALBEDO * block_light;
+	if (goanna_light_volume_box.w < 0.0) {
+		ALBEDO = vec3(0.0);
+		EMISSION = light_volume.rgb * light_volume.a;
+	}
 	if (debug_nodelight_strength > 0.0) {
 		ALBEDO = vec3(0.0);
 		EMISSION = v_nodelight * debug_nodelight_strength;

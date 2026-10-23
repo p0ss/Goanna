@@ -164,6 +164,7 @@ uniform float block_light_emission : hint_range(0.0, 4.0) = 0.0;
 // glow through the middle distance where its lamps have not made the pool
 // instead of going dark between the far bake and the near pool.
 global uniform float goanna_lamp_reach;
+#include "res://shaders/light_volume.gdshaderinc"
 // How rained-on the world currently is, 0 to 1: eased up over half a minute
 // of rain and back down over a few minutes after it stops, set beside the
 // storm cover in _apply_sky. What it does to a surface lives in the

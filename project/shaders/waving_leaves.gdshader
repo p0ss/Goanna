@@ -6,6 +6,7 @@
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
+#include "res://shaders/light_volume.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
 // The tile's art, set by materialFor.
@@ -154,6 +155,12 @@ void fragment() {
 		ROUGHNESS = mix(ROUGHNESS, 0.72, snow);
 		SPECULAR = mix(SPECULAR, 0.35, snow);
 	}
+	// The light volume's coloured block light (nodes_array_common.gdshaderinc),
+	// where the lamp pool lit foliage before. A leaf face reads the cell in front of it.
+	vec3 lv_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 lv_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	vec4 light_volume = goanna_block_light_volume(lv_world, lv_normal, lv_normal);
+	EMISSION += ALBEDO * light_volume.rgb * light_volume.a;
 	EMISSION += ALBEDO * mix(goanna_ground_fill, goanna_sky_fill,
 			clamp(0.5 + 0.5 * v_wnormal_y, 0.0, 1.0)) * v_skylight * sky_fill_strength;
 	// No sun or moon where Luanti has no sunlight, and F0 for light(); see

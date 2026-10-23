@@ -3,7 +3,8 @@
 
 // Light and sky. harvestLights notes bright nodes as blocks are meshed;
 // update_lights keeps a budget of OmniLight3Ds on the nearest, and
-// updateLampOcclusion the box that shades them. harvestMotes and
+// updateLampOcclusion the box that shades them, or updateLightVolume
+// replaces them with coloured block light. harvestMotes and
 // update_motes do the same for ambient motes. sky_state hands the server's
 // sky, sun, moon, stars, clouds, lighting and time of day to main.gd and the
 // sky director.
@@ -13,6 +14,7 @@
 // under its own mutex.
 
 #include "goanna_client_internal.h"
+#include "goanna_light_volume.h"
 
 using namespace godot;
 
@@ -215,21 +217,7 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
             }
         }
         l.level = f.light_source / 14.0f;
-        // colour from the node's first tile (torch textures average to warm orange)
-        video::SColor c(255, 255, 220, 160);
-        if (f.visuals) {
-            const TileLayer &tl = f.drawtype == NDT_FLOWINGLIQUID
-                    ? f.visuals->special_tiles[0].layers[0] : f.visuals->tiles[0].layers[0];
-            std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
-            if (!tname.empty())
-                c = m_session->tsrc()->getTextureAverageColor(tname);
-        }
-        // brighten: an average of a mostly-dark torch texture is dim
-        Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f);
-        float m = std::max(col.r, std::max(col.g, col.b));
-        if (m > 0.05f) col = col / m;
-        l.color = col.lerp(Color(1, 0.85, 0.6), 0.3f);
-        l.color.a = 1.0f;
+        l.color = blockLightColour(f);
         if (getenv("GOANNA_DEBUG_LIGHTS"))
             UtilityFunctions::print("goanna light: ", String(f.name.c_str()), " at ", l.pos,
                     " level ", (int)f.light_source, " colour ", l.color);
@@ -239,6 +227,181 @@ void GoannaClient::harvestLights(v3s16 bp, MapBlock *block) {
         m_block_lights.erase(bp);
     else
         m_block_lights[bp] = std::move(lights);
+}
+
+// A light source's colour: the average of its first tile (torch textures
+// average to warm orange), scaled so its brightest channel is 1. The lamp
+// pool then draws it a third of the way to a warm white (`warm`); the light
+// volume keeps it, or a soul torch's blue washes out to grey.
+Color GoannaClient::blockLightColour(const ContentFeatures &f, bool warm) {
+    video::SColor c(255, 255, 220, 160);
+    if (f.visuals) {
+        const TileLayer &tl = f.drawtype == NDT_FLOWINGLIQUID
+                ? f.visuals->special_tiles[0].layers[0] : f.visuals->tiles[0].layers[0];
+        std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
+        if (!tname.empty())
+            c = m_session->tsrc()->getTextureAverageColor(tname);
+        // The volume weights each texel by its brightness squared and its
+        // saturation, so the flame decides a torch's colour rather than its
+        // brown stick, which the plain average leaves reddish, and a
+        // redstone torch's red flame wins over its pale highlight.
+        GoannaTexture *gt = warm ? nullptr : m_session->tsrc()->goannaTexture(tl.texture_id);
+        video::IImage *img = gt ? (gt->isArray() ? gt->layerImage(tl.texture_layer_idx) : gt->image()) : nullptr;
+        if (img) {
+            const auto dim = img->getDimension();
+            double sum[3] = {0, 0, 0}, weight = 0;
+            for (u32 y = 0; y < dim.Height; ++y)
+                for (u32 x = 0; x < dim.Width; ++x) {
+                    const video::SColor px = img->getPixel(x, y);
+                    if (px.getAlpha() < 128) continue;
+                    const double r = px.getRed() / 255.0, g = px.getGreen() / 255.0, b = px.getBlue() / 255.0;
+                    const double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                    const double hi = std::max(r, std::max(g, b)), lo = std::min(r, std::min(g, b));
+                    const double sat = hi > 1e-3 ? (hi - lo) / hi : 0.0;
+                    const double w = lum * lum * (0.2 + sat);
+                    sum[0] += r * w;
+                    sum[1] += g * w;
+                    sum[2] += b * w;
+                    weight += w;
+                }
+            if (weight > 1e-6)
+                c = video::SColor(255, (u32)std::lround(255 * sum[0] / weight),
+                        (u32)std::lround(255 * sum[1] / weight), (u32)std::lround(255 * sum[2] / weight));
+        }
+    }
+    // brighten: an average of a mostly-dark torch texture is dim
+    Color col(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f);
+    float m = std::max(col.r, std::max(col.g, col.b));
+    if (m > 0.05f) col = col / m;
+    if (warm) col = col.lerp(Color(1, 0.85, 0.6), 0.3f);
+    col.a = 1.0f;
+    return col;
+}
+
+// The light volume: Luanti's block light, flooded again with the colour of
+// each source carried along, over the received map in a box round the
+// camera (goanna_light_volume.h), decoded with Luanti's light curve and
+// uploaded as a 3D texture the node shaders sample instead of the lamp pool. Rebuilt when the box moves a
+// mapblock or a block in it changes, at most four times a second.
+void GoannaClient::updateLightVolume(const Vector3 &around) {
+    static const char *kBox = "goanna_light_volume_box";
+    if (!m_light_volume || !m_session) {
+        set_view_shader_parameter(kBox, Vector4());
+        return;
+    }
+    const auto started = clock_t_::now();
+    if (m_light_volume_tex.is_valid() && ms_since(m_light_volume_updated) < 250.0) return;
+    m_light_volume_updated = started;
+    constexpr int nx = 128, ny = 64, nz = 128;
+    const int ox = (int)std::floor(around.x / 16.0f) * 16 - nx / 2;
+    const int oy = (int)std::floor(around.y / 16.0f) * 16 - ny / 2;
+    const int oz = (int)std::floor(around.z / 16.0f) * 16 - nz / 2;
+    const v3s16 low = getNodeBlockPos(v3s16(ox, oy, -(oz + nz - 1)));
+    const v3s16 high = getNodeBlockPos(v3s16(ox + nx - 1, oy + ny - 1, -oz));
+    std::unique_lock<std::mutex> lock(m_session->mapLock());
+    std::string signature = m_session->terrainPeer() + ":" + std::to_string(m_session->terrainDefinitions()) + ":" +
+            std::to_string(ox) + ":" + std::to_string(oy) + ":" + std::to_string(oz);
+    for (int z = low.Z; z <= high.Z; ++z)
+        for (int y = low.Y; y <= high.Y; ++y)
+            for (int x = low.X; x <= high.X; ++x)
+                signature += m_session->blockContentDigest(v3s16(x, y, z)) + ":" +
+                        std::to_string(m_session->blockRevision(v3s16(x, y, z)));
+    signature = hashing::sha256(signature);
+    // The box's w is the gain on Luanti's decoded light (1 unless
+    // GOANNA_LIGHT_VOLUME_GAIN says otherwise), negative when
+    // GOANNA_LIGHT_VOLUME_DEBUG asks for the volume's light alone.
+    static const bool debug = getenv("GOANNA_LIGHT_VOLUME_DEBUG") != nullptr;
+    static const float gain = getenv("GOANNA_LIGHT_VOLUME_GAIN") ? std::max(0.05f,
+            (float)std::atof(getenv("GOANNA_LIGHT_VOLUME_GAIN"))) : 1.0f;
+    const Vector4 box(ox - 0.5f, oy - 0.5f, oz - 0.5f, debug ? -gain : gain);
+    if (signature == m_light_volume_signature) {
+        set_view_shader_parameter(kBox, box);
+        return;
+    }
+    const NodeDefManager *ndef = m_session->nodeDefs();
+    if (m_light_colour_defs != m_session->terrainDefinitions()) {
+        m_light_colour.clear();
+        m_light_colour_defs = m_session->terrainDefinitions();
+    }
+    LightVolumeGrid grid;
+    grid.resize(nx, ny, nz);
+    // Light passes what Luanti lets it through, and air in blocks not yet
+    // received: an unloaded block reads dark in Luanti as well, but here it
+    // would cut a lamp's light at a block edge that is merely late.
+    MapBlock *last = nullptr;
+    v3s16 last_bp(-32768, -32768, -32768);
+    for (int z = 0; z < nz; ++z)
+        for (int y = 0; y < ny; ++y)
+            for (int x = 0; x < nx; ++x) {
+                const size_t i = grid.index(x, y, z);
+                const v3s16 np(ox + x, oy + y, -(oz + z));
+                const v3s16 bp = getNodeBlockPos(np);
+                if (bp != last_bp) { last = m_session->getBlock(bp); last_bp = bp; }
+                if (!last) { grid.pass[i] = 1; continue; }
+                const MapNode node = last->getNodeNoCheck(np - bp * MAP_BLOCKSIZE);
+                const content_t id = node.getContent();
+                if (id == CONTENT_IGNORE) { grid.pass[i] = 1; continue; }
+                const auto &f = ndef->get(node);
+                grid.pass[i] = f.light_propagates ? 1 : 0;
+                if (f.light_source == 0) continue;
+                if (m_light_colour.size() <= id) m_light_colour.resize(id + 1, Color(0, 0, 0, 0));
+                if (m_light_colour[id].a == 0.0f) {
+                    m_light_colour[id] = blockLightColour(f, false);
+                    if (getenv("GOANNA_LIGHT_VOLUME_DEBUG"))
+                        UtilityFunctions::print("light volume: ", String(f.name.c_str()), " level ",
+                                (int)f.light_source, " colour ", m_light_colour[id]);
+                }
+                const Color &col = m_light_colour[id];
+                grid.emit[i] = (uint8_t)std::min<int>(f.light_source, LIGHT_MAX);
+                grid.colour[i * 3] = (uint8_t)std::lround(255.0f * col.r);
+                grid.colour[i * 3 + 1] = (uint8_t)std::lround(255.0f * col.g);
+                grid.colour[i * 3 + 2] = (uint8_t)std::lround(255.0f * col.b);
+            }
+    lock.unlock();
+    const double scan_ms = ms_since(started);
+    ema(m_ms_light_volume_scan, scan_ms);
+    std::vector<uint8_t> level, colour;
+    const auto flood_started = clock_t_::now();
+    floodColouredLight(grid, level, colour);
+    const double flood_ms = ms_since(flood_started);
+    // Decoded with Luanti's curve, as the node mesh's block light is, so the
+    // volume and the baked light it fades into agree in brightness.
+    uint8_t curve[16];
+    for (int l = 0; l < 16; ++l) curve[l] = decode_light((u8)std::min(l, (int)LIGHT_MAX));
+    TypedArray<Ref<Image>> slices;
+    PackedByteArray bytes;
+    bytes.resize(nx * ny * 4);
+    for (int z = 0; z < nz; ++z) {
+        uint8_t *out = bytes.ptrw();
+        const uint8_t *lv = level.data() + (size_t)z * nx * ny;
+        const uint8_t *cl = colour.data() + (size_t)z * nx * ny * 3;
+        for (int k = 0; k < nx * ny; ++k) {
+            const int b = curve[lv[k]];
+            out[k * 4] = (uint8_t)((cl[k * 3] * b + 127) / 255);
+            out[k * 4 + 1] = (uint8_t)((cl[k * 3 + 1] * b + 127) / 255);
+            out[k * 4 + 2] = (uint8_t)((cl[k * 3 + 2] * b + 127) / 255);
+            out[k * 4 + 3] = 255;
+        }
+        slices.push_back(Image::create_from_data(nx, ny, false, Image::FORMAT_RGBA8, bytes));
+    }
+    if (m_light_volume_tex.is_null()) {
+        m_light_volume_tex.instantiate();
+        if (m_light_volume_tex->create(Image::FORMAT_RGBA8, nx, ny, nz, false, slices) != OK) {
+            m_light_volume_tex.unref();
+            set_view_shader_parameter(kBox, Vector4());
+            return;
+        }
+    } else {
+        m_light_volume_tex->update(slices);
+    }
+    m_light_volume_signature = signature;
+    set_view_shader_parameter("goanna_light_volume", m_light_volume_tex);
+    set_view_shader_parameter("goanna_light_volume_size", Vector3(nx, ny, nz));
+    set_view_shader_parameter(kBox, box);
+    const double total = ms_since(started);
+    ema(m_ms_light_volume, total);
+    UtilityFunctions::print("light volume: rebuilt at (", ox, ", ", oy, ", ", oz, ") in ", total, " ms, scan ",
+            scan_ms, " ms, flood ", flood_ms, " ms");
 }
 
 void GoannaClient::updateLampOcclusion(const Vector3 &around) {
@@ -355,6 +518,10 @@ void GoannaClient::updateLampOcclusion(const Vector3 &around) {
 
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
+    // The light volume replaces the lamp pool: both lighting a torch would
+    // count it twice.
+    updateLightVolume(around);
+    if (m_light_volume) max_lights = 0;
     if (max_lights <= 0) {
         // No candidate traversal or ranking for the fallback path. Negative
         // reach makes the existing baked-light blend complete even nearby.

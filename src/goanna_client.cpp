@@ -480,6 +480,8 @@ Dictionary GoannaClient::render_stats() {
     // meshing, and the budget per poll is what to raise.
     d["shared_lod_hits_process"] = (int64_t)sharedLodHits();
     d["lamp_occlusion_ms"] = m_ms_lamp_occlusion;
+    d["light_volume_ms"] = m_ms_light_volume;
+    d["light_volume_scan_ms"] = m_ms_light_volume_scan;
     d["shared_upload_hits"] = (int64_t)m_shared_upload_hits;
     d["shared_near_hits"] = (int64_t)m_shared_near_hits;
     d["shared_near_builds"] = (int64_t)m_shared_near_misses;
@@ -719,6 +721,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("update_lights", "around", "max_lights"), &GoannaClient::update_lights);
     ClassDB::bind_method(D_METHOD("set_lamp_occlusion", "enabled"), &GoannaClient::set_lamp_occlusion);
     ClassDB::bind_method(D_METHOD("lamp_occlusion"), &GoannaClient::lamp_occlusion);
+    ClassDB::bind_method(D_METHOD("set_light_volume", "enabled"), &GoannaClient::set_light_volume);
+    ClassDB::bind_method(D_METHOD("light_volume"), &GoannaClient::light_volume);
     ClassDB::bind_method(D_METHOD("set_shadow_lamps", "n"), &GoannaClient::set_shadow_lamps);
     ClassDB::bind_method(D_METHOD("shadow_lamps"), &GoannaClient::shadow_lamps);
     ClassDB::bind_method(D_METHOD("set_lamp_shadow_distance", "distance"), &GoannaClient::set_lamp_shadow_distance);

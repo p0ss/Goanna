@@ -113,8 +113,11 @@ void fragment() {
 			* clamp(occ, 0.0, 1.0);
 	float lamp_bake = max(block_light_emission,
 			smoothstep(goanna_lamp_reach, goanna_lamp_reach * 1.5 + 48.0, length(VERTEX)));
-	if (lamp_bake > 0.0)
-		EMISSION += ALBEDO * v_nodelight.r * lamp_bake;
+	// Inside the light volume its coloured light stands in for both the
+	// lamp pool and the bake (nodes_array_common.gdshaderinc).
+	vec4 light_volume = goanna_block_light_volume(v_world, v_wnormal, v_wnormal);
+	vec3 block_light = mix(vec3(v_nodelight.r * lamp_bake), light_volume.rgb, light_volume.a);
+	EMISSION += ALBEDO * block_light;
 	v_sun_gate = goanna_sun_gate(v_nodelight.g, v_nodelight.r);
 	v_specular = SPECULAR;
 }

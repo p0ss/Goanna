@@ -919,6 +919,7 @@ const SETTINGS := [
 	["Graphics/Lamps", "light_pool", "slider", "Lamp count", "Maximum direct lamp lights, independent of the shadow budget. Lamps outside the pool use propagated block light. Unshadowed direct lights can shine through walls.", 16.0, 256.0, 8.0],
 	["Graphics/Lamps", "render_dynamic_lights", "toggle", "Dynamic node lights", "Add direct lighting from nearby lamps and lava. Off uses propagated block light."],
 	["Graphics/Lamps", "lamp_occlusion", "toggle", "Block lamp occlusion", "Trace received full blocks to nearby lamps. Partial nodes and carried lights still need shadow maps for occlusion."],
+	["Graphics/Lamps", "light_volume", "toggle", "Coloured block light", "Experimental. Light from torches and other blocks spreads through the world around you in colour, instead of coming from individual lamps. Replaces the lamp pool while on."],
 	["Graphics/Lamps", "light_flicker", "toggle", "Flame flicker", "A subtle, steady brightness variance on torches, lanterns and other node lights, like a living flame rather than a fixed bulb. Turn off if moving light bothers you."],
 	["Graphics/Lamps", "render_carried_light", "toggle", "Carried light", "Add the camera-following light from held items and the cave fill."],
 	["Graphics/Shadows", "shadow_detail", "slider", "Shadow detail", "Size of the sun's shadow map: 2048, 4096 or 8192. Most of the cost is the step from 8192 to 4096, and 4096 is Godot's own default.", 0.0, 2.0, 1.0],
@@ -1180,6 +1181,7 @@ func _apply_setting(key: String, value: float) -> void:
 		"soft_texture_filtering": if client.has_method("set_soft_texture_filtering"): client.set_soft_texture_filtering(on)
 		"solid_ice": if client.has_method("set_solid_ice"): client.set_solid_ice(on)
 		"lamp_occlusion": client.set_lamp_occlusion(value > 0.5)
+		"light_volume": client.set_light_volume(value > 0.5)
 		"lamp_shadow_distance": client.set_lamp_shadow_distance(value)
 		"shadow_lamps": if client.has_method("set_shadow_lamps"): client.set_shadow_lamps(int(value))
 		"light_flicker": if client.has_method("set_light_flicker"): client.set_light_flicker(on)
@@ -1219,6 +1221,7 @@ func _setting_value(key: String, fallback: float) -> float:
 			return 1.0 if client.soft_texture_filtering() else 0.0
 		"solid_ice": if client.has_method("solid_ice"): return 1.0 if client.solid_ice() else 0.0
 		"lamp_occlusion": return 1.0 if client.lamp_occlusion() else 0.0
+		"light_volume": return 1.0 if client.light_volume() else 0.0
 		"lamp_shadow_distance": return client.lamp_shadow_distance()
 		"shadow_lamps": if client.has_method("shadow_lamps"): return float(client.shadow_lamps())
 		"light_flicker": if client.has_method("light_flicker"): return 1.0 if client.light_flicker() else 0.0

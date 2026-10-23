@@ -11,6 +11,7 @@
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
+#include "res://shaders/light_volume.gdshaderinc"
 render_mode cull_front, diffuse_burley, specular_schlick_ggx, alpha_to_coverage, depth_draw_always;
 
 // The terrain's sky fill (nodes_array_common.gdshaderinc) and the world's
@@ -544,6 +545,11 @@ void fragment() {
     AO = root_light.z*root_light.y;
     AO_LIGHT_AFFECT = 0.25;
     EMISSION = ALBEDO*goanna_sky_fill*root_light.y*root_light.z;
+    // The light volume's coloured block light (light_volume.gdshaderinc),
+    // read where the blade stands, which the lamp pool lit before.
+    vec4 light_volume = goanna_block_light_volume((INV_VIEW_MATRIX*vec4(VERTEX,1.0)).xyz, vec3(0.0),
+        vec3(0.0,1.0,0.0));
+    EMISSION += ALBEDO*light_volume.rgb*light_volume.a*root_light.z;
     if (debug_iterations) {
         ALBEDO = vec3(0.0);
         EMISSION = vec3(float(count)/float(march_steps),far_mix,0.0);
