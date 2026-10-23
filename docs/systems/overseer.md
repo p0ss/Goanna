@@ -240,6 +240,48 @@ live tests were updated to exercise that extra step. Drafts stay anchored
 when changing levels, retain their parameters after refusal, and retry
 with an identical request ID. Leaving still discards local draft state.
 
+### Noun-first selection
+
+In Select, clicking a cell (or Enter on the keyboard cursor) selects it,
+and Shift extends the selection to a box. Each selection sends one
+`affordances` request with the box; the server, not this view, decides
+what the selection is and which verbs apply (DorfCraft `docs/overseer.md`,
+"Affordances on the server"). A verb strip opens beside the selection with
+the server's answer: up to six verbs on number keys 1 to 6, the rest under
+More. Tool groups (crop, room type, storage type) fold into one verb, and
+the zone property control then picks the member. A verb the planner cannot
+use now stays in the strip, marked unavailable, and pressing it shows the
+server's reason. Only verbs naming a tool from the hello, or Progress, are
+drawn; an answer to an older selection is ignored.
+
+Choosing a verb sets the existing tool and fills both draft corners from
+the selection. Nothing is sent until Submit plan, which sends the ordinary
+`order` message. Progress opens Plans at the selected plan. Back clears the
+selection before leaving the tool, and changing level drops it. The strip
+buttons are ordinary focusable controls, reached with Tab or the right
+shoulder button, and the strip is rebuilt only when its content changes so
+a layer refresh does not take focus away. The strip has text labels and
+number prefixes only; there are no verb icons yet.
+
+`tests/overseer_verbs.gd` (structural, 23 checks) covers the request, stale
+answers, unknown tools, number keys, grouped verbs, unavailable verbs,
+Progress, mixed and empty answers, refusals, Back, level change and More.
+`tests/overseer_verbs_live.gd` fells two trees on the scratch overseer
+server: one by mouse (click the trunk, click Fell, click Submit plan) and
+one by keyboard only (arrows, Enter, 1, Tab to Submit plan, Enter), each
+through `Viewport.push_input` in a 1280 by 720 headless window. Its
+keyboard part starts by giving the map focus directly rather than
+tabbing to it.
+
+On 24 October 2026, with Godot 4.5.1 headless, Luanti 5.17.0 and
+Mineclonia release 38561, the live test passed all 12 checks: the server
+offered Fell for each observed trunk, accepted both plans, and a worker
+felled each tree. The server's own self-test passed 377 checks in the same
+run. The structural suites passed: verbs 23, overseer 79, UX 41 and cache
+16. Before this run Goanna could not open the view at all, because the
+server's package consolidation had renamed the HUD grant and channel; the
+server now uses `dorfcraft:overseer` and `dorfcraft:o:` again.
+
 The server supplies capabilities and action metadata. This uses DorfCraft's
 existing broad rights; the planned multiplayer role API and drafting-table
 mechanics are not built. Ledger and production management remain outside

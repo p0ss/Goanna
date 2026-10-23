@@ -42,6 +42,12 @@ var zone_options: OptionButton
 var zone_tools: Array = []
 var requirements: Label
 var player_location: Label
+var verb_strip: PanelContainer
+var verb_heading: Label
+var verb_row: HFlowContainer
+var verbs_expanded := false
+var verb_key: Variant = null
+const STRIP_VERBS := 6
 var nudges: VBoxContainer
 
 func label(parent: Node, text: String) -> Label:
@@ -201,6 +207,16 @@ func build(host: Node) -> void:
 	button(navigation, "Find you", view.recentre).tooltip_text = "Centre the map on your position and level"
 	button(navigation, "-", view.zoom.bind(-1)).tooltip_text = "Zoom out"
 	button(navigation, "+", view.zoom.bind(1)).tooltip_text = "Zoom in"
+	# The verb strip floats beside the selection. Its buttons are ordinary
+	# focusable controls, so Tab and a controller reach them as well.
+	verb_strip = box(view.root_control)
+	verb_strip.hide()
+	var verb_stack := VBoxContainer.new()
+	verb_strip.add_child(verb_stack)
+	verb_heading = label(verb_stack, "")
+	verb_heading.custom_minimum_size.x = 220
+	verb_row = HFlowContainer.new()
+	verb_stack.add_child(verb_row)
 	footer = box(view.root_control)
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	footer.offset_left = 12; footer.offset_right = -12
@@ -365,8 +381,76 @@ func update_capabilities(value: Dictionary) -> void:
 	refresh_tools()
 	refresh()
 
+## Labels the strip's buttons 1 to 6, matching the number keys. More shows
+## the rest in place; whether it should open a list or the tool family is
+## still open in the DorfCraft brief.
+func refresh_verbs() -> void:
+	var sel: Dictionary = view.selection
+	var shown: bool = not sel.is_empty() and int(sel.a.y) == view.level and view.tool == "inspect" \
+		and view.first_corner == null and view.pending.is_empty() and family not in ["Plans", "People", "Supplies"]
+	verb_strip.visible = shown
+	if not shown:
+		verbs_expanded = false
+		verb_key = null
+		return
+	var entries: Array = view.strip_entries(view.verbs)
+	# Layers refresh the panel each second; rebuilding would drop focus.
+	var key := [sel, view.verbs_answered, view.nouns, entries, verbs_expanded]
+	if key == verb_key:
+		place_verbs.call_deferred()
+		return
+	verb_key = key.duplicate(true)
+	view._clear_children(verb_row)
+	var names: Array[String] = []
+	for noun in view.nouns:
+		var count := int(noun.get("count", 1))
+		names.append({"tree": "Tree", "floor": "Floor", "plan": "Plan"}.get(noun.kind, str(noun.kind)) + (" (%d cells)" % count if count > 1 else ""))
+	if not view.verbs_answered: verb_heading.text = "Asking the server what this is"
+	elif names.is_empty(): verb_heading.text = "Nothing known here to act on"
+	elif entries.is_empty(): verb_heading.text = "%s: no shared actions" % ", ".join(names)
+	else: verb_heading.text = ", ".join(names)
+	var limit := entries.size() if verbs_expanded else mini(entries.size(), STRIP_VERBS)
+	for n in limit:
+		var entry: Dictionary = entries[n]
+		var text := ("%d  " % (n + 1) if n < STRIP_VERBS else "") + str(entry.label)
+		if entry.disabled: text += " (unavailable)"
+		var b := button(verb_row, text, view.choose_verb.bind(int(entry.verb)))
+		b.autowrap_mode = TextServer.AUTOWRAP_OFF
+		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		b.tooltip_text = str(entry.reason)
+		b.set_meta("verb", int(entry.verb))
+	if entries.size() > limit:
+		var more := button(verb_row, "More", func() -> void:
+			verbs_expanded = true
+			refresh())
+		more.autowrap_mode = TextServer.AUTOWRAP_OFF
+		more.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	place_verbs.call_deferred()
+
+func place_verbs() -> void:
+	if not is_instance_valid(verb_strip) or not verb_strip.visible: return
+	verb_strip.reset_size()
+	var size: Vector2 = view.get_viewport().get_visible_rect().size
+	var low := Vector2(left.offset_right + 8, top.position.y + top.size.y + 8)
+	var high := Vector2(size.x + panel.offset_left - 8, size.y + footer.offset_top - 8) - verb_strip.size
+	var at: Vector2 = view.selection_point() + Vector2(16, -verb_strip.size.y * 0.5)
+	verb_strip.position = Vector2(clampf(at.x, low.x, maxf(low.x, high.x)), clampf(at.y, low.y, maxf(low.y, high.y)))
+
+func first_verb() -> Button:
+	for child in verb_row.get_children():
+		if child is Button and not child.is_queued_for_deletion(): return child
+	return null
+
+## Presses the nth numbered verb button, as the number keys do.
+func press_verb(n: int) -> void:
+	var buttons: Array = []
+	for child in verb_row.get_children():
+		if child is Button and child.has_meta("verb") and not child.is_queued_for_deletion(): buttons.append(child)
+	if n >= 0 and n < mini(buttons.size(), STRIP_VERBS): view.choose_verb(int(buttons[n].get_meta("verb")))
+
 func refresh() -> void:
 	player_location.text = view.player_location_text()
+	refresh_verbs()
 	var is_plans := family == "Plans"
 	var is_overview := family in ["People", "Supplies"]
 	overview_text.visible = is_overview

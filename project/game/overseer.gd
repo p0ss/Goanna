@@ -34,6 +34,15 @@ var first_corner: Variant = null
 var last_corner: Variant = null
 var pending: Dictionary = {}
 var cursor: Dictionary = {}
+# Noun-first selection: the cells chosen in Select, and the verbs the server
+# says apply to them. The server decides what a selection is; this view only
+# draws its answer and turns a chosen verb into the existing tool and draft.
+var selection: Dictionary = {}
+var affordance_req := ""
+var nouns: Array = []
+var verbs: Array = []
+var verbs_answered := false
+var extend_selection := false
 var ui: RefCounted
 var plans_poll := 0.0
 var touch_start := Vector2.ZERO
@@ -294,6 +303,10 @@ func _open() -> void:
 	last_corner = null
 	pending = {}
 	cursor = {}
+	selection = {}
+	affordance_req = ""
+	verbs = []
+	nouns = []
 	ui = preload("res://game/overseer_ui.gd").new()
 	ui.build(self)
 
@@ -335,6 +348,8 @@ func _close() -> void:
 	_clear_layer()
 	build_materials.clear()
 	first_corner = null
+	selection = {}
+	affordance_req = ""
 	dragging = false
 	main.cam.cull_mask = saved_mask
 	if is_instance_valid(pad):
@@ -412,6 +427,8 @@ func _receive(msg: Dictionary) -> void:
 		ui.update_capabilities(msg.capabilities)
 	elif type == "overview":
 		ui.update_overview(msg)
+	elif type == "affordances":
+		_receive_affordances(msg)
 	elif type == "plans" and msg.get("plans") is Array:
 		ui.update_plans(msg.plans)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:
@@ -685,6 +702,11 @@ func change_level(step: int) -> void:
 	if not session_ready:
 		return
 	level = clampi(level + step, -30999, 30999)
+	# A selection belongs to its level; its verbs were answered for those cells.
+	selection = {}
+	affordance_req = ""
+	verbs = []
+	nouns = []
 	_move_camera()
 	_request_view()
 	refresh_draft()
@@ -1333,6 +1355,7 @@ func select_cell(pos: Dictionary) -> void:
 		return
 	cursor = pos.duplicate()
 	if tool == "inspect":
+		_select_for_verbs(pos, extend_selection)
 		inspector.text = "%s: unavailable" % str(pos)
 		if snapshot.is_empty() or snapshot.get("empty", false):
 			return
@@ -1380,6 +1403,129 @@ func select_cell(pos: Dictionary) -> void:
 		refresh_draft()
 		inspector.text = "Review the footprint, then submit. Workers have not been instructed."
 
+func _select_for_verbs(pos: Dictionary, extend: bool) -> void:
+	if extend and not selection.is_empty() and int(selection.a.y) == level:
+		selection.b = pos.duplicate()
+	else:
+		selection = {"a": pos.duplicate(), "b": pos.duplicate()}
+	request_id += 1
+	affordance_req = "verbs:%d" % request_id
+	verbs = []
+	nouns = []
+	verbs_answered = false
+	_send({"t": "affordances", "req": affordance_req, "a": selection.a.duplicate(), "b": selection.b.duplicate()})
+	refresh_draft()
+
+func clear_selection() -> void:
+	if selection.is_empty(): return
+	selection = {}
+	affordance_req = ""
+	verbs = []
+	nouns = []
+	refresh_draft()
+
+## Only the answer to the latest selection is kept, and only well formed
+## entries: a verb names a tool from the hello, or is Progress.
+func _receive_affordances(msg: Dictionary) -> void:
+	if affordance_req.is_empty() or str(msg.get("req", "")) != affordance_req:
+		return
+	verbs_answered = true
+	verbs = []
+	nouns = []
+	if not msg.get("ok", false):
+		inspector.text += "\n" + str(msg.get("reason", "The server refused this selection."))
+	else:
+		verbs = valid_verbs(msg.get("verbs"), tools)
+		if msg.get("nouns") is Array:
+			for noun in msg.nouns.slice(0, 8):
+				if noun is Dictionary and noun.get("kind") is String: nouns.append(noun)
+	if ui != null: ui.refresh()
+
+static func valid_verbs(value: Variant, known_tools: Array) -> Array:
+	var out: Array = []
+	if not value is Array: return out
+	var ids := {}
+	for t in known_tools:
+		if t is Dictionary: ids[str(t.get("id", ""))] = true
+	for v in value.slice(0, 64):
+		if not v is Dictionary or not v.get("id") is String: continue
+		if v.id == "progress":
+			if v.get("plans") is Array: out.append(v)
+		elif v.get("tool") is String and ids.has(v.tool):
+			out.append(v)
+	return out
+
+## The strip's entries: verbs in server order, with each tool group (crop,
+## room type, storage type) folded into one entry that opens its first
+## available member; the zone property control then picks among them.
+static func strip_entries(list: Array) -> Array:
+	var out: Array = []
+	var groups := {}
+	for i in list.size():
+		var v: Dictionary = list[i]
+		var group := str(v.get("group", ""))
+		if group.is_empty():
+			out.append({"verb": i, "label": str(v.get("label", v.id)), "disabled": v.get("disabled", false),
+				"reason": str(v.get("reason", v.get("help", "")))})
+			continue
+		if groups.has(group):
+			var entry: Dictionary = out[groups[group]]
+			if entry.disabled and not v.get("disabled", false):
+				entry.verb = i; entry.disabled = false; entry.reason = str(v.get("help", ""))
+			continue
+		groups[group] = out.size()
+		out.append({"verb": i, "label": group, "disabled": v.get("disabled", false),
+			"reason": str(v.get("reason", v.get("help", "")))})
+	return out
+
+## Turns a verb into the existing tool with the selection as its draft.
+## Review and submission are unchanged; nothing is sent here.
+func choose_verb(index: int) -> void:
+	if index < 0 or index >= verbs.size() or not pending.is_empty() or first_corner != null: return
+	var v: Dictionary = verbs[index]
+	if v.get("disabled", false):
+		inspector.text = str(v.get("reason", "This action is unavailable."))
+		return
+	if v.id == "progress":
+		var ids: Array = v.get("plans", [])
+		clear_selection()
+		ui.selected_id = str(ids[0]) if not ids.is_empty() else ""
+		ui.choose_family("Plans")
+		return
+	var definition: Dictionary = {}
+	for t in tools:
+		if str(t.id) == str(v.tool): definition = t
+	if definition.is_empty(): return
+	var a: Dictionary = selection.a.duplicate()
+	var b: Dictionary = selection.b.duplicate()
+	var family: String = ui.tool_family(definition)
+	if family != "Plans" and family != ui.family: ui.choose_family(family)
+	choose_tool(str(v.tool))
+	if tool != str(v.tool): return
+	first_corner = a
+	last_corner = b
+	refresh_draft()
+	inspector.text = "Review the footprint, then submit. Workers have not been instructed."
+
+## Where the strip sits: beside the selection's far corner, in screen space.
+func selection_point() -> Vector2:
+	if selection.is_empty() or camera == null: return Vector2.ZERO
+	var x := maxf(selection.a.x, selection.b.x) + 0.5
+	var z := minf(selection.a.z, selection.b.z) - 0.5
+	return camera.unproject_position(Vector3(x, level + 30.1, -z))
+
+func _draw_selection() -> void:
+	if selection.is_empty() or int(selection.a.y) != level: return
+	var left := minf(selection.a.x, selection.b.x) - 0.5
+	var right := maxf(selection.a.x, selection.b.x) + 0.5
+	var north := minf(selection.a.z, selection.b.z) - 0.5
+	var south := maxf(selection.a.z, selection.b.z) + 0.5
+	var material := _colour(Color(1.0, 0.85, 0.35))
+	_planes(preview, [Vector3((left + right) * 0.5, level + 30.12, -north),
+		Vector3((left + right) * 0.5, level + 30.12, -south)], material, right - left, 0.06)
+	_planes(preview, [Vector3(left, level + 30.12, -(north + south) * 0.5),
+		Vector3(right, level + 30.12, -(north + south) * 0.5)], material, 0.06, south - north)
+
 func tool_definition() -> Dictionary:
 	for entry in tools:
 		if str(entry.id) == tool: return entry
@@ -1396,6 +1542,7 @@ func choose_tool(id: String) -> void:
 			inspector.text = str(entry.get("reason", "This action is unavailable."))
 			return
 		tool = id
+		if id != "inspect": clear_selection()
 		_update_materials(material_catalog)
 		inspector.text = str(tool_definition().get("help", "Select a cell." if id == "inspect" else "Choose two corners. Selecting does not submit work."))
 		ui.refresh()
@@ -1444,6 +1591,7 @@ func refresh_draft() -> void:
 		_preview_box(last_corner if last_corner != null else first_corner)
 	else:
 		_clear_children(preview)
+		_draw_selection()
 	if ui != null: ui.refresh()
 
 func submit_draft() -> void:
@@ -1494,6 +1642,7 @@ func go_back() -> void:
 	if not pending.is_empty():
 		inspector.text = "Submission pending. Use Leave to exit; submitted work may continue."
 	elif first_corner != null: discard_draft()
+	elif not selection.is_empty(): clear_selection()
 	elif tool != "inspect": choose_tool("inspect")
 	elif ui.family != "Select": ui.choose_family("Select")
 	else: leave()
@@ -1543,6 +1692,7 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == JOY_BUTTON_LEFT_SHOULDER: ui.focus_map()
 		elif event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
 			if ui.submit.visible: ui.submit.grab_focus()
+			elif ui.verb_strip.visible and ui.first_verb() != null: ui.first_verb().grab_focus()
 			else: ui.rail.get_child(0).grab_focus()
 		elif ui.map_focused():
 			if cursor.is_empty(): cursor = {"x": roundi(centre.x), "y": level, "z": roundi(centre.y)}
@@ -1571,8 +1721,13 @@ func _input(event: InputEvent) -> void:
 			if event.keycode == KEY_RIGHT: cursor.x += 1
 			if event.keycode == KEY_UP: cursor.z += 1
 			if event.keycode == KEY_DOWN: cursor.z -= 1
-			if event.keycode in [KEY_ENTER, KEY_KP_ENTER]: select_cell(cursor)
+			if event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
+				extend_selection = event.shift_pressed
+				select_cell(cursor)
+				extend_selection = false
 			else: show_cursor()
+		elif event.keycode >= KEY_1 and event.keycode <= KEY_6 and ui.verb_strip.visible:
+			ui.press_verb(event.keycode - KEY_1)
 		elif event.keycode == KEY_PAGEUP:
 			change_level(1)
 		elif event.keycode == KEY_PAGEDOWN:
@@ -1591,7 +1746,10 @@ func _input(event: InputEvent) -> void:
 			dragging = event.pressed
 		elif event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			ui.map_button.grab_focus()
-			if not touch_active: select_cell(_cell(event.position))
+			if not touch_active:
+				extend_selection = event.shift_pressed
+				select_cell(_cell(event.position))
+				extend_selection = false
 		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			var step := 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1
 			if event.shift_pressed:
