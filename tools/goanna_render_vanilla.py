@@ -7,6 +7,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import signal
 import time
 
@@ -23,10 +24,32 @@ def camera_angles(pose):
 
 
 class ReferenceServer(render.Server):
-    def __init__(self, *args, poses, tod, **kwargs):
+    def __init__(self, *args, poses, tod, creative=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.poses = poses
         self.tod = tod
+        if not isinstance(creative, bool):
+            raise render.RenderError("creative mode must be a boolean")
+        self.creative = creative
+
+    def write_conf(self):
+        path = super().write_conf()
+        lines = path.read_text().splitlines(keepends=True)
+        keys = [i for i, line in enumerate(lines)
+                if re.match(r"^[ \t]*creative_mode[ \t]*=", line)]
+        if len(keys) != 1:
+            raise render.RenderError("reference config needs exactly one creative_mode setting")
+        index = keys[0]
+        match = re.fullmatch(r"([ \t]*creative_mode[ \t]*=[ \t]*)(true|false)([ \t]*)(\r?\n?)",
+                             lines[index])
+        if not match:
+            raise render.RenderError("reference creative_mode setting must be true or false")
+        value = "true" if self.creative else "false"
+        replacement = match[1] + value + match[3] + match[4]
+        if lines[index] != replacement:
+            lines[index] = replacement
+            path.write_text("".join(lines))
+        return path
 
     def build_world(self):
         world = super().build_world()
@@ -73,6 +96,8 @@ def command(args):
     ap.add_argument('--server-view-range', type=int, default=40, choices=range(1, 257), metavar='BLOCKS')
     ap.add_argument('--settle-seconds', type=float, default=60)
     ap.add_argument('--no-server-occlusion', action='store_true')
+    ap.add_argument('--survival', action='store_true',
+                    help='start the reference server with creative mode disabled')
     opt = ap.parse_args(args)
     job = json.loads(pathlib.Path(opt.job).read_text())
     if job.get('frame') != 'world' or not job.get('poses'):
@@ -99,7 +124,7 @@ def command(args):
         server = ReferenceServer(opt.game, opt.world_from, render.DEFAULT_STAGE, '', out,
                                  view_range=opt.server_view_range, far=False,
                                  occlusion=not opt.no_server_occlusion,
-                                 poses=job['poses'], tod=job.get('time', 0.5))
+                                 poses=job['poses'], tod=job.get('time', 0.5), creative=not opt.survival)
         server.start()
         frames = []
         for index, pose in enumerate(job['poses']):
@@ -132,6 +157,7 @@ def command(args):
                         'time': job.get('time', 0.5), 'weather': 'clear',
                         'settings': settings, 'client_config': client.get('config'),
                         'server_occlusion': not opt.no_server_occlusion,
+                        'server_creative_mode': server.creative,
                         'client_log': client.get('client_log'),
                         'settled': {'quiet': None, 'fixed_wait_s': opt.settle_seconds},
                         'capture': shot}
