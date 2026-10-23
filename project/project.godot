@@ -136,17 +136,17 @@ goanna_lamp_occlusion_box={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
-goanna_light_volume={
+goanna_light_hue={
 "type": "sampler3D",
 "value": ""
 }
-goanna_light_volume_box={
+goanna_light_hue_box={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
-goanna_light_volume_size={
-"type": "vec3",
-"value": Vector3(128, 64, 128)
+goanna_light_hue_size={
+"type": "vec4",
+"value": Vector4(128, 32, 128, 0)
 }
 goanna_lamp_reach={
 "type": "float",

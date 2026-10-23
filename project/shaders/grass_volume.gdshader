@@ -11,7 +11,7 @@
 shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
-#include "res://shaders/light_volume.gdshaderinc"
+#include "res://shaders/block_light_colour.gdshaderinc"
 render_mode cull_front, diffuse_burley, specular_schlick_ggx, alpha_to_coverage, depth_draw_always;
 
 // The terrain's sky fill (nodes_array_common.gdshaderinc) and the world's
@@ -70,6 +70,8 @@ uniform float interaction_angle : hint_range(0.0, 0.8) = 0.8;
 varying flat vec3 grass_camera;
 varying flat vec4 patch;
 varying flat vec3 root_light;
+// The patch's baked block light, 0 to 1.
+varying flat float root_block;
 varying flat float shadow_pass;
 varying flat float patch_margin;
 varying vec3 world_exit;
@@ -139,6 +141,7 @@ void vertex() {
     patch = vec4(floor(lower.xz+vec2(0.5001))-vec2(0.5),
         ceil(upper.xz+vec2(0.4999))-vec2(0.5));
     root_light = vec3(lower.y, CUSTOM1.yz);
+    root_block = CUSTOM1.w;
     // Empty space around every block used to cover much of the screen when
     // the camera entered the grass. Only enlarge the volume where a nearby
     // actor can actually push a blade beyond its normal wind envelope.
@@ -545,11 +548,12 @@ void fragment() {
     AO = root_light.z*root_light.y;
     AO_LIGHT_AFFECT = 0.25;
     EMISSION = ALBEDO*goanna_sky_fill*root_light.y*root_light.z;
-    // The light volume's coloured block light (light_volume.gdshaderinc),
-    // read where the blade stands, which the lamp pool lit before.
-    vec4 light_volume = goanna_block_light_volume((INV_VIEW_MATRIX*vec4(VERTEX,1.0)).xyz, vec3(0.0),
-        vec3(0.0,1.0,0.0));
-    EMISSION += ALBEDO*light_volume.rgb*light_volume.a*root_light.z;
+    // With coloured block light on, the patch's baked block light, coloured,
+    // past the pool's reach and as a fill under it, as the ground beneath
+    // takes it (block_light_colour.gdshaderinc).
+    float lamp_bake = smoothstep(goanna_lamp_reach, goanna_lamp_reach*1.5+48.0, length(VERTEX));
+    EMISSION += ALBEDO*goanna_block_light(root_block, lamp_bake, (INV_VIEW_MATRIX*vec4(VERTEX,1.0)).xyz)
+        *root_light.z*goanna_block_light_colour_on();
     if (debug_iterations) {
         ALBEDO = vec3(0.0);
         EMISSION = vec3(float(count)/float(march_steps),far_mix,0.0);

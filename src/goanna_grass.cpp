@@ -33,7 +33,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
     PackedColorArray colours;
     PackedFloat32Array bounds, roots;
     PackedInt32Array indices;
-    struct Patch { float x0,z0,x1,z1,y; Color col; float sky,ao; };
+    struct Patch { float x0,z0,x1,z1,y; Color col; float sky,ao,block; };
     std::vector<Patch> patches;
     // A top quad arrives as two triangles with the same rectangular bounds.
     std::set<std::array<float, 6>> seen;
@@ -41,9 +41,9 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
     const bool cached = mesh->has_meta("goanna_grass_dry_patches");
     if (cached) {
         const PackedFloat32Array saved = mesh->get_meta("goanna_grass_dry_patches");
-        for (int i = 0; i + 10 < saved.size(); i += 11)
+        for (int i = 0; i + 11 < saved.size(); i += 12)
             patches.push_back({saved[i],saved[i+1],saved[i+2],saved[i+3],saved[i+4],
-                    Color(saved[i+5],saved[i+6],saved[i+7],saved[i+8]),saved[i+9],saved[i+10]});
+                    Color(saved[i+5],saved[i+6],saved[i+7],saved[i+8]),saved[i+9],saved[i+10],saved[i+11]});
     }
     for (int s = 0; !cached && s < source_count; ++s) {
         Ref<Material> material = mesh->surface_get_material(s);
@@ -72,11 +72,12 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
             if (c.size() == v.size()) col *= c[i0];
             const float sky = light.size() == v.size()*4 ? light[i0*4+1]/255.0f : 1.0f;
             const float ao = light.size() == v.size()*4 ? light[i0*4+2]/255.0f : 1.0f;
+            const float block = light.size() == v.size()*4 ? light[i0*4]/255.0f : 0.0f;
             const float offset = lod ? 0.0f : 0.5f;
             patches.push_back({std::floor(x0+offset+0.0001f)-offset,
                     std::floor(z0+offset+0.0001f)-offset,
                     std::ceil(x1+offset-0.0001f)-offset,
-                    std::ceil(z1+offset-0.0001f)-offset,p.y,col,sky,ao});
+                    std::ceil(z1+offset-0.0001f)-offset,p.y,col,sky,ao,block});
         }
     }
     if (!cached && submerged) {
@@ -102,7 +103,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
     // volume overdraw proportional to terrain shape, not to individual nodes.
     for (bool along_z : {false,true}) {
         auto key = [along_z](const Patch &p) {
-            return std::array<float,10>{p.y,p.col.r,p.col.g,p.col.b,p.sky,p.ao,
+            return std::array<float,11>{p.y,p.col.r,p.col.g,p.col.b,p.sky,p.ao,p.block,
                 along_z?p.x0:p.z0,along_z?p.x1:p.z1,along_z?p.z0:p.x0,along_z?p.z1:p.x1};
         };
         std::sort(patches.begin(),patches.end(),[&](const Patch &a,const Patch &b){ return key(a)<key(b); });
@@ -110,7 +111,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
         for (const Patch &p : patches) {
             if (!merged.empty()) {
                 auto a=key(merged.back()), b=key(p);
-                if (std::equal(a.begin(),a.begin()+8,b.begin()) && std::abs(a[9]-b[8])<0.001f) {
+                if (std::equal(a.begin(),a.begin()+9,b.begin()) && std::abs(a[10]-b[9])<0.001f) {
                     if (along_z) merged.back().z1=p.z1; else merged.back().x1=p.x1;
                     continue;
                 }
@@ -124,7 +125,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
         // must not restore wet patches after their source blocks are unloaded.
         PackedFloat32Array saved;
         for (const Patch &p : patches)
-            for (float f : {p.x0,p.z0,p.x1,p.z1,p.y,p.col.r,p.col.g,p.col.b,p.col.a,p.sky,p.ao})
+            for (float f : {p.x0,p.z0,p.x1,p.z1,p.y,p.col.r,p.col.g,p.col.b,p.col.a,p.sky,p.ao,p.block})
                 saved.push_back(f);
         mesh->set_meta("goanna_grass_dry_patches", saved);
     }
@@ -139,7 +140,7 @@ void goanna::append_grass(const Ref<ArrayMesh> &mesh, bool lod, Node *owner,
                         p.y + (k&2 ? 1.24f : 0.002f), k&4 ? z1+1.1f : z0-1.1f));
                 colours.push_back(p.col);
                 for (float f : {x0, z0, x1, z1}) bounds.push_back(f);
-                for (float f : {p.y, p.sky, p.ao, 0.0f}) roots.push_back(f);
+                for (float f : {p.y, p.sky, p.ao, p.block}) roots.push_back(f);
             }
             // Godot clockwise outward faces; the shader draws the exit faces.
             const int cube[] = {0,1,3,0,3,2,4,6,7,4,7,5,0,4,5,0,5,1,
