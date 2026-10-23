@@ -71,13 +71,12 @@ The common shape, true of the first seven:
   default shadow distance (100) does not even reach the edge of its own
   volume (128).
 
-## Three designs
+## Four designs
 
 **A, a fill per pack.** Goanna writes each pack's image itself, in the
-pack's layout, from its own node data. Exact and cheap, but every pack
-needs its texel function copied: Complementary's `GetVoxelIDs` is a
-270-line table. That is copying pack code into Goanna, which most of these
-licences forbid, and it breaks when a pack is updated.
+pack's layout, from its own node data. Exact and cheap. What it needs from
+the pack is not its code but the outputs: which value each block gets, and
+where in the image a block goes.
 
 **B, replay the shadow program on our geometry.** Draw near terrain through
 the pack's own shadow program in a RenderingDevice raster pipeline, so its
@@ -87,28 +86,47 @@ the full set of compatibility vertex inputs, vertex-stage stores (the
 Vulkan feature `vertexPipelineStoresAndAtomics`, not checked in Godot), and
 still cannot run a geometry shader.
 
-**C, replay the shadow vertex program in compute.** Translate the pack's
-shadow vertex program into a compute shader: one invocation per node,
-attributes synthesised from a node buffer, `gl_Position` and the varyings
-demoted to locals, `imageStore` kept. The pack's own code decides the id,
-the index and the layout; Goanna only supplies inputs. No raster, no
-vertex-stage stores, no copied tables.
+**C, replay the shadow vertex program in compute every frame.** Translate
+the pack's shadow vertex program into a compute shader, one invocation per
+node, with its inputs synthesised and `imageStore` kept. Faithful with no
+raster, but it runs a whole translated vertex program per node per frame,
+and every input the program touches has to be supplied.
 
-**Recommendation: C, with A kept for what C cannot reach.** C covers the six
-vertex-stage packs with no pack-specific code, and follows a pack through
-its updates. Shrimple's geometry shader body is per-triangle arithmetic on
-`gl_in[]`, so the same transform extends to it (one invocation per node,
-three synthesised vertices, `EmitVertex` dropped). Rethinking Voxels is the
-one pack neither A nor C serves well: its occupancy comes from rasterising
-real triangles at up to 32 sub-voxels per block, with atlas colour summed
-per triangle. It goes last, and may need B on Goanna's real mapblock meshes
-with its geometry stage moved into compute.
+**D, a generic writer driven by a table.** One Goanna compute shader, the
+same for every pack, writes each node's value into the pack's image every
+frame. Per pack it takes a short description of the image (name, size,
+layout) and a table from content id to texel value. The table is facts
+about the pack's outputs, not its code, and it can be produced by the pack
+itself: run C once at load over one synthetic node per content id and read
+back what it wrote.
+
+**Recommendation: D, with its tables probed through C.**
+
+- In every pack except Rethinking Voxels the texel depends only on the node
+  type. It is a function of `mc_Entity`, plus for Photon whether the node
+  is a full cube, and for Mellow its atlas colour and emission level. All of
+  those are fixed per content id, so `table[content_id]` captures them.
+- Only the index depends on position, and the packs use three layouts:
+  centred and snapped, centred with a look-ahead along the view direction
+  (Photon 15 per cent behind, Shrimple 30 per cent ahead), and Shrimple's
+  flattened 8 cubed bins. Those are described per pack and checked by
+  probing a few positions.
+- The per-frame cost is a table lookup and a store per node, not a
+  translated pack program.
+- Nothing from a pack is copied into Goanna, and a pack update is picked up
+  at the next load. A hand-written table for a pack is still possible where
+  probing fails.
+
+Rethinking Voxels is the one pack this does not serve: its occupancy comes
+from rasterising real triangles at up to 32 sub-voxels per block, with
+atlas colour summed per triangle. It goes last, and may need B on Goanna's
+real mapblock meshes with its geometry stage moved into compute.
 
 ## The pieces
 
 ### 1. Pack features in the screen chain
 
-Needed by every design and by Noble, which has no voxels at all, so Noble
+Needed by every design, and by Noble, which has no voxels at all, so Noble
 is the test for this piece alone.
 
 - Load `.csh` programs, including `_a` to `_z` variants, at `setup` (once),
@@ -158,47 +176,57 @@ shared by every pack.
   in 5 to 9 ms on the main thread; per-mapblock updates on a worker should
   make the steady cost close to nothing.
 - **A compacted list** of the exposed nodes, rebuilt on the GPU when slots
-  change, gives the replay its dispatch size.
+  change, gives the writer its dispatch size.
 
-### 3. The replay
+### 3. The writer and its table
 
-Per frame, before the pack's `shadowcomp` passes and after the custom images
-are cleared, dispatch the translated shadow program over the node list.
+**The writer**, each frame, after the custom images are cleared and before
+the pack's `shadowcomp` passes: one invocation per exposed node, value from
+`table[content_id]`, skipped when zero, stored at the index the pack's
+layout gives. Values are `uint` for the id images and `vec4` for Mellow's
+colour image. Packs that ping-pong a written image (Mellow) get the image
+for the current frame parity.
 
-- Each invocation sets `gl_VertexID` to a multiple of 4, `gl_Vertex` to the
-  node's lower corner (Photon's corner test then passes),
-  `at_midBlock.xyz` to the centre offset times 64 and `.w` to the emission
-  level, `mc_Entity`, `gl_MultiTexCoord1` from the baked light,
-  `mc_midTexCoord` and `gl_MultiTexCoord0` to the node's atlas tile (Mellow
-  samples it), and `renderStage` to the terrain stage that matches the
-  node's draw type.
-- `gl_ModelViewMatrix` and the shadow matrices are the ones the shadow
-  material already gets.
-- Varyings and `gl_Position` become locals and are discarded. Packs that
-  test `gl_VertexID % 4` write once per node, as on real quads.
-- The translator already has an unused `ProgramKind::Shadow`; this is a
-  sibling kind that emits compute.
+**The probe**, at load and whenever the pack, its options or the server's
+node definitions change:
+
+- Translate the pack's shadow vertex program (and Shrimple's geometry
+  program, whose body is per-triangle arithmetic on `gl_in[]`) as a
+  compute shader. The translator already has an unused
+  `ProgramKind::Shadow`; this is a sibling kind. Varyings and
+  `gl_Position` become locals, `EmitVertex` is dropped, `imageStore` is
+  redirected into a probe buffer that records value and index.
+- Dispatch one invocation per content id, each a synthetic node at a known
+  position, with `gl_VertexID` a multiple of 4, `gl_Vertex` the node's
+  lower corner (Photon's corner test then passes), `at_midBlock.xyz` the
+  centre offset times 64 and `.w` the emission level, `mc_Entity`,
+  `gl_MultiTexCoord1` from the light level, `mc_midTexCoord` and
+  `gl_MultiTexCoord0` the node's atlas tile, and `renderStage` the terrain
+  stage matching its draw type. Matrices are the shadow material's.
+- Read back once. The values give the table; the indices, from a few
+  probe positions, confirm the described layout.
+- Content ids number a few thousand, so the probe is one small dispatch.
 
 **Half-node offset.** Luanti nodes are centred on whole coordinates, while
-packs assume a block spans `[p, p + 1)`. A replayed centre lands exactly
-on an integer, where `floor` is decided by rounding error. Either feed the
-replay node corners and centres shifted by half a node, consistently with
+packs assume a block spans `[p, p + 1)`. A probed centre lands exactly on
+an integer, where `floor` is decided by rounding error, and the writer's
+index has to agree with the `cameraPosition` the pack's lighting passes
+read. Either shift node positions by half a node, consistently with
 `cameraPosition` in that pack's chain, or confirm how the translated
-gbuffers programs already handle this. To verify before the first replay.
+gbuffers programs already handle this. To verify before the first fill.
 
 ### 4. Targets, in order
 
 1. **Noble**, for piece 1 alone: compute passes, SSBOs, `colorimg`.
-2. **Solas**, the first replay: on by default, read in the screen chain,
-   r8ui volume, and today visibly black.
+2. **Solas**, the first fill: on by default, read in the screen chain, r8ui
+   volume, and today visibly black.
 3. **Complementary, BSL, Photon, Bliss**, by turning their options on with
-   `GOANNA_SHADERPACK_OPTIONS`; each is the same replay with no new code
-   expected. Photon adds its look-ahead centre, which comes from the pack's
-   own code.
-4. **Mellow**, which needs the atlas tile and emission inputs, and the
-   `Texture3DRD` path into gbuffers materials. It is MIT and shippable.
-5. **Shrimple** in its LIGHTS profile: the geometry shader extension of the
-   replay, and its 8 cubed bin layout comes from its own code.
+   `GOANNA_SHADERPACK_OPTIONS`; each should need only its image description.
+   Photon adds the look-ahead layout.
+4. **Mellow**, whose table holds colours, and which needs the `Texture3DRD`
+   path into gbuffers materials. It is MIT and shippable.
+5. **Shrimple** in its LIGHTS profile: the binned layout, and a probe that
+   runs its geometry program.
 6. **Rethinking Voxels**, last, through B on real meshes.
 
 ## Costs and risks
@@ -206,10 +234,10 @@ gbuffers programs already handle this. To verify before the first replay.
 - **Memory.** Default volumes are 3 to 64 MB per pack; the largest options
   reach 1 to 2 GB (BSL and Complementary at 512, Photon at 512 cubed). Cap
   sizes Goanna accepts, or let the pack refuse.
-- **Frame time.** The replay runs every frame because the packs clear their
-  volume every frame. A few hundred thousand invocations of a short vertex
-  program should cost well under a millisecond; to measure.
-- **Inputs a pack reads that Goanna lacks.** The replay will surface them
+- **Frame time.** The writer runs every frame because the packs clear their
+  volume every frame. A few hundred thousand lookups and stores should cost
+  well under a millisecond; to measure.
+- **Inputs a pack reads that Goanna lacks.** The probe will surface them
   as they come, as the gbuffers translation did: `blockEntityId`, entity
   colour, item ids. Entity lights (Bliss, Complementary) are out of scope
   at first; entities are not in the node provider.
@@ -218,5 +246,5 @@ gbuffers programs already handle this. To verify before the first replay.
   `shadow.culling = reversed`, and the order of `_a` and `_b` compute
   variants against their base pass.
 - **Licences.** Only Mellow and Noble of these may ship with Goanna; the
-  rest are tested locally, as in the survey. Design C copies nothing from
-  any pack.
+  rest are tested locally, as in the survey. Design D copies nothing from
+  any pack: its tables are generated from the pack at load.
