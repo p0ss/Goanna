@@ -23,6 +23,8 @@ what was intended and why; how the code works now is under
   OptiFine shader packs.
 - [Survey of popular shader packs](shaderpack-survey.md): what 22 popular
   packs need, how often, and what to support first.
+- [Voxel volumes for shader packs](voxel-volumes.md): how Goanna could
+  feed packs that voxelise the world in their shadow pass.
 
 ## Servers and boundaries
 

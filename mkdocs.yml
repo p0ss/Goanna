@@ -171,6 +171,7 @@ nav:
       - A material format: design/material-format.md
       - Iris shader packs: design/iris-compat.md
       - Shader pack survey: design/shaderpack-survey.md
+      - Voxel volumes: design/voxel-volumes.md
       - Capabilities: design/capabilities.md
       - Validating capabilities: design/validation.md
       - Director design: design/director-design.md
