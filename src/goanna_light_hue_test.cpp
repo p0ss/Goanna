@@ -2,10 +2,11 @@
 // Copyright (C) 2026 the Goanna contributors
 //
 // Checks buildLightHue (goanna_light_hue.cpp) on cases whose answer is
-// known by inspection: a cell no light reaches is white with no coverage;
-// one light gives its own colour throughout its reach; between a red and a
-// blue light of the same level the colour blends, and nearer either its
-// own colour wins; a light's reach is its level in nodes.
+// known by inspection: a cell no light reaches is white; one light gives
+// its own colour throughout its reach; between a red and a blue light of
+// the same level the colour blends, and nearer either its own colour wins;
+// a light's reach is its level in nodes; alpha is full beside a glowing
+// liquid and gone a few nodes out, however wide the pool.
 //
 // Build and run:
 //   cmake --build build --target goanna_light_hue_test && ./build/goanna_light_hue_test
@@ -50,7 +51,7 @@ int main() {
         std::vector<uint8_t> rgba;
         buildLightHue(g, {}, rgba);
         const uint8_t *c = at(g, rgba, 3, 3, 3);
-        check(c[0] == 255 && c[1] == 255 && c[2] == 255 && c[3] == 0, "no light: white and uncovered");
+        check(c[0] == 255 && c[1] == 255 && c[2] == 255 && c[3] == 0, "no light: white, no liquid share");
     }
     {
         HueGrid g = unit(33);
@@ -62,8 +63,9 @@ int main() {
         };
         check(warm(near), "one light's colour near it");
         check(warm(edge), "the same colour near the end of its reach");
-        check(at(g, rgba, 16, 16, 31)[3] == 0, "nothing past the light's level in nodes");
-        check(near[3] == 255, "near a bright light, fully covered");
+        const uint8_t *past = at(g, rgba, 16, 16, 31);
+        check(past[0] == 255 && past[1] == 255 && past[2] == 255, "white past the light's level in nodes");
+        check(near[3] == 0, "a torch is no liquid");
     }
     {
         HueGrid g = unit(21);
@@ -74,6 +76,27 @@ int main() {
         check(mid[0] == 255 && mid[2] == 255, "equal lights blend halfway between them");
         // Weights 13 squared against 7 squared: blue is under a third of red.
         check(red[0] == 255 && red[2] < 80, "nearer one light, its colour wins");
+    }
+    {
+        // A lava cell beside a torch: near the lava its light dominates.
+        HueGrid g = unit(21);
+        HueLight lava{4.5f, 10.5f, 10.5f, 14.0f, 1.0f, 0.4f, 0.1f};
+        lava.liquid = true;
+        std::vector<uint8_t> rgba;
+        buildLightHue(g, {lava, {16.5f, 10.5f, 10.5f, 14.0f, 1.0f, 0.7f, 0.4f}}, rgba);
+        check(at(g, rgba, 5, 10, 10)[3] == 255, "beside the lava, full");
+        check(at(g, rgba, 15, 10, 10)[3] == 0, "beside the torch, eleven nodes from the lava, none");
+        // A wide pool reaches no further than one cell of it.
+        std::vector<HueLight> pool;
+        for (int x = 2; x <= 8; ++x)
+            for (int z = 2; z <= 8; ++z) {
+                HueLight c{x + 0.5f, 3.5f, z + 0.5f, 14.0f, 1.0f, 0.4f, 0.1f};
+                c.liquid = true;
+                pool.push_back(c);
+            }
+        buildLightHue(g, pool, rgba);
+        check(at(g, rgba, 5, 3, 15)[3] == 0, "seven nodes past a wide pool's edge, none");
+        check(at(g, rgba, 5, 5, 5)[3] == 255, "just over a wide pool, full");
     }
     {
         // Timing at the client's size, 4-node cells, with 3000 lights.

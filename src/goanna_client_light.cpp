@@ -255,17 +255,19 @@ Color GoannaClient::blockLightColour(const ContentFeatures &f) {
 // The colour of block light (docs/systems/light-colour.md): a coarse grid
 // round the camera holding the colour of the lamps within reach of each
 // cell, built from the lamps harvestLights noted for the pool
-// (goanna_light_hue.h). The node, plant and grass shaders multiply the
-// baked block light by it: in full past the pool's reach, where that light
-// used to be white, and as a fill under the pool. Rebuilt when the grid
-// moves a mapblock or the lamps change, at most twice a second.
+// (goanna_light_hue.h). With the setting on, the node, plant and grass
+// shaders multiply the baked block light by it: in full past the pool's
+// reach, where that light used to be white, and as a fill under the pool.
+// Whatever the setting, the node shaders use the baked light in full where
+// glowing liquid gives most of the light, as the pool's lamps cannot light a
+// lava pool's banks. Rebuilt when the grid moves a mapblock or the lamps
+// change, at most twice a second.
 void GoannaClient::updateLightHue(const Vector3 &around) {
     static const char *kBox = "goanna_light_hue_box";
-    if (!m_light_colour_on) {
-        set_view_shader_parameter(kBox, Vector4());
-        return;
-    }
     const auto started = clock_t_::now();
+    // The fill tells the shaders the setting: negative while it is off.
+    const Vector4 size(128, 32, 128, m_light_colour_on ? m_light_colour_fill : -1.0f);
+    set_view_shader_parameter("goanna_light_hue_size", size);
     if (m_light_hue_tex.is_valid() && ms_since(m_light_hue_updated) < 500.0) return;
     m_light_hue_updated = started;
     constexpr int nx = 128, ny = 32, nz = 128;
@@ -283,7 +285,7 @@ void GoannaClient::updateLightHue(const Vector3 &around) {
     for (const auto &kv : m_block_lights)
         for (const auto &l : kv.second) {
             lights.push_back({l.node_pos.x, l.node_pos.y, l.node_pos.z, l.level * 14.0f, l.color.r, l.color.g,
-                    l.color.b});
+                    l.color.b, l.liquid});
             signature.append(reinterpret_cast<const char *>(&lights.back()), sizeof(HueLight));
         }
     signature = hashing::sha256(signature);
@@ -313,7 +315,6 @@ void GoannaClient::updateLightHue(const Vector3 &around) {
     }
     m_light_hue_signature = signature;
     set_view_shader_parameter("goanna_light_hue", m_light_hue_tex);
-    set_view_shader_parameter("goanna_light_hue_size", Vector4(nx, ny, nz, m_light_colour_fill));
     set_view_shader_parameter(kBox, box);
     const double ms = ms_since(started);
     ema(m_ms_light_hue, ms);

@@ -10,7 +10,7 @@ namespace goanna {
 
 void buildLightHue(const HueGrid &grid, const std::vector<HueLight> &lights, std::vector<uint8_t> &rgba) {
     const size_t cells = (size_t)grid.nx * grid.ny * grid.nz;
-    std::vector<float> sum(cells * 4, 0.0f);
+    std::vector<float> sum(cells * 5, 0.0f);
     for (const HueLight &l : lights) {
         if (l.level <= 0.0f) continue;
         // The cells whose centres lie within the light's reach.
@@ -30,16 +30,17 @@ void buildLightHue(const HueGrid &grid, const std::vector<HueLight> &lights, std
                     const float left = l.level - std::sqrt(cx * cx + cy * cy + cz * cz);
                     if (left <= 0.0f) continue;
                     const float w = left * left;
-                    float *s = &sum[(((size_t)z * grid.ny + y) * grid.nx + x) * 4];
+                    float *s = &sum[(((size_t)z * grid.ny + y) * grid.nx + x) * 5];
                     s[0] += w * l.r;
                     s[1] += w * l.g;
                     s[2] += w * l.b;
                     s[3] += w;
+                    if (l.liquid) s[4] = std::max(s[4], left);
                 }
     }
     rgba.assign(cells * 4, 0);
     for (size_t i = 0; i < cells; ++i) {
-        const float *s = &sum[i * 4];
+        const float *s = &sum[i * 5];
         uint8_t *o = &rgba[i * 4];
         if (s[3] <= 0.0f) {
             o[0] = o[1] = o[2] = 255;
@@ -48,9 +49,9 @@ void buildLightHue(const HueGrid &grid, const std::vector<HueLight> &lights, std
         }
         const float m = std::max(s[0], std::max(s[1], s[2]));
         for (int c = 0; c < 3; ++c) o[c] = (uint8_t)std::lround(255.0f * (m > 0.0f ? s[c] / m : 1.0f));
-        // A full level 14 light at its own cell is about 196; saturate well
-        // before that so most of a light's reach counts as covered.
-        o[3] = (uint8_t)std::lround(255.0f * std::min(1.0f, s[3] / 16.0f));
+        // Full while the nearest liquid still gives 12 of its 14 levels,
+        // nothing from 8 down.
+        o[3] = (uint8_t)std::lround(255.0f * std::clamp((s[4] - 8.0f) / 4.0f, 0.0f, 1.0f));
     }
 }
 

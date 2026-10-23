@@ -15,6 +15,13 @@
 // grid ignores walls: only the colour of light a wall already lets through
 // can come from beyond it.
 //
+// Each cell also records how near it is to a glowing liquid. The lamp pool
+// stands a few point lamps over a lava pool, and a point lamp lights a flat
+// bank level with it at a grazing angle, which is barely at all; the
+// shaders use the baked light, Luanti's own level, in full beside the
+// liquid. It is measured from the nearest liquid cell alone, so a wide
+// pool's many cells do not reach further than one.
+//
 // Pure data, no Godot or Luanti: the caller (GoannaClient::updateLightHue)
 // collects the lights and uploads the grid.
 #pragma once
@@ -28,6 +35,7 @@ struct HueLight {
     float x, y, z; // world position, nodes
     float level;   // light_source, 0 to 14
     float r, g, b; // colour, brightest channel 1
+    bool liquid = false;
 };
 
 struct HueGrid {
@@ -37,8 +45,10 @@ struct HueGrid {
 };
 
 // Fills `rgba` (four bytes per cell, x fastest then y then z) with each
-// cell's light colour, its brightest channel 255, and in alpha how strongly
-// lights reach the cell (0 where none does, where the colour is white).
+// cell's light colour, its brightest channel 255 (white where no light
+// reaches), and in alpha how near the nearest glowing liquid is: 255 within
+// two nodes, falling to 0 six nodes out (for a level 14 liquid; a dimmer
+// one reaches less far).
 void buildLightHue(const HueGrid &grid, const std::vector<HueLight> &lights, std::vector<uint8_t> &rgba);
 
 } // namespace goanna

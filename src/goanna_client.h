@@ -214,10 +214,7 @@ public:
     void set_light_colour(bool enabled) { m_light_colour_on = enabled; }
     bool light_colour() const { return m_light_colour_on; }
     // How much of the coloured block light shows under the pool, 0 to 1.
-    void set_light_colour_fill(float fill) {
-        m_light_colour_fill = std::clamp(fill, 0.0f, 1.0f);
-        m_light_hue_signature.clear();
-    }
+    void set_light_colour_fill(float fill) { m_light_colour_fill = std::clamp(fill, 0.0f, 1.0f); }
     float light_colour_fill() const { return m_light_colour_fill; }
     void set_shadow_lamps(int n);
     int shadow_lamps() const { return m_shadow_lamps; }

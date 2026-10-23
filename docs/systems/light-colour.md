@@ -26,6 +26,19 @@ occlusion, but white. With the setting on:
 Only the colour is new. Brightness stays the baked light's, so light
 levels, and where light stops at walls, are as Luanti computes them.
 
+## Glowing liquids, whatever the setting
+
+The pool stands a few point lamps a node above a lava pool's surface, and
+a point lamp lights a bank level with it at a grazing angle, which is
+barely at all: the floor round a sunken lava pool stayed dark although
+Luanti gives it level 13. Beside a glowing liquid the meshes now use their
+baked block light in full, in the liquid's colour, with the setting on or
+off. The grid records how near each cell is to the nearest liquid cell, so
+a wide lake reaches no further than one cell of it: full while the liquid
+would still give 12 of its 14 levels, nothing from 8 down. Over 4-node
+cells that edge is soft, so the glow fades out four to six nodes from the
+bank.
+
 The colour comes from a coarse grid round the camera, 128 by 32 by 128
 cells of 4 nodes (512 by 128 by 512 nodes), built from the lamps the pool
 already collects as blocks are meshed (`harvestLights`), in the colours the
@@ -75,6 +88,9 @@ On the same machine and server, at midnight:
 - A stone room lit by soul torches, a sea lantern, glowstone, redstone
   torches, torches and lava: a warm wash on the ceiling and the shadowed
   brick under the pool's lamps; stronger at a fill of 0.6.
+- The same room's 3 by 3 lava pool, sunk into the floor: dark banks
+  before; with the liquid fix, the floor and walls round it lit in lava
+  orange, falling away within a few nodes, with the setting on or off.
 
 ## An earlier attempt
 
@@ -87,6 +103,10 @@ glass and entities without the light the pool gave them. Its code is in
 the history of this page, in the commit that first added it.
 
 ## Not done
+
+- The liquid fix adds the baked light beside lava to the pool's own lava
+  lamps, so a bank is a little brighter than either alone; the lamps'
+  2.5 times energy for liquids has not been retuned.
 
 - Entities, water, glass and ice keep the pool's light only; past its
   reach they take no block light, coloured or not, as before.
