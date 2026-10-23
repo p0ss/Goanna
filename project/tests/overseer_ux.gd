@@ -85,6 +85,11 @@ func run() -> void:
 	check(view.level==3 and view.centre==Vector2(4,5), "Locate uses the recorded plan position")
 	view.ui.cancel_plan()
 	check(client.sent[-1].t=="cancel" and client.sent[-1].id=="o1", "plan cancellation uses server request")
+	view.pending = {}
+	view.ui.update_plans([{"id":"station:*","kind":"station","title":"Guard station","state":"Designated","total":1,"done":0,"reason":"Patrol access unknown","can_cancel":true}])
+	view.ui.plans.select(0);view.ui.select_plan(0)
+	check(view.ui.plan_detail.text.contains("Issued by Fortress") and view.ui.plan_detail.text.contains("Patrol access unknown"),
+		"Plans selects a designation without an issuer and retains its reason")
 	view.pending={};view.ui.focus_map()
 	var key := InputEventKey.new(); key.keycode=KEY_RIGHT;key.pressed=true
 	view._input(key)
@@ -92,6 +97,53 @@ func run() -> void:
 	var pad := InputEventJoypadButton.new();pad.button_index=JOY_BUTTON_DPAD_LEFT;pad.pressed=true
 	view._input(pad)
 	check(view.cursor.x==4, "controller map focus nudges a cell")
+	view.pending = {}
+	view.discard_draft()
+	view.tools.append_array([
+		{"id":"farm:wheat","title":"Wheat farm","family":"Zones","group":"Farm","option":"Wheat","group_property":"Crop"},
+		{"id":"farm:carrot","title":"Carrot farm","family":"Zones","group":"Farm","option":"Carrot","group_property":"Crop"},
+		{"id":"stockpile_area","title":"Stockpile","family":"Zones","group":"Storage","option":"General","group_property":"Storage type"}])
+	view.ui.choose_family("Zones")
+	check(view.ui.actions.get_child_count() == 2, "Zones collapses crops into Farm and Storage groups")
+	view.ui.choose_group("Farm")
+	check(view.tool == "farm:wheat" and view.ui.zone_property.text == "Crop" and view.ui.zone_options.item_count == 2,
+		"Farm exposes crop as a property with the original tool IDs")
+	view.ui.zone_options.item_selected.emit(1)
+	check(view.tool == "farm:carrot", "crop selection changes the submitted farm tool")
+	view.ui.choose_family("People")
+	check(client.sent[-1].t == "overview" and view.ui.overview_text.visible and not view.inspector.visible,
+		"People requests the server overview and opens its own panel")
+	view._receive({"v":1,"t":"overview","people":[{"name":"Ada","assignment":"Farmer","activity":"Walking","observed":"8 seconds ago","reason":"Last seen activity"}],
+		"people_note":"Observed workers only","supplies":[{"name":"axe","title":"Iron axe","count":2}],"supplies_note":"Original embark manifest, not current stock"})
+	check(view.ui.overview_text.text.contains("Ada") and view.ui.overview_text.text.contains("8 seconds ago")
+		and view.ui.overview_text.text.contains("Last seen activity"), "People retains observation age and uncertainty")
+	view.ui.choose_family("Supplies")
+	check(view.ui.overview_text.text.contains("Iron axe: 2") and view.ui.overview_text.text.contains("not current stock"),
+		"Supplies presents the server manifest and its accounting limit")
+	view._receive({"v":1,"t":"overview","people":null,"supplies":null,"supplies_note":"Manifest unavailable"})
+	check(view.ui.overview_text.text == "Manifest unavailable", "legacy manifest absence displays its reason without inventing totals")
+	view.ui.choose_family("Build")
+	view.choose_tool("workshop")
+	view._update_materials([{"name":"forge","title":"Forge","kind":"station","missing":true,"reason":"No anvil available","requirements":"Needs an anvil"}])
+	view.build_material.select(0)
+	view.select_cell({"x":0,"y":view.level,"z":0});view.select_cell({"x":2,"y":view.level,"z":2})
+	check(not view.can_submit() and view.ui.requirements.text.contains("No anvil available")
+		and view.ui.requirements.text.contains("Needs an anvil"), "unavailable workshop remains inspectable with requirements and cannot submit")
+	view.discard_draft()
+	view.body = Vector3(2, 5, -4)
+	view.level = 3
+	view.ui.refresh()
+	check(view.ui.player_location.text.contains("2 above"), "navigation indicates the player's different level")
+	view.recentre()
+	check(view.level == 5 and view.centre == Vector2(2, 4) and view.ui.player_location.text.contains("(here)"), "Find you returns to the player's position and level")
+	view._clear_children(view.overlay)
+	view._draw_player_marker()
+	check(view.overlay.get_child_count() == 4 and view.overlay.get_child(3) is Label3D
+		and view.overlay.get_child(3).text == "You", "player marker has three outline layers and an explicit You caption")
+	view._clear_children(view.overlay)
+	view.level = 4
+	view._draw_player_marker()
+	check(view.overlay.get_child_count() == 0, "player marker never pretends to be on another level")
 	root.size = Vector2i(1280,720)
 	view.root_control.theme.default_font_size = 36
 	for i in 5: await process_frame

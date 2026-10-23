@@ -34,6 +34,14 @@ var left: PanelContainer
 var nav: PanelContainer
 var footer: PanelContainer
 var navigation: GridContainer
+var overview: Dictionary = {}
+var overview_text: Label
+var overview_refresh: Button
+var zone_property: Label
+var zone_options: OptionButton
+var zone_tools: Array = []
+var requirements: Label
+var player_location: Label
 var nudges: VBoxContainer
 
 func label(parent: Node, text: String) -> Label:
@@ -99,7 +107,7 @@ func build(host: Node) -> void:
 	rail = VBoxContainer.new()
 	rail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rail_scroll.add_child(rail)
-	for name in ["Select", "Terrain", "Gather", "Build", "Zones", "Devices", "Defence", "Plans"]:
+	for name in ["Select", "Zones", "Build", "Terrain", "Gather", "Devices", "Defence", "People", "Supplies", "Plans"]:
 		var b := button(rail, name, choose_family.bind(name))
 		b.set_meta("family", name)
 		if name == "Plans": plans_button = b
@@ -128,6 +136,15 @@ func build(host: Node) -> void:
 	title.add_theme_font_size_override("font_size", 23)
 	actions = VBoxContainer.new()
 	context.add_child(actions)
+	zone_property = label(context, "Type")
+	zone_options = OptionButton.new()
+	zone_options.fit_to_longest_item = false
+	zone_options.custom_minimum_size.y = 44
+	zone_options.item_selected.connect(func(i: int) -> void:
+		if i >= 0 and i < zone_tools.size(): view.choose_tool(str(zone_tools[i].id)))
+	context.add_child(zone_options)
+	overview_refresh = button(context, "Refresh", func() -> void: view._send({"t": "overview"}))
+	overview_text = label(context, "")
 	view.palette = OptionButton.new() # Retained for older test harnesses.
 	view.palette.hide()
 	context.add_child(view.palette)
@@ -137,6 +154,7 @@ func build(host: Node) -> void:
 	view.build_material.fit_to_longest_item = false
 	view.build_material.item_selected.connect(func(_i: int) -> void: view.refresh_draft())
 	context.add_child(view.build_material)
+	requirements = label(context, "")
 	context.move_child(material_label, 1)
 	context.move_child(view.build_material, 2)
 	view.facing_picker = OptionButton.new()
@@ -174,10 +192,13 @@ func build(host: Node) -> void:
 	nav.offset_top = -148; nav.offset_bottom = -66
 	navigation = GridContainer.new()
 	navigation.columns = 5
-	nav.add_child(navigation)
+	var nav_stack := VBoxContainer.new()
+	nav.add_child(nav_stack)
+	player_location = label(nav_stack, "You")
+	nav_stack.add_child(navigation)
 	button(navigation, "Down", view.change_level.bind(-1)).custom_minimum_size.x = 64
 	button(navigation, "Up", view.change_level.bind(1))
-	button(navigation, "Body", view.recentre).custom_minimum_size.x = 64
+	button(navigation, "Find you", view.recentre).tooltip_text = "Centre the map on your position and level"
 	button(navigation, "-", view.zoom.bind(-1)).tooltip_text = "Zoom out"
 	button(navigation, "+", view.zoom.bind(1)).tooltip_text = "Zoom in"
 	footer = box(view.root_control)
@@ -195,7 +216,7 @@ func build(host: Node) -> void:
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area, purple outline: a plan proposed for you. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -221,7 +242,7 @@ func reflow() -> void:
 	for child in rail.get_children():
 		if child is Button: child.custom_minimum_size = Vector2(0, maxf(48, 18 * scale * 1.6 + 8))
 	navigation.columns = 3 if scale > 1.3 else 5
-	var nav_height := (maxf(48, 18 * scale * 1.6 + 8) * 2.0 + 28) if scale > 1.3 else 80.0
+	var nav_height := ((maxf(48, 18 * scale * 1.6 + 8) * 2.0 + 28) if scale > 1.3 else 80.0) + player_location.get_combined_minimum_size().y + 4
 	nav.offset_left = -width - 12
 	nav.offset_right = -12
 	nav.offset_top = bottom_edge - nav_height
@@ -258,6 +279,7 @@ func choose_family(value: String) -> void:
 	view.tool = "inspect"
 	refresh_tools()
 	if family == "Plans": view._send({"t": "plans"})
+	if family in ["People", "Supplies"]: view._send({"t": "overview"})
 	refresh()
 
 func tool_family(t: Dictionary) -> String:
@@ -271,8 +293,17 @@ func tool_family(t: Dictionary) -> String:
 
 func refresh_tools() -> void:
 	view._clear_children(actions)
+	var groups := {}
 	for t in view.tools:
 		if str(t.id) == "cancel" or tool_family(t) != family: continue
+		var group := str(t.get("group", ""))
+		if not group.is_empty():
+			if groups.has(group): continue
+			groups[group] = true
+			var grouped := button(actions, group, choose_group.bind(group))
+			grouped.set_meta("group", group)
+			grouped.toggle_mode = true
+			continue
 		var b := button(actions, str(t.get("title", t.id)), view.choose_tool.bind(str(t.id)))
 		b.tooltip_text = str(t.get("reason", t.get("help", "")))
 		b.set_meta("tool", str(t.id))
@@ -280,6 +311,50 @@ func refresh_tools() -> void:
 		# Keep unavailable controls focusable so their reason can be read.
 		if t.get("disabled", false): b.text += " (unavailable)"
 	view._update_materials(view.material_catalog)
+
+func choose_group(group: String) -> void:
+	for t in view.tools:
+		if tool_family(t) == family and str(t.get("group", "")) == group and not t.get("disabled", false):
+			view.choose_tool(str(t.id))
+			return
+	view.inspector.text = "This zone type is unavailable."
+
+func update_overview(value: Dictionary) -> void:
+	overview = value
+	refresh_overview()
+
+func refresh_overview() -> void:
+	var lines: Array[String] = []
+	var key := "people" if family == "People" else "supplies"
+	lines.append(str(overview.get(key + "_note", "Refresh to request the fortress report.")))
+	var entries: Variant = overview.get(key)
+	if entries is Array:
+		for entry in entries.slice(0, 256):
+			if not entry is Dictionary: continue
+			if key == "people":
+				lines.append("%s\n%s | %s%s" % [str(entry.get("name", "Worker")), str(entry.get("assignment", "")),
+					str(entry.get("activity", "Unknown")) + "\nObserved: " + str(entry.get("observed", "Not observed")), "\n" + str(entry.reason) if entry.get("reason") is String and not entry.reason.is_empty() else ""])
+			else:
+				lines.append("%s: %s" % [str(entry.get("title", entry.get("name", "Item"))), str(entry.get("count", "?"))])
+	overview_text.text = "\n\n".join(lines)
+
+func refresh_zone_property() -> void:
+	var definition: Dictionary = view.tool_definition()
+	var group := str(definition.get("group", ""))
+	zone_tools.clear()
+	zone_options.clear()
+	zone_property.visible = family == "Zones" and not group.is_empty()
+	zone_options.visible = zone_property.visible
+	zone_options.disabled = view.first_corner != null or not view.pending.is_empty()
+	if not zone_options.visible: return
+	zone_property.text = str(definition.get("group_property", "Type"))
+	for t in view.tools:
+		if tool_family(t) != family or str(t.get("group", "")) != group: continue
+		zone_tools.append(t)
+		zone_options.add_item(str(t.get("option", t.get("title", t.id))))
+		var index := zone_tools.size() - 1
+		zone_options.set_item_tooltip(index, str(t.get("reason", t.get("help", ""))))
+		if str(t.id) == view.tool: zone_options.select(index)
 
 ## Takes the tools and limits the server granted, from its hello or a pong.
 func update_capabilities(value: Dictionary) -> void:
@@ -291,20 +366,28 @@ func update_capabilities(value: Dictionary) -> void:
 	refresh()
 
 func refresh() -> void:
+	player_location.text = view.player_location_text()
 	var is_plans := family == "Plans"
+	var is_overview := family in ["People", "Supplies"]
+	overview_text.visible = is_overview
+	overview_refresh.visible = is_overview
+	view.inspector.visible = not is_overview
+	refresh_overview()
+	refresh_zone_property()
 	for child in rail.get_children():
 		if child is Button and child != map_button:
 			child.toggle_mode = true
 			child.set_pressed_no_signal(child.get_meta("family", child.text) == family)
 	for child in actions.get_children():
-		if child is Button: child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool)
+		if child is Button:
+			child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool or (child.has_meta("group") and child.get_meta("group") == view.tool_definition().get("group")))
 	title.text = "Plans" if is_plans else family
 	actions.visible = not is_plans
 	for control in [plans, plan_detail, locate, cancel]: control.visible = is_plans
 	act.visible = is_plans and _selected().get("can_act", false)
 	view.room_name.visible = view.tool.begins_with("room:") and not is_plans
 	var has_draft: bool = view.first_corner != null
-	actions.visible = not is_plans and not has_draft
+	actions.visible = not is_plans and not is_overview and not has_draft
 	draft_label.visible = has_draft
 	draft_label.text = view.draft_summary() if has_draft else ""
 	submit.visible = has_draft and view.last_corner != null
@@ -316,6 +399,13 @@ func refresh() -> void:
 	view.facing_picker.disabled = not view.pending.is_empty()
 	view.room_name.editable = view.pending.is_empty()
 	view._update_materials(view.material_catalog)
+	requirements.text = ""
+	if view.build_material.selected >= 0 and view.build_material.selected < view.build_materials.size():
+		var entry: Dictionary = view.build_materials[view.build_material.selected]
+		requirements.text = str(entry.get("reason", ""))
+		if not str(entry.get("requirements", "")).is_empty():
+			requirements.text += "\n" + str(entry.requirements)
+	requirements.visible = not requirements.text.is_empty() and not is_plans and not is_overview
 	material_label.text = "Workshop type" if view.tool == "workshop" else "Material"
 	material_label.visible = view.build_material.visible and not is_plans
 	if is_plans: view.build_material.hide()
@@ -352,7 +442,7 @@ func select_plan(index: int) -> void:
 		if entry.get("state") == "New":
 			view.mark_page_seen(str(entry.id).trim_prefix("page:"))
 	else:
-		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, entry.by, str(entry.get("reason", ""))]
+		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, entry.get("by", "Fortress"), str(entry.get("reason", ""))]
 	locate.disabled = not entry.get("pos") is Dictionary
 	cancel.disabled = not entry.get("can_cancel", false)
 	act.visible = family == "Plans" and entry.get("can_act", false)

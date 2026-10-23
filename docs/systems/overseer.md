@@ -104,8 +104,13 @@ The Traffic toggle shades known cells by how often workers stand there
 and marks workers on the viewed level with their recent trails. Forbidden
 areas (red), locked doors (dark red), militia stations with their rings
 and watch posts (blue) and protected areas (pale blue) are planner
-designations and militia coverage, always drawn, on known cells only. The Devices and Defence tool families come from the server's tool
-list like the others.
+designations, always drawn on known cells only. Protected areas retain the
+pale blue designation and show server-reported guard access: partial access
+adds amber diagonal hatching; unreachable adds red crosshatching. Inspect
+names the state and the server's reason. Missing or unrecognised states
+read as unknown, without a failure hatch or a claim of coverage. Hatches
+stay inside known cells, including at unexplored edges. The Devices and
+Defence tool families come from the server's tool list like the others.
 
 Officers' pages arrive in the hello and as `page` messages. The newest
 unseen danger page is a red line in the header that locates it and marks
@@ -167,10 +172,69 @@ vanilla fallback without joining the channel, disconnect recovery,
 server-side freezing, damage exit and a worker completing a tunnel planned
 into unknown rock.
 
+On 13 October 2026, the structural suite passed 79 checks on Godot 4.5.1,
+including guard-state parsing, overlapping areas, known-cell clipping and
+Inspect reasons. An isolated software render-service fixture on llvmpipe
+confirmed the amber diagonal and red crosshatch shaders and their unknown
+cell boundary. That synthetic frame tests rendering, not guard pathfinding
+or a live protected-area response.
+
+On 14 October 2026, the planner UX suite passed 41 checks and the structural
+suite passed 79 checks on Godot 4.5.1. Synthetic software render-service
+frames at 1920 by 1080 and 960 by 640 checked the outlined player marker,
+zone property controls, People observation text and scrolling layout.
+These frames are UI fixtures, not evidence of live fortress observations.
+
+### CPU checks
+
+`tests/overseer_cache.gd` checks exact terrain and visibility cache keys,
+including changed cells, remembered states, lower walls, node orientation,
+level, rectangle, zoom, empty replies and a fresh session. The keys retain
+deep copies and use exact equality; visibility does not depend on a hash
+collision being unlikely. Unchanged replies preserve pending mesh work.
+Overlapping zone rectangles merge their row spans before allocating cells,
+and Inspect tests point membership instead of rasterising whole areas.
+
+`tests/overseer_cpu.gd` is a synthetic dummy-renderer benchmark, excluding
+the native mesher. On 14 October 2026 with Godot 4.5.1, a 63 by 63 layer
+with eight lower slices took 55 to 57 ms to redraw before the cache. Its
+first draw still took 56 ms; unchanged redraws took 0.33 to 0.36 ms. Thirty
+two overlapping protected areas took 251 to 261 ms before row merging and
+10 to 11 ms afterwards. Inspect fell from 115 ms to about 0.1 ms. The 16
+cache checks, 79 structural checks and 41 UX checks passed.
+
+A fresh Luanti 5.17.0 / Mineclonia release 38561 server and real Goanna
+client with the dummy renderer passed 36 settlement checks and 12 restart
+checks. Temporary timing instrumentation measured 7 to 26 ms opening the
+UI, 0.4 to 0.7 ms handling hello, 17 to 19 ms handling the first layer and
+up to 52 ms for a native mesh batch. First-layer arrival took 1.1 to 1.5
+seconds; a short follow-up received a 27 by 27 layer with eight lower
+slices without chunk messages. These runs did not reproduce a multi-second
+client freeze and do not measure GPU shader compilation or natural-terrain
+opening costs. No production timing logger or message-drain change was
+introduced. Evidence is under `/tmp/dorfcraft-overseer-cpu-live/` and
+`/tmp/dorfcraft-overseer-first-layer-wire/`.
+
 ## Planning interface
 
 `project/game/overseer_ui.gd` supplies the labelled tool families, contextual
 panel, navigation and Plans view. The renderer remains in `overseer.gd`.
+Zones sits near the top of the left rail. Server tool groups become one
+button each, with Crop, Storage type or Room type as a dropdown property;
+the original tool IDs still carry the order. Build shows the full workshop
+catalogue, including unavailable stations and their server-supplied
+requirements. Missing materials prevent submission.
+
+People and Supplies request a separate `overview` report on entry or
+Refresh. People lists assignment, observed activity and observation age;
+Supplies shows the embark manifest with the server's provenance note. It
+is not a live stock count. Null or absent lists retain the explanatory
+note. These pages do not infer worker positions or inventory totals.
+
+The player has an outlined cyan and white marker labelled You. Find you
+returns to the player's position and level; navigation shows when that
+level is above or below the current slice.
+
 Two corners now create a draft; Submit plan explicitly sends it. Existing
 live tests were updated to exercise that extra step. Drafts stay anchored
 when changing levels, retain their parameters after refusal, and retry

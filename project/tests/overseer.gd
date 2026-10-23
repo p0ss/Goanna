@@ -225,6 +225,34 @@ func run() -> void:
 	view.toggle_overlay("traffic")
 	check(view.overlay_sheets.get_child_count() == 10, "the traffic toggle adds heat, trails and workers")
 	view.toggle_overlay("traffic")
+	var guarded := layer.duplicate(true)
+	guarded.overlays = {"areas": [
+		{"rect": {"x0": 0, "x1": 3, "z0": 0, "z1": 0}, "reachability": "partial", "reason": "One patrol point blocked"},
+		{"rect": {"x0": 1, "x1": 3, "z0": 0, "z1": 0}, "reachability": "unreachable", "reason": "No route"}]}
+	var guards := Overseer.guard_cells(guarded)
+	check(guards.partial == [Vector2i(0, 0)] and guards.unreachable == [Vector2i(1, 0)],
+		"guard hatching clips unknown cells and gives unreachable overlaps priority")
+	check(Overseer.guard_notes(guarded, {"x": 0, "z": 0}).contains("partially reachable (One patrol point blocked)")
+		and Overseer.guard_notes(guarded, {"x": 1, "z": 0}).contains("unreachable (No route)"),
+		"guard Inspect describes distinct states and the server reason")
+	check(Overseer.guard_notes(guarded, {"x": 2, "z": 0}).is_empty(), "guard Inspect never reveals unknown cells")
+	view.snapshot = guarded
+	view._draw_overlays()
+	check(view.overlay_sheets.get_child_count() == 3, "guard areas draw base tint and two warning patterns")
+	var amber: ShaderMaterial = view.overlay_sheets.get_child(1).multimesh.mesh.material
+	var red: ShaderMaterial = view.overlay_sheets.get_child(2).multimesh.mesh.material
+	check(not amber.get_shader_parameter("cross_hatch") and red.get_shader_parameter("cross_hatch")
+		and amber.get_shader_parameter("ink") != red.get_shader_parameter("ink"),
+		"partial and unreachable use different hatch patterns and colours")
+	for state in ["unknown", "reachable", "invalid", null]:
+		guarded.overlays.areas = [{"rect": {"x0": 0, "x1": 3, "z0": 0, "z1": 0}, "reachability": state}]
+		guards = Overseer.guard_cells(guarded)
+		check(guards.partial.is_empty() and guards.unreachable.is_empty(), "non-failure state has no failure hatch: %s" % str(state))
+		check(Overseer.guard_notes(guarded, {"x": 0, "z": 0}).contains("guard access reachable" if state == "reachable" else "guard access unknown"),
+			"unknown or malformed state is never reported as safe: %s" % str(state))
+	guarded.overlays.areas = [{"rect": {"x0": "bad"}, "reachability": "unreachable"}, null]
+	check(Overseer.guard_cells(guarded).unreachable.is_empty() and Overseer.guard_notes(guarded, {"x": 0, "z": 0}).is_empty(),
+		"malformed area rectangles are ignored")
 	view.snapshot = layer
 	# A level sent ahead for the same request is kept, never drawn early.
 	var ahead := layer.duplicate(true)

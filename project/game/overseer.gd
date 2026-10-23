@@ -86,6 +86,8 @@ const CACHED_LEVELS := 8
 var layer_cache: Dictionary = {}
 var level_meshes: Dictionary = {}
 var meshed_level := 0
+var geometry_signature: Variant = null
+var concealment_signature: Variant = null
 # Overlays the server sends with each layer. Room quality is tinted by
 # tier, or left grey until the room is surveyed; miasma shades known cells
 # by the strongest remembered scent reaching them.
@@ -104,6 +106,20 @@ const LOCKED := Color(0.7, 0.05, 0.05, 0.9)
 const STATION := Color(0.35, 0.5, 1.0, 0.8)
 const STATION_RING := Color(0.35, 0.5, 1.0, 0.25)
 const PROTECTED := Color(0.35, 0.5, 1.0, 0.12)
+const GUARD_HATCH := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
+uniform vec4 ink : source_color;
+uniform bool cross_hatch = false;
+void fragment() {
+	float stripe = 1.0 - step(0.12, abs(fract((UV.x + UV.y) * 3.0) - 0.5));
+	if (cross_hatch) {
+		stripe = max(stripe, 1.0 - step(0.12, abs(fract((UV.x - UV.y) * 3.0) - 0.5)));
+	}
+	ALBEDO = ink.rgb;
+	ALPHA = ink.a * stripe;
+}
+"""
 const WATCH := Color(0.55, 0.65, 1.0, 0.85)
 var shown_overlays := {"rooms": false, "miasma": false, "traffic": false}
 # Officers' pages to this planner, by id, as the server last sent them.
@@ -287,6 +303,8 @@ func _clear_children(parent: Node) -> void:
 		child.queue_free()
 
 func _clear_layer() -> void:
+	geometry_signature = null
+	concealment_signature = null
 	if memory_material != null:
 		memory_material.set_shader_parameter("has_memory", false)
 	snapshot = {}
@@ -392,6 +410,8 @@ func _receive(msg: Dictionary) -> void:
 		refresh_draft()
 	elif type == "pong" and msg.get("capabilities") is Dictionary:
 		ui.update_capabilities(msg.capabilities)
+	elif type == "overview":
+		ui.update_overview(msg)
 	elif type == "plans" and msg.get("plans") is Array:
 		ui.update_plans(msg.plans)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:
@@ -448,8 +468,8 @@ func _update_materials(value: Variant) -> void:
 	build_material.clear()
 	var matched := false
 	for entry in build_materials:
-		build_material.add_item(str(entry.title).split("\n")[0])
-		build_material.set_item_tooltip(build_material.item_count - 1, str(entry.title))
+		build_material.add_item(str(entry.title).split("\n")[0] + (" (unavailable)" if entry.get("missing", false) else ""))
+		build_material.set_item_tooltip(build_material.item_count - 1, str(entry.title) + "\n" + str(entry.get("reason", "")) + "\n" + str(entry.get("requirements", "")))
 		if str(entry.name) == selected_name:
 			build_material.select(build_material.item_count - 1)
 			matched = true
@@ -861,6 +881,8 @@ func _draw_concealment() -> void:
 func _draw_layer() -> void:
 	_clear_children(overlay)
 	if snapshot.get("empty", false):
+		geometry_signature = null
+		concealment_signature = null
 		memory_material.set_shader_parameter("has_memory", false)
 		_show_level_meshes()
 		_clear_children(level_meshes[level].node)
@@ -870,8 +892,24 @@ func _draw_layer() -> void:
 		mesh_queue.clear()
 		client.overseer_entities(actors, {})
 		return
-	_queue_geometry()
-	_draw_concealment()
+	# Observation dates and actor/plan updates do not change terrain. Avoid
+	# rewalking every column and reallocating its masks on each live reply.
+	# Frozen exact keys prevent a hash collision or later array mutation from
+	# keeping visibility masks for a different observation.
+	var geometry_parts: Array = [level, snapshot.rect, snapshot.palette, snapshot.cells, snapshot.floors]
+	var visibility_parts: Array = [snapshot.get("states", [])]
+	for below in snapshot.get("below", []):
+		geometry_parts.append(below.cells)
+		geometry_parts.append(below.get("walls", []))
+		visibility_parts.append(below.get("states", []))
+	var next_geometry := geometry_parts
+	var next_concealment := [geometry_parts, visibility_parts, extent]
+	if geometry_signature != next_geometry or meshed_level != level:
+		_queue_geometry()
+		geometry_signature = next_geometry.duplicate(true)
+	if concealment_signature != next_concealment:
+		_draw_concealment()
+		concealment_signature = next_concealment.duplicate(true)
 	client.overseer_entities(actors, snapshot)
 	var rect: Dictionary = snapshot.rect
 	var marked: Dictionary = {}
@@ -900,9 +938,30 @@ func _draw_layer() -> void:
 			vertical.append(p - Vector3(0.45, 0, 0))
 		_planes(overlay, horizontal, _colour(colour), 0.94, 0.06)
 		_planes(overlay, vertical, _colour(colour), 0.06, 0.94)
-	if int(floor(body.y + 0.5)) == level:
-		_planes(overlay, [Vector3(body.x, level + 30.1, body.z)], _colour(Color(0.5, 0.85, 1.0)), 0.3, 0.3)
+	_draw_player_marker()
 	_draw_overlays()
+
+func _draw_player_marker() -> void:
+	if roundi(body.y) != level:
+		return
+	var p := Vector3(body.x, level + 30.2, body.z)
+	# Dark outline and bright centre remain distinct from worker dots.
+	_planes(overlay, [p], _colour(Color(0.03, 0.06, 0.09)), 0.95, 0.95)
+	_planes(overlay, [p + Vector3(0, 0.01, 0)], _colour(Color.WHITE), 0.78, 0.78)
+	_planes(overlay, [p + Vector3(0, 0.02, 0)], _colour(Color(0.1, 0.8, 1.0)), 0.48, 0.48)
+	var caption := Label3D.new()
+	caption.text = "You"
+	caption.font_size = 48
+	caption.outline_size = 12
+	caption.pixel_size = 0.012
+	caption.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	caption.no_depth_test = true
+	caption.position = p + Vector3(0, 0.03, -0.8)
+	overlay.add_child(caption)
+
+func player_location_text() -> String:
+	var delta := roundi(body.y) - level
+	return "You: level %d%s" % [roundi(body.y), " (here)" if delta == 0 else " (%d %s)" % [absi(delta), "above" if delta > 0 else "below"]]
 
 func toggle_overlay(kind: String) -> void:
 	if not shown_overlays.has(kind):
@@ -942,6 +1001,20 @@ func _draw_overlays() -> void:
 		for c in group[1]:
 			positions.append(Vector3(c.x, level + 30.05, -c.y))
 		_planes(overlay_sheets, positions, _colour(group[0]), 1.0, 1.0)
+	var guards := guard_cells(snapshot)
+	for state in ["partial", "unreachable"]:
+		if guards[state].is_empty(): continue
+		var positions: Array = []
+		for c in guards[state]:
+			positions.append(Vector3(c.x, level + 30.07, -c.y))
+		var material := ShaderMaterial.new()
+		var shader := Shader.new()
+		shader.code = GUARD_HATCH
+		material.shader = shader
+		material.set_shader_parameter("ink", Color(1.0, 0.2, 0.15, 0.7) if state == "unreachable" else Color(1.0, 0.65, 0.1, 0.65))
+		material.set_shader_parameter("cross_hatch", state == "unreachable")
+		# UV stripes stay inside each known cell, even beside unexplored ground.
+		_planes(overlay_sheets, positions, material, 1.0, 1.0)
 	var small: Array = [[LOCKED, marks.lock, 0.6], [STATION, marks.post, 0.7], [WATCH, marks.watch, 0.4]]
 	if shown_overlays.traffic:
 		var workers := worker_marks(snapshot)
@@ -1007,15 +1080,7 @@ static func zone_cells(layer: Dictionary) -> Dictionary:
 	if not r is Dictionary:
 		return out
 	for pair in [["zones", "forbid"], ["areas", "area"]]:
-		for e in _overlay_list(layer, pair[0]):
-			if not e is Dictionary or not e.get("rect") is Dictionary:
-				continue
-			var b: Dictionary = e.rect
-			if not (_number(b.get("x0")) and _number(b.get("x1")) and _number(b.get("z0")) and _number(b.get("z1"))):
-				continue
-			for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
-				for x in range(maxi(int(b.x0), int(r.x0)), mini(int(b.x1), int(r.x1)) + 1):
-					if _known_cell(layer, x, z): out[pair[1]].append(Vector2i(x, z))
+		out[pair[1]] = _rectangle_cells(layer, _overlay_list(layer, pair[0]))
 	for e in _overlay_list(layer, "watch"):
 		if not e is Dictionary or not (_number(e.get("x")) and _number(e.get("z"))):
 			continue
@@ -1041,6 +1106,83 @@ static func zone_cells(layer: Dictionary) -> Dictionary:
 				if maxi(absi(dx), absi(dz)) == ring and _known_cell(layer, int(e.x) + dx, int(e.z) + dz):
 					out.ring.append(Vector2i(int(e.x) + dx, int(e.z) + dz))
 	return out
+
+# Guard access is server evidence, not inferred from the designation itself.
+static func _guard_state(area: Dictionary) -> String:
+	var state: Variant = area.get("reachability")
+	return state if state is String and state in ["reachable", "partial", "unreachable", "unknown"] else "unknown"
+
+static func _guard_rect(area: Dictionary) -> bool:
+	var b: Variant = area.get("rect")
+	return b is Dictionary and _number(b.get("x0")) and _number(b.get("x1")) \
+		and _number(b.get("z0")) and _number(b.get("z1"))
+
+static func guard_cells(layer: Dictionary) -> Dictionary:
+	var out := {"partial": [], "unreachable": []}
+	var r: Variant = layer.get("rect")
+	if not r is Dictionary or not _guard_rect({"rect": r}):
+		return out
+	var partial: Array = []
+	var unreachable: Array = []
+	for area in _overlay_list(layer, "areas"):
+		if not area is Dictionary: continue
+		var state := _guard_state(area)
+		if state == "partial": partial.append(area)
+		elif state == "unreachable": unreachable.append(area)
+	out.unreachable = _rectangle_cells(layer, unreachable)
+	var blocked := {}
+	for cell in out.unreachable: blocked[cell] = true
+	for cell in _rectangle_cells(layer, partial):
+		if not blocked.has(cell): out.partial.append(cell)
+	return out
+
+# Merge rectangle spans before visiting cells: overlapping designations must
+# not allocate or draw the same cell hundreds of times.
+static func _rectangle_cells(layer: Dictionary, entries: Array) -> Array:
+	var out: Array = []
+	var r: Variant = layer.get("rect")
+	if not r is Dictionary or not _guard_rect({"rect": r}): return out
+	var rows := {}
+	for entry in entries:
+		if not entry is Dictionary or not _guard_rect(entry): continue
+		var b: Dictionary = entry.rect
+		var left := maxi(int(b.x0), int(r.x0))
+		var right := mini(int(b.x1), int(r.x1))
+		if left > right: continue
+		for z in range(maxi(int(b.z0), int(r.z0)), mini(int(b.z1), int(r.z1)) + 1):
+			if not rows.has(z): rows[z] = []
+			rows[z].append(Vector2i(left, right))
+	for z in rows:
+		var spans: Array = rows[z]
+		spans.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
+		var next_x := int(r.x0)
+		for span in spans:
+			for x in range(maxi(next_x, span.x), span.y + 1):
+				if _known_cell(layer, x, z): out.append(Vector2i(x, z))
+			next_x = maxi(next_x, span.y + 1)
+	return out
+
+static func _inside_rectangle(entry: Variant, pos: Dictionary) -> bool:
+	if not entry is Dictionary or not _guard_rect(entry): return false
+	var b: Dictionary = entry.rect
+	return pos.x >= b.x0 and pos.x <= b.x1 and pos.z >= b.z0 and pos.z <= b.z1
+
+static func guard_notes(layer: Dictionary, pos: Dictionary) -> String:
+	if not _known_cell(layer, int(pos.x), int(pos.z)):
+		return ""
+	var notes := ""
+	for area in _overlay_list(layer, "areas"):
+		if not area is Dictionary or not _guard_rect(area):
+			continue
+		var b: Dictionary = area.rect
+		if pos.x < b.x0 or pos.x > b.x1 or pos.z < b.z0 or pos.z > b.z1:
+			continue
+		var state := _guard_state(area)
+		notes += "\nProtected area: guard access %s" % ("partially reachable" if state == "partial" else state)
+		var reason: Variant = area.get("reason", "")
+		if reason is String and not reason.is_empty():
+			notes += " (%s)" % reason.left(160).replace("\n", " ")
+	return notes
 
 static func _overlay_list(layer: Dictionary, kind: String) -> Array:
 	var overlays: Variant = layer.get("overlays")
@@ -1160,14 +1302,16 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 	for e in _overlay_list(layer, "workers"):
 		if e is Dictionary and e.get("here", false) == true and e.get("x") == pos.x and e.get("z") == pos.z:
 			notes += "\n%s: %s" % [str(e.get("name", "Worker")), str(e.get("activity", "idle"))]
-	var marks := zone_cells(layer)
-	var cell := Vector2i(int(pos.x), int(pos.z))
-	if cell in marks.forbid:
-		notes += "\nForbidden area: workers take no work here"
-	if cell in marks.area:
-		notes += "\nProtected area: soldiers patrol it and answer hostiles inside"
-	if cell in marks.lock:
-		notes += "\nLocked door"
+	if _known_cell(layer, int(pos.x), int(pos.z)):
+		for entry in _overlay_list(layer, "zones"):
+			if _inside_rectangle(entry, pos):
+				notes += "\nForbidden area: workers take no work here"
+				break
+		for entry in _overlay_list(layer, "locks"):
+			if entry is Dictionary and entry.get("x") == pos.x and entry.get("z") == pos.z:
+				notes += "\nLocked door"
+				break
+	notes += guard_notes(layer, pos)
 	for e in _overlay_list(layer, "watch"):
 		if e is Dictionary and e.get("kind") == "door" and e.get("x") == pos.x and e.get("z") == pos.z:
 			notes += "\nOuter door: watched by soldiers at night"
