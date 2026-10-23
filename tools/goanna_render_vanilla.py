@@ -3,6 +3,7 @@
 """Vanilla reference captures through the render service's server and launcher."""
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -88,6 +89,22 @@ end)
         return world
 
 
+def wait_capture_ack(path, image, timeout):
+    """Wait after a completed first capture, without suspending child processes."""
+    deadline = time.monotonic() + timeout
+    digest = hashlib.sha256(image.read_bytes()).hexdigest()
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise render.RenderError('capture acknowledgement timed out')
+        time.sleep(.1)
+    try:
+        ack = json.loads(path.read_text())
+    except (OSError, ValueError) as error:
+        raise render.RenderError('invalid capture acknowledgement') from error
+    if not isinstance(ack, dict) or ack.get('sha256') != digest or ack.get('world_visible') is not True:
+        raise render.RenderError('capture acknowledgement does not verify this image')
+
+
 def command(args):
     ap = argparse.ArgumentParser(prog='goanna-render vanilla')
     ap.add_argument('job')
@@ -98,7 +115,15 @@ def command(args):
     ap.add_argument('--no-server-occlusion', action='store_true')
     ap.add_argument('--survival', action='store_true',
                     help='start the reference server with creative mode disabled')
+    ap.add_argument('--capture-ack-file', type=pathlib.Path,
+                    help='wait for a hash-matching JSON acknowledgement after the first capture')
+    ap.add_argument('--capture-ack-timeout', type=float, default=300)
     opt = ap.parse_args(args)
+    if not math.isfinite(opt.capture_ack_timeout) or not 0 < opt.capture_ack_timeout <= 600:
+        raise render.RenderError('capture acknowledgement timeout must be in (0, 600] seconds')
+    if opt.capture_ack_file:
+        if not opt.capture_ack_file.is_absolute() or opt.capture_ack_file.exists():
+            raise render.RenderError('capture acknowledgement requires a new absolute file path')
     job = json.loads(pathlib.Path(opt.job).read_text())
     if job.get('frame') != 'world' or not job.get('poses'):
         raise render.RenderError('vanilla reference captures need world-frame poses')
@@ -164,6 +189,8 @@ def command(args):
             render.write_json(path.with_suffix('.settings.json'), metadata)
             frames.append(str(path))
             print(json.dumps({'captured': str(path)}), flush=True)
+            if index == 0 and opt.capture_ack_file:
+                wait_capture_ack(opt.capture_ack_file, path, opt.capture_ack_timeout)
             render.gh.stop(client['id'])
             client = None
         render.write_json(out / 'result.json', {'ok': True, 'frames': frames})

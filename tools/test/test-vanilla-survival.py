@@ -3,6 +3,7 @@
 # Copyright (C) 2026 the Goanna contributors
 """Check vanilla creative/survival configuration without starting a client."""
 import json
+import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -75,6 +76,38 @@ class SurvivalTest(unittest.TestCase):
                     with self.assertRaises(StopBeforeStart):
                         vanilla.command([str(job), '--world-from', 'not-started'] + flags)
                 self.assertIs(factory.call_args.kwargs['creative'], expected)
+
+
+class CaptureAckTest(unittest.TestCase):
+    def test_matching_completed_capture(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / 'image.png'
+            image.write_bytes(b'completed image')
+            ack = root / 'ack.json'
+            ack.write_text(json.dumps({'sha256': hashlib.sha256(image.read_bytes()).hexdigest(),
+                                       'world_visible': True}))
+            vanilla.wait_capture_ack(ack, image, 1)
+
+    def test_wrong_image_unverified_and_malformed_reject(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / 'image.png'
+            image.write_bytes(b'image')
+            ack = root / 'ack.json'
+            for value in ('{}', '[]', 'invalid', json.dumps({'sha256': 'wrong', 'world_visible': True})):
+                ack.write_text(value)
+                with self.assertRaises(render.RenderError):
+                    vanilla.wait_capture_ack(ack, image, 1)
+
+    def test_missing_ack_times_out(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / 'image.png'
+            image.write_bytes(b'image')
+            with mock.patch.object(vanilla.time, 'monotonic', side_effect=[0, 2]):
+                with self.assertRaises(render.RenderError):
+                    vanilla.wait_capture_ack(root / 'absent.json', image, 1)
 
 
 if __name__ == '__main__':
