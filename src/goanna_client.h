@@ -644,6 +644,7 @@ private:
     double m_climate_build_ms = 0;
     goanna::ClimateGrid m_climate_built_grid;
     uint64_t m_climate_built_revision = 0;
+    std::chrono::steady_clock::time_point m_climate_built_at{};
     godot::Ref<godot::ImageTexture3D> m_climate_tex;
     double m_ms_climate = 0;
     void updateClimate(const godot::Vector3 &around);

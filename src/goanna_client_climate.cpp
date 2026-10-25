@@ -157,6 +157,13 @@ void GoannaClient::updateClimate(const Vector3 &around) {
             grid.oz != m_climate_built_grid.oz;
     if (!moved && m_climate.revision() == m_climate_built_revision)
         return;
+    // The server resends a block whenever it recomputes one, and each
+    // message used to start a full build: live, the store was building
+    // nearly all the time. New data waits up to a quarter second; a move
+    // across a map block does not wait.
+    if (!moved && ms_since(m_climate_built_at) < 250.0)
+        return;
+    m_climate_built_at = clock_t_::now();
     m_climate_built_grid = grid;
     m_climate_built_revision = m_climate.revision();
     m_climate_busy = true;

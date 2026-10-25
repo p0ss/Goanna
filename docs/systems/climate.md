@@ -57,9 +57,11 @@ a fraction of a degree, not the 7 C a cell size jump gave before.
 `src/goanna_client_climate.cpp` joins the channel, decodes the messages
 and samples the store onto a grid of 100 by 24 by 100 texels at 4 nodes a
 texel, the range the server sends, round the map block the camera is in.
-The build runs on its own thread, about 9 ms for a full grid, and only
-when the camera crosses a map block or the store changes. Messages that
-arrive during a build wait and are applied after it.
+The build runs on its own thread, about 9 ms for a full grid, when the
+camera crosses a map block, or at most four times a second when the store
+changes: the server resends a block each time it recomputes one, and a
+build per message kept the store building nearly all the time. Messages
+that arrive during a build wait and are applied after it.
 
 ## Reading it in a shader
 
@@ -119,8 +121,16 @@ Tested so far: the native test; injected messages through the real
 extension under Godot 4.5.1 `--headless`; and the wet ground in that
 study, rendered on lavapipe through `tools/goanna-headless fixture`, where
 humid ground is unchanged, damp is slightly darkened, and saturated shows
-a sheen and a few small puddles. Not yet run against a real DorfCraft
-server, and not yet seen in the world.
+a sheen and a few small puddles.
+
+Live on 26 October 2026, against a Luanti 5.17.0 server running DorfCraft
+on Mineclonia (stream 15's water scene: a pond, a stream, a fall, a sealed
+dry room and a room with a basin, in a claim), with Goanna under Godot
+4.5.1 `--headless`: the client joined the granted channel, took the header
+and 40 blocks, built the texture in 5 to 9 ms, and read the field as the
+server did, within 0.007 (open ground 0.76 on both; beside the fall 0.928
+on the server, 0.921 on the client). The wet ground has not yet been seen
+in the world.
 
 ## Not done yet
 
