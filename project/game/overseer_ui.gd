@@ -48,6 +48,9 @@ var verb_row: HFlowContainer
 var verbs_expanded := false
 var verb_key: Variant = null
 const STRIP_VERBS := 6
+## Verb icons, named by the server so each means one thing everywhere.
+const ICONS := "res://ui/overseer_icons/"
+static var icon_cache := {}
 var nudges: VBoxContainer
 
 func label(parent: Node, text: String) -> Label:
@@ -67,6 +70,24 @@ func button(parent: Node, text: String, action: Callable) -> Button:
 	result.pressed.connect(action)
 	parent.add_child(result)
 	return result
+
+## The icon the server named, or null for a name this client does not draw.
+static func icon_for(name: Variant) -> Texture2D:
+	if not name is String or not (name as String).is_valid_identifier(): return null
+	if not icon_cache.has(name):
+		var path: String = ICONS + name + ".svg"
+		icon_cache[name] = load(path) if ResourceLoader.exists(path) else null
+	return icon_cache[name]
+
+func set_icon(b: Button, name: Variant, dim := false) -> void:
+	var texture := icon_for(name)
+	if texture == null: return
+	b.icon = texture
+	b.expand_icon = true
+	b.add_theme_constant_override("icon_max_width", 24)
+	if dim:
+		for state in ["normal", "hover", "pressed", "focus", "hover_pressed"]:
+			b.add_theme_color_override("icon_%s_color" % state, Color(1, 1, 1, 0.4))
 
 func box(parent: Node) -> PanelContainer:
 	var result := PanelContainer.new()
@@ -318,12 +339,14 @@ func refresh_tools() -> void:
 			groups[group] = true
 			var grouped := button(actions, group, choose_group.bind(group))
 			grouped.set_meta("group", group)
+			set_icon(grouped, t.get("group_icon"))
 			grouped.toggle_mode = true
 			continue
 		var b := button(actions, str(t.get("title", t.id)), view.choose_tool.bind(str(t.id)))
 		b.tooltip_text = str(t.get("reason", t.get("help", "")))
 		b.set_meta("tool", str(t.id))
 		b.toggle_mode = true
+		set_icon(b, t.get("icon"), t.get("disabled", false))
 		# Keep unavailable controls focusable so their reason can be read.
 		if t.get("disabled", false): b.text += " (unavailable)"
 	view._update_materials(view.material_catalog)
@@ -419,6 +442,7 @@ func refresh_verbs() -> void:
 		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		b.tooltip_text = str(entry.reason)
 		b.set_meta("verb", int(entry.verb))
+		set_icon(b, entry.icon, entry.disabled)
 	if entries.size() > limit:
 		var more := button(verb_row, "More", func() -> void:
 			verbs_expanded = true

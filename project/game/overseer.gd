@@ -1466,7 +1466,7 @@ static func strip_entries(list: Array) -> Array:
 		var group := str(v.get("group", ""))
 		if group.is_empty():
 			out.append({"verb": i, "label": str(v.get("label", v.id)), "disabled": v.get("disabled", false),
-				"reason": str(v.get("reason", v.get("help", "")))})
+				"reason": str(v.get("reason", v.get("help", ""))), "icon": v.get("icon")})
 			continue
 		if groups.has(group):
 			var entry: Dictionary = out[groups[group]]
@@ -1475,7 +1475,7 @@ static func strip_entries(list: Array) -> Array:
 			continue
 		groups[group] = out.size()
 		out.append({"verb": i, "label": group, "disabled": v.get("disabled", false),
-			"reason": str(v.get("reason", v.get("help", "")))})
+			"reason": str(v.get("reason", v.get("help", ""))), "icon": v.get("group_icon")})
 	return out
 
 ## Turns a verb into the existing tool with the selection as its draft.

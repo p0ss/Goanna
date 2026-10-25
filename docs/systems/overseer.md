@@ -260,12 +260,17 @@ the selection. Nothing is sent until Submit plan, which sends the ordinary
 selection before leaving the tool, and changing level drops it. The strip
 buttons are ordinary focusable controls, reached with Tab or the right
 shoulder button, and the strip is rebuilt only when its content changes so
-a layer refresh does not take focus away. The strip has text labels and
-number prefixes only; there are no verb icons yet.
+a layer refresh does not take focus away. Each verb, tool and tool group
+also draws the icon the server names (`icon`, `group_icon`) from
+`project/ui/overseer_icons/`, so an icon means one thing everywhere: a bare
+glyph acts on what is there, a dashed frame marks a zone and builds
+nothing, a plus means workers add something from stock. A name this client
+has no icon for, or a malformed one, draws the text label alone.
 
-`tests/overseer_verbs.gd` (structural, 23 checks) covers the request, stale
+`tests/overseer_verbs.gd` (structural, 26 checks) covers the request, stale
 answers, unknown tools, number keys, grouped verbs, unavailable verbs,
-Progress, mixed and empty answers, refusals, Back, level change and More.
+Progress, mixed and empty answers, refusals, Back, level change, More and
+the icons.
 `tests/overseer_verbs_live.gd` fells two trees on the scratch overseer
 server: one by mouse (click the trunk, click Fell, click Submit plan) and
 one by keyboard only (arrows, Enter, 1, Tab to Submit plan, Enter), each

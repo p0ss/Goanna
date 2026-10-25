@@ -7,6 +7,7 @@
 extends SceneTree
 const Unit := preload("res://tests/overseer.gd")
 const Overseer := preload("res://game/overseer.gd")
+const OverseerUI := preload("res://game/overseer_ui.gd")
 var failures := 0
 var checks := 0
 func check(ok: bool, text: String) -> void:
@@ -50,9 +51,17 @@ func run() -> void:
 		"verbs":[{"id":"chop","tool":"chop","label":"Fell"}]})
 	check(view.verbs.is_empty(), "an answer to an older selection is ignored")
 	view._receive({"v":1,"t":"affordances","req":ask.req,"ok":true,"nouns":[{"kind":"tree","count":1}],
-		"verbs":[{"id":"chop","tool":"chop","label":"Fell"},{"id":"smuggle","tool":"smuggle","label":"Hidden"}]})
+		"verbs":[{"id":"chop","tool":"chop","label":"Fell","icon":"chop"},{"id":"smuggle","tool":"smuggle","label":"Hidden"}]})
 	check(view.verbs.size() == 1 and view.ui.first_verb() != null and view.ui.first_verb().text == "1  Fell",
 		"the strip shows server verbs for known tools only, numbered")
+	check(view.ui.first_verb().icon == OverseerUI.icon_for("chop") and view.ui.first_verb().icon != null,
+		"a verb draws the icon the server names")
+	check(OverseerUI.icon_for("no_such_icon") == null and OverseerUI.icon_for("../icon") == null and OverseerUI.icon_for(3) == null,
+		"an unknown or malformed icon name draws nothing")
+	var unreadable: Array = []
+	for file in DirAccess.get_files_at(OverseerUI.ICONS):
+		if file.ends_with(".svg") and OverseerUI.icon_for(file.get_basename()) == null: unreadable.append(file)
+	check(DirAccess.get_files_at(OverseerUI.ICONS).size() > 20 and unreadable.is_empty(), "every verb icon loads %s" % [unreadable])
 	view._input(key(KEY_1))
 	check(view.tool == "chop" and view.ui.family == "Gather" and view.first_corner == {"x":2,"y":0,"z":3}
 		and view.last_corner == view.first_corner and view.can_submit(),
@@ -77,11 +86,11 @@ func run() -> void:
 	check(at(ask.get("a"), 0, 0, 0) and at(ask.get("b"), 2, 0, 1),
 		"Shift+Enter extends the selection to a box")
 	view._receive({"v":1,"t":"affordances","req":ask.req,"ok":true,"nouns":[{"kind":"floor","count":6}],
-		"verbs":[{"id":"stockpile_area","tool":"stockpile_area","label":"Hauling stockpile","group":"Storage"},
+		"verbs":[{"id":"stockpile_area","tool":"stockpile_area","label":"Hauling stockpile","group":"Storage","icon":"zone_storage","group_icon":"zone_storage"},
 			{"id":"refuse_area","tool":"refuse_area","label":"Refuse stockpile","group":"Storage"},
 			{"id":"floor","tool":"floor","label":"Replace floor","disabled":true,"reason":"Building requires the manage right."}]})
 	var entries: Array = Overseer.strip_entries(view.verbs)
-	check(entries.size() == 2 and entries[0].label == "Storage", "a tool group folds into one verb")
+	check(entries.size() == 2 and entries[0].label == "Storage" and entries[0].icon == "zone_storage", "a tool group folds into one verb, with the group's icon")
 	check(view.ui.verb_heading.text == "Floor (6 cells)", "the strip names what the server found")
 	view._input(key(KEY_2))
 	check(view.tool == "inspect" and view.inspector.text == "Building requires the manage right." and view.first_corner == null,
