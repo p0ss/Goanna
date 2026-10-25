@@ -132,6 +132,30 @@ server did, within 0.007 (open ground 0.76 on both; beside the fall 0.928
 on the server, 0.921 on the client). The wet ground has not yet been seen
 in the world.
 
+## What it costs
+
+Timed on 26 October 2026 through the render service on the RTX 3090, High
+tier, 1920 by 1080, a stone floor and wall filling most of the frame, with
+a uniform field injected over the whole grid (`client_run`). Headless, so
+relative only: per draw GPU time, median of six rounds of 600 draws.
+
+| Field | GPU ms | Over off |
+| --- | --- | --- |
+| off | 4.214 | |
+| on, dry (0.45) | 4.222 | 0.2 per cent, inside the noise |
+| on, damp (0.84) | 4.255 | 1.0 per cent |
+| on, soaked (0.965) everywhere | 4.323 | 2.6 per cent |
+
+Dry ground pays one 3D texture read a fragment. Damp ground takes the rain
+film's few lines as well, and soaked ground the standing water. In the
+world only banks and wet rooms are damp or soaked, so a real frame pays
+well under the soaked figure. The texture is 960 kB.
+
+On the main thread, a rebuild costs about 0.04 ms making the slices and
+0.13 ms uploading them; the 8 ms build itself is on its own thread. Parsing
+the messages is the largest share: about 0.8 ms for a 40 kB batch of
+blocks, on the main thread, as each message arrives.
+
 ## Not done yet
 
 The agreed look, none of it drawn yet:
