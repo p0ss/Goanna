@@ -240,6 +240,15 @@ public:
     bool setOverseerChannel(const std::string &channel);
     void sendOverseer(const std::string &message);
     std::vector<std::string> takeOverseer();
+    // The climate field's per player channel (docs/systems/climate.md),
+    // granted like the overseer's through a HUD element, here named
+    // kindred:field, whose text is the channel. Called by the main thread
+    // each frame: joins a newly granted channel and says hello, or leaves
+    // one withdrawn. True when the channel changed, so the caller drops
+    // what it held from the old one.
+    bool syncFieldChannel();
+    bool fieldJoined() const;
+    std::vector<std::string> takeField();
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -625,6 +634,8 @@ private:
     // thread in onModChannelMsg, drained by the main thread's take methods.
     std::string m_overseer_channel; // under m_server_opts_mutex
     std::vector<std::string> m_overseer_messages;
+    std::string m_field_channel; // under m_server_opts_mutex
+    std::vector<std::string> m_field_messages;
     std::vector<std::string> m_surfaces;
     std::vector<std::string> m_fine_blocks;
     std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex

@@ -18,6 +18,7 @@
 // material is cached on, and arrayTileKey.
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <deque>
 #include <map>
@@ -53,6 +54,7 @@
 #include "goanna_item_icons.h"
 #include "goanna_surface.h"
 #include "goanna_light.h"
+#include "goanna_climate.h"
 #include "goanna_mesher.h" // MapBlockMesh, for the near ready cache
 #include "goanna_lod.h"
 #include "goanna_lod_storage.h"
@@ -384,6 +386,12 @@ public:
     // offset, world_pos, size, z_index, text2, style}], plus flags/hotbar info.
     godot::Dictionary hud_state() const;
     bool overseer_channel(const godot::String &channel);
+    // The climate field (goanna_client_climate.cpp): a message as the
+    // server would send it, for fixtures and tests; the store's state; and
+    // the field at a world position.
+    void climate_inject(const godot::String &message);
+    godot::Dictionary climate_stats() const;
+    godot::Dictionary climate_at(const godot::Vector3 &world) const;
     void overseer_send(const godot::String &message);
     godot::Array overseer_take();
     godot::Ref<godot::ArrayMesh> overseer_mesh(const godot::Dictionary &layer, godot::Vector3i block_pos);
@@ -622,6 +630,24 @@ private:
     std::chrono::steady_clock::time_point m_light_hue_updated{};
     godot::Color blockLightColour(const ContentFeatures &f);
     void updateLightHue(const godot::Vector3 &around);
+    // The server's temperature and wetness field (goanna_client_climate.cpp).
+    // m_climate belongs to m_climate_thread while m_climate_busy, when
+    // messages wait in m_climate_pending; m_climate_rgba and
+    // m_climate_build_ms are the thread's until m_climate_done.
+    goanna::ClimateStore m_climate;
+    std::vector<std::string> m_climate_pending;
+    bool m_climate_reset = false;
+    std::thread m_climate_thread;
+    std::atomic<bool> m_climate_done{false};
+    bool m_climate_busy = false;
+    std::vector<uint8_t> m_climate_rgba;
+    double m_climate_build_ms = 0;
+    goanna::ClimateGrid m_climate_built_grid;
+    uint64_t m_climate_built_revision = 0;
+    godot::Ref<godot::ImageTexture3D> m_climate_tex;
+    double m_ms_climate = 0;
+    void updateClimate(const godot::Vector3 &around);
+    void applyClimate(const std::string &message);
     std::unique_ptr<goanna::RenderScope> m_render_scope;
     double m_poll_budget_ms = 0.0;
     bool m_carve_active = false;

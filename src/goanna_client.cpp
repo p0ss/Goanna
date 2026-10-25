@@ -120,6 +120,8 @@ GoannaClient::~GoannaClient() {
     m_mesh_pool.stop();
     if (m_horizon_thread.joinable())
         m_horizon_thread.join();
+    if (m_climate_thread.joinable())
+        m_climate_thread.join();
 }
 
 void GoannaClient::enable_render_scope() {
@@ -747,6 +749,9 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("breath"), &GoannaClient::breath);
     ClassDB::bind_method(D_METHOD("hud_state"), &GoannaClient::hud_state);
     ClassDB::bind_method(D_METHOD("overseer_channel", "channel"), &GoannaClient::overseer_channel);
+    ClassDB::bind_method(D_METHOD("climate_inject", "message"), &GoannaClient::climate_inject);
+    ClassDB::bind_method(D_METHOD("climate_stats"), &GoannaClient::climate_stats);
+    ClassDB::bind_method(D_METHOD("climate_at", "world"), &GoannaClient::climate_at);
     ClassDB::bind_method(D_METHOD("overseer_send", "message"), &GoannaClient::overseer_send);
     ClassDB::bind_method(D_METHOD("overseer_take"), &GoannaClient::overseer_take);
     ClassDB::bind_method(D_METHOD("overseer_mesh", "layer", "block_pos"), &GoannaClient::overseer_mesh);

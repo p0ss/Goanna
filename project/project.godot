@@ -136,6 +136,18 @@ goanna_lamp_occlusion_box={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+goanna_climate={
+"type": "sampler3D",
+"value": ""
+}
+goanna_climate_box={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+goanna_climate_size={
+"type": "vec4",
+"value": Vector4(100, 24, 100, 0)
+}
 goanna_light_hue={
 "type": "sampler3D",
 "value": ""

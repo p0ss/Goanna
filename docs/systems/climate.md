@@ -1,0 +1,108 @@
+# Climate field
+
+A temperature, wetness and air humidity value for each cell of the world
+round the player, sent by a paired server mod, for the shaders that will
+draw frost, wet and dry ground, dust and mist from it. Against any other
+server nothing is sent and nothing changes: an unmodified Luanti client
+sees nothing new, and Goanna only renders better where the field exists.
+
+Today the client receives the field, keeps it and uploads it as a 3D
+texture. No shader reads it yet. What it will draw is under "Not done
+yet".
+
+## Where it comes from
+
+DorfCraft's kindred seasons field (`mods/kindred/world/seasons/field.lua`
+and `field_net.lua` in the DorfCraft repository) is the only sender. It is
+optional for the server too: the field rides on a mod channel, which an
+ordinary client never joins.
+
+- The server grants a per player channel, `kindred:f:` and 32 lower case
+  hex characters, through a HUD element named `kindred:field` whose text
+  is the channel name. The client joins only a name granted that way, and
+  leaves it if the element goes away or names another channel.
+- The server cannot see a join, so on joining the client sends `hello 1`.
+  The server answers with a header, then the blocks in range.
+- Only messages with an empty sender, which the engine uses for the
+  server, are taken. Relayed player messages are dropped.
+
+### Messages
+
+All are JSON with `"v": 1`; anything else is ignored.
+
+| Kind | Content |
+| --- | --- |
+| `header` | `order` (`"x,y,z"`), and for each of `temp`, `wet` and `hum` the band `edges`, the representative value of each level (`rep`, in C or 0 to 1) and the band `names` |
+| `blocks` | `b`: a list of `[bx, by, bz, s, base64]`, map block position, cell size in nodes and the cells; batches stay under 60000 bytes |
+| `drop` | `b`: a list of `[bx, by, bz]` for blocks the player has left |
+
+Each cell is two bytes, x fastest, then y, then z: the temperature level
+times 16 plus the wetness level, then the air humidity level. Levels run
+1 to 15, and 0 means unknown. Cells are 16 nodes in the wild and 4 inside
+a fortress claim. The server sends 12 map blocks round the player, 2 below
+and 3 above.
+
+## How the client keeps it
+
+`src/goanna_climate.{h,cpp}` holds the store, with no Godot or Luanti in
+it. It turns levels into real degrees and fractions through the header's
+representative values before it interpolates, because the bands are
+uneven: blending band numbers would put the halfway point between -20 and
+30 C in the wrong place. Each point is interpolated at the resolution of
+the block it lies in, reading across into neighbours of other
+resolutions, so a 16-node field shows no edge at a block boundary and a
+claim keeps its 4-node detail. Where a claim meets the wild the step is
+a fraction of a degree, not the 7 C a cell size jump gave before.
+
+`src/goanna_client_climate.cpp` joins the channel, decodes the messages
+and samples the store onto a grid of 100 by 24 by 100 texels at 4 nodes a
+texel, the range the server sends, round the map block the camera is in.
+The build runs on its own thread, about 9 ms for a full grid, and only
+when the camera crosses a map block or the store changes. Messages that
+arrive during a build wait and are applied after it.
+
+## Reading it in a shader
+
+`project/shaders/climate.gdshaderinc` gives `goanna_climate_at(world)`,
+which takes a Godot world position and returns the temperature in C, the
+wetness, the humidity and, in `w`, how much of the value is known, 0 to 1.
+Off the grid, or with the field off, `w` is 0 and the rest a mild,
+middling day, so a reader that forgets to weigh by `w` draws little.
+
+The global uniforms behind it are `goanna_climate` (the texture),
+`goanna_climate_box` (the grid's low corner and nodes per texel) and
+`goanna_climate_size` (texels, and 1 in `w` while the field is on). The
+texture is premultiplied by how known each texel is, so filtering against
+an unknown texel blends only what is known.
+
+## Testing it
+
+`goanna_climate_test` checks the store on cases whose answer is known by
+inspection, and is part of `cmake --build build --target check`.
+
+For fake data without a server, `GoannaClient.climate_inject(message)`
+takes a message as the server would send it, `climate_stats()` reports
+whether the channel is joined, whether there is a header, how many blocks
+are held and the build time, and `climate_at(world)` gives the field at a
+Godot world position.
+
+Tested so far: the native test, and injected messages through the real
+extension under Godot 4.5.1 `--headless`. Not yet run against a real
+DorfCraft server.
+
+## Not done yet
+
+The agreed look, none of it drawn yet:
+
+| Field state | Shows as |
+| --- | --- |
+| Wet | puddles on open ground, drips from saturated ceilings, sheen and moss tint on stone in wet dim caves |
+| Dry | cracks on the `Soil` material class only, loose pale sand, dust lifted by wind and by moving entities, motes where a light beam crosses dust in a dry cave |
+| Cold | frost grown texel by texel like settled snow, heavier when humid and below -20 C; frost on glass; breath vapour |
+| Hot | heat shimmer behind a graphics tier; mild mirage from about 35 C at noon, strong only near lava and forges |
+| Saturated cool air | mist pooling in low ground, steam fog over water at dawn, wisps over forest after rain |
+
+Mist, dust and motes are to share one fog volume driven by this texture:
+dry and windy gives dust, damp and cool gives mist, never both. Footfalls
+are to come from one land detector split out of `wake.gd`, throwing up
+what the ground under them holds.

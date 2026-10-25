@@ -81,6 +81,8 @@ add_library(goanna SHARED
     src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
     src/goanna_light_hue.cpp
+    src/goanna_climate.cpp
+    src/goanna_client_climate.cpp
     src/goanna_lod.cpp
     src/goanna_lod_storage.cpp
     src/goanna_horizon.cpp
@@ -145,6 +147,14 @@ add_executable(goanna_light_hue_test EXCLUDE_FROM_ALL
     src/goanna_light_hue.cpp
 )
 target_include_directories(goanna_light_hue_test PRIVATE src)
+
+# The climate field's store and its interpolation, on cases whose answer is
+# known by inspection.
+add_executable(goanna_climate_test EXCLUDE_FROM_ALL
+    src/goanna_climate_test.cpp
+    src/goanna_climate.cpp
+)
+target_include_directories(goanna_climate_test PRIVATE src)
 
 # The shader pack gbuffers translator and its preprocessor, offline: the
 # text it writes, and with a pack directory the pack's programs translated.
@@ -364,6 +374,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_item_icon_test
     goanna_light_test
     goanna_light_hue_test
+    goanna_climate_test
     goanna_limbs_test
     goanna_lod_storage_test
     goanna_lod_test

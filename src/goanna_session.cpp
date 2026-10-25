@@ -705,11 +705,75 @@ std::vector<std::string> GoannaSession::takeOverseer() {
     return out;
 }
 
+bool GoannaSession::syncFieldChannel() {
+    if (!connection()) return false;
+    // "kindred:f:" and 32 lower case hex, as DorfCraft's field names it.
+    std::string granted;
+    {
+        std::lock_guard<std::mutex> lock(m_hud_mutex);
+        for (const auto &entry : m_hud)
+            if (entry.second.name == "kindred:field") {
+                granted = entry.second.text;
+                break;
+            }
+    }
+    if (!granted.empty()) {
+        bool ok = granted.size() == 42 && granted.compare(0, 10, "kindred:f:") == 0;
+        for (size_t i = 10; ok && i < granted.size(); ++i)
+            ok = (granted[i] >= '0' && granted[i] <= '9') || (granted[i] >= 'a' && granted[i] <= 'f');
+        if (!ok) granted.clear();
+    }
+    std::string previous;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if (granted == m_field_channel) return false;
+        previous = m_field_channel;
+        m_field_channel = granted;
+        m_field_messages.clear();
+    }
+    if (!previous.empty()) {
+        NetworkPacket pkt(TOSERVER_MODCHANNEL_LEAVE, 0);
+        pkt << previous;
+        send(pkt);
+    }
+    if (!granted.empty()) {
+        NetworkPacket join(TOSERVER_MODCHANNEL_JOIN, 0);
+        join << granted;
+        send(join);
+        // The server cannot see a join, only a message: the hello asks for
+        // the header and every block in range.
+        NetworkPacket hello(TOSERVER_MODCHANNEL_MSG, 0);
+        hello << granted << std::string("hello 1");
+        send(hello);
+    }
+    return true;
+}
+
+bool GoannaSession::fieldJoined() const {
+    std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+    return !m_field_channel.empty();
+}
+
+std::vector<std::string> GoannaSession::takeField() {
+    std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_field_messages);
+    return out;
+}
+
 void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
     std::string channel, sender, message;
     pkt >> channel >> sender >> message;
     {
         std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if (!m_field_channel.empty() && channel == m_field_channel) {
+            // Server-authored only, as on the overseer's channel. A watch's
+            // recompute can send a burst of batches; past the cap they wait
+            // for the next resend rather than grow the queue.
+            if (sender.empty() && message.size() <= 65535 && m_field_messages.size() < 256)
+                m_field_messages.push_back(std::move(message));
+            return;
+        }
         if (!m_overseer_channel.empty() && channel == m_overseer_channel) {
             // Relayed player messages are never authoritative, even on a
             // capability channel. The engine uses an empty server sender.

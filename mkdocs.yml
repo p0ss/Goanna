@@ -151,6 +151,7 @@ nav:
           - Sky orchestration: systems/sky-orchestration.md
           - Shader weather: systems/weather.md
           - Particle coverage: systems/particle-coverage.md
+          - Climate field: systems/climate.md
       - Graphics settings:
           - Graphics tiers: systems/graphics-tiers.md
           - Coloured block light: systems/light-colour.md

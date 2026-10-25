@@ -37,6 +37,8 @@ code disagree, the code is right.
   drawn by shader.
 - [Particle coverage](particle-coverage.md): what a particle spawner can ask
   for and what Goanna draws.
+- [Climate field](climate.md): the temperature and wetness a paired server
+  sends, kept as a texture for the shaders.
 
 ## Graphics settings
 

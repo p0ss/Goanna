@@ -437,6 +437,7 @@ void GoannaClient::updateLampOcclusion(const Vector3 &around) {
 void GoannaClient::update_lights(const Vector3 &around, int max_lights) {
     auto t0 = clock_t_::now();
     updateLightHue(around);
+    updateClimate(around);
     if (max_lights <= 0) {
         // No candidate traversal or ranking for the fallback path. Negative
         // reach makes the existing baked-light blend complete even nearby.
