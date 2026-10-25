@@ -2733,6 +2733,11 @@ func _update_environment_extras() -> void:
 		atmosphere_mat.set_shader_parameter("mist_density",
 				0.012 * (0.35 + cloud_cov) * atmosphere_quality * mist_cycle)
 		atmosphere_mat.set_shader_parameter("quality", atmosphere_quality)
+		# The climate field's mist and dust (atmosphere_volume.gdshader), in
+		# the wind the grass takes.
+		atmosphere_mat.set_shader_parameter("climate_wind", grass_wind)
+		atmosphere_mat.set_shader_parameter("climate_mist_density", 0.2 * atmosphere_quality * mist_cycle)
+		atmosphere_mat.set_shader_parameter("climate_dust_density", 0.08 * atmosphere_quality)
 
 	# The horizon bake: ask again when the camera has drifted or the clock
 	# has run down; collect whatever a worker finished. The inner radius

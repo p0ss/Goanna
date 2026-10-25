@@ -70,6 +70,28 @@ uniform vec3 cloud_under_glow : source_color = vec3(0.0);
 // Set in _apply_sky beside the sky's cloud_ambient_color.
 uniform vec3 cloud_ambient : source_color = vec3(0.12, 0.14, 0.16);
 
+// The climate field a paired server sends (docs/systems/climate.md), and
+// the air it fills: mist where the air is cool and near saturated, dust
+// where the ground is dry and the wind lifts it, and in a dry cave the fine
+// haze a lamp's beam shows. Dry and damp are bands apart, so a place has
+// one or the other, never both. Off the field's grid, and against any
+// other server, none of it, and the valley mist above is as it was.
+#define GOANNA_CLIMATE_FIELD_ONLY
+#include "res://shaders/climate.gdshaderinc"
+// The top of the highest rain stopping node per column round the player
+// (weather_common.gdshaderinc), which is the ground or the water the mist
+// lies on, and the roof a cave is under.
+global uniform sampler2D goanna_rain_cover : filter_nearest, repeat_disable;
+global uniform vec4 goanna_rain_cover_area;
+// The wind, from the clouds' motion as the grass takes it: direction times
+// strength, 0.25 to 1 (main.gd).
+uniform vec2 climate_wind = vec2(0.25, 0.0);
+// Extinction per node of the field's mist and dust at full strength, scaled
+// by atmosphere_quality and, for the mist, its day cycle (main.gd).
+uniform float climate_mist_density = 0.2;
+uniform float climate_dust_density = 0.08;
+uniform vec3 climate_dust_albedo : source_color = vec3(0.78, 0.68, 0.52);
+
 // The same sine free hash as the sky's hash12, in three dimensions, and
 // value noise and fbm over it. main.gd keeps an exact CPU copy of the
 // local cloud field (_cloud_hash31 and what follows it), which gives the
@@ -113,9 +135,23 @@ float weather_noise(vec3 p) {
 	return value / weight;
 }
 
+// Height of `p` over the ground under it, from the cover map where it
+// reaches and from the regional ground (mist_level less 18) beyond.
+float climate_above(vec3 p) {
+	if (goanna_rain_cover_area.w > 0.5) {
+		vec2 uv = (p.xz - goanna_rain_cover_area.xy) / goanna_rain_cover_area.z;
+		if (uv == clamp(uv, vec2(0.0), vec2(1.0)))
+			return p.y - textureLod(goanna_rain_cover, uv, 0.0).r;
+	}
+	return p.y - (mist_level - 18.0);
+}
+
 void fog() {
 	vec3 p = WORLD_POSITION;
 	float mist = 0.0;
+	float field_mist = 0.0;
+	float dust = 0.0;
+	vec4 c = goanna_climate_at(p);
 
 	// Moist air pools below the local inhabited elevation. Use an exponential
 	// tail above it, rather than a finite band with a visible horizontal top.
@@ -134,6 +170,40 @@ void fog() {
 		float mist_noise = smoothstep(0.40, 0.68,
 				weather_noise(vec3(p.xz * 0.005 + weather_offset * 0.15, p.y * 0.018)));
 		mist = mist_density * mist_height * mist_noise;
+		// Where the field is known the valley mist follows its humidity:
+		// none in dry country, more over wet.
+		mist *= mix(1.0, 1.6 * smoothstep(0.5, 0.9, c.z), c.w);
+	}
+
+	if (c.w > 0.01) {
+		float above = climate_above(p);
+		float drift_t = TIME * 0.6;
+		// Mist: banks lying on the ground and the water, a few nodes deep,
+		// where the air is near saturated and cool, thickest at dawn and in
+		// the night (mist_cycle in main.gd, through climate_mist_density).
+		float sat = smoothstep(0.8, 0.97, c.z) * smoothstep(24.0, 8.0, c.x);
+		if (sat > 0.001 && above > -1.0) {
+			float lie = smoothstep(-1.0, 0.5, above) * exp(-max(above, 0.0) / 4.0);
+			vec2 drift = climate_wind * drift_t * 0.15;
+			float banks = smoothstep(0.38, 0.72, weather_noise(vec3((p.xz - drift) * 0.07, p.y * 0.15)));
+			field_mist = climate_mist_density * c.w * sat * lie * banks;
+		}
+		// Dust: dry ground in the wind, lifted a few nodes, streaming with
+		// it; under a roof, a still, faint haze, more in a deep dry cave.
+		float dry = smoothstep(0.3, 0.06, c.y);
+		if (dry > 0.001) {
+			float wind = length(climate_wind);
+			if (above > -0.5) {
+				float lift = smoothstep(-0.5, 0.5, above) * exp(-max(above, 0.0) / (2.0 + 6.0 * wind));
+				vec2 drift = climate_wind * drift_t * 4.0;
+				float gusts = smoothstep(0.3, 0.8, weather_noise(vec3((p.xz - drift) * 0.05, p.y * 0.1 + drift_t * 0.2)));
+				dust = climate_dust_density * c.w * dry * wind * wind * lift * gusts;
+			} else {
+				float deep = smoothstep(2.0, 8.0, -above);
+				dust = climate_dust_density * 0.25 * c.w * dry * deep
+						* mix(0.6, 1.0, noise3(p * 0.25 + vec3(0.0, drift_t * 0.05, 0.0)));
+			}
+		}
 	}
 
 	// A real local cloud body. Its far continuation is projected by the sky
@@ -189,11 +259,12 @@ void fog() {
 	float air_height = smoothstep(mist_level - 72.0, mist_level - 32.0, p.y)
 			* exp(-max(p.y - (mist_level - 18.0), 0.0) / 32.0);
 	float air = air_density * air_height;
-	float total = mist + cloud + air;
+	mist += field_mist;
+	float total = mist + cloud + air + dust;
 	DENSITY = total;
 	ALBEDO = total > 0.00001 ?
-			(atmosphere_color * mist + cloud_albedo * cloud + air_albedo * air)
-			/ total : atmosphere_color;
+			(atmosphere_color * mist + cloud_albedo * cloud + air_albedo * air
+					+ climate_dust_albedo * dust) / total : atmosphere_color;
 	// The mist share glows with the night floor; the cloud share takes the
 	// ground bounce on its underside, fading out by the crown.
 	EMISSION = total > 0.00001 ?

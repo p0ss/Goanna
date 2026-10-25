@@ -203,6 +203,7 @@ func _environment() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = e
 	add_child(we)
+	study_env = e
 
 	var sun := DirectionalLight3D.new()
 	sun.light_energy = 1.2
@@ -595,8 +596,9 @@ const CLIMATE_ZONES := [["parching", 0.05], ["dry", 0.2], ["comfortable", 0.45],
 const CLIMATE_ZONE_LEN := 8.0
 const CLIMATE_CELL := 4.0
 var climate_texels := Vector3.ZERO
+var study_env: Environment
 
-func _climate_field(temp_c := 12.0) -> void:
+func _climate_field(temp_c := 12.0, wet_all := -1.0) -> void:
 	var lo := Vector3(-8.5, -8.5, -(strip_len + 8.5))
 	var n := Vector3i(int(ceil((STRIPS.size() * (WIDE + 1) + 16.0) / CLIMATE_CELL)), 4,
 		int(ceil((strip_len + 16.0) / CLIMATE_CELL)))
@@ -606,7 +608,7 @@ func _climate_field(temp_c := 12.0) -> void:
 		# Godot's z at the texel's centre, and the zone it falls in.
 		var gz := -(lo.z + (z + 0.5) * CLIMATE_CELL)
 		var zone := clampi(int(floor(gz / CLIMATE_ZONE_LEN)), 0, CLIMATE_ZONES.size() - 1)
-		var wet: float = CLIMATE_ZONES[zone][1]
+		var wet: float = CLIMATE_ZONES[zone][1] if wet_all < 0.0 else wet_all
 		img.fill(Color((temp_c + 60.0) / 170.0, wet, wet, 1.0))
 		slices.append(img)
 	var tex := ImageTexture3D.new()
@@ -658,4 +660,44 @@ func _shoot_climate() -> void:
 					acc = acc / cnt * 255.0
 				row += "  %s %5.1f" % [CLIMATE_ZONES[zi][0].left(4), (acc.x + acc.y + acc.z) / 3.0]
 			print(row)
+	await _shoot_climate_air(cam)
 	get_tree().quit()
+
+
+# The field's air (atmosphere_volume.gdshader) from low down along the
+# strips: cool and near saturated for mist, then hot, parched and windy for
+# dust, each against the same view with the field off.
+func _shoot_climate_air(cam: Camera3D) -> void:
+	var span := STRIPS.size() * (WIDE + 1)
+	cam.position = Vector3(span * 0.5, 2.0, 2.0)
+	cam.look_at(Vector3(span * 0.5, 1.0, strip_len), Vector3.UP)
+	study_env.volumetric_fog_enabled = true
+	study_env.volumetric_fog_density = 0.0
+	study_env.volumetric_fog_length = 192.0
+	# Sky light in the air, as main.gd gives it: without it mist only
+	# darkens what is behind it.
+	study_env.volumetric_fog_ambient_inject = 1.0
+	RenderingServer.global_shader_parameter_set("goanna_wetness", 0.0)
+	var vol := FogVolume.new()
+	vol.shape = RenderingServer.FOG_VOLUME_SHAPE_WORLD
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/atmosphere_volume.gdshader")
+	mat.set_shader_parameter("mist_level", 18.0)
+	mat.set_shader_parameter("mist_density", 0.0)
+	add_child(vol)
+	vol.material = mat
+	for pass_i in 3:
+		var name: String = ["air_off", "air_mist", "air_dust"][pass_i]
+		if pass_i == 2:
+			_climate_field(32.0, 0.05)
+			mat.set_shader_parameter("climate_wind", Vector2(1.0, 0.0))
+		else:
+			_climate_field(8.0, 0.99)
+			mat.set_shader_parameter("climate_wind", Vector2(0.3, 0.0))
+		RenderingServer.global_shader_parameter_set("goanna_climate_size", Vector4(
+			climate_texels.x, climate_texels.y, climate_texels.z, 0.0 if pass_i == 0 else 1.0))
+		for _f in 30:
+			await RenderingServer.frame_post_draw
+		var path := climate_dir.path_join(name + ".png")
+		get_viewport().get_texture().get_image().save_png(path)
+		print("wrote ", path)

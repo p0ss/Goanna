@@ -143,6 +143,29 @@ server did, within 0.007 (open ground 0.76 on both; beside the fall 0.928
 on the server, 0.921 on the client). The wet ground has not yet been seen
 in the world.
 
+## The air
+
+`atmosphere_volume.gdshader`, the volumetric fog main.gd shows on Low and
+up, reads the field too (it includes the field part of the include only,
+under `GOANNA_CLIMATE_FIELD_ONLY`):
+
+- Mist where the air is near saturated (humidity 0.8 and up) and cool
+  (thinning out from 8 C to 24 C), lying in banks on the ground or the
+  water a few nodes deep. Its strength rides main.gd's mist cycle, so it
+  is thickest at night and dawn. Peak extinction 0.2 a node.
+- Dust where the ground is dry (wetness under 0.3), lifted with the
+  square of the wind, higher in a strong wind, and streaming with it.
+  Under a roof, a still, faint haze that thickens from 2 to 8 nodes
+  down, so a lamp's beam shows in a dry cave. Peak 0.08 a node.
+- The existing valley mist follows the field's humidity where the field
+  is known: none in dry country, up to 1.6 times over wet.
+
+The ground under a point is the rain cover map (`rain_cover.gd`, 64
+nodes round the player) where it reaches, and the regional ground
+(`mist_level` less 18) beyond. Dry and damp are bands apart, so a place
+has mist or dust, never both. The study's `air_off`, `air_mist` and
+`air_dust` frames show them over the strips from low down.
+
 ## What it costs
 
 Timed on 26 October 2026, before the graded ground above replaced the
@@ -176,12 +199,10 @@ The rest of the agreed look:
 | Field state | Shows as |
 | --- | --- |
 | Wet | drips from saturated ceilings |
-| Dry | dust lifted by wind and by moving entities, motes where a light beam crosses dust in a dry cave |
+| Dry | dust thrown up by moving entities, sparkling motes in a light beam |
 | Cold | breath vapour |
 | Hot | heat shimmer behind a graphics tier; mild mirage from about 35 C at noon, strong only near lava and forges |
-| Saturated cool air | mist pooling in low ground, steam fog over water at dawn, wisps over forest after rain |
+| Saturated cool air | wisps over forest after rain |
 
-Mist, dust and motes are to share one fog volume driven by this texture:
-dry and windy gives dust, damp and cool gives mist, never both. Footfalls
-are to come from one land detector split out of `wake.gd`, throwing up
-what the ground under them holds.
+Footfalls are to come from one land detector split out of `wake.gd`,
+throwing up what the ground under them holds.

@@ -40,6 +40,11 @@ vec4 goanna_climate_at(vec3 world) {
 	return vec4(v.r * 170.0 - 60.0, v.g, v.b, t.a);
 }
 
+// The readers below are for the node shaders, which include
+// weather_common.gdshaderinc first. A shader that wants only the field
+// (atmosphere_volume.gdshader) defines GOANNA_CLIMATE_FIELD_ONLY.
+#ifndef GOANNA_CLIMATE_FIELD_ONLY
+
 // The field round a face at `world` with world normal `n`, sampled half a
 // node out, in the air the face looks into. What goanna_climate_at gives;
 // the node shaders take it once and hand it to the three readers below.
@@ -214,5 +219,7 @@ void goanna_climate_frost(vec4 c, vec3 p, vec3 n, int cls, float h, bool relief_
 	rough = mix(rough, 0.55, cover);
 	spec = mix(spec, 0.45, cover);
 }
+
+#endif
 
 #endif
