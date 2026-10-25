@@ -7,8 +7,9 @@ server nothing is sent and nothing changes: an unmodified Luanti client
 sees nothing new, and Goanna only renders better where the field exists.
 
 Today the client receives the field, keeps it and uploads it as a 3D
-texture, and the terrain shaders draw wet ground from it. The rest of what
-it will draw is under "Not done yet".
+texture, and the terrain shaders draw dry, damp, mossy, glistening and
+frosted ground from it. The rest of what it will draw is under "Not done
+yet".
 
 ## Where it comes from
 
@@ -77,29 +78,38 @@ The global uniforms behind it are `goanna_climate` (the texture),
 texture is premultiplied by how known each texel is, so filtering against
 an unknown texel blends only what is known.
 
-## Wet ground
+## The ground
 
-`goanna_climate_ground()` in the include turns the field's wetness into
-the two inputs the terrain shaders already had for rain
-(`nodes_array.gdshader` and `nodes_array_scissor.gdshader`): a damp film,
-which darkens and smooths, and a wetness for standing water. Each takes
-the larger of rain's value and the field's.
+The node shaders (`nodes_array.gdshader` and `nodes_array_scissor.gdshader`)
+sample the field once a fragment, half a node out from the face, and hand
+it to three functions in the include. Each grades with the field's value
+rather than switching at one band, so ground a few nodes from a stream
+looks different from ground beside it, and a dry biome from a rainy one.
 
-The bands are the server's. Open ground in a rainy biome settles "humid",
-about 0.76, and rain alone cannot lift it past 0.9; only water nearby
-does. So:
+`goanna_climate_tint()`, before rain's film:
 
-| Field wetness | Ground |
+| Field | Ground |
 | --- | --- |
-| below 0.8 (humid and drier) | as it is |
-| 0.8 to 0.95 (damp) | a film that grows to full |
-| 0.93 and over (saturated, condensing) | standing water in the relief and in basins as well, less than heavy rain gives |
+| parching to dry (under 0.42) | soil, sand and gravel pale and matt, stone a little dusty, grass and leaves toward straw; soil (the `Soil` class only) cracks into plates about a node across, the cracks a texel wide at "dry" and two at "parching" |
+| comfortable (about 0.45) | as drawn |
+| humid to damp (0.48 to 0.85) | darker, by up to a third on porous soil and a tenth on stone, and a little richer in colour |
+| damp and above, above freezing | moss on stone and gravel, in the hollows first, three times as much where the sky light is dim as in the open, so a cave fall grows a green rim |
+| saturated and condensing (0.9 and over) | glistening: smoother, with one texel in six a mirror smooth bead, walls and ceilings included |
 
-The film is not gated on open sky, as rain's is: the server already
-settles covered cells dry unless there is water near, so a room with a
-basin goes damp and a sealed dry room does not. Walls take the film at
-0.4 of a floor's strength. Standing water still needs open, level ground,
-through rain's own gating.
+`goanna_climate_ground()` gives rain's block a damp film, from 0.74 and
+whole at 0.95, and standing water from 0.93, each the larger of rain's and
+the field's. The film is not gated on open sky, as rain's is: the server
+already settles covered cells dry unless water is near, so a room with a
+basin goes damp and a sealed dry room does not. Standing water still needs
+open, level ground.
+
+`goanna_climate_frost()`, after settled snow: frost grown texel by texel
+from 1 C, more as it gets colder and the air more humid, hollows first,
+up facing surfaces more than walls, and nearly all of it rimed below
+-20 C. On glass it grows in from the pane's edges.
+
+Every pattern lies on the art's grid of sixteen texels a node, on the
+face's own plane, so it reads as part of the pixel art.
 
 ## Testing it
 
@@ -113,9 +123,10 @@ are held and the build time, and `climate_at(world)` gives the field at a
 Godot world position.
 
 `project/studies/material_field.tscn` with `GOANNA_FIELD_CLIMATE=<dir>`
-lays a field over the material strips in four zones (humid, damp,
-saturated, condensing) and writes the field off, on, and rain at 0.8 for
-comparison.
+lays a field over the material strips in seven zones, one for each
+wetness band from parching to condensing, and writes the field off, on at
+12 C, on at -12 C, and rain at 0.8 for comparison, printing each zone's
+brightness on each strip.
 
 Tested so far: the native test; injected messages through the real
 extension under Godot 4.5.1 `--headless`; and the wet ground in that
@@ -134,10 +145,12 @@ in the world.
 
 ## What it costs
 
-Timed on 26 October 2026 through the render service on the RTX 3090, High
-tier, 1920 by 1080, a stone floor and wall filling most of the frame, with
-a uniform field injected over the whole grid (`client_run`). Headless, so
-relative only: per draw GPU time, median of six rounds of 600 draws.
+Timed on 26 October 2026, before the graded ground above replaced the
+threshold, so to be timed again: through the render service on the RTX
+3090, High tier, 1920 by 1080, a stone floor and wall filling most of the
+frame, with a uniform field injected over the whole grid (`client_run`).
+Headless, so relative only: per draw GPU time, median of six rounds of
+600 draws.
 
 | Field | GPU ms | Over off |
 | --- | --- | --- |
@@ -158,13 +171,13 @@ blocks, on the main thread, as each message arrives.
 
 ## Not done yet
 
-The agreed look, none of it drawn yet:
+The rest of the agreed look:
 
 | Field state | Shows as |
 | --- | --- |
-| Wet | drips from saturated ceilings, moss tint on stone in wet dim caves (the film and standing water are done) |
-| Dry | cracks on the `Soil` material class only, loose pale sand, dust lifted by wind and by moving entities, motes where a light beam crosses dust in a dry cave |
-| Cold | frost grown texel by texel like settled snow, heavier when humid and below -20 C; frost on glass; breath vapour |
+| Wet | drips from saturated ceilings |
+| Dry | dust lifted by wind and by moving entities, motes where a light beam crosses dust in a dry cave |
+| Cold | breath vapour |
 | Hot | heat shimmer behind a graphics tier; mild mirage from about 35 C at noon, strong only near lava and forges |
 | Saturated cool air | mist pooling in low ground, steam fog over water at dawn, wisps over forest after rain |
 

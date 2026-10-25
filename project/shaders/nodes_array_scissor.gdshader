@@ -241,8 +241,12 @@ void fragment() {
 	// Rain wets what the sky can reach, damp rather than glazed; the full
 	// account is in nodes_array.gdshader beside the same block.
 	float wet_film = 0.0;
-	vec2 field_wet = goanna_render_wet_surfaces > 0.5
-			? goanna_climate_ground(v_world, v_wnormal) : vec2(0.0);
+	// The climate field round this face (climate.gdshaderinc): dryness,
+	// damp, moss and glisten before the rain's film, frost after the snow.
+	vec4 climate = goanna_climate_face(v_world, v_wnormal);
+	goanna_climate_tint(climate, v_world, v_wnormal, cls, v_nodelight.g, porosity,
+			relief_h, relief_known && flatten < 0.999, ALBEDO, ROUGHNESS, SPECULAR);
+	vec2 field_wet = goanna_render_wet_surfaces > 0.5 ? goanna_climate_ground(climate) : vec2(0.0);
 	if (goanna_render_wet_surfaces > 0.5 && (goanna_wetness > 0.001 || field_wet.x > 0.001)) {
 		// Wet only where rain reaches: the cover map where there is one,
 		// sky light beyond it. Sky light alone wet the floor several nodes
@@ -275,6 +279,8 @@ void fragment() {
 		NORMAL_MAP = vec3(sxy * 0.5 + 0.5, sz * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
 	}
+	goanna_climate_frost(climate, v_world, v_wnormal, cls, relief_h,
+			relief_known && flatten < 0.999, ALBEDO, ROUGHNESS, SPECULAR);
 
 	// Standing water in the relief, and splashes, only where rain lands on
 	// open, up facing ground. No march here, so the height is the tile's

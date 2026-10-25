@@ -35,11 +35,12 @@ extends Node3D
 #   GOANNA_FIELD_LAYER=<n>  put the tile at array layer n rather than 0, with
 #                           a different colour in every other lod_avg_colour
 #                           entry, so an index that misses shows up
-#   GOANNA_FIELD_CLIMATE=<dir> lay a climate field over 48 node strips in
-#                           four 12 node zones of the server's wetness bands
-#                           (humid, damp, saturated, condensing), write
-#                           climate_off.png and climate_on.png, and print each
-#                           zone's colour off the frame
+#   GOANNA_FIELD_CLIMATE=<dir> lay a climate field over the strips in seven
+#                           8 node zones, one for each of the server's
+#                           wetness bands from parching to condensing, write
+#                           climate_off.png, climate_on.png (12 C),
+#                           climate_cold.png (-12 C) and climate_rain.png,
+#                           and print each zone's colour off the frame
 #
 # Run it as the header says, through tools/goanna-headless fixture.
 
@@ -586,15 +587,16 @@ func _shoot() -> void:
 
 # The climate field (docs/systems/climate.md) over the strips, as
 # GoannaClient::updateClimate would upload it: wetness by zone along the
-# strips at the representative values of four of the server's bands, a
-# mild 12 C and middling humidity, everything known. In Luanti's
-# coordinates, z the other way to Godot's, as the shader expects.
-const CLIMATE_ZONES := [["humid", 0.76], ["damp", 0.84], ["saturated", 0.965], ["condensing", 0.99]]
-const CLIMATE_ZONE_LEN := 12.0
+# strips at the representative values of the server's bands, humidity
+# following it, everything known. In Luanti's coordinates, z the other way
+# to Godot's, as the shader expects.
+const CLIMATE_ZONES := [["parching", 0.05], ["dry", 0.2], ["comfortable", 0.45], ["humid", 0.76],
+	["damp", 0.86], ["saturated", 0.965], ["condensing", 0.99]]
+const CLIMATE_ZONE_LEN := 8.0
 const CLIMATE_CELL := 4.0
 var climate_texels := Vector3.ZERO
 
-func _climate_field() -> void:
+func _climate_field(temp_c := 12.0) -> void:
 	var lo := Vector3(-8.5, -8.5, -(strip_len + 8.5))
 	var n := Vector3i(int(ceil((STRIPS.size() * (WIDE + 1) + 16.0) / CLIMATE_CELL)), 4,
 		int(ceil((strip_len + 16.0) / CLIMATE_CELL)))
@@ -605,7 +607,7 @@ func _climate_field() -> void:
 		var gz := -(lo.z + (z + 0.5) * CLIMATE_CELL)
 		var zone := clampi(int(floor(gz / CLIMATE_ZONE_LEN)), 0, CLIMATE_ZONES.size() - 1)
 		var wet: float = CLIMATE_ZONES[zone][1]
-		img.fill(Color((12.0 + 60.0) / 170.0, wet, 0.5, 1.0))
+		img.fill(Color((temp_c + 60.0) / 170.0, wet, wet, 1.0))
 		slices.append(img)
 	var tex := ImageTexture3D.new()
 	tex.create(Image.FORMAT_RGBA8, n.x, n.y, n.z, false, slices)
@@ -618,20 +620,22 @@ func _shoot_climate() -> void:
 	var cam: Camera3D = get_viewport().get_camera_3d()
 	# High and steep, so every zone is seen at much the same angle: from low
 	# down the far zones are mostly the sky they reflect.
-	cam.position = Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 30.0, -6.0)
-	cam.look_at(Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 0.0, strip_len * 0.55), Vector3.UP)
-	# Off, on, and then the field off and rain's own wetness at 0.8 instead,
-	# the look the field is meant to match at saturated.
-	for pass_i in 3:
-		var on := pass_i == 1
+	cam.position = Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 48.0, strip_len * 0.5 - 14.0)
+	cam.look_at(Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 0.0, strip_len * 0.5), Vector3.UP)
+	# Off, on at 12 C, on at -12 C, and then the field off and rain's own
+	# wetness at 0.8 instead, for comparison with saturated.
+	for pass_i in 4:
+		var on := pass_i == 1 or pass_i == 2
+		_climate_field(-12.0 if pass_i == 2 else 12.0)
 		RenderingServer.global_shader_parameter_set("goanna_climate_size", Vector4(
 			climate_texels.x, climate_texels.y, climate_texels.z, 1.0 if on else 0.0))
-		RenderingServer.global_shader_parameter_set("goanna_wetness", 0.8 if pass_i == 2 else 0.0)
+		RenderingServer.global_shader_parameter_set("goanna_wetness", 0.8 if pass_i == 3 else 0.0)
 		for _f in 8:
 			await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
-		var label: String = ["off", "on ", "rain"][pass_i]
-		var path := climate_dir.path_join(["climate_off.png", "climate_on.png", "climate_rain.png"][pass_i])
+		var label: String = ["off ", "on  ", "cold", "rain"][pass_i]
+		var path := climate_dir.path_join(["climate_off.png", "climate_on.png", "climate_cold.png",
+			"climate_rain.png"][pass_i])
 		img.save_png(path)
 		print("wrote ", path)
 		for i in materials.size():
@@ -652,6 +656,6 @@ func _shoot_climate() -> void:
 						cnt += 1
 				if cnt > 0:
 					acc = acc / cnt * 255.0
-				row += "  %s %5.1f" % [CLIMATE_ZONES[zi][0], (acc.x + acc.y + acc.z) / 3.0]
+				row += "  %s %5.1f" % [CLIMATE_ZONES[zi][0].left(4), (acc.x + acc.y + acc.z) / 3.0]
 			print(row)
 	get_tree().quit()
