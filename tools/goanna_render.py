@@ -900,6 +900,15 @@ def to_goanna(p):
     return [float(p[0]), float(p[1]), -float(p[2])]
 
 
+# The key under which apply_live's undo carries a variant's client_undo.
+CLIENT_UNDO = "\0client_undo"
+
+
+def client_src(src):
+    """A job's GDScript, a string or a list of lines."""
+    return "\n".join(src) if isinstance(src, list) else str(src)
+
+
 # Draws without presenting, back to back, on the main thread. Presented
 # frame timing under headless gamescope is useless: the client presents
 # about 33 frames a second whatever it draws, the GPU idles most of each
@@ -1319,7 +1328,7 @@ class Service:
                 raise RenderError("pose %s has no pos" % p["name"])
         variants = job.get("variants") or [{"name": "default"}]
         base = {k: job[k] for k in ("build", "pack", "tier", "size", "env", "maps", "profile",
-                                    "time", "weather") if k in job}
+                                    "time", "weather", "client_run", "client_undo") if k in job}
         resolved = []
         for i, v in enumerate(variants):
             v = dict(v)
@@ -1516,6 +1525,8 @@ class Service:
         c = self.client.control
         held = self.client.settings()
         undo = {}
+        if merged.get("client_undo"):
+            undo[CLIENT_UNDO] = client_src(merged["client_undo"])
         for key, value in (merged.get("profile") or {}).items():
             if key in LAUNCH_PROFILE_KEYS:
                 continue
@@ -1533,13 +1544,20 @@ class Service:
                 raise RenderError("weather %s refused: %s" % (weather, said))
         elif weather not in (None, "clear"):
             raise RenderError("this service's game has no weather command")
+        # GDScript run on the client for state no setting reaches, such as
+        # a climate field injected with client.climate_inject().
+        if merged.get("client_run"):
+            c.run(client_src(merged["client_run"]), timeout=120)
         c.send("wait", {"frames": 30})
         return undo
 
     def put_back(self, undo):
         c = self.client.control
         for key, value in undo.items():
-            c.send("set", {"key": key, "value": float(value)})
+            if key == CLIENT_UNDO:
+                c.run(value, timeout=120)
+            else:
+                c.send("set", {"key": key, "value": float(value)})
 
     def pose(self, p, terrain_wait=None):
         c = self.client.control

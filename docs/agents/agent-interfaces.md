@@ -378,6 +378,12 @@ main's checkout (`project/bin` there, and its GDScript as it stands);
 overrides any of `build`, `pack`, `tier`, `size`, `env`, `maps`, `profile`
 (merged), `time` and `weather`, and every variant is shot at every pose.
 `frames: false` skips frames for a timing only job.
+`client_run` (a job or variant key, a string or a list of lines) is a
+GDScript snippet run on the client through the control channel's `run`
+each time the variant is applied, for state no setting reaches, such as a
+climate field given to `client.climate_inject()`; `client_undo` is run
+when the variant is put back. Either may be awaited and must end in a
+return.
 
 For large landscape captures, `terrain_wait: {"quiet_seconds": 30,
 "timeout_seconds": 900}` waits after each pose until the distant coverage
