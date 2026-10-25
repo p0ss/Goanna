@@ -40,4 +40,24 @@ vec4 goanna_climate_at(vec3 world) {
 	return vec4(v.r * 170.0 - 60.0, v.g, v.b, t.a);
 }
 
+// The field's wetness as the ground shaders take it, for the face at
+// `world` with world normal `n`: x a damp film, 0 to 1, y a rain wetness
+// for goanna_ground_rain's standing water, 0 where there is none.
+//
+// The bands are the server's (Kythen's shared bands.json). Open ground in
+// a rainy biome settles "humid", about 0.76, and rain alone cannot lift it
+// past 0.9: only water near does. So the film starts at the edge of
+// "damp" (0.8), is whole at "saturated" (0.95), and water stands only from
+// there. Ordinary ground is left as it is, and the banks of ponds, streams
+// and falls, and rooms with water in them, go wet. Sampled half a node out
+// from the face, in the air the face looks into.
+vec2 goanna_climate_ground(vec3 world, vec3 n) {
+	if (goanna_climate_size.w < 0.5)
+		return vec2(0.0);
+	vec4 c = goanna_climate_at(world + n * 0.5);
+	float film = smoothstep(0.8, 0.95, c.y) * c.w;
+	float pool = 0.75 * smoothstep(0.93, 0.99, c.y) * c.w;
+	return vec2(film, pool);
+}
+
 #endif

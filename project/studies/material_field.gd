@@ -35,6 +35,11 @@ extends Node3D
 #   GOANNA_FIELD_LAYER=<n>  put the tile at array layer n rather than 0, with
 #                           a different colour in every other lod_avg_colour
 #                           entry, so an index that misses shows up
+#   GOANNA_FIELD_CLIMATE=<dir> lay a climate field over 48 node strips in
+#                           four 12 node zones of the server's wetness bands
+#                           (humid, damp, saturated, condensing), write
+#                           climate_off.png and climate_on.png, and print each
+#                           zone's colour off the frame
 #
 # Run it as the header says, through tools/goanna-headless fixture.
 
@@ -58,6 +63,7 @@ var strip_len := 120.0
 
 var shot_dir := ""
 var lod_dir := ""
+var climate_dir := ""
 var lod_layer := 0
 var materials: Array[ShaderMaterial] = []
 # One strip's tile average, in linear light, in the order the strips are made.
@@ -130,7 +136,18 @@ func _strip_at(layer: int) -> ArrayMesh:
 		uv2.append(Vector2(float(layer), 0.0))
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2
 	var out := ArrayMesh.new()
-	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if climate_dir == "":
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		return out
+	# The climate mode wants open sky: rain's film and every puddle are
+	# gated on the sky light in CUSTOM0 (docs/systems/mesh-attributes.md),
+	# and a strip without it reads as roofed over, so rain did nothing.
+	var custom := PackedByteArray()
+	for i in (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():
+		custom.append_array(PackedByteArray([0, 255, 255, 255]))
+	arrays[Mesh.ARRAY_CUSTOM0] = custom
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {},
+		Mesh.ARRAY_CUSTOM_RGBA8_UNORM << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
 	return out
 
 
@@ -206,6 +223,9 @@ func _ready() -> void:
 		turn = float(OS.get_environment("GOANNA_FIELD_TURN"))
 	if OS.get_environment("GOANNA_FIELD_LEN") != "":
 		strip_len = float(OS.get_environment("GOANNA_FIELD_LEN"))
+	climate_dir = OS.get_environment("GOANNA_FIELD_CLIMATE")
+	if climate_dir != "":
+		strip_len = CLIMATE_ZONES.size() * CLIMATE_ZONE_LEN
 	# GOANNA_FIELD_PLAIN=1 leaves the companions unbound, which is the older
 	# behaviour of this scene and isolates what the colour alone is doing.
 	var plain_pbr := OS.get_environment("GOANNA_FIELD_PLAIN") != ""
@@ -330,7 +350,11 @@ func _ready() -> void:
 	cam.look_at(Vector3(span * 0.5, 0.0, strip_len * 0.16), Vector3.UP)
 	cam.current = true
 
-	if lod_dir != "":
+	if climate_dir != "":
+		DirAccess.make_dir_recursive_absolute(climate_dir)
+		_climate_field()
+		_shoot_climate()
+	elif lod_dir != "":
 		DirAccess.make_dir_recursive_absolute(lod_dir)
 		_shoot_lod()
 	elif shot_dir != "":
@@ -557,4 +581,77 @@ func _shoot() -> void:
 		var path := shot_dir.path_join("detail_off.png" if pass_i == 0 else "detail_on.png")
 		img.save_png(path)
 		print("wrote ", path)
+	get_tree().quit()
+
+
+# The climate field (docs/systems/climate.md) over the strips, as
+# GoannaClient::updateClimate would upload it: wetness by zone along the
+# strips at the representative values of four of the server's bands, a
+# mild 12 C and middling humidity, everything known. In Luanti's
+# coordinates, z the other way to Godot's, as the shader expects.
+const CLIMATE_ZONES := [["humid", 0.76], ["damp", 0.84], ["saturated", 0.965], ["condensing", 0.99]]
+const CLIMATE_ZONE_LEN := 12.0
+const CLIMATE_CELL := 4.0
+var climate_texels := Vector3.ZERO
+
+func _climate_field() -> void:
+	var lo := Vector3(-8.5, -8.5, -(strip_len + 8.5))
+	var n := Vector3i(int(ceil((STRIPS.size() * (WIDE + 1) + 16.0) / CLIMATE_CELL)), 4,
+		int(ceil((strip_len + 16.0) / CLIMATE_CELL)))
+	var slices: Array[Image] = []
+	for z in n.z:
+		var img := Image.create(n.x, n.y, false, Image.FORMAT_RGBA8)
+		# Godot's z at the texel's centre, and the zone it falls in.
+		var gz := -(lo.z + (z + 0.5) * CLIMATE_CELL)
+		var zone := clampi(int(floor(gz / CLIMATE_ZONE_LEN)), 0, CLIMATE_ZONES.size() - 1)
+		var wet: float = CLIMATE_ZONES[zone][1]
+		img.fill(Color((12.0 + 60.0) / 170.0, wet, 0.5, 1.0))
+		slices.append(img)
+	var tex := ImageTexture3D.new()
+	tex.create(Image.FORMAT_RGBA8, n.x, n.y, n.z, false, slices)
+	RenderingServer.global_shader_parameter_set("goanna_climate", tex)
+	RenderingServer.global_shader_parameter_set("goanna_climate_box", Vector4(lo.x, lo.y, lo.z, CLIMATE_CELL))
+	climate_texels = Vector3(n)
+
+
+func _shoot_climate() -> void:
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	# High and steep, so every zone is seen at much the same angle: from low
+	# down the far zones are mostly the sky they reflect.
+	cam.position = Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 30.0, -6.0)
+	cam.look_at(Vector3(STRIPS.size() * (WIDE + 1) * 0.5, 0.0, strip_len * 0.55), Vector3.UP)
+	# Off, on, and then the field off and rain's own wetness at 0.8 instead,
+	# the look the field is meant to match at saturated.
+	for pass_i in 3:
+		var on := pass_i == 1
+		RenderingServer.global_shader_parameter_set("goanna_climate_size", Vector4(
+			climate_texels.x, climate_texels.y, climate_texels.z, 1.0 if on else 0.0))
+		RenderingServer.global_shader_parameter_set("goanna_wetness", 0.8 if pass_i == 2 else 0.0)
+		for _f in 8:
+			await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var label: String = ["off", "on ", "rain"][pass_i]
+		var path := climate_dir.path_join(["climate_off.png", "climate_on.png", "climate_rain.png"][pass_i])
+		img.save_png(path)
+		print("wrote ", path)
+		for i in materials.size():
+			var row := "%-18s %s" % [STRIPS[i][0], label]
+			for zi in CLIMATE_ZONES.size():
+				var world := Vector3(strip_x[i] + WIDE * 0.5 - 0.5, 0.0, (zi + 0.6) * CLIMATE_ZONE_LEN - 0.5)
+				var p: Vector2 = cam.unproject_position(world)
+				var acc := Vector3.ZERO
+				var cnt := 0
+				for dy in range(-4, 5):
+					for dx in range(-4, 5):
+						var x := int(p.x) + dx
+						var y := int(p.y) + dy
+						if x < 0 or y < 0 or x >= img.get_width() or y >= img.get_height():
+							continue
+						var c := img.get_pixel(x, y)
+						acc += Vector3(c.r, c.g, c.b)
+						cnt += 1
+				if cnt > 0:
+					acc = acc / cnt * 255.0
+				row += "  %s %5.1f" % [CLIMATE_ZONES[zi][0], (acc.x + acc.y + acc.z) / 3.0]
+			print(row)
 	get_tree().quit()

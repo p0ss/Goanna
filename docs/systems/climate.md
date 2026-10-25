@@ -7,8 +7,8 @@ server nothing is sent and nothing changes: an unmodified Luanti client
 sees nothing new, and Goanna only renders better where the field exists.
 
 Today the client receives the field, keeps it and uploads it as a 3D
-texture. No shader reads it yet. What it will draw is under "Not done
-yet".
+texture, and the terrain shaders draw wet ground from it. The rest of what
+it will draw is under "Not done yet".
 
 ## Where it comes from
 
@@ -75,6 +75,30 @@ The global uniforms behind it are `goanna_climate` (the texture),
 texture is premultiplied by how known each texel is, so filtering against
 an unknown texel blends only what is known.
 
+## Wet ground
+
+`goanna_climate_ground()` in the include turns the field's wetness into
+the two inputs the terrain shaders already had for rain
+(`nodes_array.gdshader` and `nodes_array_scissor.gdshader`): a damp film,
+which darkens and smooths, and a wetness for standing water. Each takes
+the larger of rain's value and the field's.
+
+The bands are the server's. Open ground in a rainy biome settles "humid",
+about 0.76, and rain alone cannot lift it past 0.9; only water nearby
+does. So:
+
+| Field wetness | Ground |
+| --- | --- |
+| below 0.8 (humid and drier) | as it is |
+| 0.8 to 0.95 (damp) | a film that grows to full |
+| 0.93 and over (saturated, condensing) | standing water in the relief and in basins as well, less than heavy rain gives |
+
+The film is not gated on open sky, as rain's is: the server already
+settles covered cells dry unless there is water near, so a room with a
+basin goes damp and a sealed dry room does not. Walls take the film at
+0.4 of a floor's strength. Standing water still needs open, level ground,
+through rain's own gating.
+
 ## Testing it
 
 `goanna_climate_test` checks the store on cases whose answer is known by
@@ -86,9 +110,17 @@ whether the channel is joined, whether there is a header, how many blocks
 are held and the build time, and `climate_at(world)` gives the field at a
 Godot world position.
 
-Tested so far: the native test, and injected messages through the real
-extension under Godot 4.5.1 `--headless`. Not yet run against a real
-DorfCraft server.
+`project/studies/material_field.tscn` with `GOANNA_FIELD_CLIMATE=<dir>`
+lays a field over the material strips in four zones (humid, damp,
+saturated, condensing) and writes the field off, on, and rain at 0.8 for
+comparison.
+
+Tested so far: the native test; injected messages through the real
+extension under Godot 4.5.1 `--headless`; and the wet ground in that
+study, rendered on lavapipe through `tools/goanna-headless fixture`, where
+humid ground is unchanged, damp is slightly darkened, and saturated shows
+a sheen and a few small puddles. Not yet run against a real DorfCraft
+server, and not yet seen in the world.
 
 ## Not done yet
 
@@ -96,7 +128,7 @@ The agreed look, none of it drawn yet:
 
 | Field state | Shows as |
 | --- | --- |
-| Wet | puddles on open ground, drips from saturated ceilings, sheen and moss tint on stone in wet dim caves |
+| Wet | drips from saturated ceilings, moss tint on stone in wet dim caves (the film and standing water are done) |
 | Dry | cracks on the `Soil` material class only, loose pale sand, dust lifted by wind and by moving entities, motes where a light beam crosses dust in a dry cave |
 | Cold | frost grown texel by texel like settled snow, heavier when humid and below -20 C; frost on glass; breath vapour |
 | Hot | heat shimmer behind a graphics tier; mild mirage from about 35 C at noon, strong only near lava and forges |

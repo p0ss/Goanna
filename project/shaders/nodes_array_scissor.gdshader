@@ -36,6 +36,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // on open ground take rain too, and the far tiers draw ground with this
 // shader (above; docs/systems/weather.md, "Which shader draws the ground").
 #include "res://shaders/weather_common.gdshaderinc"
+#include "res://shaders/climate.gdshaderinc"
 
 void vertex() {
 	// CUSTOM0 arrives as four bytes scaled to 0 to 1: block light, sky light,
@@ -240,12 +241,18 @@ void fragment() {
 	// Rain wets what the sky can reach, damp rather than glazed; the full
 	// account is in nodes_array.gdshader beside the same block.
 	float wet_film = 0.0;
-	if (goanna_render_wet_surfaces > 0.5 && goanna_wetness > 0.001) {
+	vec2 field_wet = goanna_render_wet_surfaces > 0.5
+			? goanna_climate_ground(v_world, v_wnormal) : vec2(0.0);
+	if (goanna_render_wet_surfaces > 0.5 && (goanna_wetness > 0.001 || field_wet.x > 0.001)) {
 		// Wet only where rain reaches: the cover map where there is one,
 		// sky light beyond it. Sky light alone wet the floor several nodes
 		// in from a doorway, where the light still reaches.
 		wet_film = goanna_wetness * clamp(v_wnormal.y, 0.0, 1.0)
 				* goanna_rain_open(v_world, smoothstep(0.55, 0.9, v_nodelight.g));
+		// The climate field's damp (climate.gdshaderinc), not gated by the
+		// sky: the server already settles covered cells dry unless water is
+		// near them. On walls too, at less than on a floor.
+		wet_film = max(wet_film, field_wet.x * mix(0.4, 1.0, clamp(v_wnormal.y, 0.0, 1.0)));
 		if (relief_known)
 			wet_film *= 1.0 - 0.5 * smoothstep(0.75, 1.0, relief_h) * (1.0 - flatten);
 		ALBEDO *= 1.0 - wet_film * (0.10 + 0.18 * porosity);
@@ -274,7 +281,7 @@ void fragment() {
 	// own at its coordinate. The whole account is in nodes_array.gdshader
 	// beside the same block: change one, change the other.
 	vec3 ground_rain = goanna_ground_rain(v_world, v_wnormal, v_nodelight.g, flatten,
-			goanna_wetness, length(v_world - CAMERA_POSITION_WORLD), px);
+			max(goanna_wetness, field_wet.y), length(v_world - CAMERA_POSITION_WORLD), px);
 	vec3 pool = goanna_pool(ground_rain.x, ground_rain.y, relief_h);
 	float water = pool.x;
 	float meniscus = goanna_meniscus(ground_rain.x, ground_rain.y, relief_h);
