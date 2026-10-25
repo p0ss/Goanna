@@ -56,9 +56,20 @@ import sys
 import tempfile
 import time
 
+def _driver_file(relative):
+    """A Mesa driver file where the distribution keeps it: /usr/share on most,
+    /run/opengl-driver/share on NixOS. With neither, the usual path, so the
+    error names what is missing."""
+    for prefix in ("/usr/share", "/run/opengl-driver/share"):
+        path = os.path.join(prefix, relative)
+        if os.path.exists(path):
+            return path
+    return os.path.join("/usr/share", relative)
+
+
 LAVAPIPE_DEVICE = "10005:0000"        # Mesa's vendor id, llvmpipe's device id
-LAVAPIPE_ICD = "/usr/share/vulkan/icd.d/lvp_icd.x86_64.json"
-MESA_EGL = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
+LAVAPIPE_ICD = _driver_file("vulkan/icd.d/lvp_icd.x86_64.json")
+MESA_EGL = _driver_file("glvnd/egl_vendor.d/50_mesa.json")
 NO_DESKTOP = "goanna-headless-no-desktop"   # a Wayland socket that does not exist
 FLATPAK_APP = "org.luanti.luanti"
 DEFAULT_CONTROL_PORT = 30800
