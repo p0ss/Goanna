@@ -130,7 +130,17 @@ void fragment() {
 }
 """
 const WATCH := Color(0.55, 0.65, 1.0, 0.85)
-var shown_overlays := {"rooms": false, "miasma": false, "traffic": false}
+# The seasons' field (the layer's `climate` overlay), by level 1 to 15 of
+# the server's bands. Heat runs from deep blue through a faint middle, where
+# a fortress is comfortable, to red; wetness from parched tan through the
+# same faint middle to deep blue. The middle is faint so the extremes read.
+const HEAT_RAMP := [[1, Color(0.15, 0.25, 0.85, 0.5)], [6, Color(0.55, 0.8, 1.0, 0.36)],
+	[8, Color(0.9, 0.92, 0.9, 0.12)], [10, Color(1.0, 0.85, 0.35, 0.32)],
+	[12, Color(1.0, 0.5, 0.15, 0.42)], [15, Color(0.85, 0.1, 0.05, 0.55)]]
+const WET_RAMP := [[1, Color(0.85, 0.6, 0.3, 0.5)], [4, Color(0.95, 0.85, 0.55, 0.34)],
+	[7, Color(0.9, 0.92, 0.9, 0.12)], [9, Color(0.4, 0.8, 0.6, 0.3)],
+	[11, Color(0.2, 0.6, 0.95, 0.4)], [15, Color(0.1, 0.2, 0.8, 0.55)]]
+var shown_overlays := {"rooms": false, "miasma": false, "traffic": false, "heat": false, "wet": false}
 # Officers' pages to this planner, by id, as the server last sent them.
 var pages: Dictionary = {}
 var overlay_sheets: Node3D
@@ -1000,6 +1010,18 @@ func _draw_overlays() -> void:
 		return
 	overlay_sheets = Node3D.new()
 	overlay.add_child(overlay_sheets)
+	# Under the other sheets: a field cell is several nodes across.
+	for kind in ["heat", "wet"]:
+		if not shown_overlays[kind]:
+			continue
+		var field := climate_cells(snapshot, kind)
+		var step := float(field.get("step", 4))
+		var by_level: Dictionary = field.get("levels", {})
+		for lv in by_level:
+			var positions: Array = []
+			for c in by_level[lv]:
+				positions.append(Vector3(c.x, level + 30.03, -c.y))
+			_planes(overlay_sheets, positions, _colour(climate_colour(kind, lv)), step, step)
 	var groups: Array = []
 	if shown_overlays.rooms:
 		var rooms := room_cells(snapshot)
@@ -1264,6 +1286,56 @@ static func miasma_strength(layer: Dictionary) -> PackedFloat32Array:
 				strength[i] = maxf(strength[i], 1.0 - d / reach)
 	return strength
 
+# The climate overlay's cells by level for `kind`, "heat" (the high four
+# bits) or "wet" (the low four): {"step": nodes a cell, "levels": level to
+# cell centres, x and z in nodes}. Unknown cells (0) are left out.
+static func climate_cells(layer: Dictionary, kind: String) -> Dictionary:
+	var out := {"step": 4, "levels": {}}
+	var overlays: Variant = layer.get("overlays")
+	if not overlays is Dictionary or not overlays.get("climate") is Dictionary:
+		return out
+	var c: Dictionary = overlays.climate
+	if not (_number(c.get("x0")) and _number(c.get("z0")) and _number(c.get("w"), false)
+			and _number(c.get("h"), false) and _number(c.get("step"), false)) or not c.get("cells") is Array:
+		return out
+	var w := int(c.w)
+	var step := int(c.step)
+	var cells: Array = c.cells
+	if w <= 0 or step <= 0 or cells.size() != w * int(c.h):
+		return out
+	out.step = step
+	var half := (step - 1) * 0.5
+	for i in cells.size():
+		if not _number(cells[i]):
+			continue
+		var byte := int(cells[i])
+		var lv := byte >> 4 if kind == "heat" else byte & 15
+		if byte == 0 or lv == 0:
+			continue
+		if not out.levels.has(lv):
+			out.levels[lv] = []
+		out.levels[lv].append(Vector2(int(c.x0) + (i % w) * step + half, int(c.z0) + (i / w) * step + half))
+	return out
+
+# A level's colour on the heat or wetness ramp, between the stops round it.
+static func climate_colour(kind: String, lv: int) -> Color:
+	var ramp: Array = HEAT_RAMP if kind == "heat" else WET_RAMP
+	for i in range(1, ramp.size()):
+		if lv <= int(ramp[i][0]):
+			var a: Array = ramp[i - 1]
+			var b: Array = ramp[i]
+			return (a[1] as Color).lerp(b[1], clampf(float(lv - int(a[0])) / float(int(b[0]) - int(a[0])), 0.0, 1.0))
+	return ramp[-1][1]
+
+# The band name of a level, from the server's [first level, name] pairs.
+static func climate_band(bands: Variant, lv: int) -> String:
+	var name := ""
+	if bands is Array:
+		for b in bands:
+			if b is Array and b.size() >= 2 and _number(b[0]) and lv >= int(b[0]):
+				name = str(b[1])
+	return name
+
 # Known cells by miasma band, 0 (faint) to 3 (strong).
 static func miasma_cells(layer: Dictionary) -> Dictionary:
 	var out := {}
@@ -1315,6 +1387,21 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 		elif source.get("kind") == "rotting": what = "rotting food"
 		notes += "\nMiasma from %s, seen day %s" % [what, str(source.get("day", "?"))]
 	var overlays: Variant = layer.get("overlays")
+	if overlays is Dictionary and overlays.get("climate") is Dictionary:
+		var c: Dictionary = overlays.climate
+		if _number(c.get("x0")) and _number(c.get("z0")) and _number(c.get("w"), false) \
+				and _number(c.get("step"), false) and int(c.step) > 0 and c.get("cells") is Array:
+			var cx := floori(float(pos.x - int(c.x0)) / int(c.step))
+			var cz := floori(float(pos.z - int(c.z0)) / int(c.step))
+			var i := cz * int(c.w) + cx
+			if cx >= 0 and cx < int(c.w) and cz >= 0 and i < c.cells.size() and _number(c.cells[i]) and int(c.cells[i]) > 0:
+				var byte := int(c.cells[i])
+				var heat := climate_band(c.get("t_bands"), byte >> 4)
+				var wet := climate_band(c.get("m_bands"), byte & 15)
+				if heat != "" and wet != "":
+					notes += "\nClimate: %s, %s" % [heat, wet]
+				elif heat != "" or wet != "":
+					notes += "\nClimate: %s" % (heat + wet)
 	if overlays is Dictionary and overlays.get("traffic") is Array:
 		var flat: Array = overlays.traffic
 		for i in range(0, mini(flat.size() - 2, 3 * 4096), 3):

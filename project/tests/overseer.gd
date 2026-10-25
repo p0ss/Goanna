@@ -182,6 +182,25 @@ func run() -> void:
 		"inspect names rubbish and rotting food plainly")
 	check(Overseer.overlay_notes(marked, {"x": 2, "y": 0, "z": 0}).contains("not yet surveyed"),
 		"inspect says when a room is not yet surveyed")
+	# Two by two cells of 4 nodes from (-8, -8): cold and dry, unknown,
+	# comfortable, hot and soaked.
+	var field := {"overlays": {"climate": {"x0": -8, "z0": -8, "y": 0, "step": 4, "w": 2, "h": 2,
+		"cells": [2 * 16 + 2, 0, 8 * 16 + 7, 14 * 16 + 15],
+		"t_bands": [[1, "deadly cold"], [6, "cool"], [8, "mild"], [12, "hot"]],
+		"m_bands": [[1, "parching"], [7, "comfortable"], [13, "saturated"]]}}}
+	var hot_cells := Overseer.climate_cells(field, "heat")
+	var wet_cells := Overseer.climate_cells(field, "wet")
+	check(hot_cells.step == 4 and hot_cells.levels.get(2) == [Vector2(-6.5, -6.5)] and hot_cells.levels.get(14) == [Vector2(-2.5, -2.5)]
+		and hot_cells.levels.size() == 3 and wet_cells.levels.get(15) == [Vector2(-2.5, -2.5)] and wet_cells.levels.get(7) == [Vector2(-6.5, -2.5)],
+		"the climate overlay splits heat and wetness by level at cell centres, leaving unknown cells out")
+	check(Overseer.climate_colour("heat", 1).b > Overseer.climate_colour("heat", 1).r
+		and Overseer.climate_colour("heat", 15).r > Overseer.climate_colour("heat", 15).b
+		and Overseer.climate_colour("wet", 8).a < Overseer.climate_colour("wet", 15).a,
+		"heat runs cold blue to hot red, and the comfortable middle is the faintest")
+	check(Overseer.overlay_notes(field, {"x": -1, "y": 0, "z": -2}).contains("Climate: hot, saturated")
+		and Overseer.overlay_notes(field, {"x": -8, "y": 0, "z": -8}).contains("Climate: deadly cold, parching")
+		and not Overseer.overlay_notes(field, {"x": -2, "y": 0, "z": -8}).contains("Climate"),
+		"inspect names the climate bands of a known cell only")
 	check(Overseer.room_cells({"rect": layer.rect, "overlays": {"rooms": "nonsense"}}).is_empty()
 		and Overseer.miasma_strength({"rect": layer.rect, "cells": [1], "overlays": {}}).is_empty(),
 		"malformed overlays draw nothing")

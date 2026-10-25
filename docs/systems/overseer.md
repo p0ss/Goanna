@@ -100,6 +100,17 @@ Inspect adds the room's tier, points and read day, and the strongest
 miasma source. Overlay lists are capped at 256 entries; malformed entries
 are skipped, and Luanti's `null` for an empty list reads as none.
 
+The Heat and Wetness toggles draw the seasons' climate field on the
+viewed level (`climate` in the layer's overlays, DorfCraft's
+`docs/overseer.md`), one sheet per 4 node cell the fortress has seen,
+under the other sheets. Heat runs from deep blue at the coldest band
+through a faint middle, where a fortress is comfortable, to red; wetness
+from parched tan through the same faint middle to deep blue. The middle
+is faint so the extremes read. Inspect adds the cell's band names, such
+as "Climate: cool, damp". The same field drives the terrain's dry, damp,
+moss and frost look (`docs/systems/climate.md`), so the overlay is the
+way to see why a place looks as it does.
+
 The Traffic toggle shades known cells by how often workers stand there
 and marks workers on the viewed level with their recent trails. Forbidden
 areas (red), locked doors (dark red), militia stations with their rings

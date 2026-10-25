@@ -246,14 +246,16 @@ func build(host: Node) -> void:
 	footer.add_child(footer_row)
 	view.status = label(footer_row, "Opening overseer view...")
 	for pair in [["Rooms", "rooms", "Show room quality by tier"], ["Miasma", "miasma", "Show smell from seen carrion"],
-			["Traffic", "traffic", "Show where workers go, where they are and their recent trails"]]:
+			["Traffic", "traffic", "Show where workers go, where they are and their recent trails"],
+			["Heat", "heat", "Show how hot or cold the fortress has found each place"],
+			["Wetness", "wet", "Show how wet or dry the fortress has found each place"]]:
 		var toggle := button(footer_row, pair[0], view.toggle_overlay.bind(pair[1]))
 		toggle.toggle_mode = true
 		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
