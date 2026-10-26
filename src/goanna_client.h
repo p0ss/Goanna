@@ -392,6 +392,12 @@ public:
     void climate_inject(const godot::String &message);
     godot::Dictionary climate_stats() const;
     godot::Dictionary climate_at(const godot::Vector3 &world) const;
+    // Whether the shaders see the field. Off, the store still takes what
+    // the server sends, so turning it back on shows the field at once: for
+    // comparing a place with and without it, and for a player who wants
+    // none of it.
+    void set_climate_enabled(bool enabled);
+    bool climate_enabled() const { return m_climate_enabled; }
     void overseer_send(const godot::String &message);
     godot::Array overseer_take();
     godot::Ref<godot::ArrayMesh> overseer_mesh(const godot::Dictionary &layer, godot::Vector3i block_pos);
@@ -645,6 +651,7 @@ private:
     goanna::ClimateGrid m_climate_built_grid;
     uint64_t m_climate_built_revision = 0;
     std::chrono::steady_clock::time_point m_climate_built_at{};
+    bool m_climate_enabled = true;
     godot::Ref<godot::ImageTexture3D> m_climate_tex;
     double m_ms_climate = 0;
     void updateClimate(const godot::Vector3 &around);

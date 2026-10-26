@@ -752,6 +752,8 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("climate_inject", "message"), &GoannaClient::climate_inject);
     ClassDB::bind_method(D_METHOD("climate_stats"), &GoannaClient::climate_stats);
     ClassDB::bind_method(D_METHOD("climate_at", "world"), &GoannaClient::climate_at);
+    ClassDB::bind_method(D_METHOD("set_climate_enabled", "enabled"), &GoannaClient::set_climate_enabled);
+    ClassDB::bind_method(D_METHOD("climate_enabled"), &GoannaClient::climate_enabled);
     ClassDB::bind_method(D_METHOD("overseer_send", "message"), &GoannaClient::overseer_send);
     ClassDB::bind_method(D_METHOD("overseer_take"), &GoannaClient::overseer_take);
     ClassDB::bind_method(D_METHOD("overseer_mesh", "layer", "block_pos"), &GoannaClient::overseer_mesh);

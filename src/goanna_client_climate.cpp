@@ -123,7 +123,7 @@ void GoannaClient::updateClimate(const Vector3 &around) {
         }
         const ClimateGrid &g = m_climate_built_grid;
         set_view_shader_parameter(kBox, ok ? Vector4(g.ox, g.oy, g.oz, g.cell) : Vector4());
-        set_view_shader_parameter(kSize, Vector4(g.nx, g.ny, g.nz, ok ? 1.0f : 0.0f));
+        set_view_shader_parameter(kSize, Vector4(g.nx, g.ny, g.nz, ok && m_climate_enabled ? 1.0f : 0.0f));
     }
     if (m_climate_reset) {
         m_climate.clear();
@@ -176,6 +176,18 @@ void GoannaClient::updateClimate(const Vector3 &around) {
     });
 }
 
+void GoannaClient::set_climate_enabled(bool enabled) {
+    if (enabled == m_climate_enabled)
+        return;
+    m_climate_enabled = enabled;
+    // Off at once; on at the next build, which a zero revision forces.
+    if (!enabled)
+        set_view_shader_parameter("goanna_climate_size",
+                Vector4(kClimateNX, kClimateNY, kClimateNZ, 0.0f));
+    else
+        m_climate_built_revision = 0;
+}
+
 Dictionary GoannaClient::climate_stats() const {
     Dictionary d;
     d["joined"] = m_session && m_session->fieldJoined();
@@ -183,6 +195,7 @@ Dictionary GoannaClient::climate_stats() const {
     d["blocks"] = (int64_t)(m_climate_busy ? -1 : (int64_t)m_climate.blocks());
     d["build_ms"] = m_ms_climate;
     d["texture"] = m_climate_tex.is_valid();
+    d["enabled"] = m_climate_enabled;
     return d;
 }
 

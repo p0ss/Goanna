@@ -121,6 +121,9 @@ takes a message as the server would send it, `climate_stats()` reports
 whether the channel is joined, whether there is a header, how many blocks
 are held and the build time, and `climate_at(world)` gives the field at a
 Godot world position.
+`set_climate_enabled(false)` hides the field from the shaders while the
+store keeps taking what the server sends, so `true` shows it again at the
+next build: the same place with and without it, in one client.
 
 `project/studies/material_field.tscn` with `GOANNA_FIELD_CLIMATE=<dir>`
 lays a field over the material strips in seven zones, one for each
