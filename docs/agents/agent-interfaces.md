@@ -295,6 +295,10 @@ GOANNA_RENDER_STATE=<a directory of your own> \
   tools/goanna-render serve --world-from test_world_do_not_delete --floor ''
 ```
 
+`--set KEY=VALUE` (repeatable) adds a server setting after the service's
+own, for what a copied world's mods need: a DorfCraft world wants
+`--set enable_mod_channels=true` for its climate field and overseer.
+
 The scenes themselves are not chosen yet. The menu backgrounds and the
 benchmark plans still name `test_world`'s poses, which mean nothing in this
 world, until scenes are scouted here and those tools are pointed at them.
@@ -384,6 +388,9 @@ each time the variant is applied, for state no setting reaches, such as a
 climate field given to `client.climate_inject()`; `client_undo` is run
 when the variant is put back. Either may be awaited and must end in a
 return.
+A pose's own `client_run` is run once the pose has settled, before its
+shot, and what it returns is in the sidecar under `client_run`: a wait for
+what arrives with a place, such as the climate field.
 
 For large landscape captures, `terrain_wait: {"quiet_seconds": 30,
 "timeout_seconds": 900}` waits after each pose until the distant coverage

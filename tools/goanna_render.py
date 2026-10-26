@@ -499,8 +499,9 @@ def game_info(game):
 
 class Server:
     def __init__(self, game, world_from, stage, floor, logdir, far=False,
-                 view_range=16, far_distance=512, occlusion=True):
+                 view_range=16, far_distance=512, occlusion=True, extra=None):
         self.game = game
+        self.extra = dict(extra or {})
         self.far = far
         self.view_range = view_range
         self.far_distance = far_distance
@@ -577,8 +578,12 @@ class Server:
             # Poses move the player by thousands of nodes a second as far
             # as movement anticheat can tell; it then resets the position
             # and the server streams blocks around the wrong place, which
-            # happened on the first trial run ("moved too fast").
-            "anticheat_flags": "digging,interaction",
+            # happened on the first trial run ("moved too fast"). The flags
+            # are applied over the defaults, and only those named change, so
+            # "digging,interaction" alone left the movement check on: a copied
+            # world's poses thousands of nodes apart were all reset to the
+            # first (2026-10-26). "nomovement" is what turns it off.
+            "anticheat_flags": "digging,interaction,nomovement",
             "max_simultaneous_block_sends_per_client": "64",
             # Mineclonia changes the weather by itself between shots; a
             # storm arrived part way through the 2026-10-05 run.
@@ -596,6 +601,9 @@ class Server:
             "goanna_render_stage": "(%d,%d,%d)" % s,
             "goanna_render_floor": self.floor or "",
         }
+        # serve --set, last, so a copied world's own mods get the settings
+        # they need (enable_mod_channels for a paired server mod).
+        lines.update(self.extra)
         conf.write_text("".join("%s = %s\n" % kv for kv in lines.items()))
         return conf
 
@@ -1032,7 +1040,8 @@ class Service:
                              self.logdir, far=self.opt.far or bool(self.opt.world_from),
                              view_range=self.opt.server_view_range,
                              far_distance=self.opt.server_far_distance,
-                             occlusion=not self.opt.no_server_occlusion)
+                             occlusion=not self.opt.no_server_occlusion,
+                             extra=dict(kv.split("=", 1) for kv in self.opt.set))
         self.server.start()
         self.client = Client(self.logdir, self.server, self.opt.software, self.lock)
         self.status = "starting the client"
@@ -1660,6 +1669,12 @@ class Service:
                 if "fov" in p:
                     c.send("set", {"key": "fov", "value": float(p["fov"])})
                 self.pose(p, job.get("terrain_wait"))
+                # GDScript run once the pose has settled, before the shot: a
+                # wait for state that arrives with the place, such as the
+                # climate field a paired server sends round the player.
+                after = None
+                if p.get("client_run"):
+                    after = c.run(client_src(p["client_run"]), timeout=900)
                 shot = out / safe_name(name) / ("%s.png" % safe_name(p["name"]))
                 shot.parent.mkdir(parents=True, exist_ok=True)
                 meta = c.send("shot", {"path": str(shot), "warm": int(job.get("warm", 20))})
@@ -1680,6 +1695,7 @@ class Service:
                                             "texture_path") if isinstance(diag, dict)},
                              "entity_normals": normals, "settled": getattr(self, "settled", None),
                              "shader_errors": shader_errors[:20],
+                             "client_run": after,
                              "taken": now()})
                 if p.get("fov") is not None:
                     side["profile"] = dict(side["profile"], held=dict(side["profile"]["held"],
@@ -1831,10 +1847,16 @@ def cmd_serve(args):
                     help="send distant terrain without the server's occlusion shortcut")
     ap.add_argument("--software", action="store_true",
                     help="render on lavapipe, for testing the service itself; takes no lock")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="an extra server setting, after the service's own (repeatable)")
     ap.add_argument("--foreground", action="store_true")
     opt = ap.parse_args(args)
     opt.argv = [a for a in args if a != "--foreground"] + ["--foreground"]
     opt.stage = [int(v) for v in opt.stage.split(",")]
+    bad = [kv for kv in opt.set if "=" not in kv or not kv.split("=", 1)[0].strip()]
+    if bad:
+        print(json.dumps({"error": "--set wants KEY=VALUE", "got": bad}, indent=2))
+        return 2
     opt.size = parse_size(opt.size)
     # A service that reexec_if_changed restarted keeps its pid, so the record
     # it left behind names this very process: that is not a rival.
