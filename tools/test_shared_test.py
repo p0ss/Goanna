@@ -210,6 +210,59 @@ class ClientTests(unittest.TestCase):
                 self.client.run(payload, self.lease, self.work, lambda: False)
         fake.stop.assert_called_once()
 
+    def test_climate_toggle_and_readback_use_only_the_named_methods(self):
+        fake = self.fake_client()
+        steps = [{'channel': 'control', 'cmd': 'call',
+                  'args': {'method': 'set_climate_enabled', 'args': [False]}},
+                 {'channel': 'control', 'cmd': 'call', 'args': {'method': 'climate_stats'},
+                  'expect': [{'path': 'result.enabled', 'equals': False}]}]
+        with patch.object(self.client, 'BorrowedClient', return_value=fake), \
+                patch.object(self.client, 'query', side_effect=[{'result': None},
+                             {'result': {'enabled': False}}]) as query:
+            result = self.client.run({'mode': 'player', 'players': 1, 'script': {'steps': steps}},
+                                     self.lease, self.work, lambda: False)
+        self.assertTrue(result['ok'])
+        self.assertEqual(query.call_args_list[0].args[2], steps[0]['args'])
+        fake.stop.assert_called_once()
+
+    def test_climate_calls_cannot_escape_into_arbitrary_client_methods(self):
+        for args in ({'method': 'send_chat', 'args': ['/time 0']},
+                     {'method': 'climate_inject', 'args': ['{}']},
+                     {'method': 'set_climate_enabled', 'args': ['false']},
+                     {'method': 'set_climate_enabled', 'args': [0]},
+                     {'method': 'set_climate_enabled', 'args': [True, False]},
+                     {'method': 'climate_stats', 'args': [True]},
+                     {'method': 'climate_stats', 'src': 'arbitrary code'}):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                self.client.shared_control('call', args)
+
+    def test_climate_readiness_requires_nonzero_field_blocks(self):
+        for blocks in (-1, 0):
+            with self.subTest(blocks=blocks), self.assertRaises(AssertionError):
+                self.client.assertion({'blocks': blocks}, {'path': 'blocks', 'greater_than': 0})
+        self.client.assertion({'blocks': 8}, {'path': 'blocks', 'greater_than': 0})
+
+    def test_render_sidecar_records_climate_without_losing_capture_metadata(self):
+        import json
+        fake = self.fake_client()
+        def reply(port, command, args, **kwargs):
+            if command == 'shot':
+                Path(args['path']).with_suffix('.json').write_text(json.dumps({'yaw': 12}))
+                return {'path': args['path']}
+            return {'result': {'enabled': False, 'texture': True}}
+        payload = {'mode': 'software', 'players': 1, 'script': {'steps': [
+            {'channel': 'control', 'cmd': 'shot'}]}}
+        with patch.object(self.client, 'BorrowedClient', return_value=fake), \
+                patch.object(self.client, 'query', side_effect=reply):
+            result = self.client.run(payload, self.lease, self.work, lambda: False, render_entry=True)
+        shot = result['steps'][-1]['result']
+        metadata = json.loads(Path(shot['path']).with_suffix('.json').read_text())
+        self.assertEqual(metadata['yaw'], 12)
+        self.assertEqual(metadata['shared_test']['generation'], self.lease['generation'])
+        self.assertFalse(metadata['shared_test']['climate']['enabled'])
+        self.assertEqual(shot['climate'], metadata['shared_test']['climate'])
+        fake.stop.assert_called_once()
+
     def test_lost_host_stops_render_subprocess_even_when_checkpoint_raises(self):
         from unittest.mock import MagicMock
         proc = MagicMock()

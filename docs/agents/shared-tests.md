@@ -28,7 +28,8 @@ tools/goanna-test queue
 Submissions freeze their inputs and do not launch the supervisor. Use
 `GOANNA_TEST_STATE` for a separate state directory. Only one supervisor can
 hold a queue's lock. DorfCraft's `skybox.py serve` also reads local host
-and runtime configuration; prefer that entry point for its standing host. The queue survives host-world replacement, records
+and runtime configuration; prefer that entry point for its standing host.
+The queue survives host-world replacement, records
 attempts and cancellation, and stops dispatch after unresolved cleanup or
 a limiter refusal. The adapter waits for memory and launch headroom before
 starting a server; the machine-wide limiter remains authoritative.
@@ -48,7 +49,13 @@ player interface handles the actions. The worker obtains observation
 sequence numbers and reads the client's generated token file. Developer
 inspection, camera and UI actions are available through a restricted
 `control` channel selection. World-global chat commands and arbitrary
-GDScript snippets are excluded from this shared path.
+GDScript snippets are excluded from this shared path. The `call` command
+permits only `set_climate_enabled` with one boolean argument and
+`climate_stats` with no arguments. Captures record the field state in their
+result and JSON sidecar, alongside the shared generation. DorfCraft
+provides `probes/climate.json` and `probes/climate_scene.lua` as a paired
+example. These use a constructed scene in its singlenode host; generated
+terrain fixtures still need a matching world profile or their own runner.
 
 The host adapter owns server staging, game-specific fixtures, forceloading,
 probe execution and cleanup. Resources default to `state:global`; only

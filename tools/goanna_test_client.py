@@ -53,7 +53,32 @@ def assertion(result, spec):
         raise AssertionError('%s: expected %r, got %r' % (spec.get('path'), spec['equals'], value))
     if 'contains' in spec and spec['contains'] not in value:
         raise AssertionError('%s does not contain %r' % (value, spec['contains']))
+    if 'greater_than' in spec and not value > spec['greater_than']:
+        raise AssertionError('%s: expected greater than %r, got %r' %
+                             (spec.get('path'), spec['greater_than'], value))
     return True
+
+
+def shared_control(command, args):
+    """Keep client-local climate comparisons separate from arbitrary calls."""
+    if command == 'call':
+        method, values = args.get('method'), args.get('args', [])
+        if set(args) - {'method', 'args'}:
+            raise ValueError('shared climate calls accept method and args only')
+        if method == 'set_climate_enabled':
+            if not isinstance(values, list) or len(values) != 1 or type(values[0]) is not bool:
+                raise ValueError('set_climate_enabled requires one boolean')
+        elif method == 'climate_stats':
+            if values != []:
+                raise ValueError('climate_stats takes no arguments')
+        else:
+            raise ValueError('client method is not shared-safe: %s' % method)
+    elif command == 'wait':
+        if set(args) - {'settle', 'frames', 'ms'}:
+            raise ValueError('shared waits accept settle, frames or ms only')
+    elif command not in ('status', 'inspect', 'pose', 'look', 'shot', 'ui_tree',
+                         'ui_click', 'ui_type', 'ui_scroll', 'key', 'label'):
+        raise ValueError('control command is not shared-safe: %s' % command)
 
 
 def stop_record(path, job_id):
@@ -253,14 +278,18 @@ def run(payload, lease, work, cancelled, render_entry=False):
                 destination = work / ('frame-%02d-%03d.png' % (payload.get('attempt', 1), len(results)))
                 args = {'path': str(destination)}
             if channel == 'control':
-                if command == 'wait' and set(args) - {'settle', 'frames', 'ms'}:
-                    raise ValueError('shared waits accept settle, frames or ms only')
                 # Shared jobs cannot send server-global chat commands or
                 # arbitrary code. Fixture changes belong in a bounded probe.
-                if command not in ('status', 'inspect', 'pose', 'look', 'wait', 'shot', 'ui_tree',
-                                   'ui_click', 'ui_type', 'ui_scroll', 'key', 'label'):
-                    raise ValueError('control command is not shared-safe: %s' % command)
+                shared_control(command, args)
                 result = query(client.control_port, command, args, timeout=10)
+                if command == 'shot':
+                    climate = query(client.control_port, 'call', {'method': 'climate_stats'})['result']
+                    result['climate'] = climate
+                    sidecar = destination.with_suffix('.json')
+                    metadata = json.loads(sidecar.read_text())
+                    metadata['shared_test'] = {'id': lease['id'],
+                                               'generation': lease['generation'], 'climate': climate}
+                    sidecar.write_text(json.dumps(metadata, indent=2) + '\n')
             else:
                 if command not in ('hello', 'observe', 'wait', 'action_status'):
                     if 'based_on' not in args:
