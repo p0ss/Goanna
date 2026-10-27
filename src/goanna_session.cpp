@@ -3053,6 +3053,16 @@ void GoannaSession::onAddParticleSpawner(NetworkPacket &pkt) {
     ev.size_min = p.size.start.min;
     ev.size_max = p.size.start.max;
     ev.texture = p.texture.string;
+    {
+        const auto &alpha = p.texture.alpha;
+        const auto &scale = p.texture.scale;
+        const bool alpha_rev = alpha.style == ParticleParamTypes::TweenStyle::rev;
+        const bool scale_rev = scale.style == ParticleParamTypes::TweenStyle::rev;
+        ev.alpha_start = alpha_rev ? alpha.end.val : alpha.start.val;
+        ev.alpha_end = alpha_rev ? alpha.start.val : alpha.end.val;
+        ev.scale_start = scale_rev ? scale.end.val.X : scale.start.val.X;
+        ev.scale_end = scale_rev ? scale.start.val.X : scale.end.val.X;
+    }
     ev.vertical = p.vertical;
     ev.collision = p.collisiondetection;
     ev.attached_id = attached_id;

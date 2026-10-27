@@ -339,6 +339,11 @@ public:
         v3f attractor_origin, attractor_direction;
         bool attractor_kill = true;
         std::vector<std::string> texpool;
+        // The texture's alpha and scale over each particle's life, start
+        // and end, as tweens; a reversed tween arrives swapped, and pulse
+        // and flicker as a plain forward blend.
+        float alpha_start = 1.0f, alpha_end = 1.0f;
+        float scale_start = 1.0f, scale_end = 1.0f;
     };
     struct ParticleEvent {
         v3f pos, vel, acc;

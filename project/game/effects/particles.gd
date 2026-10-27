@@ -164,6 +164,10 @@ func _process(_delta: float) -> void:
 			inject_test_spawner("rain")
 	for ev in client.take_particle_spawners():
 		_add_spawner(ev)
+	_light_wait -= _delta
+	if _light_wait <= 0.0:
+		_light_wait = LIGHT_INTERVAL
+		_light_spawners()
 	for id in client.take_deleted_spawners():
 		_remove_spawner(int(id))
 	if weather != null:
@@ -423,6 +427,16 @@ func _add_spawner(ev: Dictionary) -> void:
 	mat.gravity = (amin + amax) * 0.5
 	mat.scale_min = maxf(float(ev.get("size_min", 1.0)), 0.05)
 	mat.scale_max = maxf(float(ev.get("size_max", 1.0)), 0.05)
+	# The texture's tweens: alpha and scale over each particle's life. A
+	# mist that asks to fade from 0.85 to nothing while it grows to twice
+	# its size, drawn without them, stood at 0.85 all its life: an opaque
+	# white blob where the game meant a thinning cloud.
+	var alpha_tween: Vector2 = ev.get("alpha_tween", Vector2.ONE)
+	var scale_tween: Vector2 = ev.get("scale_tween", Vector2.ONE)
+	if not alpha_tween.is_equal_approx(Vector2.ONE):
+		mat.color_ramp = tween_ramp(alpha_tween)
+	if not scale_tween.is_equal_approx(Vector2.ONE):
+		mat.scale_curve = tween_curve(scale_tween)
 	# Drag is a per axis vector; Godot damps along the velocity instead, so the
 	# magnitude is used and a drag that differs per axis loses its direction.
 	var drag: Vector3 = ev.get("drag", Vector3.ZERO)
@@ -498,6 +512,8 @@ func _add_spawner(ev: Dictionary) -> void:
 	smat.albedo_texture = _texture_for(tex_path)
 	smat.albedo_color = Color(1, 1, 1, 1) if smat.albedo_texture != null else Color(0.75, 0.85, 1.0, 0.85)
 	smat.disable_receive_shadows = true
+	# The alpha tween reaches the quad as the particle's colour.
+	smat.vertex_color_use_as_albedo = mat.color_ramp != null
 	# Blend mode. Luanti has one Godot does not: screen has no equivalent, so
 	# it borrows add, which is the closest of the ones that exist. clip is
 	# alpha testing rather than a blend.
@@ -560,7 +576,7 @@ func _add_spawner(ev: Dictionary) -> void:
 	# nodes up: with the centre off the top of the screen the whole bolt was
 	# culled while its lower half was in view.
 	var reach := mat.initial_velocity_max * life + 0.5 * mat.gravity.length() * life * life
-	reach += maxf(mat.scale_min, mat.scale_max) * quad.size.x * 0.5
+	reach += maxf(mat.scale_min, mat.scale_max) * maxf(1.0, maxf(scale_tween.x, scale_tween.y)) * quad.size.x * 0.5
 	reach = clampf(reach, 1.0, 256.0)
 	var ext := mat.emission_box_extents
 	var corner := Vector3(ext.x + reach, ext.y + reach, ext.z + reach)
@@ -571,6 +587,9 @@ func _add_spawner(ev: Dictionary) -> void:
 			str(p.visibility_aabb.size.round()), str(smat.billboard_mode)])
 	add_child(p)
 	_spawners[id] = p
+	if not is_bolt:
+		_lit[id] = [quad.material, smat.albedo_color, int(ev.get("glow", 0))]
+		_light_wait = 0.0
 	if is_attached:
 		# an attached spawner's positions are relative to what it follows
 		_attached[id] = [int(ev.get("attached_id", 0)), (pmin + pmax) * 0.5]
@@ -653,6 +672,106 @@ func _node_pieces(ev: Dictionary) -> void:
 
 
 var _covered_ids := {}
+
+# Light. Luanti draws each particle at the light where it is (the day and
+# night banks blended by the day/night ratio, plus the spawner's glow,
+# through the light curve), so a mist in a cave is as dark as the cave and
+# only a glowing spark shines. Drawn unshaded at full white, a cloud of
+# fine mist at a cave's waterfall read as a jet of steam. Here each spawner
+# takes the light at its emitter, refreshed every LIGHT_INTERVAL seconds:
+# id -> [material, colour as the server asked, glow].
+const LIGHT_INTERVAL := 0.5
+var _lit := {}
+var _light_wait := 0.0
+var _light_lut := PackedFloat32Array()
+
+
+# A particle's alpha from tween.x at birth to tween.y at death, as a colour
+# ramp the process material multiplies in.
+static func tween_ramp(tween: Vector2) -> GradientTexture1D:
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, clampf(tween.x, 0.0, 1.0)))
+	g.set_color(1, Color(1, 1, 1, clampf(tween.y, 0.0, 1.0)))
+	var t := GradientTexture1D.new()
+	t.gradient = g
+	return t
+
+
+# A particle's scale from tween.x at birth to tween.y at death, times the
+# size the spawner gave it.
+static func tween_curve(tween: Vector2) -> CurveTexture:
+	var c := Curve.new()
+	c.min_value = 0.0
+	c.max_value = maxf(1.0, maxf(tween.x, tween.y))
+	c.add_point(Vector2(0.0, maxf(tween.x, 0.0)))
+	c.add_point(Vector2(1.0, maxf(tween.y, 0.0)))
+	var t := CurveTexture.new()
+	t.curve = c
+	return t
+
+
+# Luanti's light curve (light.cpp, set_light_curve) at its default settings
+# (lighting_alpha 0, lighting_beta 1.5, lighting_boost 0.2 at 0.5 spread
+# 0.2, display gamma 1): brightness 0 to 1 for each light level 0 to 15.
+static func light_curve() -> PackedFloat32Array:
+	var lut := PackedFloat32Array()
+	lut.resize(16)
+	var alpha := 0.0
+	var beta := 1.5
+	var a := alpha + beta - 2.0
+	var b := 3.0 - 2.0 * alpha - beta
+	var c := alpha
+	var last := 0
+	for i in 16:
+		var level := 0
+		if i == 15:
+			level = 255
+		elif i > 0:
+			var x := float(i) / 15.0
+			var v := ((a * x + b) * x + c) * x + 0.2 * exp(-0.5 * pow((x - 0.5) / 0.2, 2.0))
+			level = clampi(int(255.0 * clampf(v, 0.0, 1.0)), 0, 255)
+			if level <= last:
+				level = mini(254, last) + 1
+		last = level
+		lut[i] = level / 255.0
+	return lut
+
+
+# How bright a particle is drawn, 0 to 1, from the block and sky light where
+# it is (levels 0 to 15), the day/night ratio (0 to 1) and its glow, as
+# Luanti's Particle does: the day bank (the brighter of the two) and the
+# night bank (the block light) blended by the ratio, then the glow added.
+static func particle_light(lut: PackedFloat32Array, block: float, sky: float, ratio: float, glow: int) -> float:
+	var day := maxf(block, sky)
+	var level := int(lerpf(block, day, clampf(ratio, 0.0, 1.0)))
+	return lut[clampi(level + glow, 0, 15)]
+
+
+func _light_spawners() -> void:
+	if _lit.is_empty() or not client.has_method("shader_pack_light_at"):
+		return
+	if _light_lut.is_empty():
+		_light_lut = light_curve()
+	var ratio := 1.0
+	if client.has_method("sky_state"):
+		ratio = float(client.sky_state().get("day_night_ratio", 1.0))
+	for id in _lit.keys():
+		var p = _spawners.get(id)
+		if p == null or not is_instance_valid(p):
+			_lit.erase(id)
+			continue
+		var l: Vector2i = client.shader_pack_light_at((p as Node3D).global_position)
+		if l.x < 0:
+			continue
+		var rec: Array = _lit[id]
+		var k := particle_light(_light_lut, l.x / 16.0, l.y / 16.0, ratio, int(rec[2]))
+		var base: Color = rec[1]
+		var lit := Color(base.r * k, base.g * k, base.b * k, base.a)
+		var mat = rec[0]
+		if mat is StandardMaterial3D:
+			(mat as StandardMaterial3D).albedo_color = lit
+		elif mat is ShaderMaterial:
+			(mat as ShaderMaterial).set_shader_parameter("albedo_color", lit)
 var _covered_shaders := {}
 
 
@@ -712,6 +831,7 @@ func _remove_spawner(id: int) -> void:
 	_weather.erase(id)
 	_weather_ev.erase(id)
 	_covered_ids.erase(id)
+	_lit.erase(id)
 	if weather != null:
 		weather.remove_spawner(id)
 
@@ -744,6 +864,15 @@ func _one_shot(ev: Dictionary) -> void:
 	smat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	smat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	smat.albedo_texture = _texture_for(str(ev.get("texture", "")))
+	# Lit where it appears, as a spawner's are (_light_spawners).
+	if client.has_method("shader_pack_light_at"):
+		var l: Vector2i = client.shader_pack_light_at(ev.get("position", Vector3.ZERO))
+		if l.x >= 0:
+			if _light_lut.is_empty():
+				_light_lut = light_curve()
+			var ratio := float(client.sky_state().get("day_night_ratio", 1.0)) if client.has_method("sky_state") else 1.0
+			var k := particle_light(_light_lut, l.x / 16.0, l.y / 16.0, ratio, int(ev.get("glow", 0)))
+			smat.albedo_color = Color(k, k, k, 1.0)
 	quad.material = smat
 	p.draw_pass_1 = quad
 	p.position = ev.get("position", Vector3.ZERO)

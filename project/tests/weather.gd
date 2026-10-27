@@ -386,8 +386,32 @@ func _test_open_beach() -> void:
 	check(_shader_open(roofed, Vector3(3.0, 2.0, -2.0), 1.0) == 0.0, "under a roof the shader lookup is covered")
 
 
+# Server particles are drawn at the light where they are, as Luanti's are:
+# a mist in an unlit cave is dark, a glowing one is not, and daylight
+# reaches only what the sky does.
+func _test_particle_light() -> void:
+	var lut := Particles.light_curve()
+	check(lut.size() == 16 and lut[0] == 0.0 and lut[15] == 1.0, "light curve ends %s" % [lut])
+	var rising := true
+	for i in 15:
+		rising = rising and lut[i + 1] > lut[i]
+	check(rising, "light curve does not rise: %s" % [lut])
+	check(Particles.particle_light(lut, 0.0, 0.0, 1.0, 0) == 0.0, "a particle in an unlit cave is lit")
+	check(Particles.particle_light(lut, 0.0, 0.0, 1.0, 14) > 0.9, "glow 14 in the dark is dim")
+	check(Particles.particle_light(lut, 0.0, 15.0, 1.0, 0) == 1.0, "noon in the open is not full")
+	check(Particles.particle_light(lut, 0.0, 15.0, 0.0, 0) == 0.0, "night in the open is lit by the sky")
+	check(Particles.particle_light(lut, 13.0, 0.0, 1.0, 0) > 0.6, "torchlight leaves a particle dark")
+	var ramp := Particles.tween_ramp(Vector2(0.85, 0.0))
+	check(is_equal_approx(ramp.gradient.sample(0.0).a, 0.85) and ramp.gradient.sample(1.0).a == 0.0,
+			"alpha tween 0.85 to 0 gives %s to %s" % [ramp.gradient.sample(0.0), ramp.gradient.sample(1.0)])
+	var grow := Particles.tween_curve(Vector2(0.6, 2.0))
+	check(is_equal_approx(grow.curve.sample(0.0), 0.6) and is_equal_approx(grow.curve.sample(1.0), 2.0),
+			"scale tween 0.6 to 2 gives %f to %f" % [grow.curve.sample(0.0), grow.curve.sample(1.0)])
+
+
 func _initialize() -> void:
 	_test_shaders()
+	_test_particle_light()
 	_test_cover()
 	_test_client_binding()
 	_test_open_beach()

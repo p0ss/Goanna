@@ -27,7 +27,7 @@ order exactly so the two can be diffed when the format next changes.
 | `texture` | yes | yes | |
 | `texpool` | yes | partly | Godot draws one pass with one material, so the first entry is used. A pool of one, the ordinary case, is exact. |
 | `animation` | yes | yes | vertical strips and 2D sheets both, see below |
-| `glow` | yes | no | deliberate, see below |
+| `glow` | yes | yes | added to the light where the particle is, see below |
 | `node`, `node_tile` | yes | no | a particle taking its texture from a node's tile still needs a content id to tile texture lookup |
 | `drag` | yes | approximated | per axis in Luanti, damping along the velocity in Godot, so a drag that differs per axis loses its direction |
 | `jitter` | yes | approximated | a random acceleration each step in Luanti, which Godot has no equivalent for. It becomes extra spread and initial velocity, which looks close for short lived particles and diverges for long lived ones. |
@@ -65,26 +65,30 @@ that follows the player is drawn by shader and gets no emitter, and the
 notes above about pool size and the culling box apply only with it off. See
 [weather.md](weather.md).
 
-## Two that are deliberate
+## Light and glow
 
-**Glow is read and not drawn.** Particles are drawn unshaded, so they are at
-full texture brightness everywhere: smoke in an unlit cave is as bright as
-smoke at noon. Glow sets a *minimum* light level, which only means something
-once particles take light from the world at all. Lighting particles is not
-yet planned anywhere: [the materials plan](../design/pbr-plan.md) covers
-terrain, and its remaining work has no particle item. Whatever lights them
-should take glow with it, and adding a light level here first would have to
-be undone. It is carried so the day that lands it is one line.
+Luanti draws a particle at the light where it is: the day bank and the
+night bank blended by the day/night ratio, plus the particle's `glow`,
+through the light curve. `particles.gd` does the same with the client's
+own light (`shader_pack_light_at`) and Luanti's curve at its default
+settings (`light_curve()`, `particle_light()`), per spawner at its emitter,
+every half second, and for a single particle where it appears. Before this
+particles were drawn unshaded at full white, so a fine mist round a cave's
+waterfall (DorfCraft's `mechanisms/mist.lua`) shone like steam in the dark.
+The light is the emitter's, not each particle's: a spawner a few nodes
+across that straddles a shadow takes one value.
 
-Worth knowing that this was already wrong in a smaller way: single particles
-parsed `glow` and spawners did not, so a spawner's fire and torch sparks lost
-the one property saying they are self lit, while the same particle spawned
-singly kept it.
+## Tweens
 
-**Tweens are read and not drawn.** A tweened parameter is a start range and
-an end range, and Godot's particle process material takes one range. Doing
-this properly means a custom process shader, which is worth doing once and
-not worth doing badly first.
+A tweened parameter is a start range and an end range, and Godot's particle
+process material takes one range. Of them only the texture's alpha and
+scale are drawn: the alpha as the process material's colour ramp and the
+scale as its scale curve, from start at birth to end at death. A reversed
+tween is swapped; pulse, flicker, repetitions and a start offset are drawn
+as a plain forward blend. Without the alpha tween a mist that asks to fade
+from 0.85 to nothing stood at 0.85 all its life. The position, velocity,
+acceleration, lifetime and size tweens are read and not drawn: doing those
+properly means a custom process shader.
 
 ## Why the whole packet is read even where nothing uses it
 

@@ -641,6 +641,8 @@ Array GoannaClient::take_particle_spawners() {
         d["collision"] = e.collision;
         d["attached_id"] = (int)e.attached_id;
         d["glow"] = (int)e.glow;
+        d["alpha_tween"] = Vector2(e.alpha_start, e.alpha_end);
+        d["scale_tween"] = Vector2(e.scale_start, e.scale_end);
         d["collision_removal"] = e.collision_removal;
         d["object_collision"] = e.object_collision;
         d["blend_mode"] = (int)e.blend_mode;
