@@ -702,6 +702,19 @@ private:
             }
             return true;
         }
+        if (startsWith(part, "[png:") && !have) {
+            // An inline image (imagesource.cpp generates it from the base64
+            // after the colon), as DorfCraft's wear holes are, laid as
+            // ^[mask:\[png\:...: read as a leaf with no maps of its own.
+            // Unread, it made the whole string unsupported, and a holed
+            // piece lost every layer's maps but its base drawing's.
+            base = Value();
+            base.albedo = m_src.albedo(part);
+            if (base.albedo.empty())
+                return false;
+            have = true;
+            return true;
+        }
         if (!have)
             return false;
         // At the parts' own resolution only what moves texels is

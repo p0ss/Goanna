@@ -442,6 +442,25 @@ void testCompose() {
             Composed::Done && out.w == 16 && out.h == 4,
             "a larger mask scales the image up, keeping the map's scale over it");
 
+    // DorfCraft's holed armour: a trimmed drawing with its wear holes cut by
+    // an inline [png: mask, escaped inside the [mask. Each layer keeps its
+    // maps.
+    Fake hole;
+    hole.albedo["mail.png"] = solid(4, 1, 120, 120, 130, 255);
+    hole.comp["mail.png"] = solid(4, 1, 60, 128, 255, 255);
+    Rgba8 trim = solid(4, 1, 0, 0, 0, 0);
+    setPx(trim, 3, 0, 200, 160, 40, 255);
+    hole.albedo["trim.png"] = trim;
+    hole.comp["trim.png"] = solid(4, 1, 200, 128, 255, 255);
+    Rgba8 holes = solid(4, 1, 255, 255, 255, 255);
+    setPx(holes, 1, 0, 0, 0, 0, 0);
+    hole.albedo["[png:HOLES"] = holes;
+    check(composeCompanion("mail.png^trim.png^[mask:\\[png\\:HOLES", kNormalKind, hole.sources(),
+            out) == Composed::Done && out.w == 4,
+            "a [mask:[png: hole cut composes rather than falling back to the base");
+    check(out.w == 4 && px(out, 0, 0)[0] == 60 && px(out, 3, 0)[0] == 200,
+            "the base and its trim each keep their maps round the holes");
+
     // A golem's crack in a group with [opacity, as compositeCompanions
     // composites it (96: 230 to 40 at 180/255).
     Fake o;
