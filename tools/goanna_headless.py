@@ -332,7 +332,7 @@ GPU_GAME_CLIENTS = ("godot", "gamescope", "luanti", "minetest")
 # card, on 2026-10-10.
 DESKTOP_GPU_USERS = ("kwin_wayland", "xwayland", "plasmashell", "firefox", "freetube",
                      "chrome", "chromium", "electron", "steamwebhelper", "krunner",
-                     "kded", "gnome-shell", "mutter", "discord", "webcord", "code", "spectacle",
+                     "kded", "gnome-shell", "mutter", "discord", "webcord", "code", "zed-editor", "spectacle",
                      "brave")
 
 
