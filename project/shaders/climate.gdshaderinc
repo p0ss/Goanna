@@ -124,7 +124,10 @@ float goanna_climate_moss_level(vec4 c, vec3 n, int cls, float sky) {
 	float moss = c.w * smoothstep(0.8, 0.96, c.y) * smoothstep(0.5, 8.0, c.x)
 			* mix(0.3, 1.0, 1.0 - smoothstep(0.35, 0.85, sky))
 			* (n.y < -0.4 ? 0.8 : 1.0);
-	return moss > 0.01 ? moss * 1.1 - 0.08 : -1.0;
+	// At most 0.82: a soaked cave's every face is in moss's full band, and
+	// a level past 1 filled every texel flush, a flat green coat; capped,
+	// the crests of the high patches still show through.
+	return moss > 0.01 ? moss * 0.9 - 0.08 : -1.0;
 }
 
 // The moss's own share of a texel's rank: patches a node or so across, the
@@ -145,7 +148,8 @@ float goanna_climate_dust_level(vec4 c, vec3 n, int cls, float sky) {
 		return -1.0;
 	float dust = c.w * smoothstep(0.58, 0.32, c.y) * smoothstep(0.5, 0.9, n.y)
 			* (1.0 - smoothstep(0.35, 0.85, sky));
-	return dust > 0.02 ? dust * 1.05 - 0.05 : -1.0;
+	// At most 0.75, so a crest or two in each node stays bare.
+	return dust > 0.02 ? dust * 0.8 - 0.05 : -1.0;
 }
 
 float goanna_climate_dust_grain(vec2 texel) {
@@ -264,7 +268,9 @@ void goanna_climate_tint(vec4 c, vec3 p, vec3 n, int cls, float sky, float poros
 		float rank = relief_known ? mix(h, g, 0.35) : g;
 		float cover = smoothstep(rank - 0.03, rank + 0.03, dust);
 		float l = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
-		albedo = mix(albedo, mix(albedo, vec3(l), 0.5) * 1.25 + 0.05, cover * 0.85);
+		// A veil, a little paler and greyer than the ground: at half grey,
+		// 1.25 and 0.85 a red clay floor went salmon pink.
+		albedo = mix(albedo, mix(albedo, vec3(l), 0.3) * 1.12 + 0.02, cover * 0.7);
 		rough = mix(rough, 1.0, cover);
 		spec *= 1.0 - 0.5 * cover;
 	}
