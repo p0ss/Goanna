@@ -1968,6 +1968,7 @@ USAGE = """usage:
                          [--only minecraft|goanna|vanilla] [--software]
   goanna-render status
   goanna-render stop
+  goanna-render shared-submit --repo PATH --script JOB.json [--detach]
 The job format is in docs/agents/agent-interfaces.md, under "The render service"."""
 
 
@@ -1977,6 +1978,12 @@ def main(argv):
         return 0
     cmd, rest = argv[1], argv[2:]
     try:
+        if cmd == "shared-submit":
+            from goanna_test import main as shared_main
+            return shared_main(["submit", "--mode", "gpu"] + rest)
+        if cmd == "shared":
+            from goanna_test_client import render_command
+            return render_command(rest)
         if cmd == "serve":
             return cmd_serve(rest)
         if cmd == "shoot":

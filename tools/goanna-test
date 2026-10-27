@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright (C) 2026 the Goanna contributors
+from goanna_test import main
+
+raise SystemExit(main())
