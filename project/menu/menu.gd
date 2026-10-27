@@ -91,6 +91,8 @@ var _material_check: Node
 var _material_wait_game := ""
 var _materials_current := {}
 var server  # net/local_server.gd
+# Large mod sets and first-world preparation can take minutes.
+const SERVER_START_TIMEOUT_SECONDS := 300.0
 var server_deadline := 0.0
 var showcase_launch := false
 # The graphics benchmark's world and one of its own camera poses, so the menu
@@ -424,7 +426,7 @@ func _start_showcase() -> void:
 		_fail(err)
 		return
 	status_label.text = "Preparing the village showcase ..."
-	server_deadline = _now() + 30.0
+	server_deadline = _now() + SERVER_START_TIMEOUT_SECONDS
 	set_process(true)
 
 func _stop_showcase() -> void:
@@ -2036,7 +2038,7 @@ func _on_start_local() -> void:
 	start_button.disabled = true
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Starting %s ..." % world
-	server_deadline = _now() + 20.0
+	server_deadline = _now() + SERVER_START_TIMEOUT_SECONDS
 	set_process(true)
 
 # Runs only while something is in flight (set_process(true) where each one
@@ -2154,9 +2156,10 @@ func _process(_delta: float) -> void:
 		start_button.disabled = false
 	elif _now() > server_deadline:
 		set_process(false)
+		var startup_log: String = server.log_path
 		server.stop()
 		server = null
-		_fail("The server did not start in time. See %s." % server.log_path if server else "the server log.")
+		_fail("The server did not start within five minutes. See %s." % startup_log)
 		if start_button:
 			start_button.disabled = false
 

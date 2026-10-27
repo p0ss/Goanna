@@ -7,6 +7,16 @@
 ## XDG_DATA_HOME=$(mktemp -d) XDG_CONFIG_HOME=$(mktemp -d) godot --headless --path project --script res://tests/local_play_menu.gd
 extends SceneTree
 
+class StartingServer extends RefCounted:
+	var log_path := "/tmp/goanna-startup-test.log"
+	var stopped := false
+
+	func poll_ready() -> String:
+		return "starting"
+
+	func stop() -> void:
+		stopped = true
+
 var failures := 0
 
 func check(condition: bool, message: String) -> void:
@@ -61,6 +71,16 @@ func _run() -> void:
 	buttons(menu.screen, "Save and back")[0].pressed.emit()
 	cfg.load("user://goanna.cfg")
 	check(cfg.get_value("local_play", "graphics_profile", "") == "lowest", "Lowest selection persists")
+	var starting := StartingServer.new()
+	menu.server = starting
+	menu.server_deadline = menu._now() + menu.SERVER_START_TIMEOUT_SECONDS - 21.0
+	menu._process(0.0)
+	check(not starting.stopped, "A server still loading after 20 seconds is allowed to finish")
+	menu.server_deadline = menu._now() - 1.0
+	menu._process(0.0)
+	check(starting.stopped and menu.server == null, "A startup timeout stops the owned server")
+	check(menu.status_label.text.contains(starting.log_path), "The timeout retains the server log path")
+	check(menu.status_label.text.contains("five minutes"), "The timeout explains how long it waited")
 	menu.free()
 	await process_frame
 	print("local play menu: %d failures" % failures)

@@ -30,6 +30,10 @@ companions, so a server's Iron, Stone or other style textures stay visible.
 Hosting starts a normal Luanti server and can expose a name, description,
 password, port, player limit and public-list announcement.
 
+Large mod sets and a new world's preparation can take longer to start than
+an ordinary world. Goanna waits up to five minutes for the local server;
+if startup times out, the message includes its log path.
+
 ## Server media
 
 Goanna keeps the server's announced textures, sounds and models in
