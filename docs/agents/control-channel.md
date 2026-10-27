@@ -201,7 +201,10 @@ which differs from `tracks` while the local player's own animations play.
 before bone overrides and Goanna's first-person posing, beside its rest
 transform and an `at_rest` flag. Transforms are in the mesh's own terms:
 mesh units, and Irrlicht's handedness rather than Godot's. It reads and
-changes nothing.
+changes nothing. A model with [jiggle bones](../systems/jiggle-bones.md)
+also gets `jiggle`: `active`, the solver `steps` the last frame took, and
+per bone its drawn `tip`, its `target` and `pivot`, world space in nodes,
+and `degrees_off` between them.
 
 ## Using the UI from inside the client
 

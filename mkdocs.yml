@@ -159,6 +159,7 @@ nav:
       - Players and interface:
           - First person body: systems/first-person-body.md
           - Knees, elbows and strokes: systems/limbs.md
+          - Jiggle bones: systems/jiggle-bones.md
           - Interface style: systems/interface-style.md
           - Local multiplayer architecture: systems/local-multiplayer.md
           - Overseer camera: systems/overseer.md

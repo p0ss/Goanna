@@ -54,6 +54,8 @@ code disagree, the code is right.
 - [First person body](first-person-body.md) and
   [knees, elbows and strokes](limbs.md): the player's own model and how
   block limbed models bend and swim.
+- [Jiggle bones](jiggle-bones.md): cloth and hair a model marks, swung
+  by the wearer's motion and gravity; the units games author against.
 - [Interface style](interface-style.md): the dark glass style and game
   theme for menus and server forms.
 - [Local multiplayer architecture](local-multiplayer.md): splitscreen

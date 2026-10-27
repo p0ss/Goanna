@@ -63,6 +63,7 @@ be varied independently for controlled tests.
 | Parallax | Off | On | On | On | On |
 | Parallax march | n/a | Short | Full | Full | Full |
 | Micro shadows | On | On | On | On | On |
+| Swaying cloth and hair | Off | On | On | On | On |
 | SSIL strength | Off | Off | Off | 1.4 | 1.4 |
 | Screen-space detail | 0 | 0 | 1 | 2 | 3 |
 | Directional shadow detail | 0 | 0 | 1 | 1 | 2 |
@@ -90,6 +91,12 @@ has not been measured. Medium keeps the full march: the short one saved
 parallax off. See [materials](materials.md), "Micro shadows and the short
 march", and the
 [measurement driver](../perf/low-tier-occlusion-2026-10-05/run.py).
+
+Swaying cloth and hair (`mat_jiggle`) are the [jiggle bones](jiggle-bones.md)
+of drapes and plaits. It travels as a material strength so a profile can
+carry it, but it is a switch on the entity renderer, not a shader channel.
+Lowest holds the bones at their pose; every other tier simulates them
+within 32 nodes of the camera. Its CPU cost has not been measured.
 
 Cloud layer count, style and lighting quality are independent controls.
 The Advanced Lighting setting **Cloud layers** saves a count from one to

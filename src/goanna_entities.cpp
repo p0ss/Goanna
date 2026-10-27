@@ -709,7 +709,7 @@ std::shared_ptr<GodotModel> EntityRenderer::modelFor(GoannaSession &session, con
     if (scene::IAnimatedMesh *mesh = session.models().getMesh(name, true)) {
         if (!checkMeshNormals(mesh))
             session.models().manipulator()->recalculateNormals(mesh, true, false);
-        model = buildGodotModel(mesh);
+        model = buildGodotModel(mesh, session.models().extras(name));
         mesh->drop();
     }
     // Only a success is remembered. Caching the failure meant one lookup that
@@ -1652,6 +1652,33 @@ Dictionary EntityRenderer::animation(GoannaSession &session, u16 id) const {
             }
             joints.push_back(j);
         }
+        // The jiggle bones: whether they are being simulated, and for each
+        // where its tip was drawn last step against where its pose puts it,
+        // world space, nodes.
+        const GodotModel &model = animator.model();
+        if (!model.jiggle.bones.empty()) {
+            const JiggleSolver &js = animator.jiggle();
+            Dictionary jd;
+            jd["active"] = js.active();
+            jd["steps"] = js.lastSteps();
+            Array bones;
+            for (size_t b = 0; b < model.jiggle.bones.size(); ++b) {
+                Dictionary bd;
+                const auto &name = mesh_joints[model.jiggle.bones[b].joint]->Name;
+                bd["name"] = String::utf8(name ? name->c_str() : "");
+                if (js.active() && b < js.boneCount()) {
+                    bd["tip"] = js.tip(b);
+                    bd["target"] = js.target(b);
+                    bd["pivot"] = js.pivot(b);
+                    bd["degrees_off"] = Math::rad_to_deg((js.tip(b) - js.pivot(b))
+                            .angle_to(js.target(b) - js.pivot(b)));
+                }
+                bones.push_back(bd);
+            }
+            jd["bones"] = bones;
+            jd["colliders"] = (int)model.jiggle.colliders.size();
+            d["jiggle"] = jd;
+        }
     }
     d["joints"] = joints;
     return d;
@@ -2158,6 +2185,28 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             mo.yaw_rate = std::clamp(en.motion_yaw_rate, -720.0f, 720.0f);
             en.animator->setMotion(mo);
         }
+        // Jiggle bones: where the model is drawn this frame, and, for one
+        // hung on a parent's bone (a drape on the chest, hair on the head),
+        // the parent's collider capsules as its step this frame left them.
+        // Parents are synced before their children (by id), so the
+        // parent's pose is this frame's. Beyond JIGGLE_DISTANCE, or with
+        // the setting off, the bones take their target pose.
+        if (en.animator && en.animator->hasJiggle()) {
+            JiggleFrame jf;
+            jf.simulate = m_jiggle && en.visual && en.visual->is_inside_tree();
+            if (jf.simulate) {
+                jf.mesh_to_world = en.visual->get_global_transform();
+                jf.simulate = camera_pos.distance_to(jf.mesh_to_world.origin) <= JIGGLE_DISTANCE;
+            }
+            if (jf.simulate && obj.attachmentParent() != 0) {
+                auto pit = m_nodes.find(obj.attachmentParent());
+                if (pit != m_nodes.end() && pit->second.animator && pit->second.visual
+                        && pit->second.visual->is_inside_tree())
+                    pit->second.animator->jiggleColliders(pit->second.visual->get_global_transform(),
+                            jf.colliders);
+            }
+            en.animator->setJiggleFrame(std::move(jf));
+        }
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {
@@ -2238,7 +2287,6 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 }
             }
         }
-        (void)camera_pos;
     }
 }
 

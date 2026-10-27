@@ -324,6 +324,11 @@ static const std::map<std::string, float> kMatStrengthDefaults = {
     // keep it off and the others turn it on (graphics_profiles.gd). A pack
     // without the hair mark draws no different either way.
     {"hair_shader", 0.0f},
+    // Not a shader channel, though it travels as one so a graphics profile
+    // can carry it (mat_jiggle): the jiggle bones of drapes and hair
+    // (goanna_jiggle.h, EntityRenderer::setJiggle), 1 simulated, 0 held at
+    // their pose. On with no profile; the Lowest profile turns it off.
+    {"jiggle", 1.0f},
 };
 
 float GoannaClient::material_strength(const String &channel) const {
@@ -342,6 +347,12 @@ void GoannaClient::set_material_strength(const String &channel, float value) {
         return;
     }
     m_mat_strength[k] = value;
+    // Not a shader channel: the entity renderer's jiggle bones, on or off.
+    if (k == "jiggle") {
+        if (m_entities)
+            m_entities->setJiggle(value > 0.5f);
+        return;
+    }
     // Every material already built, not just the ones made from now on: these
     // are sliders, and a strength that only takes effect on newly meshed
     // blocks is unusable for judging a pack.

@@ -158,6 +158,11 @@ ModelCache::~ModelCache() {
         kv.second->drop();
 }
 
+const ModelExtras *ModelCache::extras(const std::string &name) const {
+    auto it = m_extras.find(name);
+    return it == m_extras.end() ? nullptr : &it->second;
+}
+
 scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
     if (cache) {
         auto it = m_cache.find(name);
@@ -174,6 +179,12 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
     scene::IAnimatedMesh *mesh = m_loader.load(name, bytes);
     if (!mesh)
         return nullptr;
+    // The loader drops node extras; read them for the jiggle marks.
+    ModelExtras extras;
+    if (parseModelExtras(name, bytes, extras) && !extras.empty())
+        m_extras[name] = std::move(extras);
+    else
+        m_extras.erase(name);
     if (cache) {
         mesh->grab();
         m_cache[name] = mesh;
@@ -189,6 +200,26 @@ Transform3D toGodotTransform(const core::matrix4 &m) {
             m[1], m[5], -m[9],
             -m[2], -m[6], m[10]);
     return Transform3D(b, Vector3(m[12], m[13], -m[14]));
+}
+
+core::matrix4 fromGodotTransform(const Transform3D &t) {
+    core::matrix4 m;
+    const Basis &b = t.basis;
+    m[0] = b[0][0];
+    m[4] = b[0][1];
+    m[8] = -b[0][2];
+    m[1] = b[1][0];
+    m[5] = b[1][1];
+    m[9] = -b[1][2];
+    m[2] = -b[2][0];
+    m[6] = -b[2][1];
+    m[10] = b[2][2];
+    m[3] = m[7] = m[11] = 0.0f;
+    m[12] = t.origin.x;
+    m[13] = t.origin.y;
+    m[14] = -t.origin.z;
+    m[15] = 1.0f;
+    return m;
 }
 
 Transform3D boneAttachmentTransform(const Transform3D &parent_root, const v3f &parent_visual_size,
@@ -312,7 +343,7 @@ static PackedFloat32Array faceRects(const PackedVector2Array &uvs, const PackedI
     return out;
 }
 
-std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
+std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const ModelExtras *extras) {
     auto model = std::make_shared<GodotModel>();
     model->mesh.instantiate();
     mesh->grab();
@@ -337,6 +368,7 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh) {
                 l.bone = model->bone_count++;
                 l.seam_bone = model->bone_count++;
             }
+            model->jiggle = buildJiggleRig(*skinned, extras);
         }
     }
     // joint index of a rigidly attached buffer, or -1
@@ -609,6 +641,12 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
         }
     }
 
+    // Jiggle bones: from the pose so far as their target, to where their
+    // simulated tips are, before the globals, so whatever hangs below them
+    // (a cloak's lower panels, a plait's end) follows.
+    if (!m_model->jiggle.bones.empty())
+        m_jiggle.step(m_model->jiggle, *mesh, dt, m_jiggle_frame, locals);
+
     // relative -> global -> skin matrices
     auto to_globals = [&]() {
         for (size_t i = 0; i < joints.size(); ++i) {
@@ -669,6 +707,7 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
             t->scale *= 0.01f;
     }
     to_globals();
+    m_posed = true;
     if (!m_model->limbs.empty())
         m_skin = mesh->calculateSkinMatrices(m_globals);
     if (!skeleton)
@@ -1038,6 +1077,14 @@ void ModelAnimator::setJointRotationOverride(const std::string &name, const v3f 
                                                 : std::optional<u32>();
     }
     m_rot_override_euler = euler_deg;
+}
+
+void ModelAnimator::jiggleColliders(const Transform3D &mesh_to_world,
+        std::vector<JiggleCapsule> &out) const {
+    if (m_model->jiggle.colliders.empty() || !m_posed)
+        return;
+    jiggleCapsules(m_model->jiggle, [&](int joint) { return bentGlobal((size_t)joint); },
+            mesh_to_world, out);
 }
 
 bool ModelAnimator::jointGlobal(const std::string &name, Transform3D &out) const {

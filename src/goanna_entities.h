@@ -59,6 +59,8 @@ public:
     explicit EntityRenderer(godot::Node3D *root) : m_root(root) {}
     ~EntityRenderer();
     // Sync visuals with session objects. Caller holds session.mapLock().
+    // camera_pos (world, nodes) is what the jiggle bones measure their
+    // JIGGLE_DISTANCE from.
     void sync(GoannaSession &session, float dt, const godot::Vector3 &camera_pos);
     void setOverseer(godot::Node3D *parent, const godot::Dictionary &layer);
     int count() const { return (int)m_nodes.size(); }
@@ -98,6 +100,10 @@ public:
     // Third person camera (main.gd): the whole body, head and all, is drawn
     // whatever show_body says, as the vanilla client draws it.
     void setThirdPerson(bool on) { m_third_person = on; }
+    // Jiggle bones (goanna_jiggle.h): simulated, or held at their target
+    // pose. GoannaClient's "jiggle" material strength, off on the Lowest
+    // graphics profile.
+    void setJiggle(bool on) { m_jiggle = on; }
     // 0..1 swing phase for the first-person arm (dig chop / place bob).
     void setArmSwing(float s) { m_arm_swing = s; }
     // Diffuse-inferred normal strength for mesh surfaces with no authored
@@ -294,6 +300,7 @@ private:
     godot::Array m_stroke_events;
     bool m_show_body = true;
     bool m_third_person = false;
+    bool m_jiggle = true;
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;
     float m_parallax = 1.0f;

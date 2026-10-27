@@ -903,6 +903,7 @@ const SETTINGS := [
 	["Graphics/Materials", "mat_parallax_short", "slider", "Short surface depth", "1 draws surface depth with a short march close to you only, fading to shading beyond a few nodes: cheaper, with coarser walls on deep relief. 0 is the full march out to its usual range.", 0.0, 1.0, 1.0],
 	["Graphics/Materials", "mat_micro_shadow", "slider", "Micro shadows", "Darkens the pack's baked hollows (mortar, joints, gaps) when light rakes across them and opens them when it shines straight in. Costs no texture reads. 0 leaves the hollows lit the same from every side.", 0.0, 1.0, 0.05],
 	["Graphics/Materials", "mat_hair_shader", "slider", "Hair strands", "Draws the strands, tips and sheen of hair on player and mob skins whose pack marks their hair. 0 leaves hair as the pack's own maps draw it. It costs only where hair is drawn.", 0.0, 1.0, 0.05],
+	["Graphics/Materials", "mat_jiggle", "toggle", "Swaying cloth and hair", "Skirts, cloaks and plaits whose models mark them swing as their wearer moves and settle under gravity, within 32 nodes of you. Off holds them still in their pose."],
 	["Graphics/Light", "light_sun", "slider", "Sunlight", "Strength of direct sun and moon light.", 0.0, 4.0, 0.1],
 	["Graphics/Light", "light_ambient", "slider", "Ambient light", "Sky light filling shadowed surfaces.", 0.0, 3.0, 0.05],
 	["Graphics/Light", "light_fill", "slider", "Sky fill", "How much the sky lights walls and other shaded surfaces, following the light Luanti says reaches them. 0 leaves them to bounced light alone, which is dark.", 0.0, 1.5, 0.05],

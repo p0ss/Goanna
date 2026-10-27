@@ -8,7 +8,7 @@
 // a cache of loaded meshes by media name, conversion of an Irrlicht mesh to a
 // Godot ArrayMesh with bones and weights, and a per-instance animator that
 // drives SkinnedMesh's own keyframe evaluation (through goanna_animation)
-// into skeleton bone poses.
+// and the jiggle bones (goanna_jiggle) into skeleton bone poses.
 //
 // Coordinates: mesh units are Luanti world units (BS = 10 per node), z is
 // mirrored into Godot's right-handed space, index order is kept.
@@ -40,6 +40,7 @@
 #include <SkinnedMesh.h>
 
 #include "goanna_animation.h"
+#include "goanna_jiggle.h"
 #include "goanna_limbs.h"
 
 struct BoneOverride;
@@ -75,11 +76,15 @@ public:
     ~ModelCache();
     scene::IAnimatedMesh *getMesh(const std::string &name, bool cache);
     scene::IMeshManipulator *manipulator() { return m_loader.manipulator(); }
+    // The node extras of a glTF model this cache has read (goanna_jiggle.h),
+    // or null for one with none or not yet read.
+    const ModelExtras *extras(const std::string &name) const;
 
 private:
     ModelLoader m_loader;
     MediaGetter m_media;
     std::map<std::string, scene::IAnimatedMesh *> m_cache;
+    std::map<std::string, ModelExtras> m_extras;
 };
 
 // An Irrlicht mesh converted for Godot.
@@ -107,11 +112,15 @@ struct GodotModel {
     std::vector<LimbBend> limbs;
     int bone_count = 0;
     bool animated = false;
+    // Animated models only: the jiggle bones and collider capsules
+    // (goanna_jiggle.h). Empty for most models.
+    JiggleRig jiggle;
     ~GodotModel();
 };
 
-// Builds a Godot model from an Irrlicht mesh (does not take a reference).
-std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh);
+// Builds a Godot model from an Irrlicht mesh (does not take a reference),
+// with the jiggle marks of its file, if it has any.
+std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const ModelExtras *extras = nullptr);
 
 // Per-instance animation state for a skinned GodotModel: what Irrlicht's
 // AnimatedMeshSceneNode does each frame (advance the tracks, pose the joints
@@ -124,7 +133,8 @@ public:
     explicit ModelAnimator(std::shared_ptr<GodotModel> model);
     // AnimatedMeshSceneNode::OnAnimate: advances anim by dt seconds, poses
     // the joints from its tracks, applies overrides (their dtime_passed
-    // advances, finished identity overrides are erased) and writes bone poses.
+    // advances, finished identity overrides are erased), swings the jiggle
+    // bones (setJiggleFrame) and writes bone poses.
     // With a shrink joint set, unshrunk (when given) receives the same pose
     // without the shrink, for the shadow-only copy of the model.
     void step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
@@ -189,6 +199,18 @@ public:
     // Each limb's bend after the last step, degrees, for tests and status.
     float limbBend(size_t i) const { return i < m_bend.size() ? m_bend[i] : 0.0f; }
 
+    // Jiggle bones (goanna_jiggle.h). Whether the model has any; where it is
+    // and what its tips must stay out of, for the next step (until set, or
+    // with simulate off, the bones take their target pose); the solver,
+    // for tests and status.
+    bool hasJiggle() const { return !m_model->jiggle.bones.empty(); }
+    void setJiggleFrame(JiggleFrame frame) { m_jiggle_frame = std::move(frame); }
+    const JiggleSolver &jiggle() const { return m_jiggle; }
+    // This model's collider capsules after the last step, world space, from
+    // its visual's global transform: what a drape or hair hung on it keeps
+    // its tips out of.
+    void jiggleColliders(const godot::Transform3D &mesh_to_world, std::vector<JiggleCapsule> &out) const;
+
 private:
     void poseLimbs(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
     void updateMotion(float dt);
@@ -243,10 +265,15 @@ private:
     float m_lean_sign = 1.0f, m_bank_sign = 1.0f;
     float m_leg_upper = 0.0f, m_leg_lower = 0.0f;
     float m_stroke_phase = 0.0f;
+    JiggleFrame m_jiggle_frame;
+    JiggleSolver m_jiggle;
+    bool m_posed = false; // m_globals holds a stepped pose
 };
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);
+// And back.
+core::matrix4 fromGodotTransform(const godot::Transform3D &t);
 
 // Where an object attached to a parent's bone stands: GenericCAO puts the
 // child's scene node under the parent's joint node, so the child inherits

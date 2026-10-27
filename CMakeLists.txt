@@ -106,6 +106,7 @@ add_library(goanna SHARED
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
     src/goanna_limbs.cpp
+    src/goanna_jiggle.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
@@ -362,6 +363,12 @@ add_executable(goanna_attachment_test EXCLUDE_FROM_ALL src/goanna_attachment_tes
 target_include_directories(goanna_attachment_test PRIVATE src)
 target_link_libraries(goanna_attachment_test PRIVATE goanna luanti_core godot::cpp)
 
+# Jiggle bones: DorfCraft's drape and hair marks parsed, swung, pulled down,
+# held in their cone and pushed out of capsules, where that checkout is.
+add_executable(goanna_jiggle_test EXCLUDE_FROM_ALL src/goanna_jiggle_test.cpp)
+target_include_directories(goanna_jiggle_test PRIVATE src)
+target_link_libraries(goanna_jiggle_test PRIVATE goanna luanti_core godot::cpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -371,6 +378,7 @@ target_link_libraries(goanna_attachment_test PRIVATE goanna luanti_core godot::c
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
     goanna_attachment_test
+    goanna_jiggle_test
     goanna_animation_test
     goanna_array_route_test
     goanna_flame_test

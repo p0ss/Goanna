@@ -14,6 +14,8 @@
 
 #include "goanna_client_internal.h"
 
+#include <godot_cpp/classes/camera3d.hpp>
+
 using namespace godot;
 
 namespace goanna {
@@ -635,6 +637,7 @@ void GoannaClient::ensureEntityRenderer() {
     m_entities->setHairShader(material_strength("hair_shader"));
     m_entities->setChannel("micro_shadow", material_strength("micro_shadow"));
     m_entities->setChannel("parallax_short", material_strength("parallax_short"));
+    m_entities->setJiggle(material_strength("jiggle") > 0.5f);
     m_entities->setShowBody(m_show_body);
     m_entities->setThirdPerson(m_third_person);
     m_entities->setAutoBump(m_auto_bump);
@@ -649,7 +652,15 @@ void GoannaClient::sync_entities(double dt) {
     std::lock_guard<std::mutex> lk(m_session->mapLock());
     if (dt > 0.1) dt = 0.1;
     m_session->stepObjects((float)dt);
-    m_entities->sync(*m_session, (float)dt, Vector3());
+    // The camera, which the jiggle bones measure their distance from; the
+    // player's eye where there is none.
+    Vector3 camera_pos;
+    if (Viewport *vp = get_viewport(); vp && vp->get_camera_3d())
+        camera_pos = vp->get_camera_3d()->get_global_position();
+    else if (LocalPlayer *lp = m_session->player())
+        camera_pos = Vector3(lp->getPosition().X / BS, lp->getPosition().Y / BS + 1.5f,
+                -lp->getPosition().Z / BS);
+    m_entities->sync(*m_session, (float)dt, camera_pos);
     if (procedural_grass() && has_meta("goanna_grass_material") &&
             (bool)get_meta("goanna_grass_interaction", true) &&
             (int)get_meta("goanna_grass_interactors", 8) > 0)
