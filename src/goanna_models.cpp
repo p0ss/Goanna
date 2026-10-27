@@ -36,6 +36,7 @@
 #include "CMemoryFile.h"
 
 #include "activeobject.h"
+#include "constants.h"
 #include "goanna_luanti_client.h"
 #include "log.h"
 
@@ -188,6 +189,21 @@ Transform3D toGodotTransform(const core::matrix4 &m) {
             m[1], m[5], -m[9],
             -m[2], -m[6], m[10]);
     return Transform3D(b, Vector3(m[12], m[13], -m[14]));
+}
+
+Transform3D boneAttachmentTransform(const Transform3D &parent_root, const v3f &parent_visual_size,
+        const Transform3D &bone_global, const v3f &position, const v3f &rotation_deg) {
+    Transform3D parent_scale;
+    parent_scale.basis.scale(Vector3(parent_visual_size.X, parent_visual_size.Y, parent_visual_size.Z) / BS);
+    const Transform3D attach(Basis::from_euler(Vector3(Math::deg_to_rad(rotation_deg.X),
+            Math::deg_to_rad(-rotation_deg.Y), Math::deg_to_rad(-rotation_deg.Z))),
+            Vector3(position.X, position.Y, -position.Z));
+    // Until 2026-10-27 the basis was orthonormalised here, which threw the
+    // inherited scale away: a drape at visual_size 1 on a DorfCraft body at
+    // visual_size 10 was drawn a tenth of its size, inside the body.
+    Transform3D to_bs;
+    to_bs.basis.scale(Vector3(BS, BS, BS));
+    return parent_root * parent_scale * bone_global * attach * to_bs;
 }
 
 GodotModel::~GodotModel() {

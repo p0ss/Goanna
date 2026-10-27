@@ -248,4 +248,15 @@ private:
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);
 
+// Where an object attached to a parent's bone stands: GenericCAO puts the
+// child's scene node under the parent's joint node, so the child inherits
+// the parent's visual_size and the bone's own scale with its position. From
+// the parent's root transform (nodes), its visual_size, the joint's global
+// transform (jointGlobal, mesh units) and the attachment's position (BS) and
+// rotation (degrees). The result is scaled by BS so the child's own visual,
+// which divides mesh units by BS, comes out the size upstream draws it.
+godot::Transform3D boneAttachmentTransform(const godot::Transform3D &parent_root,
+        const v3f &parent_visual_size, const godot::Transform3D &bone_global,
+        const v3f &position, const v3f &rotation_deg);
+
 } // namespace goanna

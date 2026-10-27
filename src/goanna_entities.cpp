@@ -1979,14 +1979,9 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             Transform3D bone_xf;
             if (pit != m_nodes.end() && pobj != objects.end() && pit->second.animator &&
                     pit->second.animator->jointGlobal(obj.attachmentBone(), bone_xf)) {
-                const ObjectProperties &pp = pobj->second->props();
-                Transform3D scale_xf;
-                scale_xf.basis.scale(Vector3(pp.visual_size.X, pp.visual_size.Y, pp.visual_size.Z) / BS);
-                v3f ap = obj.attachmentPosition(), ar = obj.attachmentRotation();
-                Transform3D attach_xf(Basis::from_euler(Vector3(Math::deg_to_rad(ar.X), Math::deg_to_rad(-ar.Y),
-                        Math::deg_to_rad(-ar.Z))), Vector3(ap.X, ap.Y, -ap.Z));
-                Transform3D xf = pit->second.root->get_transform() * scale_xf * bone_xf * attach_xf;
-                en.root->set_transform(Transform3D(xf.basis.orthonormalized(), xf.origin));
+                en.root->set_transform(boneAttachmentTransform(pit->second.root->get_transform(),
+                        pobj->second->props().visual_size, bone_xf, obj.attachmentPosition(),
+                        obj.attachmentRotation()));
             }
         }
         if (is_self) {

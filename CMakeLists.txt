@@ -356,6 +356,12 @@ add_executable(goanna_allfaces_test EXCLUDE_FROM_ALL src/goanna_allfaces_test.cp
 target_include_directories(goanna_allfaces_test PRIVATE src)
 target_link_libraries(goanna_allfaces_test PRIVATE goanna luanti_core godot::cpp)
 
+# Objects hung on a parent's bone, sized as upstream's scene graph sizes
+# them; loads DorfCraft's drape model where that checkout is.
+add_executable(goanna_attachment_test EXCLUDE_FROM_ALL src/goanna_attachment_test.cpp)
+target_include_directories(goanna_attachment_test PRIVATE src)
+target_link_libraries(goanna_attachment_test PRIVATE goanna luanti_core godot::cpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -364,6 +370,7 @@ target_link_libraries(goanna_allfaces_test PRIVATE goanna luanti_core godot::cpp
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
+    goanna_attachment_test
     goanna_animation_test
     goanna_array_route_test
     goanna_flame_test
