@@ -405,6 +405,22 @@ PackedFloat32Array GoannaClient::rain_cover_rows(int x0, int z0, int width, int 
 }
 
 Color GoannaClient::ground_albedo(const Vector3 &center) {
+    return surfaceColour(center, 4, 3, false);
+}
+
+// The colour of the dust dry ground gives off (game/effects/
+// climate_particles.gd and the fog volume's dust): the face under the
+// surface, not its top, so a dry grass block gives the soil's colour and
+// not green, and sand or stone their own. `wide` averages the 27 nodes
+// round `center` as ground_albedo does; otherwise the one column under it.
+Color GoannaClient::ground_dust(const Vector3 &center, bool wide) {
+    return wide ? surfaceColour(center, 4, 3, true) : surfaceColour(center, 0, 1, true);
+}
+
+// The average colour of the surface nodes of (2 * half + 1) squared
+// columns `spacing` apart round `center`: their top face, or their bottom
+// face when `under`; alpha the share of columns that answered.
+Color GoannaClient::surfaceColour(const Vector3 &center, int half, int spacing, bool under) {
     if (!m_session)
         return Color(0.5f, 0.5f, 0.5f, 0.0f);
     // Two phases, because composing a tile image to average it is
@@ -427,11 +443,11 @@ Color GoannaClient::ground_albedo(const Vector3 &center) {
         const s16 cx = (s16)floorf(center.x + 0.5f);
         const s16 cy = (s16)floorf(center.y + 0.5f);
         const s16 cz = (s16)floorf(-center.z + 0.5f);
-        for (int dz = -4; dz <= 4; ++dz)
-            for (int dx = -4; dx <= 4; ++dx) {
+        for (int dz = -half; dz <= half; ++dz)
+            for (int dx = -half; dx <= half; ++dx) {
                 ++cols;
                 for (s16 y = cy + 8; y >= cy - 16; --y) {
-                    MapNode n = m_session->map().getNode(v3s16(cx + dx * 3, y, cz + dz * 3));
+                    MapNode n = m_session->map().getNode(v3s16(cx + dx * spacing, y, cz + dz * spacing));
                     const content_t c = n.getContent();
                     if (c == CONTENT_AIR)
                         continue;
@@ -449,26 +465,30 @@ Color GoannaClient::ground_albedo(const Vector3 &center) {
     int budget = 4;
     float r = 0.0f, g = 0.0f, b = 0.0f, w = 0.0f;
     int answered = 0;
+    auto &cache = under ? m_ground_dust_cache : m_ground_albedo_cache;
+    const int tile = under ? 1 : 0;
     for (const Sample &s : samples) {
-        auto it = m_ground_albedo_cache.find(s.c);
-        if (it == m_ground_albedo_cache.end()) {
+        auto it = cache.find(s.c);
+        if (it == cache.end()) {
             if (budget <= 0)
                 continue;
             --budget;
             const ContentFeatures &f = ndef->get(s.c);
-            const TileLayer &tl = f.visuals->tiles[0].layers[0];
+            const TileLayer &tl = f.visuals->tiles[tile].layers[0];
             const std::string tname = m_session->tsrc()->imageName(tl.texture_id, tl.texture_layer_idx);
             video::SColor avg(0, 0, 0, 0);
             if (!tname.empty())
                 avg = m_session->tsrc()->getTextureAverageColor(tname);
-            it = m_ground_albedo_cache.emplace(s.c, avg.color).first;
+            it = cache.emplace(s.c, avg.color).first;
         }
         const video::SColor avg(it->second);
         if (avg.getAlpha() == 0)
             continue;
         const ContentFeatures &f = ndef->get(s.c);
-        video::SColor pc(255, 255, 255, 255);
-        pc = f.visuals->getColor(f, s.param2);
+        // A tile with its own colour keeps it: a grass block's dirt sides
+        // and underside are white against the palette that greens its top.
+        const TileLayer &tl = f.visuals->tiles[tile].layers[0];
+        const video::SColor pc = tl.has_color ? tl.color : f.visuals->getColor(f, s.param2);
         const float wt = f.isLiquid() ? 0.35f : 1.0f;
         r += (avg.getRed() / 255.0f) * (pc.getRed() / 255.0f) * wt;
         g += (avg.getGreen() / 255.0f) * (pc.getGreen() / 255.0f) * wt;

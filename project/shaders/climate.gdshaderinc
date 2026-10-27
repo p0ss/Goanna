@@ -105,6 +105,82 @@ float goanna_climate_cracks(vec2 texel, float width) {
 	return 1.0 - step(width, sqrt(d2) - sqrt(d1));
 }
 
+// Build up: what lies on a face and fills its relief from the hollows up,
+// snow (goanna_snow_fill, weather_common.gdshaderinc), moss and dust. Each
+// has a level, and a texel ranks by its relief height mixed with a grain of
+// its own; the texels ranking under the level are covered. The colour
+// (goanna_climate_tint, goanna_snow) and the parallax march
+// (nodes_array.gdshader) read the same ranks, so a covered texel is also
+// drawn filled up to the height where its rank meets the level: moss and
+// dust grow out of the joints and hollows, level texel by texel, until at
+// a fill of 1 the face is flush. That is where the game's own layers take
+// over; the march cannot rise past the face.
+
+// Moss: damp, cool to warm, not freezing, most where the light is dim, on
+// stone and gravel, roofs a little thinner. The level, -1 for none.
+float goanna_climate_moss_level(vec4 c, vec3 n, int cls, float sky) {
+	if (!(cls == 1 || cls == 6))
+		return -1.0;
+	float moss = c.w * smoothstep(0.8, 0.96, c.y) * smoothstep(0.5, 8.0, c.x)
+			* mix(0.3, 1.0, 1.0 - smoothstep(0.35, 0.85, sky))
+			* (n.y < -0.4 ? 0.8 : 1.0);
+	return moss > 0.01 ? moss * 1.1 - 0.08 : -1.0;
+}
+
+// The moss's own share of a texel's rank: patches a node or so across, the
+// noise taken at the texel's middle so a patch's edge keeps to the grid.
+float goanna_climate_moss_blob(vec2 texel) {
+	vec2 uv = (texel + 0.5) / 16.0 - 0.5;
+	float blob = goanna_weather_noise(uv * 0.9) * 0.65 + goanna_weather_noise(uv * 2.7 + 5.0) * 0.35;
+	return mix(blob, goanna_weather_hash(texel + vec2(17.0, 3.0)), 0.3);
+}
+
+// Dust: settled where dry air lies still, on up facing floors and ledges
+// out of the sky's reach (a dry cave, a shut room); the wind keeps the
+// open ground swept. Not on leaves, glass, snow or ice. The level, -1 for
+// none. Dry by the cave haze's band (atmosphere_volume.gdshader), since
+// cave air settles damper than the ground over it.
+float goanna_climate_dust_level(vec4 c, vec3 n, int cls, float sky) {
+	if (cls == 0 || cls == 3 || cls == 4 || cls == 7 || cls == 8)
+		return -1.0;
+	float dust = c.w * smoothstep(0.58, 0.32, c.y) * smoothstep(0.5, 0.9, n.y)
+			* (1.0 - smoothstep(0.35, 0.85, sky));
+	return dust > 0.02 ? dust * 1.05 - 0.05 : -1.0;
+}
+
+float goanna_climate_dust_grain(vec2 texel) {
+	return goanna_weather_hash(texel + vec2(61.0, 23.0));
+}
+
+// The three levels for a face, (snow, moss, dust), -1 where none builds.
+// Snow only where goanna_snow lays it fully: up facing and open.
+vec3 goanna_climate_build(vec4 c, vec3 p, vec3 n, int cls, float sky) {
+	float snow = -1.0;
+	if (goanna_snow_cover > 0.001 && n.y > 0.8
+			&& goanna_rain_open(p, smoothstep(0.85, 0.95, sky)) > 0.5)
+		snow = goanna_snow_level();
+	if (c.w < 0.01)
+		return vec3(snow, -1.0, -1.0);
+	return vec3(snow, goanna_climate_moss_level(c, n, cls, sky), goanna_climate_dust_level(c, n, cls, sky));
+}
+
+// The relief height the build up fills the texel of `p` to, 0 to 1 and
+// beyond (full), or below 0 where nothing lies. Moss ranks 0.6 its blob
+// and 0.4 the height, dust and snow 0.35 their grain and 0.65 the height.
+float goanna_climate_fill(vec3 build, vec3 p, vec3 n) {
+	float fill = -1.0;
+	if (build.x > -0.5)
+		fill = goanna_snow_fill(p);
+	if (build.y > -0.5 || build.z > -0.5) {
+		vec2 texel = goanna_climate_texel(goanna_climate_plane(p, n));
+		if (build.y > -0.5)
+			fill = max(fill, (build.y - 0.6 * goanna_climate_moss_blob(texel)) / 0.4);
+		if (build.z > -0.5)
+			fill = max(fill, (build.z - 0.35 * goanna_climate_dust_grain(texel)) / 0.65);
+	}
+	return fill;
+}
+
 // What the field's wetness and warmth do to a surface before rain's film
 // lands on it, graded across every band rather than switched on at one:
 //
@@ -116,7 +192,11 @@ float goanna_climate_cracks(vec2 texel, float width) {
 //   most;
 // - damp and cool or warm, not freezing: moss on stone and gravel, first
 //   in the hollows, most where the light is dim, so a cave fall grows a
-//   green rim and an open bank only a little;
+//   green rim and an open bank only a little; roofs too, a little thinner
+//   (goanna_climate_moss_level);
+// - dry and still, out of the sky: dust settled on floors and ledges, the
+//   ground's own colour paled, filling the hollows first
+//   (goanna_climate_dust_level);
 // - saturated and condensing: glistening, smoother, with beads of water
 //   texel by texel, ceilings and walls included.
 //
@@ -127,7 +207,6 @@ void goanna_climate_tint(vec4 c, vec3 p, vec3 n, int cls, float sky, float poros
 	float k = c.w;
 	if (k < 0.01)
 		return;
-	float t = c.x;
 	float w = c.y;
 	vec2 uv = goanna_climate_plane(p, n);
 	vec2 texel = goanna_climate_texel(uv);
@@ -168,17 +247,26 @@ void goanna_climate_tint(vec4 c, vec3 p, vec3 n, int cls, float sky, float poros
 		albedo = max(mix(vec3(l2), albedo, 1.0 + 0.25 * moist), vec3(0.0));
 	}
 
-	float moss = k * smoothstep(0.8, 0.96, w) * smoothstep(0.5, 8.0, t)
-			* mix(0.3, 1.0, 1.0 - smoothstep(0.35, 0.85, sky));
-	if (rock && moss > 0.01 && n.y > -0.4) {
-		float blob = goanna_weather_noise(uv * 0.9) * 0.65 + goanna_weather_noise(uv * 2.7 + 5.0) * 0.35;
-		float rank = mix(blob, grain, 0.3);
+	float moss = goanna_climate_moss_level(c, n, cls, sky);
+	if (moss > -0.5) {
+		float rank = goanna_climate_moss_blob(texel);
 		if (relief_known)
 			rank = mix(rank, h, 0.4);
-		float cover = smoothstep(rank - 0.02, rank + 0.02, moss * 1.1 - 0.08);
+		float cover = smoothstep(rank - 0.02, rank + 0.02, moss);
 		vec3 green = vec3(0.10, 0.19, 0.045) * (0.7 + 0.6 * grain) + albedo * 0.15;
 		albedo = mix(albedo, green, cover * 0.9);
 		rough = mix(rough, 0.85, cover);
+	}
+
+	float dust = goanna_climate_dust_level(c, n, cls, sky);
+	if (dust > -0.5) {
+		float g = goanna_climate_dust_grain(texel);
+		float rank = relief_known ? mix(h, g, 0.35) : g;
+		float cover = smoothstep(rank - 0.03, rank + 0.03, dust);
+		float l = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
+		albedo = mix(albedo, mix(albedo, vec3(l), 0.5) * 1.25 + 0.05, cover * 0.85);
+		rough = mix(rough, 1.0, cover);
+		spec *= 1.0 - 0.5 * cover;
 	}
 
 	float glisten = k * smoothstep(0.9, 0.99, w);
@@ -202,8 +290,11 @@ void goanna_climate_frost(vec4 c, vec3 p, vec3 n, int cls, float h, bool relief_
 	float k = c.w;
 	if (k < 0.01 || c.x > 1.0)
 		return;
-	float cold = smoothstep(1.0, -10.0, c.x) * mix(0.45, 1.0, c.z) + 0.35 * smoothstep(-20.0, -35.0, c.x);
-	float amount = k * min(cold, 1.0) * mix(0.55, 1.0, clamp(n.y, 0.0, 1.0)) * (n.y < -0.5 ? 0.4 : 1.0);
+	// Hoar grows fast below freezing: by -6 C everything open to the air
+	// carries some, the sides nearly as much as the tops. Drier air grows
+	// less of it, but even dry cold leaves a rime a wiki shot can see.
+	float cold = smoothstep(1.0, -6.0, c.x) * mix(0.7, 1.0, c.z) + 0.35 * smoothstep(-20.0, -35.0, c.x);
+	float amount = k * min(cold, 1.0) * mix(0.8, 1.0, clamp(n.y, 0.0, 1.0)) * (n.y < -0.5 ? 0.45 : 1.0);
 	if (amount < 0.01)
 		return;
 	vec2 uv = goanna_climate_plane(p, n);

@@ -710,6 +710,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("resolve_nodemeta_text", "context", "text"),
             &GoannaClient::resolve_nodemeta_text);
     ClassDB::bind_method(D_METHOD("ground_albedo", "center"), &GoannaClient::ground_albedo);
+    ClassDB::bind_method(D_METHOD("ground_dust", "center", "wide"), &GoannaClient::ground_dust);
     ClassDB::bind_method(D_METHOD("ground_height", "center"), &GoannaClient::ground_height);
     ClassDB::bind_method(D_METHOD("rain_cover_rows", "x0", "z0", "width", "rows", "y_top", "y_bottom"),
             &GoannaClient::rain_cover_rows);

@@ -26,6 +26,7 @@ const PlayerContext := preload("res://game/player_context.gd")
 const Weather := preload("res://game/effects/weather.gd")
 const Lightning := preload("res://game/effects/lightning.gd")
 const Wake := preload("res://game/effects/wake.gd")
+const ClimateParticles := preload("res://game/effects/climate_particles.gd")
 
 const MAX_SPAWNERS := 24
 
@@ -35,6 +36,7 @@ var shader_weather := true
 var weather: Node3D           # weather.gd, drawing the spawners it was handed
 var lightning: Node3D         # lightning.gd, drawing the strikes it was handed
 var wake: Node                # wake.gd, the rings round bodies in water
+var climate_particles: Node3D # climate_particles.gd, dust, breath, drips, motes
 
 var _spawners := {}           # server id -> GPUParticles3D
 var _paused := {}             # attached spawners whose object is not known
@@ -62,6 +64,12 @@ func _ready() -> void:
 	wake = Wake.new()
 	wake.client = client
 	add_child(wake)
+	# The climate field's small things: dust and spatter where feet come
+	# down, breath, drips and motes. It walks the wake's sources.
+	climate_particles = ClimateParticles.new()
+	climate_particles.client = client
+	climate_particles.wake = wake
+	add_child(climate_particles)
 
 # How bright the lightning drawn now makes the sky, 0 to 1, for main.gd.
 func lightning_flash() -> float:

@@ -53,6 +53,10 @@ const KINDS := {
 		"lifetime": 0.6},
 	"strike": {"amount": 36, "floor": 12, "up": Vector2(1.2, 3.0), "out": Vector2(0.4, 1.4),
 		"lifetime": 0.7},
+	# A foot coming down on soaked ground (climate_particles.gd): a low
+	# spatter, not a splash.
+	"step": {"amount": 16, "floor": 5, "up": Vector2(0.6, 1.5), "out": Vector2(0.3, 0.9),
+		"lifetime": 0.45},
 	# Off the lip of a crown as its fingers break up (crown()).
 	"rim": {"amount": 36, "floor": 10, "up": Vector2(0.5, 1.6), "out": Vector2(0.6, 1.5),
 		"lifetime": 0.6},

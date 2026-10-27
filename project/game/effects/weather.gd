@@ -161,6 +161,11 @@ var _rain_speed := 17.0
 var _snow_speed := 2.2
 var _wind := Vector2.ZERO
 var cover_wanted := false
+# Whether a climate field is being drawn, looked at every second: its fog
+# (atmosphere_volume.gdshader) tells a cave from the open by this map, so
+# it is kept in fair weather too while there is one.
+var _field_on := false
+var _field_look := 0.0
 var _storm_noise := FastNoiseLite.new()
 var _storm_drift := Vector2.ZERO
 var _storm_time := 0.0
@@ -754,8 +759,15 @@ func _process(delta: float) -> void:
 	var wet := float(m.get("wetness")) if m != null and m.get("wetness") != null else 0.0
 	var snowed := float(m.get("snow_cover")) if m != null and m.get("snow_cover") != null else 0.0
 	# particles.gd sets cover_wanted while any particle weather it draws
-	# itself (pollen, or everything with shader weather off) is running.
-	if active or wet > 0.001 or snowed > 0.001 or cover_wanted:
+	# itself (pollen, or everything with shader weather off) is running,
+	# and a climate field wants it always (_field_on).
+	_field_look -= delta
+	if _field_look <= 0.0:
+		_field_look = 1.0
+		_field_on = client != null and client.has_method("climate_stats") \
+				and bool(client.climate_stats().get("enabled", false)) \
+				and int(client.climate_stats().get("blocks", 0)) > 0
+	if active or wet > 0.001 or snowed > 0.001 or cover_wanted or _field_on:
 		if cover.step(_eye, delta):
 			PlayerContext.shader_parameter(client, "goanna_rain_cover", cover.texture)
 	if active:

@@ -7,6 +7,10 @@ shader_type spatial;
 #include "feature_flags.gdshaderinc"
 #include "res://shaders/underwater.gdshaderinc"
 #include "res://shaders/block_light_colour.gdshaderinc"
+// The climate field's frost (climate.gdshaderinc), which wants the
+// weather's hashes, and with them its snow cover global.
+#include "res://shaders/weather_common.gdshaderinc"
+#include "res://shaders/climate.gdshaderinc"
 render_mode cull_disabled, depth_prepass_alpha, diffuse_burley, specular_schlick_ggx;
 
 // The tile's art, set by materialFor.
@@ -48,9 +52,8 @@ uniform float sss_strength : hint_range(0.0, 1.0) = 1.0;
 uniform float emission_strength : hint_range(0.0, 8.0) = 4.0;
 // How rained-on the world is, the same global the terrain reads.
 global uniform float goanna_wetness;
-// Settled snow, the same global the terrain reads (weather_common), 0 to 1,
+// Settled snow, goanna_snow_cover, comes with weather_common above, 0 to 1,
 // from main.gd's _apply_sky.
-global uniform float goanna_snow_cover;
 
 varying float v_skylight;
 varying float v_blocklight;
@@ -155,6 +158,10 @@ void fragment() {
 		ROUGHNESS = mix(ROUGHNESS, 0.72, snow);
 		SPECULAR = mix(SPECULAR, 0.35, snow);
 	}
+	// Hoar frost from the climate field, texel by texel as on the ground.
+	vec3 wn = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	goanna_climate_frost(goanna_climate_face(v_wpos, wn), v_wpos, wn, 3, 0.0, false,
+			ALBEDO, ROUGHNESS, SPECULAR);
 	// With coloured block light on, foliage takes the baked block light the
 	// node meshes do, coloured, past the pool's reach and as a fill under
 	// it (block_light_colour.gdshaderinc); with it off, only the pool's

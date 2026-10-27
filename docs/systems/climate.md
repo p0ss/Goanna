@@ -93,7 +93,8 @@ looks different from ground beside it, and a dry biome from a rainy one.
 | parching to dry (under 0.42) | soil, sand and gravel pale and matt, stone a little dusty, grass and leaves toward straw; soil (the `Soil` class only) cracks into plates about a node across, the cracks a texel wide at "dry" and two at "parching" |
 | comfortable (about 0.45) | as drawn |
 | humid to damp (0.48 to 0.85) | darker, by up to a third on porous soil and a tenth on stone, and a little richer in colour |
-| damp and above, above freezing | moss on stone and gravel, in the hollows first, three times as much where the sky light is dim as in the open, so a cave fall grows a green rim |
+| damp and above, above freezing | moss on stone and gravel, in the hollows first, three times as much where the sky light is dim as in the open, so a cave fall grows a green rim; on roofs too, a fifth thinner |
+| still dry air out of the sky (under about 0.58) | dust settled on up facing floors and ledges, the face's own colour paled, hollows first; not where the sky reaches, which the wind keeps swept |
 | saturated and condensing (0.9 and over) | glistening: smoother, with one texel in six a mirror smooth bead, walls and ceilings included |
 
 `goanna_climate_ground()` gives rain's block a damp film, from 0.74 and
@@ -105,11 +106,33 @@ open, level ground.
 
 `goanna_climate_frost()`, after settled snow: frost grown texel by texel
 from 1 C, more as it gets colder and the air more humid, hollows first,
-up facing surfaces more than walls, and nearly all of it rimed below
--20 C. On glass it grows in from the pane's edges.
+up facing surfaces a little more than walls, most of every open face by
+-6 C, and nearly all of it rimed below -20 C. On glass it grows in from the pane's edges.
 
 Every pattern lies on the art's grid of sixteen texels a node, on the
 face's own plane, so it reads as part of the pixel art.
+
+### Build up
+
+Moss, settled dust and settled snow fill the face's relief rather than
+being painted on it. Each has a level, and each texel ranks by its relief
+height mixed with a grain of its own (`goanna_climate_build` and
+`goanna_climate_fill` in `climate.gdshaderinc`, `goanna_snow_fill` in
+`weather_common.gdshaderinc`). A texel that ranks under the level is
+covered, and the parallax march in `nodes_array.gdshader` draws it filled
+up to the height where its rank meets the level: the march stops on the
+fill, the sun's self shadow climbs over it, and the texel drawn takes a
+level top, the stone's normal and occlusion mostly gone. So moss and dust
+come up out of the joints and hollows a texel at a time, until at a fill
+of 1 the face is flush.
+
+The march cannot rise past the face, and its depth is the class's (under
+a texel for stone), so the build up shows close by and not as a change of
+outline. A full face is where a game's own layers (snow layers, a moss
+carpet) take over. Only layers with an authored height build up; the
+others take the colour alone. The scissor shader has no march and draws
+the colour. The self shadow is the sun's, so in a cave the fill shows by
+its edge and its lamp shading, not by a shadow.
 
 ## Testing it
 
@@ -155,19 +178,94 @@ under `GOANNA_CLIMATE_FIELD_ONLY`):
 - Mist where the air is near saturated (humidity 0.8 and up) and cool
   (thinning out from 8 C to 24 C), lying in banks on the ground or the
   water a few nodes deep. Its strength rides main.gd's mist cycle, so it
-  is thickest at night and dawn. Peak extinction 0.2 a node.
-- Dust where the ground is dry (wetness under 0.3), lifted with the
-  square of the wind, higher in a strong wind, and streaming with it.
-  Under a roof, a still, faint haze that thickens from 2 to 8 nodes
-  down, so a lamp's beam shows in a dry cave. Peak 0.08 a node.
+  is thickest at night and dawn. Peak extinction 0.2 a node. Under a
+  roof, as in a cave by a fall, it is a third as thick and dark (0.15 of
+  the fog colour), for the reason the dry haze below is: at the fog
+  colour, lit by the sky's ambient underground, it filled a wet cave as
+  opaque pale steam.
+- Dust where the ground is dry (from wetness 0.5, fully at 0.25),
+  lifted with the square of the wind, higher in a strong wind, and
+  streaming with it. Peak 0.14 a node.
+- Under a roof (or in an open column with roofs over it all round, as a
+  shaft down into a cave is), a still haze that thickens from 2 to 8
+  nodes down, so a sunbeam down a shaft or a lamp's light stands in a
+  dry cave. Cave air settles damper than the open ground over it (a
+  mesa's dry cave reads about 0.42), so it starts at 0.58 and is whole
+  at 0.32. Peak 0.1 a node, dark (0.12 of the dust's albedo) so the
+  sky's ambient light, which the volume takes underground too, does not
+  light the whole cave; the sun and lamps do.
 - The existing valley mist follows the field's humidity where the field
-  is known: none in dry country, up to 1.6 times over wet.
+  is known: none in dry country, up to 1.6 times over wet. It stays out
+  from under a roof (more than a couple of nodes under the cover map's
+  top), field or no field: its band is set by the inhabited elevation,
+  so it used to fill caves a few tens of nodes down with big pale blobs.
 
 The ground under a point is the rain cover map (`rain_cover.gd`, 64
-nodes round the player) where it reaches, and the regional ground
+nodes round the player, which `weather.gd` keeps in fair weather too
+while a field is drawn: without it nothing tells a cave from the open)
+where it reaches, and the regional ground
 (`mist_level` less 18) beyond. Dry and damp are bands apart, so a place
 has mist or dust, never both. The study's `air_off`, `air_mist` and
 `air_dust` frames show them over the strips from low down.
+
+### Things in the air
+
+Some of it is too small or too sudden for a froxel.
+`game/effects/climate_particles.gd`, made by `particles.gd` beside the
+wake, draws it with particles, reading the field at a point through
+`climate_at`:
+
+- Dust kicked up where a foot comes down on dry ground, more for a run
+  and most for a landing, drifting downwind and settling, the colour of
+  the ground it rose from. The steps come
+  from `game/effects/footfalls.gd`, the land half of the wake's
+  reckoning: one each 0.8 nodes a body travels on footing that is not
+  water, for the player and the entities round it, and none along a
+  teleport.
+- A low spatter (`splashes.gd`, the `step` kind) where a foot comes down
+  on soaked ground.
+- Breath in front of the player's face below 4 C, every few seconds,
+  plainer in humid air.
+- Drips off a roof where the field there is saturated, tried at a few
+  places round the eye each tenth of a second.
+- Motes in dry air under a roof (the cave haze's band): fine specks in a box round the eye,
+  added to what is behind them by the light that reaches them, so they
+  are seen in a beam through a door or a shaft, or by a torch, and not
+  in the dark. None in the open, where every speck is in the sun and a
+  thousand of them read as snow, and none within a node of the lens.
+- Grit blown low over dry ground once the wind (main.gd's grass wind,
+  from the clouds' speed) passes 0.45, all of it in a gale: matt streaks
+  along the wind in a box round the feet.
+
+All of it is bounded (24 puffs, 16 drips, 1600 motes, 900 grit) and presentation
+only. `tests/footfalls.gd` checks the steps and how the field is read.
+
+Dust takes the ground's colour, paled a little, from `client.ground_dust`:
+the average colour of the face under the surface node rather than its
+top, so dry grass gives the soil's colour and not green, and sand or stone
+their own. A puff takes the column under the foot. The grit and the fog's
+dust (`climate_dust_albedo`) take the ground round the player, eased over
+a few seconds, so the fog's dust is one colour at a time, not one per
+place.
+
+### Heat
+
+`shaders/heat_shimmer.gdshader`, a full screen pass on the camera, bends
+what is seen through hot air. Each pixel takes the field's temperature a
+node over the surface it sees: from 24 C, fully at 36 C (the field is
+the air's, and sunlit ground runs far hotter), it wavers when seen at a
+glancing angle over tens of nodes, as hot air does over a road; from 40 C
+to 80 C it wavers at any angle within about 30 nodes, by up to 4 pixels
+at 1080 lines. The server counts lava as 60 C over the air round it, and
+furnaces and campfires less, but a field cell averages the source with
+the air round it: beside a lava pool on a summer mesa it read 54 C. Past 30 C, far off and glancing, the ground gives way to
+the sky mirrored under the horizon: a mirage. Like the flame shimmer it
+adds a difference, so water and glass in front keep their colour.
+
+It shares the `render_fire_shimmer` switch, off on Lowest and Low, and
+`game/effects/heat_shimmer.gd` shows it only while the field round the
+player (the eye and rings out to 120 nodes) holds 23 C or more: it reads
+the screen, and Godot copies the screen for it whenever it is drawn.
 
 ## What it costs
 
@@ -201,11 +299,4 @@ The rest of the agreed look:
 
 | Field state | Shows as |
 | --- | --- |
-| Wet | drips from saturated ceilings |
-| Dry | dust thrown up by moving entities, sparkling motes in a light beam |
-| Cold | breath vapour |
-| Hot | heat shimmer behind a graphics tier; mild mirage from about 35 C at noon, strong only near lava and forges |
 | Saturated cool air | wisps over forest after rain |
-
-Footfalls are to come from one land detector split out of `wake.gd`,
-throwing up what the ground under them holds.

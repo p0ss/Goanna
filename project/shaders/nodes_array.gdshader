@@ -62,6 +62,21 @@ void vertex() {
 	v_wbinormal = normalize((MODEL_MATRIX * vec4(BINORMAL, 0.0)).xyz);
 }
 
+// The march's depth at tile coordinate `uv`, 0 at the face and 1 at the
+// bottom of the relief: the height map's, or less where the climate's build
+// up (goanna_climate_fill, climate.gdshaderinc) has filled it. `building`
+// says any of `build` is laid; `origin` is the world point of `uv0`, and
+// d_tu and d_tv the world vectors one unit of u and of v run along.
+float march_depth(vec2 uv, int layer, vec2 uv_dx, vec2 uv_dy, bool building, vec3 build,
+		vec3 origin, vec2 uv0, vec3 d_tu, vec3 d_tv, vec3 n) {
+	float d = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+	if (building) {
+		vec2 du = uv - uv0;
+		d = min(d, 1.0 - goanna_climate_fill(build, origin + d_tu * du.x + d_tv * du.y, n));
+	}
+	return d;
+}
+
 void fragment() {
 	v_lamp_world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	// Derivatives before any branching: a fragment quad can straddle two
@@ -129,6 +144,16 @@ void fragment() {
 	// The world size of a pixel, which sizes and fades the rain splashes
 	// (weather_common.gdshaderinc).
 	float px = max(length(dpx), length(dpy));
+	// The climate field round this face (climate.gdshaderinc), taken
+	// before the march because its build up changes the depth marched.
+	vec4 climate = goanna_climate_face(v_world, v_wnormal);
+	vec3 build = vec3(-1.0);
+	if (has_normal && layer_depth[layer] > 0.0)
+		build = goanna_climate_build(climate, v_world, v_wnormal, cls, v_nodelight.g);
+	bool building = max(build.x, max(build.y, build.z)) > -0.5;
+	// The world point the march lands on, in the face's plane, where the
+	// climate's patterns are read so they keep to the texel drawn.
+	vec3 hit_world = v_world;
 	float self_shadow = 1.0;
 	float pom = 0.0;
 	// How much of the sun's light the march's self shadow decided, which the
@@ -171,7 +196,8 @@ void fragment() {
 			float d = 0.0;
 			float d_prev = 0.0;
 			vec2 uv = tile_uv;
-			float h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+			float h = march_depth(uv, layer, uv_dx, uv_dy, building, build,
+					v_world, tile_uv, d_tu, d_tv, v_wnormal);
 			float h_prev = h;
 			for (int i = 0; i < 48; i++) {
 				if (i >= steps || d >= h)
@@ -180,7 +206,8 @@ void fragment() {
 				h_prev = h;
 				d += dd;
 				uv = tile_uv - slope * d;
-				h = 1.0 - textureGrad(normal_array, vec3(uv, float(layer)), uv_dx, uv_dy).a;
+				h = march_depth(uv, layer, uv_dx, uv_dy, building, build,
+						v_world, tile_uv, d_tu, d_tv, v_wnormal);
 			}
 			// The short march's four steps are a quarter of the depth each,
 			// coarser than a joint's wall: two halvings of the step that
@@ -190,8 +217,8 @@ void fragment() {
 			if (short_march && d >= h) {
 				for (int i = 0; i < 2; i++) {
 					float dm = 0.5 * (d_prev + d);
-					float hm = 1.0 - textureGrad(normal_array,
-							vec3(tile_uv - slope * dm, float(layer)), uv_dx, uv_dy).a;
+					float hm = march_depth(tile_uv - slope * dm, layer, uv_dx, uv_dy,
+							building, build, v_world, tile_uv, d_tu, d_tv, v_wnormal);
 					if (dm >= hm) {
 						d = dm;
 						h = hm;
@@ -210,7 +237,9 @@ void fragment() {
 			if (parallax_silhouette > 0.5
 					&& any(notEqual(floor(UV - slope * d_hit), floor(UV))))
 				discard;
+			vec2 uv0 = tile_uv;
 			tile_uv = tile_uv - slope * d_hit;
+			hit_world = v_world + d_tu * (tile_uv.x - uv0.x) + d_tv * (tile_uv.y - uv0.y);
 
 			// Self shadow: from the hit, climb toward the sun through the
 			// same field. Where the surface stands above the climbing ray
@@ -227,7 +256,8 @@ void fragment() {
 				for (int i = 0; i < shadow_steps; i++) {
 					k += dk;
 					vec2 suv = tile_uv + sslope * k;
-					float hs = 1.0 - textureGrad(normal_array, vec3(suv, float(layer)), uv_dx, uv_dy).a;
+					float hs = march_depth(suv, layer, uv_dx, uv_dy, building, build,
+							v_world, uv0, d_tu, d_tv, v_wnormal);
 					// how far the surface here stands above the ray
 					blocked = max(blocked, (d_hit - k) - hs);
 				}
@@ -423,10 +453,9 @@ void fragment() {
 	// so far; the mirror is kept for water that stands. The crests of an
 	// authored relief drain first and stay drier.
 	float wet_film = 0.0;
-	// The climate field round this face (climate.gdshaderinc): dryness,
-	// damp, moss and glisten before the rain's film, frost after the snow.
-	vec4 climate = goanna_climate_face(v_world, v_wnormal);
-	goanna_climate_tint(climate, v_world, v_wnormal, cls, v_nodelight.g, porosity,
+	// The climate field's tint (climate.gdshaderinc): dryness, damp, moss,
+	// dust and glisten before the rain's film, frost after the snow.
+	goanna_climate_tint(climate, hit_world, v_wnormal, cls, v_nodelight.g, porosity,
 			relief_h, relief_known && flatten < 0.999, ALBEDO, ROUGHNESS, SPECULAR);
 	vec2 field_wet = goanna_render_wet_surfaces > 0.5 ? goanna_climate_ground(climate) : vec2(0.0);
 	if (goanna_render_wet_surfaces > 0.5 && (goanna_wetness > 0.001 || field_wet.x > 0.001)) {
@@ -448,7 +477,7 @@ void fragment() {
 
 	// Settled snow (goanna_snow in weather_common.gdshaderinc): pale, matt,
 	// lying level over the relief. Rain after it pools on it as slush.
-	float snow = goanna_snow(v_world, v_wnormal, v_nodelight.g, relief_h,
+	float snow = goanna_snow(hit_world, v_wnormal, v_nodelight.g, relief_h,
 			relief_known && flatten < 0.999);
 	if (snow > 0.001) {
 		ALBEDO = mix(ALBEDO, vec3(0.80, 0.82, 0.86), snow);
@@ -461,8 +490,23 @@ void fragment() {
 		NORMAL_MAP = vec3(sxy * 0.5 + 0.5, sz * 0.5 + 0.5);
 		NORMAL_MAP_DEPTH = 1.0;
 	}
-	goanna_climate_frost(climate, v_world, v_wnormal, cls, relief_h,
+	goanna_climate_frost(climate, hit_world, v_wnormal, cls, relief_h,
 			relief_known && flatten < 0.999, ALBEDO, ROUGHNESS, SPECULAR);
+	// Where the build up fills the texel drawn, its top is what is seen: a
+	// level surface, so the stone's normal and occlusion under it are mostly
+	// gone, and the rain below stands on it, not in the hollow it filled.
+	if (building && relief_known) {
+		float fill = goanna_climate_fill(build, hit_world, v_wnormal);
+		if (fill > relief_h) {
+			vec2 fxy = relief_normal.xy * 0.25;
+			float fz = sqrt(clamp(1.0 - dot(fxy, fxy), 0.0, 1.0));
+			relief_normal = vec3(fxy, fz);
+			NORMAL_MAP = vec3(fxy * 0.5 + 0.5, fz * 0.5 + 0.5);
+			NORMAL_MAP_DEPTH = 1.0;
+			pack_ao = mix(pack_ao, 1.0, 0.8);
+			relief_h = min(fill, 1.0);
+		}
+	}
 
 	// Rain on open, up facing ground (goanna_ground_rain and the functions
 	// round it in weather_common.gdshaderinc have the gating and the

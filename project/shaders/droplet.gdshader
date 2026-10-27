@@ -16,6 +16,9 @@ render_mode blend_mix, cull_disabled, depth_draw_never, specular_schlick_ggx;
 uniform vec4 colour : source_color = vec4(0.86, 0.93, 1.0, 0.8);
 // Across and along, nodes, at a particle scale of 1.
 uniform vec2 size = vec2(0.025, 0.1);
+// Water's shine by default; climate_particles.gd's blown grit is matt.
+uniform float roughness = 0.08;
+uniform float specular = 0.9;
 
 void vertex() {
 	// A hand built billboard: the basis is the flight line, the axis across
@@ -48,6 +51,6 @@ void fragment() {
 	float head = mix(0.55, 1.0, 1.0 - UV.y);
 	ALBEDO = colour.rgb * COLOR.rgb;
 	ALPHA = colour.a * COLOR.a * across * ends * head;
-	ROUGHNESS = 0.08;
-	SPECULAR = 0.9;
+	ROUGHNESS = roughness;
+	SPECULAR = specular;
 }

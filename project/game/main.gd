@@ -50,6 +50,7 @@ const AssetUpdater := preload("res://update/asset_updater.gd")
 const AssetStore := preload("res://update/asset_store.gd")
 const LocalServerScript := preload("res://net/local_server.gd")
 const LookGrade := preload("res://game/effects/look_grade.gd")
+const HeatShimmer := preload("res://game/effects/heat_shimmer.gd")
 var look_grade := LookGrade.new()
 
 var grass_aa_active := false
@@ -228,6 +229,9 @@ var light_shafts := 1.0
 # shaders/light_shafts.gdshader.
 var shaft_quad: MeshInstance3D
 var shaft_mat: ShaderMaterial
+# The shimmer and mirage over hot ground, shown where the climate field has
+# heat (game/effects/heat_shimmer.gd).
+var heat_shimmer: HeatShimmer
 # Cost and reach of the shared atmospheric froxel volume. Zero leaves only
 # the inexpensive sky and horizon fade.
 var atmosphere_quality := 1.0
@@ -614,6 +618,7 @@ func _ready() -> void:
 	# Screen effects belong to the final camera, not the ice background view.
 	shaft_quad.layers = 8
 	cam.add_child(shaft_quad)
+	heat_shimmer = HeatShimmer.new(cam, client)
 	_report_fov()
 	# And again whenever the window changes shape: the horizontal angle grows
 	# with the aspect, and a window dragged wider after startup was otherwise
@@ -1614,6 +1619,9 @@ func _process(delta: float) -> void:
 	# keeps one, advanced here once per rendered frame.
 	client.step_node_animation(delta)
 	_apply_sky()
+	if heat_shimmer != null:
+		heat_shimmer.update(delta, client, cam.global_position,
+				render_features["render_fire_shimmer"] and not underwater)
 	if profile_frame_work: work_clock = _work_mark("sky", work_clock)
 	var s: Dictionary = client.status()
 	_update_connect_overlay(s)
@@ -2737,7 +2745,8 @@ func _update_environment_extras() -> void:
 		# the wind the grass takes.
 		atmosphere_mat.set_shader_parameter("climate_wind", grass_wind)
 		atmosphere_mat.set_shader_parameter("climate_mist_density", 0.2 * atmosphere_quality * mist_cycle)
-		atmosphere_mat.set_shader_parameter("climate_dust_density", 0.08 * atmosphere_quality)
+		atmosphere_mat.set_shader_parameter("climate_dust_density", 0.14 * atmosphere_quality)
+		atmosphere_mat.set_shader_parameter("climate_cave_haze", 0.1 * atmosphere_quality)
 
 	# The horizon bake: ask again when the camera has drifted or the clock
 	# has run down; collect whatever a worker finished. The inner radius

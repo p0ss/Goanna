@@ -61,15 +61,31 @@ global uniform float goanna_snow_cover;
 // its edge; `h` the relief height at the drawn texel, used when
 // `relief_known`.
 
+float goanna_snow_level() {
+	return goanna_snow_cover * 1.25 - 0.1;
+}
+
+float goanna_snow_grain(vec3 p) {
+	return goanna_weather_hash(floor((p.xz + 0.5) * 16.0 + 1e-3));
+}
+
 float goanna_snow(vec3 p, vec3 n, float sky, float h, bool relief_known) {
 	if (goanna_snow_cover < 0.001 || n.y < 0.3)
 		return 0.0;
 	float up = smoothstep(0.3, 0.8, n.y);
 	float open = goanna_rain_open(p, smoothstep(0.85, 0.95, sky));
-	float grain = goanna_weather_hash(floor((p.xz + 0.5) * 16.0 + 1e-3));
+	float grain = goanna_snow_grain(p);
 	float rank = relief_known ? mix(h, grain, 0.35) : grain;
-	float level = goanna_snow_cover * 1.25 - 0.1;
-	return up * open * smoothstep(rank - 0.03, rank + 0.03, level);
+	return up * open * smoothstep(rank - 0.03, rank + 0.03, goanna_snow_level());
+}
+
+// The relief height, 0 to 1, that settled snow fills the texel of `p` up
+// to: by goanna_snow's rank, a texel is snow exactly where its height is
+// under this, and the parallax march (nodes_array.gdshader) draws it
+// filled level to here. At 1 or more the face is full, and what lies on it
+// next is the game's own snow layers.
+float goanna_snow_fill(vec3 p) {
+	return (goanna_snow_level() - 0.35 * goanna_snow_grain(p)) / 0.65;
 }
 
 vec3 goanna_weather_hash3(vec2 p) {

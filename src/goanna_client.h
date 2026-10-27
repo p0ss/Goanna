@@ -470,6 +470,7 @@ public:
     godot::String resolve_nodemeta_text(const godot::String &context,
             const godot::String &text);
     godot::Color ground_albedo(const godot::Vector3 &center);
+    godot::Color ground_dust(const godot::Vector3 &center, bool wide);
     float ground_height(const godot::Vector3 &center);
     // Top of the highest rain stopping node per column, for a band of rows
     // (project/game/effects/rain_cover.gd). Godot coordinates, row major along x.
@@ -479,6 +480,9 @@ public:
     // answer": composing a tile image to average it is far too slow to do
     // per sample. Main thread only, like the method that fills it.
     std::unordered_map<content_t, uint32_t> m_ground_albedo_cache;
+    // The same for the bottom face, which ground_dust reads.
+    std::unordered_map<content_t, uint32_t> m_ground_dust_cache;
+    godot::Color surfaceColour(const godot::Vector3 &center, int half, int spacing, bool under);
     // Raw bytes of a received media file (an .ogg for sounds), empty if absent.
     godot::PackedByteArray media_bytes(const godot::String &name);
     // A node's own sound: kind is "footstep", "dig" or "dug".
