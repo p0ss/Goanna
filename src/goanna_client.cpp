@@ -552,6 +552,7 @@ Dictionary GoannaClient::render_stats() {
     d["lod_handoff_far"] = (int)m_lod_handoff_far.size();
     d["far_blocks"] = (int)m_far_blocks.size();
     d["far_remote"] = (int)m_far_remote.size();
+    d["far_dark_air"] = (int)m_lod_dark_air.size();
     d["surface_offered"] = surfaceOffered();
     d["surface_tiles"] = (int)m_surface_tiles.size();
     d["surface_received"] = m_surface_received;

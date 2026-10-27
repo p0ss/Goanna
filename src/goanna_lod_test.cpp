@@ -9,6 +9,7 @@
 
 #include "goanna_lod.h"
 
+#include "light.h"
 #include "mapblock.h"
 #include "nodedef.h"
 
@@ -17,7 +18,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <utility>
+#include <vector>
 
 using namespace goanna;
 
@@ -1004,6 +1007,265 @@ void testCoverageSeparatesCanopyFromRock() {
 }
 
 
+// A summary block: cell-4 voxels from `filled(x, y, z)`, the rest known air,
+// lit the way lodTakeSummaries lights one under `above`.
+template <typename Filled>
+BlockLodChain summaryChain(Filled filled, uint8_t raw_day, const BlockLodChain *above,
+        bool above_dark = false) {
+    BlockLodChain ch;
+    LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+    lv.cell = 4;
+    lv.n = 4;
+    lv.cells.assign(64, LodLevel::Cell());
+    for (int z = 0; z < 4; ++z)
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x) {
+                LodLevel::Cell &c = lv.at(x, y, z);
+                c.flags = LodLevel::kKnown;
+                if (filled(x, y, z)) {
+                    fillCell(c, CONTENT_UNKNOWN);
+                    c.coverage = 255;
+                }
+            }
+    ch.summary = true;
+    ch.summary_day = raw_day;
+    // What decode_light gives a client; the library's own table is empty
+    // until a session sets its curve. Only LIGHT_SUN is fixed, at 255.
+    ch.summary_light = raw_day >= LIGHT_SUN ? 255 : (uint8_t)(raw_day * 16);
+    buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+    lodLightSummary(ch, lodSummarySkySeed(above, above_dark, raw_day));
+    return ch;
+}
+
+BlockLodChain solidSummary(uint8_t raw_day = 0) {
+    return summaryChain([](int, int, int) { return true; }, raw_day, nullptr);
+}
+
+// A cave whose own block is open at the top: a rock floor and air above it.
+BlockLodChain caveSummary(uint8_t raw_day, const BlockLodChain *above, bool above_dark = false) {
+    return summaryChain([](int, int y, int) { return y == 0; }, raw_day, above, above_dark);
+}
+
+uint8_t summaryDay(const BlockLodChain &ch, int cell, int x, int y, int z) {
+    const LodLevel::Cell *c = ch.cellAt(cell, x, y, z);
+    expect(c && (c->flags & LodLevel::kLit), "summary air cell was not lit at all");
+    return c->day;
+}
+
+void testCaveUnderRockAboveIsDark() {
+    // The cave's own block has nothing over it, but the block above is rock.
+    // Raw day 14 is a lava lit cave; 15 is a cave Luanti lit as open sky.
+    const BlockLodChain rock = solidSummary();
+    for (uint8_t raw : {(uint8_t)14, (uint8_t)LIGHT_SUN}) {
+        const BlockLodChain cave = caveSummary(raw, &rock);
+        expect(summaryDay(cave, 4, 1, 2, 1) == 0, "cave under rock in the block above was sky lit");
+        expect(summaryDay(cave, 16, 0, 0, 0) == 0, "cave under rock was sky lit at cell 16");
+        expect(cave.sky_below == 0, "cave under rock passed sky to the block below");
+    }
+    // A cave in an all-air block that is itself dark (cave air above).
+    const BlockLodChain under_cave_air = caveSummary(LIGHT_SUN, nullptr, true);
+    expect(summaryDay(under_cave_air, 4, 1, 2, 1) == 0, "cave under dark cave air was sky lit");
+    // Nothing known above and no sunlight in the block: lava, not sky.
+    const BlockLodChain lava = caveSummary(14, nullptr);
+    expect(summaryDay(lava, 4, 1, 2, 1) == 0, "lava lit summary was drawn as open sky");
+}
+
+void testRavineOpenThroughSeveralBlocks() {
+    // A two-voxel-wide ravine at x = 1..2 through three blocks, the bottom
+    // one with a floor. Beside it at x = 3 the bottom block has a pocket of
+    // air open to its own top, under the rock wall of the blocks above.
+    auto walls = [](int x, int, int) { return x == 0 || x == 3; };
+    const BlockLodChain top = summaryChain(walls, LIGHT_SUN, nullptr);
+    const BlockLodChain middle = summaryChain(walls, LIGHT_SUN, &top);
+    const BlockLodChain bottom = summaryChain([](int x, int y, int) {
+        return y == 0 || x == 0;
+    }, LIGHT_SUN, &middle);
+    const uint8_t sun = 255;
+    expect(summaryDay(top, 4, 1, 1, 1) == sun, "ravine top was not sky lit");
+    expect(summaryDay(middle, 4, 2, 0, 3) == sun, "ravine middle was not sky lit");
+    expect(summaryDay(bottom, 4, 1, 1, 1) == sun, "ravine floor open to the sky was not lit");
+    expect(summaryDay(bottom, 4, 3, 1, 2) == 0, "pocket under rock beside the ravine was sky lit");
+    expect((bottom.sky_below & (1u << (2 * 4 + 1))) == 0, "the ravine floor passed sky through rock");
+
+    // The far face of the ravine floor reads that light.
+    NodeDefManager ndef;
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 4;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        if (bp == v3s16(0, 0, 0)) return &bottom;
+        if (bp == v3s16(0, 1, 0)) return &middle;
+        return nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    // Floor tops at y = 4: the ravine's start at x = 4, the pocket's end at
+    // x = 16. Nothing else has a top there.
+    int ravine = 0, pocket = 0;
+    for (const LodSurface &sf : mesh.surfaces)
+        for (size_t i = 0; i < sf.pos.size(); ++i) {
+            if (sf.nrm[i].Y < 0.99f || std::fabs(sf.pos[i].Y - 4.0f) > 0.001f)
+                continue;
+            if (std::fabs(sf.pos[i].X - 4.0f) < 0.001f) {
+                ++ravine;
+                expect(sf.custom0[i * 4 + 1] == 255, "ravine floor face was not sky lit");
+            } else if (std::fabs(sf.pos[i].X - 16.0f) < 0.001f) {
+                ++pocket;
+                expect(sf.custom0[i * 4 + 1] == 0, "pocket floor under rock was sky lit");
+            }
+        }
+    expect(ravine > 0 && pocket > 0, "ravine or pocket floor face was not drawn");
+}
+
+void testCaveDarkensWhenBlockAboveArrives() {
+    // The cave arrives first with nothing known above it and full sun in its
+    // record, so it is open sky for now. A cave in the block under it too.
+    std::map<v3s16, std::shared_ptr<const BlockLodChain>> chains;
+    chains[v3s16(0, 0, 0)] = std::make_shared<BlockLodChain>(caveSummary(LIGHT_SUN, nullptr));
+    chains[v3s16(0, -1, 0)] = std::make_shared<BlockLodChain>(
+            caveSummary(LIGHT_SUN, chains[v3s16(0, 0, 0)].get()));
+    const std::shared_ptr<const BlockLodChain> first = chains[v3s16(0, 0, 0)];
+    expect(summaryDay(*first, 4, 1, 2, 1) == 255,
+            "cave with nothing known above was not provisionally lit");
+    // Then the rock above it arrives.
+    chains[v3s16(0, 1, 0)] = std::make_shared<BlockLodChain>(solidSummary());
+    std::vector<v3s16> replaced;
+    auto get = [&](v3s16 bp) -> std::shared_ptr<const BlockLodChain> {
+        auto it = chains.find(bp);
+        return it == chains.end() ? nullptr : it->second;
+    };
+    const int relit = lodPropagateSky(v3s16(0, 1, 0), get, [](v3s16) { return false; },
+            [&](v3s16 bp, std::shared_ptr<const BlockLodChain> chain) {
+                replaced.push_back(bp);
+                chains[bp] = std::move(chain);
+            });
+    expect(relit == 1 && replaced.size() == 1 && replaced[0] == v3s16(0, 0, 0),
+            "the block under newly arrived rock was not relit exactly once");
+    expect(summaryDay(*chains[v3s16(0, 0, 0)], 4, 1, 2, 1) == 0,
+            "cave stayed sky lit after the rock above it arrived");
+    expect(summaryDay(*chains[v3s16(0, 0, 0)], 16, 0, 0, 0) == 0,
+            "cave's coarse light stayed sky lit after the rock above it arrived");
+    expect(summaryDay(*first, 4, 1, 2, 1) == 255,
+            "relighting changed a published chain in place");
+    // Its floor was already closed, so the block below needed nothing.
+    expect(lodPropagateSky(v3s16(0, 1, 0), get, [](v3s16) { return false; },
+            [&](v3s16, std::shared_ptr<const BlockLodChain>) {}) == 0,
+            "a second pass relit an unchanged column");
+
+    // The same through an open shaft: rock arriving on top darkens every
+    // block of it, walking down.
+    chains.clear();
+    auto shaft = [](int x, int, int z) { return !(x == 1 && z == 1); };
+    chains[v3s16(0, 2, 0)] = std::make_shared<BlockLodChain>(summaryChain(shaft, LIGHT_SUN, nullptr));
+    for (int y = 1; y >= 0; --y)
+        chains[v3s16(0, y, 0)] = std::make_shared<BlockLodChain>(summaryChain(shaft, LIGHT_SUN,
+                chains[v3s16(0, y + 1, 0)].get()));
+    expect(summaryDay(*chains[v3s16(0, 0, 0)], 4, 1, 0, 1) == 255,
+            "open shaft was not lit to its bottom");
+    chains[v3s16(0, 3, 0)] = std::make_shared<BlockLodChain>(solidSummary());
+    lodPropagateSky(v3s16(0, 3, 0), get, [](v3s16) { return false; },
+            [&](v3s16 bp, std::shared_ptr<const BlockLodChain> chain) { chains[bp] = std::move(chain); });
+    for (int y = 0; y <= 2; ++y)
+        expect(summaryDay(*chains[v3s16(0, y, 0)], 4, 1, 1, 1) == 0,
+                "capped shaft stayed sky lit below the cap");
+}
+
+void testCoarseCellMixingSkyAndCaveAir() {
+    // One cell-8 parent with four sky lit and four cave children: it must
+    // not count as fully sky lit.
+    BlockLodChain ch = airChain();
+    LodLevel &lv = ch.level[BlockLodChain::levelForCell(4)];
+    for (int z = 0; z < 2; ++z)
+        for (int y = 0; y < 2; ++y)
+            for (int x = 0; x < 2; ++x)
+                lv.at(x, y, z).day = y == 1 ? 255 : 0;
+    buildLodMipLevels(ch, BlockLodChain::levelForCell(4));
+    const uint8_t mixed = ch.cellAt(8, 0, 0, 0)->day;
+    expect(mixed > 64 && mixed < 192, "coarse cell of sky and cave air was not between the two");
+    expect(ch.cellAt(8, 1, 1, 1)->day == 255, "coarse cell of open air lost its sky");
+}
+
+// Faces whose neighbour has no chain take their light from what is known
+// about it: cave air is dark, anything else keeps the sky.
+void testFaceTowardsCaveAirIsDark() {
+    NodeDefManager ndef;
+    const BlockLodChain rock = solidSummary();
+    for (bool dark : {true, false}) {
+        LodRegionSpec spec;
+        spec.blocks = 1;
+        spec.cell = 4;
+        spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+        spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+            return bp == v3s16(0, 0, 0) ? &rock : nullptr;
+        };
+        spec.drawn_cell = [](v3s16 bp) { return bp == v3s16(0, 0, 0) ? 4 : -1; };
+        spec.dark_air = [dark](v3s16 bp) { return dark && bp == v3s16(1, 0, 0); };
+        LodTileCache tiles;
+        const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+        int east = 0, west = 0;
+        for (const LodSurface &sf : mesh.surfaces)
+            for (size_t i = 0; i < sf.pos.size(); ++i) {
+                const uint8_t day = sf.custom0[i * 4 + 1];
+                if (sf.nrm[i].X > 0.99f) {
+                    ++east;
+                    expect(day == (dark ? 0 : 255), dark ? "wall facing cave air was sky lit" :
+                            "wall facing unknown air lost its sky");
+                } else if (sf.nrm[i].X < -0.99f) {
+                    ++west;
+                    expect(day == 255, "wall facing unknown air lost its sky");
+                }
+            }
+        expect(east > 0 && west > 0, "rock block did not draw its side walls");
+    }
+}
+
+// An exact neighbour drops interior air from its sparse cell-1 records. The
+// wall facing it reads the neighbour's coarser light, not the sky.
+void testFaceTowardsExactCaveIsDark() {
+    NodeDefManager ndef;
+    // Solid rock is not lit, as buildLodChain classifies it.
+    BlockLodChain wall = fineAirChain();
+    for (LodLevel::Cell &c : wall.level[0].cells) {
+        c.flags &= ~LodLevel::kLit;
+        fillCell(c, CONTENT_UNKNOWN);
+    }
+    buildLodMipLevels(wall, 0);
+    compactLodFineBoundary(wall);
+    BlockLodChain cave = fineAirChain();
+    for (LodLevel::Cell &c : cave.level[0].cells)
+        c.day = 0;
+    fillCell(cave.level[0].at(15, 15, 15), CONTENT_UNKNOWN);
+    buildLodMipLevels(cave, 0);
+    compactLodFineBoundary(cave);
+    expect(cave.cellAt(1, 0, 8, 8) == nullptr, "cave interior air was retained; test is moot");
+    LodRegionSpec spec;
+    spec.blocks = 1;
+    spec.cell = 1;
+    spec.member = [](v3s16 bp) { return bp == v3s16(0, 0, 0); };
+    spec.chain = [&](v3s16 bp) -> const BlockLodChain * {
+        if (bp == v3s16(0, 0, 0)) return &wall;
+        if (bp == v3s16(1, 0, 0)) return &cave;
+        return nullptr;
+    };
+    spec.drawn_cell = [](v3s16 bp) {
+        if (bp == v3s16(0, 0, 0)) return 1;
+        if (bp == v3s16(1, 0, 0)) return 1;
+        return -1;
+    };
+    LodTileCache tiles;
+    const auto mesh = meshLodRegion(spec, &ndef, nullptr, nullptr, tiles);
+    int east = 0;
+    for (const LodSurface &sf : mesh.surfaces)
+        for (size_t i = 0; i < sf.pos.size(); ++i)
+            if (sf.nrm[i].X > 0.99f) {
+                ++east;
+                expect(sf.custom0[i * 4 + 1] == 0, "wall facing an exact cave block was sky lit");
+            }
+    expect(east > 0, "wall facing the exact cave block was not drawn");
+}
+
 int main() {
     testSparseCaptureBounds();
     testHorizonUsesSurfaceHeight();
@@ -1031,6 +1293,12 @@ int main() {
     testUnknownFrontierIsClosed();
     testTierBoundaryUsesDrawnOccupancy();
     testCoverageSeparatesCanopyFromRock();
+    testCaveUnderRockAboveIsDark();
+    testRavineOpenThroughSeveralBlocks();
+    testCaveDarkensWhenBlockAboveArrives();
+    testCoarseCellMixingSkyAndCaveAir();
+    testFaceTowardsCaveAirIsDark();
+    testFaceTowardsExactCaveIsDark();
     std::cout << "goanna_lod_test: ok\n";
     return 0;
 }

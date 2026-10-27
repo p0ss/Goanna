@@ -2509,3 +2509,56 @@ The library fingerprint was `22fb63753615bb03`, built from the dirty tree
 based on `082ef495`, with the same server, game and renderer as above.
 This is a visual and queue observation, not a controlled performance
 comparison or proof that every distant boundary is closed.
+
+## Distant caves lit as open sky, 2026-10-28
+
+On a DorfCraft Mineclonia server, far caves and ravines read pale, as if
+lit by daylight, and went dark as the near mesh took over. A diagnosis
+render had already cleared the distance and volumetric fog. Three paths
+in the far field gave cave air sky light:
+
+- `lodTakeSummaries` lit a summary's air down each 4 by 4 column from the
+  top of its own block. A cave with nothing over it inside its block got
+  the block's light even under 50 nodes of rock above. That light is the
+  record's raw day level, Luanti's day bank, which lava and torches also
+  raise to 14.
+- A face whose own cell and front cell carried no light fell back to full
+  sky. That reached every cave wall facing an all-air cave block, which
+  has no chain, and every wall facing interior air an exact neighbour
+  drops from its sparse cell-1 records.
+- A coarse cell's day light was its brightest child, so a cell holding a
+  ravine and the cave beside it was lit like the ravine.
+
+A summary's columns now start from the block above
+(`lodSummarySkySeed`): the open floor columns of its chain, closed under
+an all-air block without sunlight, and with nothing known above, open only
+when the block holds `LIGHT_SUN`, which open sky alone gives. A chain's
+open floor columns are its own walk for a summary and direct sunlight in
+its bottom cells for one built from nodes. When a chain arrives,
+`lodPropagateSky` relights the summaries below it whose seed changed,
+walking down while the open columns keep changing, and dirties their
+regions. Records in a reply are taken top layer first so most blocks are
+lit once. All-air summary blocks without sunlight are kept as one set
+entry each (`far_dark_air` in `render_stats()`), not a chain; open air
+stays absent, so memory follows caves, not sky. The face fallback reads
+the neighbour's coarser cells, then that set, and keeps the sky only where
+nothing is known. Day light in the base level and mips is the mean of the
+lit children; night, which is emission, keeps the brightest. The prepared
+chain schema moves to 5 so cached chains are rebuilt.
+
+Six native tests failed before the change, each on its own assertion, and
+pass after: a cave under rock in the block above (raw day 14 and 15), a
+ravine through three blocks with a pocket under its wall, rock arriving
+after the cave and capping a shaft, a mixed coarse cell, and walls facing
+cave air and an exact cave block. The ravine floor stays at full sky.
+
+The render check was not conclusive. Two before and after jobs on a copy
+of `dorf_climate_showcase` (Luanti 5.17.0, Mineclonia, Godot 4.5.1, the
+render service on the RTX 3090) carved a 460-node tunnel and a ravine with
+side galleries. In the tunnel both builds drew the far walls dark, because
+its summaries had raw day 0, so this scene did not exercise the defect;
+the after build held 261 cave blocks in the new set. The one pale patch
+in both frames was the sky colour seen past the far field's 416-node
+reach, a separate cause of light grey in deep cave distances. The ravine
+job's carve did not reach the near field, so its frames say nothing about
+the galleries.

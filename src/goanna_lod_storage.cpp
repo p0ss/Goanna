@@ -50,7 +50,7 @@ namespace {
 // Fixed bounds precede every allocation. The schema stores fields explicitly,
 // never compiler struct layouts or pointers. Change the version when the
 // reducer's meaning changes, even if the byte layout remains compatible.
-constexpr uint32_t kSchema = 4;  // materials represent visible faces, not buried opaque nodes
+constexpr uint32_t kSchema = 5;  // day light is the mean of lit children, not the brightest
 constexpr size_t kMaxRecord = 256 * 1024;
 constexpr size_t kMaxSummary = 1024 * 1024;
 struct Writer {

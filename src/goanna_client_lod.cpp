@@ -270,6 +270,8 @@ void GoannaClient::lodCollectChains() {
                         (fine_token || !m_lod_member.count(result.pos)))
                     lodAssign(result.pos, lodTierFor(result.pos, m_lod_centre, false));
                 lodDirtyAround(result.pos, nullptr);
+                m_lod_dark_air.erase(result.pos);
+                lodSkyChanged(result.pos);
             }
             ++m_lod_chains_built_last;
         } else {
@@ -941,6 +943,8 @@ void GoannaClient::lodReset() {
     m_lod_frozen_at.clear();
     m_lod_chain_missing.clear();
     m_far_remote.clear();
+    m_lod_dark_air.clear();
+    m_lod_dark_cursor = v3s16(-32768, -32768, -32768);
     m_far_requested.clear();
     m_far_pending.clear();
     m_far_inflight = 0;

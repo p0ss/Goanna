@@ -251,6 +251,25 @@ void GoannaClient::lodUpdateFar(const Vector3 &around) {
                 ? v3s16(-32768, -32768, -32768)
                 : *it;
     }
+    // Cave air marks out of range go the same way, by the same bounded
+    // sweep. A live block knows its own light.
+    {
+        auto it = m_lod_dark_air.lower_bound(m_lod_dark_cursor);
+        int visited = 0;
+        while (it != m_lod_dark_air.end() && visited < kFarSweep) {
+            ++visited;
+            const v3s16 d = it->first - centre;
+            const bool out = std::abs(d.X) > radius + 1 || std::abs(d.Y) > radius + 1 ||
+                    std::abs(d.Z) > radius + 1;
+            if (out || m_session->getBlock(it->first))
+                it = m_lod_dark_air.erase(it);
+            else
+                ++it;
+        }
+        m_lod_dark_cursor = it == m_lod_dark_air.end()
+                ? v3s16(-32768, -32768, -32768)
+                : it->first;
+    }
     // Requested areas that have drifted out of range may be asked again if
     // we come back.
     for (auto it = m_far_requested.begin(); it != m_far_requested.end();) {
@@ -1167,7 +1186,12 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
         const int first_level = BlockLodChain::levelForCell(4);
         int taken = 0;
         int dbg_miny = 32767, dbg_maxy = -32768;
-        for (size_t i = 0; i < total; ++i) {
+        for (size_t k = 0; k < total; ++k) {
+            // Top layer first, so a block's sky light is decided by the
+            // block above it from this same reply rather than relit after.
+            const size_t layer = (size_t)edge * edge;
+            const size_t i = (k / layer) * layer +
+                    (edge - 1 - (k / edge) % edge) * edge + k % edge;
             const uint8_t *r = (const uint8_t *)blob.data() + i * kRecordSize;
             if (!(r[rFlags] & 16))
                 continue; // no emerged data: stays unknown, never invented
@@ -1201,7 +1225,8 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 // in that case instead of dirtying every neighbouring region.
                 // A fresh reply must still replace provisional disk shading.
                 if (old != m_lod_chains.end() && old->second->stored == cached &&
-                        old->second->summary_fingerprint == fingerprint) {
+                        old->second->summary_fingerprint == fingerprint &&
+                        old->second->sky_seed == summarySeed(bp, r[rDay])) {
                     ++m_far_summaries_reused;
                     continue;
                 }
@@ -1288,45 +1313,49 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
                 // Known empty supersedes an older cached summary. Unknown
                 // records above deliberately keep their provisional cover.
                 auto old = m_lod_chains.find(bp);
+                bool changed = false;
                 if (old != m_lod_chains.end() && old->second->summary) {
                     lodForget(bp);
                     m_far_remote.erase(bp);
                     m_far_blocks.erase(bp);
                     m_block_tier.erase(bp);
+                    changed = true;
+                }
+                // Air without sunlight is a cave. Only that is kept, as one
+                // set entry rather than a chain, so the faces around it and
+                // the blocks under it are dark; open air stays absent, and
+                // absent reads as sky. A provider shell's omitted interior
+                // and a record with no known air say nothing about caves.
+                bool known_air = false;
+                for (int c = 0; c < 64 && !known_air; ++c)
+                    known_air = r[rContent + c] == 0;
+                const bool dark = known_air && !(r[rFlags] & 32) &&
+                        summarySeed(bp, r[rDay]) == 0;
+                if (dark)
+                    changed |= m_lod_dark_air.emplace(bp, true).second;
+                else
+                    changed |= m_lod_dark_air.erase(bp) != 0;
+                if (changed) {
+                    lodSkyChanged(bp);
+                    lodDirtyAround(bp, nullptr);
                 }
                 continue;
             }
-			// The wire only has one light pair for the block. Applying its
+            m_lod_dark_air.erase(bp);
+            // The wire only has one light pair for the block. Applying its
             // maximum to every occupied cell made the interior of hills as
             // bright as their tops. Reconstruct the useful part of sky light
             // from the occupancy we do have: known air with an unobstructed
-            // column to the block's top carries the summary light. Faces read
+            // column up to open sky carries the summary light. Faces read
             // light from their adjacent air cell, so exposed terrain remains
-            // lit while caves and undersides no longer glow.
-            for (int z = 0; z < 4; ++z)
-                for (int x = 0; x < 4; ++x) {
-                    bool sky_open = true;
-                    for (int y = 3; y >= 0; --y) {
-                        LodLevel::Cell &c = lv.at(x, y, z);
-                        if (!(c.flags & LodLevel::kKnown)) {
-                            sky_open = false;
-                            continue;
-                        }
-                        if (!(c.flags & LodLevel::kFilled)) {
-                            c.flags |= LodLevel::kLit;
-                            c.day = sky_open ? day : 0;
-                            // One block-wide maximum cannot locate a torch;
-                            // spreading it through all 64 cells makes whole
-                            // distant hills emissive. Local/store chains have
-                            // spatial light, but a summary stays dark rather
-                            // than inventing its position.
-                            c.night = 0;
-                        }
-                        if (c.flags & LodLevel::kOccludes)
-                            sky_open = false;
-                    }
-                }
+            // lit while caves and undersides no longer glow. The column is
+            // followed through the blocks above (lodSummarySkySeed): walking
+            // only from this block's own top lit a cave as open sky whenever
+            // the rock over it lay in the block above.
+            ch.summary_day = r[rDay];
+            ch.summary_light = day;
             buildLodMipLevels(ch, first_level);
+            lodLightSummary(ch, summarySeed(bp, ch.summary_day));
             buildLodTerrainSurface(ndef, ch, first_level);
             // A disk summary is provisional. A fresh server reply restores
             // its current-source shading and supersedes the cached chain.
@@ -1334,6 +1363,7 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
             ch.summary = true;
             m_lod_chains[bp] = std::move(ch_owned);
             m_lod_chain_missing.erase(bp);
+            lodSkyChanged(bp);
             // The regions beside this block share corners with it now, and
             // its own region, if it is in one already, holds a changed chain.
             lodDirtyAround(bp, nullptr);
@@ -1372,4 +1402,30 @@ void GoannaClient::lodTakeSummaries(const Vector3 &around) {
     }
 }
 
+uint16_t GoannaClient::summarySeed(v3s16 bp, uint8_t raw_day) const {
+    const v3s16 up = bp + v3s16(0, 1, 0);
+    auto it = m_lod_chains.find(up);
+    const BlockLodChain *above = it != m_lod_chains.end() ? it->second.get() : nullptr;
+    return lodSummarySkySeed(above, !above && m_lod_dark_air.count(up), raw_day);
+}
+
+// What is known at bp changed: relight the summaries below it whose sky now
+// differs, and rebuild the regions drawing them. Bounded by the column of
+// summaries under bp, and it stops at the first block whose floor is
+// unchanged, so a reply's ordinary arrival costs one comparison.
+void GoannaClient::lodSkyChanged(v3s16 bp) {
+    lodPropagateSky(bp,
+            [this](v3s16 p) -> std::shared_ptr<const BlockLodChain> {
+                auto it = m_lod_chains.find(p);
+                return it != m_lod_chains.end() ? it->second : nullptr;
+            },
+            [this](v3s16 p) { return m_lod_dark_air.count(p) != 0; },
+            [this](v3s16 p, std::shared_ptr<const BlockLodChain> relit) {
+                m_lod_chains[p] = std::move(relit);
+                lodDirtyAround(p, nullptr);
+                auto mit = m_lod_member.find(p);
+                if (mit != m_lod_member.end())
+                    lodMarkDirty(mit->second);
+            });
+}
 } // namespace goanna

@@ -1151,6 +1151,14 @@ private:
     // store. This also retains summaries currently inside the near-field
     // floor, so moving away can assign them without requesting the area again.
     std::set<v3s16> m_far_remote;
+    // Summarised blocks that are all air with no sunlight in them: caves.
+    // They have no chain, but the far field must not light the faces around
+    // them, or the blocks under them, as open sky. A map so lodCaptureRegion
+    // can visit it like the chains; the value is unused.
+    std::map<v3s16, bool> m_lod_dark_air;
+    v3s16 m_lod_dark_cursor{-32768, -32768, -32768};
+    uint16_t summarySeed(v3s16 bp, uint8_t raw_day) const;
+    void lodSkyChanged(v3s16 bp);
     // Area origins (block coords, 8 block aligned) already asked of the
     // server, so a slow answer is not asked for again every scan.
     // Areas whose summary has been asked for, and what came back. A server

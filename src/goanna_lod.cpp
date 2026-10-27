@@ -343,8 +343,8 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                 LodLevel::Cell &dst = base.cells[((size_t)cz * n + cy) * n + cx];
                 const NodeInfo *chosen = nullptr, *chosen_liquid = nullptr;
                 int chosen_score = -1, known = 0, lit = 0, liquid_top = 0;
-                int filled = 0;
-                uint8_t day = 0, night = 0;
+                int filled = 0, day = 0;
+                uint8_t night = 0;
                 const int x0 = cx * cell, y0 = cy * cell, z0 = cz * cell;
                 // Track opaque occupancy independently of the visible face
                 // materials chosen below. A buried solid still blocks light.
@@ -357,7 +357,7 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                             ++known;
                             if (ni.flags & nLit) {
                                 ++lit;
-                                day = std::max(day, ni.day);
+                                day += ni.day;
                                 night = std::max(night, ni.night);
                             }
                             if (!(ni.flags & nFilled))
@@ -378,7 +378,8 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
                     continue;
                 dst.flags = LodLevel::kKnown | (lit ? LodLevel::kLit : 0);
                 if (lit) {
-                    dst.day = day;
+                    // Mean, as the mips: see mipLight.
+                    dst.day = (uint8_t)((day + lit / 2) / lit);
                     dst.night = night;
                 }
                 if (chosen_liquid) {
@@ -421,6 +422,57 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
         compactLodFineBoundary(out);
 }
 
+namespace {
+
+// The light of a coarse cell from its eight children. Day is the mean of the
+// lit children: the brightest made a cell holding both a ravine and the cave
+// off its side as sky lit as the ravine. Night is block light, which is
+// emitted rather than received, and keeps the brightest.
+void mipLight(const LodLevel &src, int x, int y, int z, LodLevel::Cell &coarse) {
+    int lit = 0, day = 0;
+    uint8_t night = 0;
+    for (int dz = 0; dz < 2; ++dz)
+        for (int dy = 0; dy < 2; ++dy)
+            for (int dx = 0; dx < 2; ++dx) {
+                const LodLevel::Cell &c = src.at(x * 2 + dx, y * 2 + dy, z * 2 + dz);
+                if ((c.flags & (LodLevel::kKnown | LodLevel::kLit)) !=
+                        (LodLevel::kKnown | LodLevel::kLit))
+                    continue;
+                ++lit;
+                day += c.day;
+                night = std::max(night, c.night);
+            }
+    coarse.flags &= ~LodLevel::kLit;
+    if (lit) {
+        coarse.flags |= LodLevel::kLit;
+        coarse.day = (uint8_t)((day + lit / 2) / lit);
+        coarse.night = night;
+    } else {
+        coarse.day = 255;
+        coarse.night = 0;
+    }
+}
+
+// Carry changed light up the coarser levels without touching occupancy or
+// materials, which also keeps the terrain surface's kTerrain marks.
+void remipLodLight(BlockLodChain &out, int first_level) {
+    for (int level = first_level + 1; level < BlockLodChain::kLevels; ++level) {
+        const LodLevel &src = out.level[level - 1];
+        LodLevel &dst = out.level[level];
+        if (!src.built() || !dst.built())
+            break;
+        for (int z = 0; z < dst.n; ++z)
+            for (int y = 0; y < dst.n; ++y)
+                for (int x = 0; x < dst.n; ++x) {
+                    LodLevel::Cell &coarse = dst.at(x, y, z);
+                    if (coarse.flags & LodLevel::kKnown)
+                        mipLight(src, x, y, z, coarse);
+                }
+    }
+}
+
+} // namespace
+
 void buildLodMipLevels(BlockLodChain &out, int first_level) {
     first_level = std::clamp(first_level, 0, BlockLodChain::kLevels - 1);
     const LodLevel &material_source = out.level[first_level];
@@ -438,9 +490,8 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                 for (int x = 0; x < dst.n; ++x) {
                     LodLevel::Cell &coarse = dst.cells[((size_t)z * dst.n + y) * dst.n + x];
                     const LodLevel::Cell *chosen = nullptr, *chosen_liquid = nullptr;
-                    int chosen_score = -1, chosen_liquid_top = -1, known = 0, lit = 0;
+                    int chosen_score = -1, chosen_liquid_top = -1, known = 0;
                     int coverage_sum = 0;
-                    uint8_t day = 0, night = 0;
                     for (int dz = 0; dz < 2; ++dz)
                         for (int dy = 0; dy < 2; ++dy)
                             for (int dx = 0; dx < 2; ++dx) {
@@ -448,11 +499,6 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                                 if (!(c.flags & LodLevel::kKnown))
                                     continue;
                                 ++known;
-                                if (c.flags & LodLevel::kLit) {
-                                    ++lit;
-                                    day = std::max(day, c.day);
-                                    night = std::max(night, c.night);
-                                }
                                 if (c.flags & LodLevel::kLiquid) {
                                     const int child_top = c.liquid_top > 0 ? c.liquid_top : src.cell;
                                     const int liquid_top = dy * src.cell + child_top;
@@ -472,11 +518,8 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                             }
                     if (!known)
                         continue;
-                    coarse.flags = LodLevel::kKnown | (lit ? LodLevel::kLit : 0);
-                    if (lit) {
-                        coarse.day = day;
-                        coarse.night = night;
-                    }
+                    coarse.flags = LodLevel::kKnown;
+                    mipLight(src, x, y, z, coarse);
                     if (chosen_liquid) {
                         coarse.flags |= LodLevel::kLiquid;
                         coarse.liquid = chosen_liquid->liquid;
@@ -512,6 +555,105 @@ void buildLodMipLevels(BlockLodChain &out, int first_level) {
                     }
                 }
     }
+}
+
+uint16_t lodSkyBelow(const BlockLodChain &chain) {
+    if (chain.summary)
+        return chain.sky_below;
+    // Built from nodes: the server's own light. Direct sunlight decodes to
+    // 255 whatever the curve, and nothing else does, so a bottom cell whose
+    // lit nodes all hold it is open sky; a cave mouth's mixture is not.
+    for (int cell : {2, 4}) {
+        const LodLevel *lv = chain.forCell(cell);
+        if (!lv)
+            continue;
+        const int per = 4 / cell; // cells per 4-node column, each way
+        uint16_t below = 0;
+        for (int z = 0; z < 4; ++z)
+            for (int x = 0; x < 4; ++x)
+                for (int dz = 0; dz < per; ++dz)
+                    for (int dx = 0; dx < per; ++dx) {
+                        const LodLevel::Cell &c = lv->at(x * per + dx, 0, z * per + dz);
+                        if ((c.flags & (LodLevel::kKnown | LodLevel::kLit)) ==
+                                        (LodLevel::kKnown | LodLevel::kLit) &&
+                                !(c.flags & LodLevel::kOccludes) && c.day == 255)
+                            below |= (uint16_t)(1u << (z * 4 + x));
+                    }
+        return below;
+    }
+    return 0;
+}
+
+uint16_t lodSummarySkySeed(const BlockLodChain *above, bool above_dark, uint8_t raw_day) {
+    if (above)
+        return lodSkyBelow(*above);
+    if (above_dark)
+        return 0;
+    return raw_day >= LIGHT_SUN ? 0xffff : 0;
+}
+
+void lodLightSummary(BlockLodChain &chain, uint16_t seed) {
+    LodLevel &lv = chain.level[BlockLodChain::levelForCell(4)];
+    if (!lv.built() || lv.cell != 4)
+        return;
+    const uint8_t day = chain.summary_light;
+    uint16_t below = 0;
+    for (int z = 0; z < 4; ++z)
+        for (int x = 0; x < 4; ++x) {
+            bool sky_open = (seed >> (z * 4 + x)) & 1;
+            for (int y = 3; y >= 0; --y) {
+                LodLevel::Cell &c = lv.at(x, y, z);
+                if (!(c.flags & LodLevel::kKnown)) {
+                    sky_open = false;
+                    continue;
+                }
+                if (!(c.flags & LodLevel::kFilled)) {
+                    c.flags |= LodLevel::kLit;
+                    c.day = sky_open ? day : 0;
+                    // One block-wide maximum cannot locate a torch;
+                    // spreading it through all 64 cells makes whole distant
+                    // hills emissive. Local/store chains have spatial light,
+                    // but a summary stays dark rather than inventing its
+                    // position.
+                    c.night = 0;
+                }
+                if (c.flags & LodLevel::kOccludes)
+                    sky_open = false;
+            }
+            if (sky_open)
+                below |= (uint16_t)(1u << (z * 4 + x));
+        }
+    chain.sky_seed = seed;
+    chain.sky_below = below;
+    remipLodLight(chain, BlockLodChain::levelForCell(4));
+}
+
+int lodPropagateSky(v3s16 bp,
+        const std::function<std::shared_ptr<const BlockLodChain>(v3s16)> &chain,
+        const std::function<bool(v3s16)> &dark,
+        const std::function<void(v3s16, std::shared_ptr<const BlockLodChain>)> &replace) {
+    int relit = 0;
+    for (int guard = 0; guard < 4096; ++guard) {
+        const v3s16 below = bp - v3s16(0, 1, 0);
+        std::shared_ptr<const BlockLodChain> under = chain(below);
+        if (!under || !under->summary)
+            break;
+        const std::shared_ptr<const BlockLodChain> over = chain(bp);
+        const uint16_t seed = lodSummarySkySeed(over.get(), !over && dark && dark(bp),
+                under->summary_day);
+        if (seed == under->sky_seed)
+            break;
+        auto relit_chain = std::make_shared<BlockLodChain>(*under);
+        const uint16_t old_below = relit_chain->sky_below;
+        lodLightSummary(*relit_chain, seed);
+        const bool changed = relit_chain->sky_below != old_below;
+        replace(below, std::move(relit_chain));
+        ++relit;
+        if (!changed)
+            break;
+        bp = below;
+    }
+    return relit;
 }
 
 void buildLodTerrainSurface(const NodeDefManager *ndef, BlockLodChain &out, int first_level) {
@@ -666,6 +808,10 @@ void LodRegionSnapshot::bind(LodRegionSpec &spec) const {
     spec.member = [this, cell](v3s16 bp) -> bool {
         const Entry *e = at(bp);
         return e && e->member && e->drawn_cell == cell;
+    };
+    spec.dark_air = [this](v3s16 bp) -> bool {
+        const Entry *e = at(bp);
+        return e && e->dark_air;
     };
 }
 
@@ -828,6 +974,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
     std::vector<uint8_t> member((size_t)B * B * B, 0);
     std::vector<uint8_t> stored((size_t)B * B * B, 0);
     std::vector<int> drawn((size_t)B * B * B, -1);
+    std::vector<uint8_t> dark_air((size_t)B * B * B, 0);
     for (int bz = 0; bz < B; ++bz)
         for (int by = 0; by < B; ++by)
             for (int bx = 0; bx < B; ++bx) {
@@ -837,6 +984,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 chains[i] = ch;
                 levels[i] = ch ? ch->forCell(cell) : nullptr;
                 stored[i] = ch && ch->stored ? 1 : 0;
+                dark_air[i] = !ch && spec.dark_air && spec.dark_air(bp) ? 1 : 0;
                 const bool inside = bx >= mb && by >= mb && bz >= mb &&
                         bx < mb + spec.blocks && by < mb + spec.blocks && bz < mb + spec.blocks;
                 member[i] = inside && spec.member && spec.member(bp) ? 1 : 0;
@@ -855,6 +1003,41 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
             return nullptr;
         const int lx = (gx + mb * cpb) % cpb, ly = (gy + mb * cpb) % cpb, lz = (gz + mb * cpb) % cpb;
         return ch->cellAt(cell, lx, ly, lz);
+    };
+    // Light at a node, region relative, for a face whose own cell and the
+    // cell in front of it carry none. That used to be full sky, and the
+    // faces it reached were cave walls: the ones facing an all-air cave
+    // block, which has no chain, and the ones facing interior air an exact
+    // neighbour does not keep at cell 1. The neighbour's coarser cells still
+    // hold its light; cave air without a chain is dark; only a block nothing
+    // is known about keeps the sky, as open air above the terrain usually is.
+    auto lightAtNode = [&](int nx, int ny, int nz, uint8_t &day, uint8_t &night) {
+        day = 255;
+        night = 0;
+        const int sx = nx + mb * MAP_BLOCKSIZE;
+        const int sy = ny + mb * MAP_BLOCKSIZE;
+        const int sz = nz + mb * MAP_BLOCKSIZE;
+        if (sx < 0 || sy < 0 || sz < 0)
+            return;
+        const int bx = sx / MAP_BLOCKSIZE, by = sy / MAP_BLOCKSIZE, bz = sz / MAP_BLOCKSIZE;
+        if (bx >= B || by >= B || bz >= B)
+            return;
+        const size_t bi = ((size_t)bz * B + by) * B + bx;
+        if (const BlockLodChain *ch = chains[bi]) {
+            const int lx = sx % MAP_BLOCKSIZE, ly = sy % MAP_BLOCKSIZE, lz = sz % MAP_BLOCKSIZE;
+            for (int c = 1; c <= MAP_BLOCKSIZE; c *= 2) {
+                if (!ch->hasCell(c))
+                    continue;
+                const LodLevel::Cell *k = ch->cellAt(c, lx / c, ly / c, lz / c);
+                if (k && (k->flags & LodLevel::kLit)) {
+                    day = k->day;
+                    night = k->night;
+                    return;
+                }
+            }
+        } else if (dark_air[bi]) {
+            day = 0;
+        }
     };
     auto isMember = [&](int gx, int gy, int gz) -> bool {
         const int bx = gx / cpb + mb, by = gy / cpb + mb, bz = gz / cpb + mb;
@@ -1193,7 +1376,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
         };
         const float skirt_min = 0.5f * (float)cell;
         const float skirt_unknown = (float)cell;
-        auto lightOf = [&](const Column &c, uint8_t &day, uint8_t &night) {
+        auto lightOf = [&](int gx, int gz, const Column &c, uint8_t &day, uint8_t &night) {
             if (c.above && (c.above->flags & LodLevel::kLit)) {
                 day = quant16(c.above->day);
                 night = quant16(c.above->night);
@@ -1201,8 +1384,10 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 day = quant16(c.top->day);
                 night = quant16(c.top->night);
             } else {
-                day = 255;
-                night = 0;
+                // The node over the surface, wherever it is known.
+                lightAtNode(gx * cell, (int)std::floor(c.h) - origin_nodes.Y, gz * cell, day, night);
+                day = quant16(day);
+                night = quant16(night);
             }
         };
         auto tintOf = [&](const LodTileCache::Entry &te, content_t content, uint8_t p2) -> u32 {
@@ -1234,7 +1419,7 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                 const LodTileCache::Entry &te = tileFor(tiles, ndef, tsrc, materials, content, 0);
                 const u32 colour = tintOf(te, content, col.top->param2[0]);
                 uint8_t day, night;
-                lightOf(col, day, night);
+                lightOf(gx, gz, col, day, night);
                 const uint8_t fresh = col.is_stored ? 96 : 255;
                 // Corners in Luanti coordinates relative to the region.
                 const float lx0 = (float)(gx * cell), lx1 = lx0 + cell;
@@ -1557,9 +1742,10 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                     }
                     fk.colour = te.texture_id ? tint : mulColour(te.fallback, tint);
                     // Light: the air in front of the face, else the cell's
-                    // own, else unlit sky and no block light. Block light's
-                    // neutral is 0 rather than 255 here, because the far
-                    // tiers add it as emission and 255 would glow.
+                    // own, else whatever lightAtNode knows about the point
+                    // in front, and no block light. Block light's neutral
+                    // is 0 rather than 255 here, because the far tiers add
+                    // it as emission and 255 would glow.
                     const LodLevel::Cell *front = front_cell;
                     if (front && (front->flags & LodLevel::kLit)) {
                         fk.day = quant16(front->day);
@@ -1568,8 +1754,10 @@ LodRegionMesh meshLodRegion(const LodRegionSpec &spec, const NodeDefManager *nde
                         fk.day = quant16(c->day);
                         fk.night = quant16(c->night);
                     } else {
-                        fk.day = 255;
-                        fk.night = 0;
+                        uint8_t day, night;
+                        lightAtNode(fx * cell, fy * cell, fz * cell, day, night);
+                        fk.day = quant16(day);
+                        fk.night = quant16(night);
                     }
                     if (trace) {
                         // Face centre, Luanti node coordinates.

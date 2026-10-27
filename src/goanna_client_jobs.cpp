@@ -577,6 +577,7 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         spec.member = [&, cell](v3s16 bp) { return region_member(bp) && drawn_cell(bp) == cell; };
         spec.chain = chain;
         spec.drawn_cell = drawn_cell;
+        spec.dark_air = [&](v3s16 bp) { return m_lod_dark_air.count(bp) != 0; };
         return spec;
     };
 
@@ -625,6 +626,8 @@ void GoannaClient::lodBuildRegion(const LodRegionKey &key, LodRegion &r) {
         job->coarse.member = nullptr;
         job->coarse.chain = nullptr;
         job->coarse.drawn_cell = nullptr;
+        job->exact.dark_air = nullptr;
+        job->coarse.dark_air = nullptr;
         job->has_coarse = coarse_spec.cell != exact_spec.cell;
         job->ndef = m_session->nodeDefs();
         job->tsrc = m_session->tsrc();
@@ -703,6 +706,12 @@ void GoannaClient::lodCaptureRegion(const LodRegionKey &key, const LodRegionSpec
                 en->chain = chain;
                 describe(bp, *en);
             });
+    // Cave air has no chain; the mesher keeps faces lit from it dark.
+    if (!m_lod_dark_air.empty())
+        visitLodBox(m_lod_dark_air, low, out.edge(), [&](v3s16 bp, bool) {
+            if (LodRegionSnapshot::Entry *en = out.at(bp))
+                en->dark_air = true;
+        });
     // Known blocks whose chains are still loading must remain members and
     // register a waiter. Skip already copied chains. Blocks outside the
     // known layout are discovered by the bounded store/summary scans; their

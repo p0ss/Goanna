@@ -168,6 +168,18 @@ struct BlockLodChain {
     // Server provider data is an exterior height shell. Omitted interior
     // cells do not describe caves, unlike an ordinary volumetric summary.
     bool surface_shell = false;
+    // Sky light of a summary chain. The wire has one raw day level for the
+    // whole block (Luanti's day bank, so lava and torches raise it too), and
+    // the cells are lit from it only down columns that sky reaches. Columns
+    // are bits z * 4 + x of the cell-4 level. `sky_seed` is which columns
+    // were open at the block's top when it was lit, which the block above
+    // decides (lodSummarySkySeed); `sky_below` is which are still open at
+    // its floor, for the block under it. Unused by chains built from nodes,
+    // whose light is the server's own.
+    uint8_t summary_day = 0;
+    uint8_t summary_light = 0; // summary_day decoded, what open air gets
+    uint16_t sky_seed = 0;
+    uint16_t sky_below = 0;
     // 1 -> 0, 2 -> 1, 4 -> 2, 8 -> 3, 16 -> 4; -1 otherwise.
     static int levelForCell(int cell);
     static int cellForLevel(int level) { return 1 << level; }
@@ -211,6 +223,32 @@ void buildLodChain(const NodeDefManager *ndef, MapBlock *block, BlockLodChain &o
 // records fill the cell-4 level directly and use this same reducer as live and
 // stored blocks, so changing source cannot change the shape of the mip.
 void buildLodMipLevels(BlockLodChain &out, int first_level);
+
+// Sky light across vertically adjacent blocks, for server summaries.
+//
+// Which 4 by 4 node columns of a block's floor sky light still reaches: a
+// summary's own walk, or for a chain built from nodes, bottom cells holding
+// direct sunlight (decoded LIGHT_SUN, which only open sky gives).
+uint16_t lodSkyBelow(const BlockLodChain &chain);
+// Which columns are open at the top of a summary block. The block above
+// decides when anything is known about it: its chain, or `above_dark`, an
+// all-air block with no sunlight in it (a cave), which is retained without a
+// chain. With nothing known above, only a block whose raw day level is
+// LIGHT_SUN is open, because nothing but open sky reaches 15 and a lava lit
+// cave reaches 14.
+uint16_t lodSummarySkySeed(const BlockLodChain *above, bool above_dark, uint8_t raw_day);
+// Light a summary chain's cell-4 air with its `summary_light` down the open
+// columns of `seed`, stopping at occluding cells, and carry the result up the
+// coarser levels. Sets sky_seed and sky_below. Occupancy is untouched.
+void lodLightSummary(BlockLodChain &chain, uint16_t seed);
+// After what is known at `bp` changed, relight the summary chains below it
+// whose seed no longer matches, walking down while the open columns change.
+// `replace` installs a relit copy; chains are immutable once published.
+// Returns how many chains were relit.
+int lodPropagateSky(v3s16 bp,
+        const std::function<std::shared_ptr<const BlockLodChain>(v3s16)> &chain,
+        const std::function<bool(v3s16)> &dark,
+        const std::function<void(v3s16, std::shared_ptr<const BlockLodChain>)> &replace);
 
 // Recover the connected ground surface from a volumetric chain. Coarse
 // occupancy remains available for caves, islands and overhangs, but the run
@@ -336,6 +374,8 @@ struct LodRegionSnapshot {
         // that bind() adds, because that test differs between the exact and
         // fallback passes over the same capture.
         bool member = false;
+        // Known air without sunlight and no chain (LodRegionSpec::dark_air).
+        bool dark_air = false;
     };
 
     int edge() const { return blocks + 2 * margin; }
@@ -371,6 +411,10 @@ struct LodRegionSpec {
     // joins onto a neighbour drawn at the same cell and drops a skirt
     // against anything else.
     std::function<int(v3s16)> drawn_cell;
+    // Optional: a block with no chain that is known air without sunlight,
+    // a cave. A face lit from such a block is dark; one lit from a block
+    // nothing is known about keeps full sky, as open air usually is.
+    std::function<bool(v3s16)> dark_air;
 };
 
 // materials may be null, in which case every block ID is 0. ndef, tsrc and
