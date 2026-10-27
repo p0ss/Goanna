@@ -106,7 +106,8 @@ global uniform vec4 goanna_water_fog;
 // world position and TIME, both large, so every small change in the
 // measured size of the water (which there is near a shore, as the eye
 // moves) swept the whole pattern's phase, and the sea strobed as if in fast
-// forward.
+// forward. z is the region's scatter (water_optics.gd, REGIONS): extinction
+// per node, the same in every colour, for water looked down into.
 global uniform vec4 goanna_water_sea;
 // How much of the tile's colour the water column itself throws back, as an
 // albedo the sun and sky then light. Water is dark: a clear column returns
@@ -581,8 +582,11 @@ void fragment() {
 		}
 	}
 
-	// Beer-Lambert: per colour transmission over the water's thickness.
-	vec3 trans = exp(-goanna_water_absorption * thick);
+	// Beer-Lambert: per colour transmission over the water's thickness, with
+	// the scatter that bounds how deep anyone sees. Absorption alone kept
+	// a bed twenty nodes down at a third of its blue: the depths read as
+	// clear glass. What the scatter takes the column's own colour fills in.
+	vec3 trans = exp(-(goanna_water_absorption + goanna_water_sea.z) * thick);
 	// Two things come up out of the water and they are lit differently. The
 	// bed, seen through the column, was lit when the opaque pass drew it and
 	// arrives here as radiance: it goes out as emission, attenuated, and is
@@ -736,7 +740,12 @@ void fragment() {
 		float tir = smoothstep(0.71, 0.79, sin_i);
 		vec3 mirror = goanna_water_fog.rgb;
 		if (tir > 0.01 && goanna_render_water_reflections > 0.5) {
-			vec3 rdir = reflect(normalize(VERTEX), NORMAL);
+			// A calmer normal than the shading's: with the waves' full tilt
+			// each facet mirrored a different slice of what was nearest on
+			// screen (the player's own body, most often), stacked like a
+			// hall of mirrors. The waves still bend the mirror, less.
+			vec3 calm = normalize(mix(flat_normal, NORMAL, 0.3));
+			vec3 rdir = reflect(normalize(VERTEX), calm);
 			float step_len = 0.25;
 			vec3 p = VERTEX;
 			// The last thing on screen along the ray, for a ray that finds
@@ -770,14 +779,16 @@ void fragment() {
 				if (ray > scene && ray - scene < step_len * 4.0) {
 					// The opaque pass absorbed the bed by its distance from
 					// the eye; the mirror's light also came up the ray.
-					float murk = 1.0 - exp(-goanna_water_fog.w * length(p - VERTEX));
+					// Its whole path: up to the surface, then down the ray.
+					float murk = 1.0 - exp(-goanna_water_fog.w * (length(p - VERTEX) + here));
 					mirror = mix(last, goanna_water_fog.rgb, murk);
 					hit = true;
 					break;
 				}
 			}
 			if (!hit)
-				mirror = mix(last, goanna_water_fog.rgb, 1.0 - exp(-goanna_water_fog.w * (last_len + 8.0)));
+				mirror = mix(last, goanna_water_fog.rgb,
+						1.0 - exp(-goanna_water_fog.w * (last_len + 8.0 + here)));
 		}
 		// Inside the window, the sky. The opaque pass drew the sky behind the
 		// surface already fogged into the murk (the underwater fog covers the

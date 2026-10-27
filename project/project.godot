@@ -234,7 +234,7 @@ goanna_water_fog={
 }
 goanna_water_sea={
 "type": "vec4",
-"value": Vector4(1, 1, 0, 0)
+"value": Vector4(1, 1, 0.08, 0)
 }
 goanna_water_surface={
 "type": "vec4",

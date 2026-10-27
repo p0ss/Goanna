@@ -118,7 +118,7 @@ func _test_shader() -> void:
 	var main_src := FileAccess.get_file_as_string("res://game/main.gd")
 	check(main_src.contains("WaterOptics.murk_hue(o)") and main_src.contains("WATER_NOON_LIGHT"),
 			"main.gd does not light the murk's hue")
-	check(src.contains("vec3 rdir = reflect(normalize(VERTEX), NORMAL);"),
+	check(src.contains("vec3 rdir = reflect(normalize(VERTEX), calm);"),
 			"the underside does not mirror the water below")
 	check(src.contains("!FRONT_FACING && face_up > 0.7") and src.contains("vec3 last = goanna_water_fog.rgb;"),
 			"the underside's mirror is not the top's only, or falls back to flat murk")

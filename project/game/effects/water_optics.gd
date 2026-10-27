@@ -41,22 +41,27 @@ const PlayerContext := preload("res://game/player_context.gd")
 #   depth       the depth, in nodes, over which it goes most of the way from
 #               one to the other (1 - 1/e of it).
 #   volume      the scattering volume's density, shallow and deep.
+#   scatter     extinction per node, the same in every colour, of the water
+#               looked down into from above, on top of the absorption: the
+#               silt and plankton that bound how deep anyone sees, which
+#               absorption alone (0.05 a node in blue for clear water) left
+#               a bed twenty nodes down showing a third of its blue.
 # "clear" deep is the density of the fog main.gd drew everywhere before,
 # which the owner found right for a lake or deeper water and too murky just
 # under the surface.
 const REGIONS := {
 	"clear": {"absorption": Vector3(0.45, 0.11, 0.05), "tint": Vector3(1.0, 1.0, 1.0),
 		"shallow": 0.012, "deep": 0.05, "depth": 16.0,
-		"volume": Vector2(0.006, 0.03)},
+		"volume": Vector2(0.006, 0.03), "scatter": 0.08},
 	"lake": {"absorption": Vector3(0.55, 0.17, 0.12), "tint": Vector3(0.85, 1.0, 0.8),
 		"shallow": 0.025, "deep": 0.07, "depth": 8.0,
-		"volume": Vector2(0.012, 0.035)},
+		"volume": Vector2(0.012, 0.035), "scatter": 0.12},
 	"river": {"absorption": Vector3(0.6, 0.24, 0.2), "tint": Vector3(0.9, 1.0, 0.7),
 		"shallow": 0.035, "deep": 0.08, "depth": 5.0,
-		"volume": Vector2(0.018, 0.04)},
+		"volume": Vector2(0.018, 0.04), "scatter": 0.16},
 	"swamp": {"absorption": Vector3(1.0, 0.55, 0.7), "tint": Vector3(0.65, 0.75, 0.35),
 		"shallow": 0.1, "deep": 0.2, "depth": 2.5,
-		"volume": Vector2(0.04, 0.07)},
+		"volume": Vector2(0.04, 0.07), "scatter": 0.35},
 }
 # With no water in view, or none classified, the optics stay as they were;
 # a world starts clear.
@@ -197,7 +202,7 @@ static func blend(shares: Dictionary) -> Dictionary:
 		total += float(shares[k])
 	if total <= 0.0:
 		return REGIONS[DEFAULT_REGION].duplicate(true)
-	var out := {"absorption": Vector3.ZERO, "tint": Vector3.ZERO, "shallow": 0.0, "deep": 0.0, "depth": 0.0, "volume": Vector2.ZERO}
+	var out := {"absorption": Vector3.ZERO, "tint": Vector3.ZERO, "shallow": 0.0, "deep": 0.0, "depth": 0.0, "volume": Vector2.ZERO, "scatter": 0.0}
 	for k in shares:
 		var w := float(shares[k]) / total
 		var r: Dictionary = REGIONS[k]
@@ -343,10 +348,13 @@ func _publish() -> void:
 	if _published.get("t") != t:
 		_published["t"] = t
 		PlayerContext.shader_parameter(client, "goanna_water_tint", t)
-	if _published.get("s") != sea:
+	var scatter := float(current.get("scatter", 0.08))
+	if _published.get("s") != sea or _published.get("sc") != scatter:
 		_published["s"] = sea
+		_published["sc"] = scatter
 		# A vec4: the per view globals (goanna_render_scope.cpp) take no vec2.
-		PlayerContext.shader_parameter(client, "goanna_water_sea", Vector4(sea, 1.0, 0.0, 0.0))
+		# z carries the region's scatter (REGIONS).
+		PlayerContext.shader_parameter(client, "goanna_water_sea", Vector4(sea, 1.0, scatter, 0.0))
 
 
 # For the control channel's status.
