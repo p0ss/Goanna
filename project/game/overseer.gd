@@ -365,12 +365,13 @@ func _close() -> void:
 	if is_instance_valid(pad):
 		pad.set_enabled(saved_pad_enabled)
 		pad.set_process_input(saved_pad_input)
-	main.set_pointer_captured(saved_capture)
 	if main.ui != null:
 		main.ui.visible = saved_ui
 	if is_instance_valid(root_control):
 		remove_child(root_control)
 		root_control.queue_free()
+	# Return input to the main viewport before recapturing its pointer.
+	main.set_pointer_captured(saved_capture)
 
 ## Closes the view at the player's request and ignores the same grant until
 ## the server issues a new one, so it does not reopen at once.
@@ -507,7 +508,7 @@ func _update_materials(value: Variant) -> void:
 		build_material.add_item("No suitable item in stock")
 		build_material.set_item_disabled(0, true)
 
-# A layer too big for one mod channel message arrives as numbered base64
+# A reply too big for one mod channel message arrives as numbered base64
 # chunks. At most two reassemblies at once, 35 chunks and 1 MiB each, and a
 # part set older than 12 seconds is dropped.
 func _receive_part(msg: Dictionary) -> void:
@@ -546,7 +547,7 @@ func _receive_part(msg: Dictionary) -> void:
 			raw.append_array(p.chunks[i])
 		parts.erase(id)
 		var inner: Variant = JSON.parse_string(raw.get_string_from_utf8())
-		if inner is Dictionary and inner.get("t", "") == "layer":
+		if inner is Dictionary and inner.get("t", "") in ["hello", "layer"]:
 			_receive(inner)
 
 static func _number(v: Variant, whole := true) -> bool:

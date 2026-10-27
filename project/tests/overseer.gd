@@ -352,6 +352,14 @@ func run() -> void:
 	view._close()
 	check(main.cam.cull_mask == 1048575 and main.captured, "leaving restores ordinary view and pointer")
 	view._open()
+	var hello := {"v": 1, "t": "hello", "claim": bounds, "y": 0,
+		"body": {"x": 0, "y": 0, "z": 0}, "tools": [], "padding": "x".repeat(70000)}
+	var hello_bytes := JSON.stringify(hello).to_utf8_buffer()
+	var hello_parts := ceili(hello_bytes.size() / 30000.0)
+	for i in range(hello_parts):
+		view._receive({"v": 1, "t": "part", "id": 99, "n": hello_parts, "i": i + 1,
+			"data": Marshalls.raw_to_base64(hello_bytes.slice(i * 30000, (i + 1) * 30000))})
+	check(view.session_ready, "a catalogue larger than one packet still completes the opening handshake")
 	view.free()
 	check(main.cam.cull_mask == 1048575 and main.captured, "destroying an active viewport restores the camera")
 	check(client.entity_parent == null, "destroying an active viewport returns live entity ownership")

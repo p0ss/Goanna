@@ -314,3 +314,15 @@ usability, remapping and screen-reader output remain unverified. Large
 text scrolls instead of shrinking controls. The optional minimap, saved
 projects and workstation planning contexts remain future work. Existing
 layer-generation budget overruns are unchanged.
+
+
+On 27 October 2026, the full four-package DorfCraft snapshot `f74a5269`
+produced a 68,608-byte opening reply. Its chunked `hello` was discarded
+because the receiver accepted only chunked `layer` replies. The receiver
+now accepts both. The headless contract suite passes 83 checks, including
+an opening reply larger than one packet. A scratch Luanti 5.17.0,
+Mineclonia 39603 and Godot 4.5.1 session received the opening reply and a
+terrain snapshot, then restored speed, jump and gravity to one on leaving.
+This checks the protocol and server restoration, not Wayland pointer capture
+or rendered acceptance. Pointer capture now happens after the isolated
+viewport is removed during exit.
