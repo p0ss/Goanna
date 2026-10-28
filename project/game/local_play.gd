@@ -22,6 +22,7 @@ var _closing := false
 # no roster read from local_launch.gd, so they can add players themselves.
 var game_factory := Callable()
 var automatic_launch := true
+var _pointer_capture: Node
 var capture_mouse := true
 
 func _ready() -> void:
@@ -30,6 +31,10 @@ func _ready() -> void:
 	capture_mouse = capture_mouse and DisplayServer.get_name() != "headless" \
 		and OS.get_environment("GOANNA_NO_POINTER_CAPTURE") in ["", "0"] \
 		and OS.get_environment("GOANNA_CONTROL").is_empty()
+	if capture_mouse:
+		_pointer_capture = preload("res://input/pointer_capture.gd").new()
+		_pointer_capture.blocked = _pointer_blocked
+		add_child(_pointer_capture)
 	# Each slot has its own gamepad.gd reading only its device; the autoload
 	# would read every controller at once, so it sleeps until the menu returns.
 	_menu_gamepad = get_node_or_null("/root/Gamepad")
@@ -184,8 +189,16 @@ func _notification(what: int) -> void:
 		for slot in slots:
 			slot.release_controls()
 
+## Loading and modal state can change without a new capture request.
+func _pointer_blocked() -> bool:
+	for slot in slots:
+		if slot.device_id == -1 and slot.game != null:
+			return slot.game.connect_overlay != null \
+				or (slot.game.ui != null and slot.game.ui.blocks_input()) \
+				or (slot.game.overseer != null and slot.game.overseer.active)
+	return false
+
 ## Captures the OS pointer only while the keyboard player's game wants it.
-## Called by slots when their game's capture changes.
 func update_pointer_capture() -> void:
 	if not capture_mouse:
 		return
@@ -193,7 +206,8 @@ func update_pointer_capture() -> void:
 	for slot in slots:
 		if slot.device_id == -1 and slot.game != null:
 			captured = slot.game.pointer_captured()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
+	if _pointer_capture != null:
+		_pointer_capture.want_capture(captured)
 
 func return_to_menu() -> void:
 	if _closing:

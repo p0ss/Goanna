@@ -1266,7 +1266,37 @@ void testFaceTowardsExactCaveIsDark() {
     expect(east > 0, "wall facing the exact cave block was not drawn");
 }
 
+void testAppendedVertexAttributes() {
+    auto make = [](uint8_t light) {
+        LodRegionMesh mesh;
+        LodSurface sf;
+        sf.texture_id = 7;
+        sf.pos = {v3f(0, 0, 0), v3f(1, 0, 0), v3f(0, 0, 1)};
+        sf.nrm.assign(3, v3f(0, 1, 0));
+        sf.uv.assign(3, v2f(0, 0));
+        sf.uv2.assign(3, v2f(0, 0));
+        sf.col.assign(3, 0xffffffff);
+        sf.custom0.assign(12, light);
+        sf.custom2.assign(12, light + 1);
+        sf.idx = {0, 1, 2};
+        mesh.surfaces.push_back(std::move(sf));
+        return mesh;
+    };
+    auto mesh = make(3);
+    appendLodMesh(mesh, make(9));
+    expect(mesh.surfaces.size() == 1, "matching material groups must merge");
+    const auto &sf = mesh.surfaces[0];
+    expect(sf.pos.size() == 6 && sf.nrm.size() == 6 && sf.uv.size() == 6 &&
+            sf.uv2.size() == 6 && sf.col.size() == 6, "merged vertex arrays must align");
+    expect(sf.custom0.size() == 24 && sf.custom2.size() == 24,
+            "merged light and AO attributes must cover every vertex");
+    expect(sf.custom2[11] == 4 && sf.custom2[12] == 10,
+            "both source AO values must survive the merge");
+    expect(sf.idx == std::vector<u32>({0, 1, 2, 3, 4, 5}), "merged indices must be rebased");
+}
+
 int main() {
+    testAppendedVertexAttributes();
     testSparseCaptureBounds();
     testHorizonUsesSurfaceHeight();
     testProjectedDetailIncludesAltitudeAndResolution();

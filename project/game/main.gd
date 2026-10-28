@@ -311,6 +311,7 @@ var _bob_phase := 0.0
 var shots_done := false
 var _chat_sent := false
 var chest_opened := false
+var _pointer_capture: Node
 var fly_mode := false
 var walk_started := false
 var dig_down := false
@@ -503,6 +504,13 @@ func _ready() -> void:
 		# real answer, because its windows never reach the desktop at all.
 		get_window().set_flag(Window.FLAG_NO_FOCUS, true)
 	showcase_mode = OS.get_environment("GOANNA_SHOWCASE") != ""
+	if player_slot == null and not test_mode and not showcase_mode:
+		_pointer_capture = preload("res://input/pointer_capture.gd").new()
+		_pointer_capture.blocked = func() -> bool:
+			return connect_overlay != null or (ui != null and ui.blocks_input()) \
+				or (overseer != null and overseer.active)
+		add_child(_pointer_capture)
+
 	add_to_group("goanna_main")  # game_ui updates look controls through this group
 	# The showcase behind the menu is not played, so it leaves the controller
 	# driving the menu's cursor.
@@ -1134,7 +1142,8 @@ func set_pointer_captured(on: bool) -> void:
 	if test_mode:
 		_virtual_capture = on
 		return
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE)
+	if _pointer_capture != null:
+		_pointer_capture.want_capture(on)
 
 # Bob the camera along a walk cycle while moving on the ground: vertical at
 # twice the stride frequency, a gentle side sway at the stride frequency,

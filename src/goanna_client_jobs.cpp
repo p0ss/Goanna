@@ -20,40 +20,6 @@
 
 using namespace godot;
 
-namespace {
-// Two resolutions can contribute to one regional ArrayMesh. Append matching
-// texture surfaces instead of leaving a cell-1 shell and cell-4 fallback as
-// separate scene objects (and therefore separate draw calls).
-void appendLodMesh(goanna::LodRegionMesh &dst, goanna::LodRegionMesh &&src) {
-    dst.ground.insert(dst.ground.end(),src.ground.begin(),src.ground.end());
-    dst.faces += src.faces;
-    dst.quads += src.quads;
-    dst.surface_cells += src.surface_cells;
-    dst.skirts += src.skirts;
-    dst.partial += src.partial;
-    dst.max_span = std::max(dst.max_span, src.max_span);
-    for (goanna::LodSurface &from : src.surfaces) {
-        auto it = std::find_if(dst.surfaces.begin(), dst.surfaces.end(), [&](const goanna::LodSurface &to) {
-            return to.texture_id == from.texture_id && to.liquid == from.liquid;
-        });
-        if (it == dst.surfaces.end()) {
-            dst.surfaces.push_back(std::move(from));
-            continue;
-        }
-        const u32 base = (u32)it->pos.size();
-        it->pos.insert(it->pos.end(), from.pos.begin(), from.pos.end());
-        it->nrm.insert(it->nrm.end(), from.nrm.begin(), from.nrm.end());
-        it->uv.insert(it->uv.end(), from.uv.begin(), from.uv.end());
-        it->uv2.insert(it->uv2.end(), from.uv2.begin(), from.uv2.end());
-        it->col.insert(it->col.end(), from.col.begin(), from.col.end());
-        it->custom0.insert(it->custom0.end(), from.custom0.begin(), from.custom0.end());
-        it->idx.reserve(it->idx.size() + from.idx.size());
-        for (u32 i : from.idx)
-            it->idx.push_back(base + i);
-    }
-}
-} // namespace
-
 namespace goanna {
 
 // The near batch job: concatenate one region's member surfaces into merged

@@ -278,6 +278,9 @@ struct LodSurface {
     std::vector<uint8_t> custom2; // corner AO, raw block/day levels, validity
     std::vector<u32> idx;
 };
+// Append material groups with every vertex attribute and rebased indices.
+void appendLodMesh(struct LodRegionMesh &dst, struct LodRegionMesh &&src);
+
 // Upward ground faces actually emitted by a mesh, in unshifted Luanti nodes.
 // Source occupancy alone cannot prove that a replacement covers the preview.
 struct LodGroundPatch {int x=0,z=0,size=1;float height=0;};
