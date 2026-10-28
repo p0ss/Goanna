@@ -81,6 +81,11 @@ func _run() -> void:
 	check(starting.stopped and menu.server == null, "A startup timeout stops the owned server")
 	check(menu.status_label.text.contains(starting.log_path), "The timeout retains the server log path")
 	check(menu.status_label.text.contains("five minutes"), "The timeout explains how long it waited")
+	check(buttons(menu._footer, "Open server log").size() == 1, "Startup errors offer the actual server log")
+	var cause := preload("res://net/local_server.gd").startup_error(
+		"2026 ERROR[Main]: ModError: Failed to load example\n2026 ERROR[Main]: init.lua:12: missing dependency")
+	check(cause.contains("init.lua:12") and cause.contains("ModError"), "Startup errors retain their Lua cause")
+	check(not cause.contains("2026 ERROR"), "Startup errors omit the log prefix")
 	menu.free()
 	await process_frame
 	print("local play menu: %d failures" % failures)

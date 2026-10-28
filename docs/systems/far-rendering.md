@@ -45,7 +45,9 @@ wants fixing.
   occluders, so far regions hidden behind hills and cave walls are not
   drawn.
 - **Handoffs.** A region keeps its old mesh until its replacement is
-  published, so moving between tiers should not open holes.
+  published, so moving between tiers should not open holes. The far-to-near
+  barrier starts before the detailed mesh worker is submitted, retaining
+  the published far region while that worker and its upload are pending.
 
 ## Settings
 

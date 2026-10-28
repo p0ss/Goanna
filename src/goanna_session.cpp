@@ -2313,47 +2313,66 @@ static size_t loadMappedPack(const std::string &map_csv, const std::string &pack
 bool GoannaSession::prepareContentIfReady() {
     if (!m_content_ready || m_send_ready || m_content_hold)
         return false;
-    // 1. media images into the texture source
-    size_t n_img = 0;
-    {
+    auto progress = [&](const char *stage, size_t done = 0, size_t total = 0) {
+        std::lock_guard<std::mutex> lk(m_stats_mutex);
+        m_stats.preparation_stage = stage;
+        m_stats.preparation_done = done;
+        m_stats.preparation_total = total;
+    };
+    if (m_preparation_step == 0) {
         std::lock_guard<std::mutex> lk(m_media_mutex);
-        std::string media_identity;
-        for (auto &kv : m_media) {
-            // Node meshes can change without their definition's filename
-            // changing. Bind shared geometry to the actual received media.
-            media_identity += std::to_string(kv.first.size()) + ":" + kv.first;
-            media_identity += hashing::sha256(kv.second);
-            if (isImageName(kv.first) && m_tsrc->insertMediaImage(kv.first, kv.second))
-                ++n_img;
-        }
-        m_terrain_media_identity = hashing::sha256(media_identity);
+        for (const auto &kv : m_media)
+            m_preparation_media.push_back(kv.first);
+        progress("Decoding textures", 0, m_preparation_media.size());
+        m_preparation_step = 1;
+        return false;
     }
-    // 1b. The player's pack, after media so it wins. Native Luanti packs are
-    // indexed by their flat media names; Minecraft packs use the game map.
+    if (m_preparation_step == 1) {
+        // Image decoding must stay on the main thread. Yield between bounded
+        // batches so the overlay, cancellation and window events keep moving.
+        const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(4);
+        do {
+            if (m_preparation_cursor >= m_preparation_media.size()) break;
+            const std::string &name = m_preparation_media[m_preparation_cursor++];
+            std::lock_guard<std::mutex> lk(m_media_mutex);
+            const auto &data = m_media.at(name);
+            m_preparation_identity += std::to_string(name.size()) + ":" + name;
+            m_preparation_identity += hashing::sha256(data);
+            if (isImageName(name) && m_tsrc->insertMediaImage(name, data))
+                ++m_preparation_images;
+        } while (std::chrono::steady_clock::now() < until);
+        progress("Decoding textures", m_preparation_cursor, m_preparation_media.size());
+        if (m_preparation_cursor < m_preparation_media.size()) return false;
+        m_terrain_media_identity = hashing::sha256(m_preparation_identity);
+        m_preparation_identity.clear();
+        m_preparation_media.clear();
+        m_preparation_step = 2;
+        progress("Loading texture pack");
+        return false;
+    }
     const std::string pack_dir = g_settings ? g_settings->get("texture_path") : std::string();
-    size_t n_native = loadNativePack(pack_dir, m_tsrc.get());
-    if (n_native)
-        infostream << "Goanna: native pack supplied " << n_native << " images" << std::endl;
-    size_t n_map = loadMappedPack(m_texture_map, pack_dir, m_tsrc.get());
-    if (n_map)
-        infostream << "Goanna: mapped pack supplied " << n_map << " images" << std::endl;
-    // This is deliberately visible in Godot's ordinary output, rather than
-    // only Luanti's info log.  A selected pack is release-critical and this
-    // identifies both whether it was imported and which cobble source won.
-    // Craft and Ruin's default_cobble is 16x16; Goanna's bundled Mineclonia
-    // material is 256x256, making the result an unambiguous runtime probe.
-    // 1c. The texture resolution tier: anything inserted before its art was
-    // known (a companion ahead of its albedo) is held to the cap now.
-    m_tsrc->finishTextureCap();
-    core::dimension2du cobble_dim = m_tsrc->getTextureDimensions("default_cobble.png");
-    const GoannaTextureSource::TextureCapStats &cap = m_tsrc->textureCapStats();
-    godot::UtilityFunctions::print("Goanna texture pack: path='",
-            godot::String::utf8(pack_dir.c_str()), "' native=", (int64_t)n_native,
-            " mapped=", (int64_t)n_map, " default_cobble=",
-            (int64_t)cobble_dim.Width, "x", (int64_t)cobble_dim.Height,
-            " texture_size=", (int64_t)m_tsrc->textureSize(), " reduced=", (int64_t)cap.reduced,
-            " (", (int64_t)(cap.bytes_before >> 20), " MiB to ", (int64_t)(cap.bytes_after >> 20),
-            " MiB) art_unknown=", (int64_t)cap.unknown);
+    if (m_preparation_step == 2) {
+        m_preparation_native = loadNativePack(pack_dir, m_tsrc.get());
+        m_preparation_step = 3;
+        progress("Preparing mapped materials");
+        return false;
+    }
+    if (m_preparation_step == 3) {
+        const size_t n_map = loadMappedPack(m_texture_map, pack_dir, m_tsrc.get());
+        m_tsrc->finishTextureCap();
+        const core::dimension2du dim = m_tsrc->getTextureDimensions("default_cobble.png");
+        const auto &cap = m_tsrc->textureCapStats();
+        godot::UtilityFunctions::print("Goanna texture pack: path='",
+                godot::String::utf8(pack_dir.c_str()), "' native=", (int64_t)m_preparation_native,
+                " mapped=", (int64_t)n_map, " default_cobble=", (int64_t)dim.Width, "x",
+                (int64_t)dim.Height, " texture_size=", (int64_t)m_tsrc->textureSize(),
+                " reduced=", (int64_t)cap.reduced, " (", (int64_t)(cap.bytes_before >> 20),
+                " MiB to ", (int64_t)(cap.bytes_after >> 20), " MiB) art_unknown=",
+                (int64_t)cap.unknown);
+        m_preparation_step = 4;
+        progress("Building node visuals and models");
+        return false;
+    }
     // 2. node definitions: same order as Client::afterContentReceived
     {
         std::lock_guard<std::mutex> lk(m_map_mutex);
@@ -2444,10 +2463,10 @@ bool GoannaSession::prepareContentIfReady() {
             if (!cf.name.empty() && cf.name != "unknown") ++defs;
         }
         fprintf(stderr, "goanna content: images=%zu defs=%zu probe_ok=%d probe_id=%u visuals=%d\n",
-                n_img, defs, (int)got, (unsigned)probe,
+                m_preparation_images, defs, (int)got, (unsigned)probe,
                 (int)(m_nodedef->get(probe).visuals != nullptr));
     }
-    actionstream << "goanna: content prepared: " << n_img << " images, node visuals filled" << std::endl;
+    actionstream << "goanna: content prepared: " << m_preparation_images << " images, node visuals filled" << std::endl;
     m_send_ready = true; // session thread sends CLIENT_READY
     return true;
 }

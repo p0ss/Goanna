@@ -45,6 +45,16 @@ be written, joining still continues with downloaded media.
 The join screen distinguishes **Loading cached media**, **Downloading
 media** and **Preparing world**. The download count excludes cache hits;
 preparation loads the media into textures and models for the new session.
+Before media is announced, the screen reports the connection or definition
+stage and elapsed time. Preparation reports texture decoding counts, then
+the texture pack, mapped materials and node visuals. Stages without a
+known total use an indeterminate bar rather than a completed percentage.
+Texture decoding yields between batches; pack loading and node visual
+construction still run as individual main thread steps.
+
+A failed local server start shows its error with the following Lua context
+and the actual log path. **Open server log** opens that file in the
+desktop's associated application; **Copy log path** copies the path.
 This cache is separate from the enhanced material bundles below.
 
 ## Enhanced materials

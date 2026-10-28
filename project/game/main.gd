@@ -1495,6 +1495,7 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		_show_connect_error()
 		return
 	connect_bar.visible = true
+	connect_bar.indeterminate = false
 	connect_detail.modulate = Color(1, 1, 1, 0.7)
 	# Only once the server's media is in: the hold is set from the start of
 	# the join, and before then the screen is still connecting.
@@ -1505,11 +1506,14 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		var progress := preload("res://game/media_progress.gd").describe(s)
 		connect_title.text = progress.title
 		connect_bar.value = progress.progress
-		connect_detail.text = progress.detail
+		connect_bar.indeterminate = progress.indeterminate
+		connect_detail.text = "%s\nElapsed: %d seconds." % [progress.detail,
+			(Time.get_ticks_msec() - _connect_started_ms) / 1000]
 	else:
-		connect_title.text = "Connecting"
-		connect_bar.value = 0.0
-		connect_detail.text = msg if msg != "" else state
+		connect_title.text = "Receiving world definitions" if state == "definitions" else "Connecting"
+		connect_bar.indeterminate = true
+		connect_detail.text = "%s\nElapsed: %d seconds." % [msg if msg != "" else state,
+			(Time.get_ticks_msec() - _connect_started_ms) / 1000]
 
 # A failed connection: the way back, focused, and the reason read aloud.
 func _show_connect_error() -> void:

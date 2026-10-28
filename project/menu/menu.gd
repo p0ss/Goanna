@@ -556,8 +556,12 @@ func _button(text: String, cb: Callable) -> Button:
 	b.pressed.connect(cb)
 	return b
 
-func _fail(msg: String) -> void:
+func _fail(msg: String, log_path := "") -> void:
 	status_label.text = msg
+	if log_path != "":
+		status_label.text += "\nServer log: " + log_path
+		_footer.add_child(_button("Open server log", func(): OS.shell_open(log_path)))
+		_footer.add_child(_button("Copy log path", func(): DisplayServer.clipboard_set(log_path)))
 	if narrator != null and narrator.enabled:
 		narrator.say(msg)
 	GlassStyle.tint_text(status_label, Color(1, 0.6, 0.5))
@@ -2150,18 +2154,23 @@ func _process(_delta: float) -> void:
 		_go_to_game()
 	elif st != "starting":
 		set_process(false)
+		var startup_log: String = server.log_path
 		server.stop()
 		server = null
-		_fail(st)
+		_fail(st, startup_log)
 		start_button.disabled = false
 	elif _now() > server_deadline:
 		set_process(false)
 		var startup_log: String = server.log_path
 		server.stop()
 		server = null
-		_fail("The server did not start within five minutes. See %s." % startup_log)
+		_fail("The server did not start within five minutes.", startup_log)
 		if start_button:
 			start_button.disabled = false
+
+	else:
+		var elapsed := maxi(0, int(SERVER_START_TIMEOUT_SECONDS - (server_deadline - _now())))
+		status_label.text = "Starting world: loading server mods and generating spawn. %d seconds elapsed." % elapsed
 
 func _local_player_name() -> String:
 	var cfg := ConfigFile.new()

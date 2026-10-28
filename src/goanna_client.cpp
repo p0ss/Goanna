@@ -325,6 +325,9 @@ Dictionary GoannaClient::status() const {
     d["media_cached"] = (int)s.media_cached;
     d["media_downloaded"] = (int)s.media_downloaded;
     d["media_cache_checked"] = s.media_cache_checked;
+    d["preparation_stage"] = String::utf8(s.preparation_stage.c_str());
+    d["preparation_done"] = (int64_t)s.preparation_done;
+    d["preparation_total"] = (int64_t)s.preparation_total;
     d["materials"] = m_materials.size();
     d["camera_fov"] = m_session->cameraFov.load(std::memory_order_relaxed);
     int n_lights = 0;

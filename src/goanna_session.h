@@ -102,6 +102,8 @@ struct SessionStats {
     size_t media_cached = 0;
     size_t media_downloaded = 0;
     bool media_cache_checked = false;
+    std::string preparation_stage;
+    size_t preparation_done = 0, preparation_total = 0;
     size_t blocks_received = 0;
     v3f player_pos = v3f(0, 0, 0);
     float player_pitch = 0, player_yaw = 0;
@@ -131,7 +133,7 @@ public:
 
     // Main-thread step: when the session reaches ContentReady, decode media
     // into the texture source, fill node visuals, then send CLIENT_READY.
-    // Returns true if it did the work this call.
+    // Returns true only when all preparation finished in this call.
     bool prepareContentIfReady();
     bool contentPrepared() const { return m_content_prepared; }
     // While held, the content that has arrived is not prepared and READY is
@@ -596,8 +598,9 @@ private:
     // thread polls it each loop and clears it itself on a fatal error.
     std::atomic<bool> m_running{false};
 
-    // Guards m_stats. The session thread writes it as the handshake and the
-    // blocks progress; stats() copies it out on either thread.
+    // Guards m_stats. The main thread writes preparation progress; the
+    // session thread writes handshake and block progress. stats() copies
+    // the snapshot out on either thread.
     mutable std::mutex m_stats_mutex;
     SessionStats m_stats;
 
@@ -700,6 +703,12 @@ private:
     // games, and blocks meshed in it render as unknown nodes.
     std::atomic<bool> m_content_prepared{false};
     std::atomic<bool> m_send_ready{false};
+    // Main-thread preparation is resumed once per poll, between drawn frames.
+    int m_preparation_step = 0;
+    std::vector<std::string> m_preparation_media;
+    size_t m_preparation_cursor = 0, m_preparation_images = 0;
+    std::string m_preparation_identity;
+    size_t m_preparation_native = 0;
     // A MOVE_PLAYER from the server, under m_pose_mutex: written by the
     // session thread, taken once by the main thread (takeServerMove).
     bool m_server_move_pending = false;

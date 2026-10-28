@@ -2518,7 +2518,7 @@ func _draw_hud() -> void:
 	if far_hint_alpha > 0.0:
 		var f := hud.get_theme_default_font()
 		var fs := int(15 * hud_scale)
-		var text := "Loading distant terrain (%d tiles)" % far_hint_last if render_stats_cache.get("surface_offered", false) else "Generating distant terrain (%d cells so far)" % far_hint_last
+		var text := "Loading distant terrain (%d tiles)" % far_hint_last if render_stats_cache.get("surface_offered", false) else "Loading distant terrain in the background (%d cells received)" % far_hint_last
 		var w := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var pos := Vector2((vs.x - w) / 2.0, 28.0 * hud_scale)
 		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,

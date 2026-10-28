@@ -1756,29 +1756,41 @@ var _ready_seen_ms := 0
 
 # Poll the log for the "listening" line. Returns "starting", "ready" or an
 # error string.
+## Keep the cause and its immediate Lua context; timestamps alone are no help.
+static func startup_error(text: String) -> String:
+	var lines := text.split("\n")
+	var cause: Array[String] = []
+	for line in lines:
+		var at := line.find("ERROR[Main]:")
+		if at >= 0:
+			var detail := line.substr(at + "ERROR[Main]:".length()).strip_edges()
+			if detail != "":
+				cause.append(detail)
+			if cause.size() >= 6:
+				break
+	if not cause.is_empty():
+		return "\n".join(cause)
+	for line in lines:
+		if line.begins_with("luanti-slot:") and (line.contains("refus") or line.contains("limit")):
+			return line.strip_edges()
+	return ""
+
 func poll_ready() -> String:
 	if not FileAccess.file_exists(log_path):
 		return "starting"
 	var text := FileAccess.get_file_as_string(log_path)
 	if text.find("already in use") >= 0 or text.find("Failed to bind") >= 0:
 		return "The server could not use port %d, which another program holds. Try again; Goanna picks another port each time." % port
+	var reason := startup_error(text)
 	if pid > 0 and not OS.is_process_running(pid):
-		for line in text.split("\n"):
-			if line.find("ERROR[Main]") >= 0:
-				return line.strip_edges()
-		return "The server stopped while starting. Its log is %s." % log_path
+		return reason if reason != "" else "The server stopped before it finished starting."
 	if text.find("listening on") >= 0 or text.find("Server for gameid") >= 0:
 		if _ready_seen_ms == 0:
 			_ready_seen_ms = Time.get_ticks_msec()
 		if Time.get_ticks_msec() - _ready_seen_ms >= READY_SETTLE_MS:
 			return "ready"
 		return "starting"
-	if text.findn("error") >= 0 and text.findn("ERROR[Main]") >= 0:
-		# surface the first hard error line
-		for line in text.split("\n"):
-			if line.find("ERROR[Main]") >= 0:
-				return line.strip_edges()
-	return "starting"
+	return reason if reason != "" else "starting"
 
 ## Stop the server and anything it started, by PID (net/owned_process.gd).
 func stop() -> void:

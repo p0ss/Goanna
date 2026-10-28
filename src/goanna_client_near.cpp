@@ -770,6 +770,8 @@ int GoannaClient::poll_blocks(int max_blocks) {
         // take 90 to 127 ms while streaming. If it later leaves the live set,
         // the storage worker derives or reloads its hierarchy when needed.
         m_lod_loads.erase(bp); // invalidate any older asynchronous result
+        if (tier == 0)
+            lodBeginNearHandoff(bp); // retain the drawn source while the near worker runs
         m_lod_chains.erase(bp); // discard an older summary/store view
         m_lod_chain_queued.erase(bp); // stale deque entries are harmless
         m_lod_chain_waiters.erase(bp);
