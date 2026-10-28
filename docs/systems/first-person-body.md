@@ -49,7 +49,8 @@ player stands, with no nudge along the look.
 ## The head and the shadow
 
 To keep the head out of the camera, `ModelAnimator` collapses the model's
-`Head` joint to a hundredth of its size each step, and any hat layers
+`Head` joint (or lowercase `head` on framed folk) to a hundredth of its
+size each step, and any hat layers
 attached to it go with it.
 
 The player model is a single skinned `MeshInstance3D` with several surfaces

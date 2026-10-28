@@ -1,0 +1,56 @@
+{
+  "checks": [
+    "Real native server joined",
+    "Tiger head and jaw collapse in first person",
+    "Tiger shadow retains full head",
+    "Tiger head and jaw return in third person",
+    "Tiger head hides again after camera cycle"
+  ],
+  "measurements": [
+    {
+      "bodies": [
+        {
+          "head": 0.00999999884516001,
+          "jaw": 0.00999999884516001,
+          "shadow": 0
+        },
+        {
+          "head": 0.99999988079071,
+          "jaw": 0.99999988079071,
+          "shadow": 3
+        }
+      ],
+      "mode": "first"
+    },
+    {
+      "bodies": [
+        {
+          "head": 1.0,
+          "jaw": 1.0,
+          "shadow": 0
+        },
+        {
+          "head": 1.0,
+          "jaw": 1.0,
+          "shadow": 3
+        }
+      ],
+      "mode": "third"
+    },
+    {
+      "bodies": [
+        {
+          "head": 0.00999999884516001,
+          "jaw": 0.00999999884516001,
+          "shadow": 0
+        },
+        {
+          "head": 0.999999940395355,
+          "jaw": 0.999999940395355,
+          "shadow": 3
+        }
+      ],
+      "mode": "first_again"
+    }
+  ]
+}

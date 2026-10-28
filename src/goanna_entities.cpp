@@ -796,7 +796,9 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         en.skeleton = skin_under_skeleton(mi);
         en.animator = std::make_unique<ModelAnimator>(model);
         if (obj.isLocalPlayer()) {
-            en.animator->setShrinkJoint("Head");
+            // Mineclonia uses Head; framed folk use head. The same
+            // first-person collapse must include either model's head subtree.
+            en.animator->setShrinkJoint(en.animator->hasJoint("Head") ? "Head" : "head");
             // The head is shrunk out of the lens, which also took it out of
             // the shadow: one skinned mesh cannot be headless to the camera
             // and whole to the light. So the local player gets a second copy
