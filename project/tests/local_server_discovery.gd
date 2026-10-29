@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_located()
 	_portable_archive()
 	_game_archive()
+	_modpack_archive()
 	_copied_server()
 	_titles()
 	LocalServer._remove_tree(base)
@@ -247,6 +248,28 @@ func _game_archive() -> void:
 		_zip(path, bad)
 		_assert(LocalServer.install_game_archive(path, FileAccess.get_sha256(path),
 			dir.path_join("bad"), "bad") != "", "a malformed game archive was accepted: %s" % str(bad))
+
+
+# Kindred installs as a modpack so Mineclonia keeps its game identity.
+func _modpack_archive() -> void:
+	var dir := base.path_join("modpack-archive")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var archive := dir.path_join("preview.zip")
+	_zip(archive, ["preview/modpack.conf", "preview/kindred/mod.conf", "preview/kindred/init.lua"])
+	var mods := dir.path_join("mods")
+	_assert(LocalServer.install_game_archive(archive, "0".repeat(64), mods,
+		"kindred_holdfast", "modpack.conf") != "", "a modpack with the wrong hash was accepted")
+	_assert(not DirAccess.dir_exists_absolute(mods), "a rejected modpack wrote files")
+	var sha := FileAccess.get_sha256(archive)
+	_assert(LocalServer.install_game_archive(archive, sha, mods,
+		"kindred_holdfast", "modpack.conf") == "", "a valid modpack was refused")
+	_assert(LocalServer.mod_members(mods.path_join("kindred_holdfast")) == ["kindred"],
+		"the installed modpack does not expose its leaf mods")
+	_file(mods.path_join("kindred_holdfast/keep.txt"), "mine")
+	_assert(LocalServer.install_game_archive(archive, sha, mods,
+		"kindred_holdfast", "modpack.conf") == "" and
+		FileAccess.file_exists(mods.path_join("kindred_holdfast/keep.txt")),
+		"reinstalling replaced a modpack")
 
 
 # The bundled Linux server is copied whole into Goanna's own folder.

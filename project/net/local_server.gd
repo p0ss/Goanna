@@ -152,18 +152,46 @@ const _EXECUTABLE_NAMES := ["luantiserver", "minetestserver", "luanti", "minetes
 # Flatpak had no way to start a world without a package manager and a
 # password.
 const BUNDLED_SERVER_FOLDER := "luanti-server"
-# The game Get ready to play installs when the chosen Luanti has none: the
-# Mineclonia release Goanna's materials are made for (the authored pack's
-# recipe names the same archive). Pinned with its hash, because it is code
-# the server will run; Luanti's own content manager can update it later.
-const STARTER_GAME := {
-	"id": "mineclonia",
-	"title": "Mineclonia",
-	"version": "0.123.1",
-	"url": "https://content.luanti.org/uploads/0e17a07e64.zip",
-	"sha256": "abeacf4e202d6e01a63119a36b46751eb6abfd42948a0b06e1ba8f63fb849e59",
-	"bytes": 29204259,
-}
+# Pinned games for Get ready to play and Content. Mineclonia is the release
+# Goanna's materials are made for; the upstream ZIP has different container
+# bytes from ContentDB's archive. Hashes cover the actual downloads, because
+# the server will run their code. Luanti can update upstream games later.
+# Prepared by tools/release/build-game-mirrors.py. The mirrors keep upstream
+# source and licence files; Kindred is a separate modpack on Mineclonia.
+const INSTALLABLE_GAMES := [
+	{
+		"id": "mineclonia",
+		"title": "Mineclonia",
+		"version": "0.123.1",
+		"kind": "game",
+		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.1/mineclonia-0.123.1.zip",
+		"sha256": "0363b120cedc10bc101a94b7a340435c242eaad434ad1b9a846fc49a9d85eb2a",
+		"bytes": 29711722,
+		"upstream": "https://codeberg.org/mineclonia/mineclonia/archive/52a43e5c4b1877d8301231eda3e28e6b41380f87.zip"
+	},
+	{
+		"id": "mineclone2",
+		"title": "VoxeLibre",
+		"version": "0.92.3",
+		"kind": "game",
+		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.1/voxelibre-0.92.3.zip",
+		"sha256": "4c3b3cacdd745c870a4330df20672b3418ac3c22dd20909faa3af4d15d14f3f5",
+		"bytes": 85004136,
+		"upstream": "https://github.com/VoxeLibre/VoxeLibre/archive/a523240fb89713ffa6302696e8275bbd7de3bd49.zip"
+	},
+	{
+		"id": "kindred_holdfast",
+		"title": "Kindred Holdfast (preview)",
+		"version": "d6b6bceb32b0",
+		"kind": "modpack",
+		"requires": "mineclonia",
+		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.1/kindred-holdfast-preview-d6b6bceb32b0.zip",
+		"sha256": "edfa7a86d38aad2b038ae84d1a6c57f2dbc51dba21f651e3820eaf0fdfd1f052",
+		"bytes": 177040333,
+		"upstream": "Kindred repository commit d6b6bceb32b0922e675a1d172dc31d3be2131d47"
+	}
+]
+const STARTER_GAME := INSTALLABLE_GAMES[0]
 
 static var _installs: Array = []
 static var _scanned := false
@@ -863,24 +891,25 @@ static func _copy_tree(source: String, destination: String) -> String:
 	return ""
 
 # Unpacks a game archive, already downloaded to `archive_path`, into
-# `games_dir` as `game_id`. Checked against `expected_sha256` first. A game
+# `games_dir` as `game_id`. The marker is modpack.conf for a modpack.
+# Checked against `expected_sha256` first. A game
 # already there is kept rather than replaced. Returns "" or an error for the
 # player.
 static func install_game_archive(archive_path: String, expected_sha256: String,
-		games_dir: String, game_id: String) -> String:
+		games_dir: String, game_id: String, marker := "game.conf") -> String:
 	if expected_sha256.length() != 64 \
 			or FileAccess.get_sha256(archive_path).to_lower() != expected_sha256.to_lower():
 		return "The game download failed its integrity check and was discarded."
 	var destination := games_dir.path_join(game_id)
-	if FileAccess.file_exists(destination.path_join("game.conf")):
+	if FileAccess.file_exists(destination.path_join(marker)):
 		return ""
 	var unpacked := _unpack_one_folder(archive_path, games_dir)
 	if unpacked.has("error"):
 		return str(unpacked["error"])
 	var folder := str(unpacked["folder"])
-	if not FileAccess.file_exists(folder.path_join("game.conf")):
+	if not FileAccess.file_exists(folder.path_join(marker)):
 		_remove_tree(str(unpacked["staging"]))
-		return "The game download has no game.conf."
+		return "The download has no %s." % marker
 	if DirAccess.rename_absolute(folder, destination) != OK:
 		_remove_tree(str(unpacked["staging"]))
 		return "Could not move the game into %s." % destination

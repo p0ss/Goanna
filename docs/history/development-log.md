@@ -12,6 +12,21 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Mirror starter games independently of ContentDB, 29 October 2026.
+  Get ready to play and Content offer pinned Mineclonia 0.123.1,
+  VoxeLibre 0.92.3 and Kindred Holdfast preview d6b6bceb32b0. The preview
+  installs a separate four-package modpack on Mineclonia, preserving its
+  game identity. SHA-256 checks precede extraction; existing installs are
+  kept. Unpacking runs on a file-only worker so the menu stays responsive.
+  Headless discovery and modpack regression tests pass on Godot 4.5.1.
+  The actual menu selects Mineclonia with Kindred enabled, then switches to
+  VoxeLibre with it disabled, in a temporary profile. All three extracted
+  packages pass isolated startup on unmodified Luanti 5.17.0 Flatpak, with
+  each report asserting the extracted game path. No player, rendered frame
+  or Windows run was tested. All public mirror downloads match their pinned
+  sizes and hashes. Existing Goanna binaries need an application
+  update to use these URLs.
+
 - Give shader packs their own tabs, 18 October 2026. Start Game places the
   full picker and pack options beside Mods; both Settings screens have a
   Shader packs tab. Join Game retains its compact picker. Shorten the help

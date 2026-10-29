@@ -35,10 +35,16 @@ and no package manager.
   Install Luanti does below. Run from a source checkout on Linux, it uses
   `dist/luanti-server/` after `tools/release/build-luanti-server.sh`, or else
   Flathub.
-- **The game.** When the Luanti has no games, it downloads Mineclonia
-  0.123.1 from ContentDB (29 MB), the release Goanna's materials are made
-  for, checks it against the hash Goanna carries and installs it into that
-  Luanti's games. Luanti's own Content tab can update it or add others later.
+- **The game.** Choose Mineclonia 0.123.1 (30 MB), VoxeLibre 0.92.3
+  (85 MB), or Kindred Holdfast preview (177 MB, plus Mineclonia if missing).
+  Downloads come from pinned Goanna mirrors on GitHub, with SHA-256 checks,
+  and do not need ContentDB. Existing games are kept. Luanti's own Content
+  tab can update upstream games or add others later.
+- **Kindred Holdfast preview.** Installs the four Kindred packages together
+  as a separate modpack on Mineclonia. Start Game selects Mineclonia and
+  enables the modpack for a fresh world. This is a development preview;
+  saved worlds may not migrate between previews. Separately installed
+  Kindred packages must be moved aside before installing it.
 
 It then opens Start Game with a new world ready. Checked from nothing to a
 running world in clean Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 and Arch
@@ -58,7 +64,7 @@ list of what Goanna found instead, with these options:
   kept too. On macOS, or on Linux without Flatpak, use **Download page** or
   your distribution's packages instead.
 - **Get ready to play** appears when the chosen Luanti has nothing to start,
-  and installs Mineclonia as above.
+  and installs your chosen game as above.
 - **Open Luanti** starts that install's own client, where other games can be
   installed from its Content tab; press **Rescan** after.
 - **Show where Goanna looked** lists every place it searched, for a bug
@@ -67,6 +73,25 @@ list of what Goanna found instead, with these options:
 Not yet tried on Windows itself: the Windows lookup, the Windows install and
 Get ready to play on Windows have only been exercised against the real zip
 unpacked on Linux.
+
+To add another game later, open **Content > Install a game ...**. The
+choices are the same as first-run setup. Downloads require a connection to
+GitHub; the game archives are not bundled with Goanna.
+
+## Maintaining the game mirrors
+
+`tools/release/build-game-mirrors.py` prepares archives and records their
+hashes, upstream sources and the Kindred source revision in `catalogue.json`
+and `SHA256SUMS`. Upstream game archives retain all source and licence
+files. Kindred is built from a named commit with `git archive`, which honours
+its export exclusions and leaves unfinished checkout changes out.
+
+Publish the archives, catalogue and checksums under an immutable
+`games-YYYY.MM.N` GitHub pre-release. Keep it a pre-release so the updater
+does not mistake it for a Goanna application release. Check every public
+archive against its recorded SHA-256 before shipping the installer URLs in
+`project/net/local_server.gd`. Never replace an already published archive;
+use a new tag and update the installer pins instead.
 
 ## Updates
 

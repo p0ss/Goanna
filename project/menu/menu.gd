@@ -604,17 +604,15 @@ func _on_update_state() -> void:
 
 # --- content -----------------------------------------------------------------
 
-# Read only, on purpose. Goanna does not own any of this: it borrows the Luanti
-# install it detected, and Start Game can only offer what that install carries.
-# Installing content is Luanti's own menu's job, and writing into another
-# application's data directories from here would be presumptuous.
+# Installed content and pinned downloads for the chosen Luanti.
 func _show_content() -> void:
 	var inst := LocalServer.detect()
 	if inst.is_empty():
 		_show_luanti("No Luanti install was found, so there is no content to show.")
 		return
-	_new_screen("Content", "What the Luanti install Goanna found already has. Goanna does not install content; use Luanti's own menu for that.")
+	_new_screen("Content", "Installed content for the chosen Luanti. Install a game here, or use Luanti for the full content catalogue.")
 	_luanti_row(inst)
+	screen.add_child(_button("Install a game ...", _show_setup))
 	var data_dir := str(inst["data_dir"])
 	var game_names: Array = []
 	for g in LocalServer.list_games(data_dir):
@@ -659,10 +657,8 @@ func _show_content() -> void:
 # at one the scan missed, or installs one. Start Game and Content open it by
 # themselves when there is nothing to run, instead of stopping at an error.
 #
-# Installing Luanti is offered, installing games is not: a game goes into
-# Luanti's own data directory, which is Luanti's menu's business (see
-# _show_content). So a Luanti with no games gets Open Luanti, which starts its
-# own client on its Content tab's doorstep.
+# Get ready to play installs pinned games into the chosen Luanti's data
+# directory. Open Luanti offers the full upstream content manager.
 var luanti_http: HTTPRequest
 var _luanti_archive_path := ""
 var _luanti_install_pid := -1
@@ -975,11 +971,14 @@ func _on_luanti_downloaded(result: int, code: int, _headers: PackedStringArray,
 # have to meet Luanti's content tab, a package manager or a password prompt:
 # a Luanti server (one already installed, else the server the Linux release
 # carries, else the official Windows build, else Flathub), then a game
-# (Mineclonia, when the chosen Luanti has none), then Start Game.
+# (a pinned upstream game, or Mineclonia with Kindred), then Start Game.
 const SETUP_TITLE := "Get ready to play"
 var _setup_running := false
 var game_http: HTTPRequest
 var _game_archive_path := ""
+var _setup_selection := 0
+var _setup_queue: Array = []
+var _downloading_game: Dictionary = {}
 
 func _setup_plan() -> Dictionary:
 	var chosen := LocalServer.detect()
@@ -993,8 +992,7 @@ func _setup_plan() -> Dictionary:
 			how = "flatpak"
 		else:
 			how = "none"
-	var need_game := chosen.is_empty() or (chosen["games"] as Array).is_empty()
-	return {"server": how, "game": need_game}
+	return {"server": how}
 
 func _show_setup(reason := "") -> void:
 	_stop_showcase()
@@ -1009,9 +1007,19 @@ func _show_setup(reason := "") -> void:
 				int(LocalServer.LUANTI_WINDOWS["bytes"]) / 1000000.0])
 		"flatpak":
 			steps.append("Install Luanti from Flathub. The first Flatpak install also downloads the runtime it needs, a few hundred MB, and may ask for a password.")
-	if bool(plan["game"]):
-		steps.append("Download the game %s %s (%.0f MB)." % [str(LocalServer.STARTER_GAME["title"]),
-			str(LocalServer.STARTER_GAME["version"]), int(LocalServer.STARTER_GAME["bytes"]) / 1000000.0])
+	var picker := OptionButton.new()
+	for game in LocalServer.INSTALLABLE_GAMES:
+		picker.add_item("%s %s (%.0f MB)" % [str(game["title"]), str(game["version"]), int(game["bytes"]) / 1000000.0])
+	picker.select(_setup_selection)
+	picker.item_selected.connect(func(index: int) -> void:
+		_setup_selection = index
+		_show_setup())
+	screen.add_child(picker)
+	var selected: Dictionary = LocalServer.INSTALLABLE_GAMES[_setup_selection]
+	if str(selected.get("kind", "game")) == "modpack":
+		steps.append("Install Mineclonia if needed, then add Kindred Holdfast. Preview: use a fresh world; saved worlds may not migrate between previews.")
+	else:
+		steps.append("Install this game if it is missing. Existing games are kept.")
 	var what := Label.new()
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	what.text = "\n".join(steps)
@@ -1033,6 +1041,10 @@ func _run_setup() -> void:
 	if _setup_running:
 		return
 	_setup_running = true
+	for control in screen.find_children("*", "BaseButton", true, false):
+		(control as BaseButton).disabled = true
+	for control in _footer.find_children("*", "BaseButton", true, false):
+		(control as BaseButton).disabled = true
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	match str(_setup_plan()["server"]):
 		"bundled":
@@ -1063,22 +1075,51 @@ func _setup_after_server(reason: String) -> void:
 	_setup_game()
 
 func _setup_game() -> void:
+	_setup_queue.clear()
+	var selected: Dictionary = LocalServer.INSTALLABLE_GAMES[_setup_selection]
+	if selected.get("kind", "game") == "modpack":
+		var chosen := LocalServer.detect()
+		if not chosen.is_empty():
+			var mods_dir := str(chosen["data_dir"]).path_join("mods")
+			for installed in LocalServer.list_mods(str(chosen["data_dir"])):
+				if installed == "kindred_holdfast":
+					continue
+				var members := LocalServer.mod_members(mods_dir.path_join(str(installed)))
+				for name in ["kindred", "kindred_creatures", "kindred_cultures", "kindred_world"]:
+					if members.has(name):
+						_setup_failed("Kindred packages are already installed separately. Enable those under Start Game > Mods, or move them out of Luanti's mods folder before installing this preview.")
+						return
+	if selected.get("requires", "") == "mineclonia":
+		_setup_queue.append(LocalServer.STARTER_GAME)
+	_setup_queue.append(selected)
+	_download_next_game()
+
+func _download_next_game() -> void:
 	var chosen := LocalServer.detect()
 	if chosen.is_empty():
 		_setup_failed("Luanti was installed, but Goanna cannot find it. Choose it yourself under Choose Luanti myself.")
 		return
-	if not (chosen["games"] as Array).is_empty():
+	if _setup_queue.is_empty():
 		_setup_done()
 		return
-	var games_dir := str(chosen["data_dir"]).path_join("games")
+	_downloading_game = _setup_queue.pop_front()
+	var is_modpack := str(_downloading_game.get("kind", "game")) == "modpack"
+	var marker := "modpack.conf" if is_modpack else "game.conf"
+	var games_dir := str(chosen["data_dir"]).path_join("mods" if is_modpack else "games")
+	var id := str(_downloading_game["id"])
+	if (not is_modpack and (chosen["games"] as Array).has(id)) \
+			or FileAccess.file_exists(games_dir.path_join(id).path_join(marker)):
+		_download_next_game()
+		return
 	DirAccess.make_dir_recursive_absolute(games_dir)
-	_game_archive_path = games_dir.path_join(".%s.zip.part" % str(LocalServer.STARTER_GAME["id"]))
+	_game_archive_path = games_dir.path_join(".%s.zip.part" % id)
 	DirAccess.remove_absolute(_game_archive_path)
 	game_http = HTTPRequest.new()
+	game_http.timeout = 600.0
 	game_http.download_file = _game_archive_path
 	add_child(game_http)
 	game_http.request_completed.connect(_on_game_downloaded.bind(games_dir))
-	if game_http.request(str(LocalServer.STARTER_GAME["url"])) != OK:
+	if game_http.request(str(_downloading_game["url"])) != OK:
 		game_http.queue_free()
 		game_http = null
 		_setup_failed("Could not start the game download.")
@@ -1095,19 +1136,47 @@ func _on_game_downloaded(result: int, code: int, _headers: PackedStringArray,
 		DirAccess.remove_absolute(_game_archive_path)
 		_setup_failed("The game download failed (HTTP %d). Check your connection and try again." % code)
 		return
-	status_label.text = "Unpacking %s ..." % str(LocalServer.STARTER_GAME["title"])
-	var error := LocalServer.install_game_archive(_game_archive_path,
-		str(LocalServer.STARTER_GAME["sha256"]), games_dir, str(LocalServer.STARTER_GAME["id"]))
+	status_label.text = "Unpacking %s ..." % str(_downloading_game["title"])
+	# Archives contain thousands of files. Only file work runs on this
+	# thread; the menu and its progress label stay on the main thread.
+	var archive_path := _game_archive_path
+	var game := _downloading_game.duplicate()
+	var worker := Thread.new()
+	var started := worker.start(func() -> String:
+		return LocalServer.install_game_archive(archive_path,
+			str(game["sha256"]), games_dir, str(game["id"]),
+			"modpack.conf" if game.get("kind", "game") == "modpack" else "game.conf"))
+	if started != OK:
+		DirAccess.remove_absolute(archive_path)
+		_setup_failed("Could not start unpacking the game. Please try again.")
+		return
+	while worker.is_alive():
+		await get_tree().create_timer(0.1).timeout
+	var error := str(worker.wait_to_finish())
 	DirAccess.remove_absolute(_game_archive_path)
 	if error != "":
 		_setup_failed(error)
 		return
 	LocalServer.installs(true)
-	_setup_done()
+	_download_next_game()
 
 func _setup_done() -> void:
 	_setup_running = false
+	LocalServer.installs(true)
 	_show_new_game()
+	world_option.select(0)
+	_on_world_selected(0)
+	var selected: Dictionary = LocalServer.INSTALLABLE_GAMES[_setup_selection]
+	var game_id := str(selected.get("requires", selected["id"]))
+	for i in game_option.item_count:
+		if str(game_option.get_item_metadata(i)) == game_id:
+			game_option.select(i)
+	if selected.get("kind", "game") == "modpack":
+		if mod_checks.has("kindred_holdfast"):
+			(mod_checks["kindred_holdfast"] as CheckBox).button_pressed = true
+		world_edit.text = "kindred_preview"
+		status_label.text = "Kindred Holdfast preview is ready. Choose a new world name before starting."
+
 
 func _setup_failed(reason: String) -> void:
 	_setup_running = false
@@ -1480,6 +1549,7 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 # --- new local game ----------------------------------------------------------
 
 func _show_new_game() -> void:
+	mod_checks.clear()
 	_stop_showcase()
 	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.", true)
 	var env := LocalServer.detect()
@@ -2054,8 +2124,8 @@ func _process(_delta: float) -> void:
 	var installing := _poll_luanti_install()
 	if game_http != null:
 		GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
-		status_label.text = "Downloading %s: %.1f / %.1f MB" % [str(LocalServer.STARTER_GAME["title"]),
-			game_http.get_downloaded_bytes() / 1000000.0, int(LocalServer.STARTER_GAME["bytes"]) / 1000000.0]
+		status_label.text = "Downloading %s: %.1f / %.1f MB" % [str(_downloading_game["title"]),
+			game_http.get_downloaded_bytes() / 1000000.0, int(_downloading_game["bytes"]) / 1000000.0]
 		return
 	if terrain_http != null:
 		var downloaded := terrain_http.get_downloaded_bytes()
