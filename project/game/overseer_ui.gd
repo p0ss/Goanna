@@ -79,8 +79,19 @@ static func icon_for(name: Variant) -> Texture2D:
 		icon_cache[name] = load(path) if ResourceLoader.exists(path) else null
 	return icon_cache[name]
 
-func set_icon(b: Button, name: Variant, dim := false) -> void:
-	var texture := icon_for(name)
+## Server picture glyphs are the same media used in ledgers and the guide.
+## Older servers keep their existing verb icons and readable section names.
+func rune_for(name: Variant) -> Texture2D:
+	if not name is String or not (name as String).is_valid_identifier(): return null
+	if not view.client.has_method("texture"): return null
+	return view.client.texture("dorfcraft_runes_%s_ink.png" % name)
+
+func set_icon(b: Button, name: Variant, dim := false, rune: Variant = null) -> void:
+	var texture := rune_for(rune)
+	if texture != null:
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	else:
+		texture = icon_for(name)
 	if texture == null: return
 	b.icon = texture
 	b.expand_icon = true
@@ -341,14 +352,14 @@ func refresh_tools() -> void:
 			groups[group] = true
 			var grouped := button(actions, group, choose_group.bind(group))
 			grouped.set_meta("group", group)
-			set_icon(grouped, t.get("group_icon"))
+			set_icon(grouped, t.get("group_icon"), false, t.get("group_rune"))
 			grouped.toggle_mode = true
 			continue
 		var b := button(actions, str(t.get("title", t.id)), view.choose_tool.bind(str(t.id)))
 		b.tooltip_text = str(t.get("reason", t.get("help", "")))
 		b.set_meta("tool", str(t.id))
 		b.toggle_mode = true
-		set_icon(b, t.get("icon"), t.get("disabled", false))
+		set_icon(b, t.get("icon"), t.get("disabled", false), t.get("rune"))
 		# Keep unavailable controls focusable so their reason can be read.
 		if t.get("disabled", false): b.text += " (unavailable)"
 	view._update_materials(view.material_catalog)
@@ -401,6 +412,12 @@ func refresh_zone_property() -> void:
 func update_capabilities(value: Dictionary) -> void:
 	if value == capabilities: return
 	capabilities = value
+	var section_runes: Dictionary = value.get("section_runes", {})
+	for child in rail.get_children():
+		if child is Button and child.has_meta("family"):
+			var b := child as Button
+			b.icon = null
+			set_icon(b, null, false, section_runes.get(str(b.get_meta("family"))))
 	header.text = "%s | Overseer | Live\n%s" % [str(value.get("fortress", "Fortress")), str(value.get("summary", "Server planning permissions"))]
 	if value.get("tools") is Array: view.tools = value.tools
 	refresh_tools()
