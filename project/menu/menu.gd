@@ -2215,8 +2215,8 @@ func _process(_delta: float) -> void:
 		OS.set_environment("GOANNA_PACK_SET", "1")
 		OS.set_environment("GOANNA_NO_PBR", "" if bool(local_graphics.get("pbr", true)) else "1")
 		OS.set_environment("GOANNA_PBR_SET", "1")
-		# Marks a server this client started: main.gd offers the free camera
-		# only then, and reports a server that died while connecting.
+		# Marks a server this client started: main.gd reports a server that
+		# died while connecting.
 		# GOANNA_SP_MATCH gives each local world its own block store. The
 		# server itself is stopped through LocalLaunch.server (_go_to_game).
 		OS.set_environment("GOANNA_SP_PID", str(server.pid))

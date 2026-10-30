@@ -300,12 +300,12 @@ Walking uses Luanti's own `LocalPlayer` and collision code, so speeds,
 gravity, step height and sneak behaviour are the server's, not an
 approximation.
 
-`F` toggles a free camera that leaves the body behind and passes through
-terrain. `step_player`, the only thing that moves the player, does not run
-while it is on, so the server never sees the camera move. It still sees what
-the player could not walk to, which is reach no vanilla client has, so `F` is
-accepted only when this client started the server itself. It is not the
-game's `fly` privilege and asks the server for nothing.
+There is a free camera that leaves the body behind and passes through
+terrain, but no key or button turns it on. `step_player`, the only thing
+that moves the player, does not run while it is on, and the camera sees what
+the player could not walk to, which is reach no vanilla client has. It is a
+development view, reached only through the control channel (`fly on`,
+`pose`) and the benchmark routes. It is not the game's `fly` privilege.
 
 ## Automated runs
 

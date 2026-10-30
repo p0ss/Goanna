@@ -40,7 +40,7 @@ const ACTIONS := {
 	"inventory": KEY_I, "menu": KEY_ESCAPE, "escape": KEY_ESCAPE, "chat": KEY_T,
 	"command": KEY_SLASH, "forward": KEY_W, "backward": KEY_S, "left": KEY_A,
 	"right": KEY_D, "jump": KEY_SPACE, "sneak": KEY_SHIFT, "aux1": KEY_E,
-	"use": KEY_E, "enter": KEY_ENTER, "fly": KEY_F,
+	"use": KEY_E, "enter": KEY_ENTER,
 	"hotbar1": KEY_1, "hotbar2": KEY_2, "hotbar3": KEY_3, "hotbar4": KEY_4,
 	"hotbar5": KEY_5, "hotbar6": KEY_6, "hotbar7": KEY_7, "hotbar8": KEY_8,
 	"hotbar9": KEY_9, "hotbar10": KEY_0,

@@ -1680,11 +1680,11 @@ func start_config(options: Dictionary) -> String:
 		# each stream queues only one 64-node slice at a time, so live terrain
 		# still gets frequent opportunities between them.
 		cf.store_string("goanna_far_pregenerate_concurrency = 3\n")
-		# Privileges. The client's fly toggle works whether or not the server
-		# allows it, exactly as the vanilla client's does, and a server that
-		# does not allow it answers every flying step with "moved too fast"
-		# and resets the player to the ground. On a public server that is
-		# correct. On the server this player just launched for themselves it
+		# Privileges. The development free camera (the control channel's fly,
+		# the benchmark routes) reports its pose whether or not the server
+		# allows flight, and a server that does not answers every step with
+		# "moved too fast" and resets the player to the ground. On a public
+		# server that is correct. On a server this client launched itself it
 		# means flying loads nothing, because the live blocks and the far
 		# summaries both follow where the server believes the player is. So
 		# new players on this server start with the single player set:

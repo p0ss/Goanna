@@ -36,8 +36,8 @@ Upstream puts zoom on D-pad up, free move on D-pad left, screenshot on
 D-pad right and the minimap on Back. Goanna has no zoom, so D-pad up is
 voice typing instead, the same as holding `T`: the spoken line waits in the
 chat box, A sends it and B throws it away. Goanna has no screenshot or
-minimap key, and its free camera is not upstream's free move, so D-pad
-left, D-pad right and Back are unbound. The drop action is new to Goanna:
+minimap key, and no free move toggle, so D-pad left, D-pad right and Back
+are unbound. The drop action is new to Goanna:
 the keyboard still has no drop key.
 
 The bindings are InputMap actions (`goanna_jump`, `goanna_dig` and so on),

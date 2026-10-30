@@ -1308,18 +1308,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())
-	# The free camera is not the game's fly privilege. It stops step_player
-	# running at all, so the camera leaves the player's body behind and passes
-	# through terrain: it sees what no vanilla client can reach, which is the
-	# one thing Goanna must never hand a player on someone else's server. It is
-	# therefore offered only on a server this client started for itself.
-	# GOANNA_SP_PID is set by both of the menu's local-start paths and cleared
-	# when joining a remote one, so it already means exactly that. Pressing F
-	# elsewhere does nothing, and says nothing, rather than advertising it.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
-		if OS.get_environment("GOANNA_SP_PID") != "":
-			fly_mode = not fly_mode
-			print("fly mode: ", fly_mode)
 	# E is dual purpose, as aux1 already is in Luanti's own default keymap:
 	# whatever it is pointed at, from the last frame's step_interact, decides
 	# whether it opens the inventory or uses that node or object. A held E
@@ -1837,7 +1825,11 @@ func _process(delta: float) -> void:
 		place_pressed = false
 		agent_place_pressed = false
 		_update_selection_box()
-	# --- the free camera (F, local servers only; see _unhandled_input) ---
+	# --- the free camera ---
+	# A development view only: the control channel's fly and pose, and the
+	# benchmark routes. It stops step_player running, so the camera leaves the
+	# body behind and passes through terrain, seeing what no vanilla client
+	# can reach. No key or button turns it on; keep it that way.
 	elif placed and not showcase_mode:
 		# The free camera's own position is the eye. Where the third person
 		# placement moved the camera last frame, take the eye back; anything
