@@ -591,6 +591,10 @@ public:
     float repeat_place_interval() const;
 
     godot::Dictionary step_player(double dt, const godot::Dictionary &keys, float pitch_deg, float yaw_deg);
+    // The vanilla client's fly key (keymap_freemove, K): flips the free_move
+    // setting, which takes effect only with the server's fly privilege.
+    // Returns {free_move, fly_privilege}.
+    godot::Dictionary toggle_free_move();
 
     // World materials (shared by mapblocks and item entities): by key, or
     // straight from a Luanti SMaterial as the mesher leaves it.

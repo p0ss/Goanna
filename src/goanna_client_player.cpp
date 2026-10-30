@@ -527,6 +527,23 @@ static float movementAmount(const Dictionary &keys, const char *name) {
     return std::clamp(amount, 0.0f, 1.0f);
 }
 
+// Game::toggleFreeMove: the setting flips whatever the privileges, and
+// LocalPlayer and stepPlayer both ignore it without fly, so the server is
+// asked for nothing it has not granted. The settings callback rereads the
+// player's PlayerSettings, which step_player reads under the map lock.
+Dictionary GoannaClient::toggle_free_move() {
+    Dictionary out;
+    if (!m_session || !g_settings)
+        return out;
+    LocalPlayer *p = m_session->player();
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    const bool free_move = !g_settings->getBool("free_move");
+    g_settings->setBool("free_move", free_move);
+    out["free_move"] = free_move;
+    out["fly_privilege"] = p != nullptr && p->privileges.fly;
+    return out;
+}
+
 Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pitch_deg, float yaw_deg) {
     Dictionary out;
     if (!m_session)

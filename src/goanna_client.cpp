@@ -699,6 +699,7 @@ void GoannaClient::_bind_methods() {
             &GoannaClient::set_player_pose);
     ClassDB::bind_method(D_METHOD("server_player_position"), &GoannaClient::server_player_position);
     ClassDB::bind_method(D_METHOD("step_player", "dt", "keys", "pitch_deg", "yaw_deg"), &GoannaClient::step_player);
+    ClassDB::bind_method(D_METHOD("toggle_free_move"), &GoannaClient::toggle_free_move);
     ClassDB::bind_method(D_METHOD("take_sounds"), &GoannaClient::take_sounds);
     ClassDB::bind_method(D_METHOD("take_stopped_sounds"), &GoannaClient::take_stopped_sounds);
     ClassDB::bind_method(D_METHOD("media_bytes", "name"), &GoannaClient::media_bytes);

@@ -111,6 +111,8 @@ var last_hp := -1
 var far_hint_last := -1
 var far_hint_changed_at := 0.0
 var far_hint_alpha := 0.0
+var status_text := ""                  # the vanilla client's status line ("Fly mode enabled")
+var status_text_at := 0.0
 # Dark glass panes that sit behind HUD drawing: the hotbar's, placed from the
 # rectangle _draw_hotbar last drew in, and chat's, shown while it is open.
 var hotbar_glass: Control
@@ -241,6 +243,14 @@ func _exit_tree() -> void:
 ## turning keys and mouse motion into movement.
 func blocks_input() -> bool:
 	return window != null or chat_open
+
+## A short notice above the hotbar, as GameUI::showStatusText draws one: shown
+## for 1.5 s, fading as it goes, replaced by the next. Read aloud speaks it.
+func show_status_text(text: String) -> void:
+	status_text = text
+	status_text_at = t
+	if narrator != null and narrator.enabled:
+		narrator.say(text, true)
 
 # --- per frame ---------------------------------------------------------------
 
@@ -2524,6 +2534,16 @@ func _draw_hud() -> void:
 		hud.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
 				Color(0, 0, 0, 0.7 * far_hint_alpha))
 		hud.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * far_hint_alpha))
+	var status_age := t - status_text_at
+	if status_text != "" and status_age < 1.5:
+		var f := hud.get_theme_default_font()
+		var fs := int(15 * hud_scale)
+		var a := 1.0 - pow(status_age / 1.5, 2.0)    # StatusTextHelper's quadratic fade
+		var w := f.get_string_size(status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos := Vector2((vs.x - w) / 2.0, vs.y - 150.0 * hud_scale)
+		hud.draw_string_outline(f, pos, status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3,
+				Color(0, 0, 0, 0.7 * a))
+		hud.draw_string(f, pos, status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
 	_draw_performance_overlay(vs)
 	_draw_test_overlay(vs)
 	var st: Dictionary = client.hud_state()

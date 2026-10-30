@@ -1308,6 +1308,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())
+	# K is the vanilla client's fly key (keymap_freemove). It is upstream's
+	# free_move, which flies only with the server's fly privilege, keeps
+	# collision and moves the real player; not the development free camera.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_K \
+			and not fly_mode and ui != null and not ui.blocks_input():
+		var r: Dictionary = client.toggle_free_move()
+		if not r.is_empty():
+			if not bool(r["free_move"]):
+				ui.show_status_text("Fly mode disabled")
+			elif bool(r["fly_privilege"]):
+				ui.show_status_text("Fly mode enabled")
+			else:
+				ui.show_status_text("Fly mode enabled (note: no 'fly' privilege)")
 	# E is dual purpose, as aux1 already is in Luanti's own default keymap:
 	# whatever it is pointed at, from the last frame's step_interact, decides
 	# whether it opens the inventory or uses that node or object. A held E

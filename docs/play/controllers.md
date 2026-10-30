@@ -29,16 +29,16 @@ maps them by position.
 | RB | Next hotbar slot, repeats while held | `keymap_hotbar_next` |
 | LB | Previous hotbar slot, repeats while held | `keymap_hotbar_previous` |
 | D-pad down | Drop the wielded stack, one item while sneaking | `keymap_drop` |
+| D-pad left | Fly on or off, where the server grants `fly` | `keymap_freemove` |
 | D-pad up | Talk: hold, speak a chat line and let go (voice typing); a tap opens chat | none (upstream: `keymap_zoom`) |
 | Start | Pause menu | `keymap_pause` |
 
-Upstream puts zoom on D-pad up, free move on D-pad left, screenshot on
-D-pad right and the minimap on Back. Goanna has no zoom, so D-pad up is
-voice typing instead, the same as holding `T`: the spoken line waits in the
-chat box, A sends it and B throws it away. Goanna has no screenshot or
-minimap key, and no free move toggle, so D-pad left, D-pad right and Back
-are unbound. The drop action is new to Goanna:
-the keyboard still has no drop key.
+Upstream puts zoom on D-pad up, screenshot on D-pad right and the minimap
+on Back. Goanna has no zoom, so D-pad up is voice typing instead, the same
+as holding `T`: the spoken line waits in the chat box, A sends it and B
+throws it away. Goanna has no screenshot or minimap key, so D-pad right and
+Back are unbound. The drop action is new to Goanna: the keyboard still has
+no drop key.
 
 The bindings are InputMap actions (`goanna_jump`, `goanna_dig` and so on),
 declared at startup in `project/input/gamepad.gd` from one table. They cannot be

@@ -83,6 +83,7 @@ const ACTIONS := {
 	"goanna_hotbar_previous": JOY_BUTTON_LEFT_SHOULDER,
 	"goanna_hotbar_next": JOY_BUTTON_RIGHT_SHOULDER,
 	"goanna_drop": JOY_BUTTON_DPAD_DOWN,
+	"goanna_freemove": JOY_BUTTON_DPAD_LEFT,
 	# Upstream's zoom, which Goanna does not have: here it is T, so held it
 	# is voice typing and tapped it opens chat (ui/voice_input.gd).
 	"goanna_talk": JOY_BUTTON_DPAD_UP,
@@ -95,9 +96,11 @@ const TRIGGERS := ["goanna_dig", "goanna_place"]
 
 # Buttons that stand in for a key, because the key's handler is already the
 # right behaviour: Escape opens the pause menu or closes a window, I opens
-# the inventory or closes it (ui/game_ui.gd). Upstream's keymap_pause and
-# keymap_inventory do the same jobs.
-const PLAY_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_inventory": KEY_I}
+# the inventory or closes it (ui/game_ui.gd), K toggles fly (game/main.gd).
+# Upstream's keymap_pause, keymap_inventory and keymap_freemove do the same
+# jobs.
+const PLAY_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_inventory": KEY_I,
+	"goanna_freemove": KEY_K}
 # Buttons that stand in for a key held down rather than tapped: the key goes
 # down with the button and up with it, so a hold is a hold.
 const HOLD_KEYS := {"goanna_talk": KEY_T}

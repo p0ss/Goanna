@@ -11,6 +11,11 @@ bindings and camera options can be changed in Settings.
 Held down, `E` is also Luanti's Aux1 key, which climbs down ladders and
 moves fast where the server grants it, as in Luanti's own default keymap.
 
+`K` turns fly on and off, as in the vanilla client. Flying needs the
+server's `fly` privilege; without it the setting turns on but the player
+keeps walking, and the notice says so. While flying, Space rises and Shift
+sinks.
+
 The mouse wheel also cycles the hotbar, and `/` opens chat with a command
 already started.
 
