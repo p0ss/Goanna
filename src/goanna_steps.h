@@ -113,6 +113,9 @@ public:
     // Forget where the feet are: the next step plants them at rest.
     void reset();
     void step(const StepInput &in);
+    // Where each sole is after something else posed the legs (a climb):
+    // the next grounded step plants the feet from there.
+    void seed(const std::vector<StepVec> &soles);
 
     const std::vector<StepFoot> &feet() const { return feet_; }
     // How far the body is lowered now, nodes (zero or negative).

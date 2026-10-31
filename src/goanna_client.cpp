@@ -340,6 +340,10 @@ Dictionary GoannaClient::status() const {
     d["steps_walking"] = (int64_t)plannedStepsWalking();
     d["steps_trotting"] = (int64_t)plannedStepsTrotting();
     d["steps_girdle_pitch_most"] = plannedGirdlePitchMost();
+    d["climb_ladders"] = (int64_t)climbLadders();
+    d["climb_mantles"] = (int64_t)climbMantles();
+    d["climb_mantles_landed"] = (int64_t)climbMantlesLanded();
+    d["climb_moves"] = (int64_t)climbMoves();
     d["media_received"] = (int)s.media_received;
     d["media_cached"] = (int)s.media_cached;
     d["media_downloaded"] = (int)s.media_downloaded;

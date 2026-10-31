@@ -55,6 +55,8 @@ namespace goanna {
 
 struct StrokeFamily;
 class StepPlanner;
+class ClimbPlanner;
+struct StepInput;
 
 // Bytes of a media file by name; false if unknown.
 using MediaGetter = std::function<bool(const std::string &name, std::string &out)>;
@@ -154,6 +156,9 @@ struct GroundFrame {
     bool grounded = true;
     godot::Transform3D mesh_to_world;
     std::function<std::optional<float>(float x, float z, float top, float bottom)> floor;
+    // Whether the node at a point (Luanti world nodes) is climbable (a
+    // ladder or vine), for the climb planner (goanna_climb.h).
+    std::function<bool(float x, float y, float z)> climbable;
 };
 
 // Per-instance animation state for a skinned GodotModel: what Irrlicht's
@@ -234,6 +239,10 @@ public:
     // replaced, and the legs own the pelvis. Null until the first planned
     // step and for bodies it cannot plan for.
     const StepPlanner *steps() const { return m_steps.get(); }
+    // A planned body with two arms and two legs also climbs ladders and
+    // mantles onto ledges (goanna_climb.h): its hands and feet on what it
+    // climbs. Null until the first planned step and for other bodies.
+    const ClimbPlanner *climb() const { return m_climb.get(); }
     // The landing crouch now, 0 to 1, and how far the body is lowered for
     // it, mesh units; the lean forward and the bank left now, degrees.
     float landing() const { return m_land_amt; }
@@ -398,6 +407,22 @@ private:
     bool m_chest_girdle = false;
     std::vector<u16> m_step_tracks;
     std::shared_ptr<StepPlanner> m_steps;
+    // Climbing (goanna_climb.h): each arm's shoulder, elbow and hand joints
+    // and everything below each, its length (mesh units) and side; the
+    // planner; the root's last height and its vertical speed, eased.
+    struct ArmFit {
+        u32 shoulder = 0, elbow = 0, hand = 0;
+        std::vector<u32> below_shoulder, below_elbow;
+        float length = 0.0f;
+        int side = 1;
+    };
+    std::vector<ArmFit> m_arms;
+    std::shared_ptr<ClimbPlanner> m_climb;
+    float m_climb_last_y = 0.0f, m_climb_vy = 0.0f;
+    bool m_climb_have = false;
+    void findArms(const std::vector<std::vector<u32>> &children);
+    void planClimb(StepInput &in);
+    void applyClimb();
     float m_body_drop = 0.0f;
     GroundFrame m_ground;
     // The stroke's and the feet's detail by distance, and the stroke pose
@@ -467,6 +492,13 @@ uint64_t airFlyingFrames();
 uint64_t airTalonFrames();
 uint64_t airBankFrames();
 uint64_t airBankAgreeing();
+
+// Climbs started (ladders and mantles), mantles that landed, and hand and
+// foot moves, by every climbing body since start (goanna_climb.h).
+uint64_t climbLadders();
+uint64_t climbMantles();
+uint64_t climbMantlesLanded();
+uint64_t climbMoves();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);
