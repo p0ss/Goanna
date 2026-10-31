@@ -17,7 +17,10 @@ def main():
     parser.add_argument("--game", type=Path, required=True, help="Mineclonia game directory")
     parser.add_argument("--server", required=True, help="Luanti server executable")
     parser.add_argument("--godot", default=os.environ.get("GODOT_BIN") or
-                        shutil.which("godot") or str(repo.parent / "Godot_v4.5.1-stable_linux.x86_64"))
+                        # Before PATH: a nixpkgs Godot there crashes on connect.
+                        next((str(p) for p in [repo.parent / "Godot_v4.5.1-stable_linux.x86_64"]
+                              if os.access(p, os.X_OK)), None) or
+                        shutil.which("godot") or "godot")
     parser.add_argument("--pack", type=Path, help="Optional Goanna texture pack directory")
     args = parser.parse_args()
     if not (args.game / "game.conf").is_file():

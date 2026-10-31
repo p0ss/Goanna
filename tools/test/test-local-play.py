@@ -15,7 +15,10 @@ def main():
     repo = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", default=os.environ.get("GODOT_BIN") or
-                        shutil.which("godot") or str(repo.parent / "Godot_v4.5.1-stable_linux.x86_64"))
+                        # Before PATH: a nixpkgs Godot there crashes on connect.
+                        next((str(p) for p in [repo.parent / "Godot_v4.5.1-stable_linux.x86_64"]
+                              if os.access(p, os.X_OK)), None) or
+                        shutil.which("godot") or "godot")
     parser.add_argument("--server", default=shutil.which("luantiserver") or
                         shutil.which("luanti") or
                         "/var/lib/flatpak/app/org.luanti.luanti/current/active/files/bin/luanti.bin")
