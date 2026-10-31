@@ -273,6 +273,12 @@ func _process(delta: float) -> void:
 		if form.visible:
 			form.refresh_lists()
 			_after_inventory_update()
+	# A host who opened this world to the LAN is told once, in chat, how
+	# friends join (menu.gd sets it on Start Game). The first inventory
+	# means the player is in the world rather than on the loading screen.
+	if inv_version != 0 and OS.get_environment("GOANNA_LAN_NOTICE") != "":
+		_add_chat_line(OS.get_environment("GOANNA_LAN_NOTICE"))
+		OS.set_environment("GOANNA_LAN_NOTICE", "")
 	_poll_other_inventories()
 	# The open inventory follows the server's inventory formspec, as upstream's
 	# does (PlayerInventoryFormSource is asked for the form every frame): a

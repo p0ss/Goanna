@@ -49,6 +49,7 @@ var join_pbr_option: OptionButton
 var join_shader_option: OptionButton
 # new game
 var game_option: OptionButton
+var lan_hint: Label
 var world_option: OptionButton
 var world_edit: LineEdit
 var generator_option: OptionButton
@@ -180,6 +181,34 @@ func _ready() -> void:
 	if showcase_launch and _screen_title != "Join Game":
 		_start_showcase()
 		return
+	if OS.get_environment("GOANNA_JOIN_SCAN") != "":
+		# Development aid: "host:port" opens Join Game, presses Scan local
+		# network, picks that server from what the scan found and connects
+		# as GOANNA_JOIN_SCAN_NAME, as a friend joining a LAN world would.
+		var want := OS.get_environment("GOANNA_JOIN_SCAN")
+		_show_join()
+		_scan_lan()
+		while lan_scan.running:
+			await get_tree().create_timer(0.25).timeout
+		var picked := false
+		var item := lan_tree.get_root().get_first_child() if lan_tree.get_root() else null
+		while item != null:
+			var e = item.get_metadata(0)
+			if typeof(e) == TYPE_DICTIONARY:
+				print("join scan: found %s:%d" % [str(e.address), int(e.port)])
+				if not picked and "%s:%d" % [str(e.address), int(e.port)] == want:
+					item.select(0)
+					_on_lan_picked()
+					picked = true
+			item = item.get_next()
+		if not picked:
+			print("join scan: %s was not found" % want)
+			get_tree().quit(1)
+			return
+		name_edit.text = OS.get_environment("GOANNA_JOIN_SCAN_NAME")
+		print("join scan: connecting to %s:%s" % [host_edit.text, port_edit.text])
+		_on_connect()
+		return
 	if OS.get_environment("GOANNA_LOCAL_TEST") != "":
 		# Development aid: "game:world" starts a local game and joins it.
 		var gw := OS.get_environment("GOANNA_LOCAL_TEST").split(":")
@@ -208,6 +237,11 @@ func _ready() -> void:
 		# PBR flag and overwrites every installed-pack selection. Accept the same
 		# graphics id stored by the UI (for example
 		# "pack:/path/to/craft_and_ruin_pbr") after that restoration.
+		# GOANNA_LOCAL_TEST_LAN=<port> ticks Open to LAN on that port.
+		var test_lan := OS.get_environment("GOANNA_LOCAL_TEST_LAN")
+		if test_lan != "":
+			host_check.button_pressed = true
+			server_port_edit.text = test_lan
 		var test_graphics := OS.get_environment("GOANNA_LOCAL_TEST_GRAPHICS")
 		if test_graphics != "":
 			for i in pbr_option.item_count:
@@ -577,10 +611,25 @@ func _button(text: String, cb: Callable) -> Button:
 
 func _fail(msg: String, log_path := "") -> void:
 	status_label.text = msg
+	# In the client's own log too, where a headless or scripted run sees it.
+	print("menu: ", msg)
 	if log_path != "":
-		status_label.text += "\nServer log: " + log_path
-		_footer.add_child(_button("Open server log", func(): OS.shell_open(log_path)))
-		_footer.add_child(_button("Copy log path", func(): DisplayServer.clipboard_set(log_path)))
+		if not FileAccess.file_exists(log_path) or FileAccess.get_file_as_string(log_path).strip_edges() == "":
+			status_label.text += "\nThe server wrote nothing to its log."
+		# The path itself is the button, straight under the message, so the
+		# log is one press away rather than a path to retype (2026-10-31).
+		var link := LinkButton.new()
+		link.text = "Server log: " + log_path
+		link.tooltip_text = "Open the server log"
+		link.pressed.connect(func(): OS.shell_open(log_path))
+		_footer.add_child(link)
+		_footer.move_child(link, 0)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.add_child(_button("Open logs folder", func(): OS.shell_open(log_path.get_base_dir())))
+		row.add_child(_button("Copy log path", func(): DisplayServer.clipboard_set(log_path)))
+		_footer.add_child(row)
+		_footer.move_child(row, 1)
 	if narrator != null and narrator.enabled:
 		narrator.say(msg)
 	GlassStyle.tint_text(status_label, Color(1, 0.6, 0.5))
@@ -1190,6 +1239,9 @@ func _setup_done() -> void:
 	for i in game_option.item_count:
 		if str(game_option.get_item_metadata(i)) == game_id:
 			game_option.select(i)
+	for i in game_option.item_count:
+		if str(game_option.get_item_metadata(i)) == "%s|%s" % [game_id, str(selected["id"])]:
+			game_option.select(i)
 	if selected.get("kind", "game") == "modpack":
 		if mod_checks.has("kindred_holdfast"):
 			(mod_checks["kindred_holdfast"] as CheckBox).button_pressed = true
@@ -1618,6 +1670,9 @@ func _show_new_game() -> void:
 		# which is what the server is told.
 		game_option.add_item(LocalServer.game_title(_local_data_dir, g))
 		game_option.set_item_metadata(game_option.item_count - 1, g)
+	for pack in _modpack_games(games):
+		game_option.add_item(str(pack["title"]))
+		game_option.set_item_metadata(game_option.item_count - 1, str(pack["meta"]))
 	grid.add_child(game_option)
 	var gen_line := _grid_label(grid, "World generator")
 	generator_option = OptionButton.new()
@@ -1652,6 +1707,16 @@ func _show_new_game() -> void:
 	damage_check.text = "Enable damage"
 	damage_check.button_pressed = true
 	world_page.add_child(damage_check)
+	# On the first page, where it is seen: the choice used to sit on the
+	# Hosting tab, and in the 2026-10-31 co-op playtest everyone typed
+	# addresses instead.
+	host_check = CheckBox.new()
+	host_check.text = "Open to LAN: friends on this network can join"
+	world_page.add_child(host_check)
+	lan_hint = Label.new()
+	lan_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	GlassStyle.tint_text(lan_hint, Color(1, 1, 1, 0.6))
+	world_page.add_child(lan_hint)
 	var pbr_line := HBoxContainer.new()
 	pbr_line.add_theme_constant_override("separation", 10)
 	var pbr_label := Label.new()
@@ -1707,9 +1772,10 @@ func _show_new_game() -> void:
 	var host_pad := PanelFit.page_padding()
 	host_pad.add_child(host_page)
 	host_scroll.add_child(host_pad)
-	host_check = CheckBox.new()
-	host_check.text = "Host this world for other players"
-	host_page.add_child(host_check)
+	var host_note := Label.new()
+	host_note.text = "These apply when Open to LAN is ticked on the World page."
+	host_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	host_page.add_child(host_note)
 	hosting_box = VBoxContainer.new()
 	hosting_box.add_theme_constant_override("separation", 8)
 	host_page.add_child(hosting_box)
@@ -1740,7 +1806,10 @@ func _show_new_game() -> void:
 	GlassStyle.tint_text(warning, Color(1, 0.8, 0.55, 0.8))
 	hosting_box.add_child(warning)
 	hosting_box.visible = false
-	host_check.toggled.connect(func(on: bool) -> void: hosting_box.visible = on)
+	host_check.toggled.connect(func(on: bool) -> void:
+		hosting_box.visible = on
+		_refresh_lan_hint())
+	server_port_edit.text_changed.connect(func(_t: String) -> void: _refresh_lan_hint())
 
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
@@ -1767,6 +1836,7 @@ func _show_new_game() -> void:
 	server_port_edit.text = str(cfg.get_value("local_host", "port", "30000"))
 	announce_check.button_pressed = bool(cfg.get_value("local_host", "announce", false))
 	max_players_spin.value = int(cfg.get_value("local_host", "max_players", 8))
+	_refresh_lan_hint()
 	world_option.item_selected.connect(_on_world_selected)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -1788,6 +1858,50 @@ func _show_new_game() -> void:
 	_on_world_selected(world_option.selected)
 	_refresh_terrain_download_state()
 	world_edit.text_submitted.connect(func(_t): _on_start_local())
+
+# Games published as a modpack on another game (Kindred Holdfast on
+# Mineclonia), offered in the Game list when installed and their game is
+# too. A copy installed under another folder name is found by its first
+# member. Each is {title, meta}, meta being "<gameid>|<mod folder>".
+func _modpack_games(games: Array) -> Array:
+	var out: Array = []
+	var mods_dir := _local_data_dir.path_join("mods")
+	var installed_mods := LocalServer.list_mods(_local_data_dir)
+	for entry in LocalServer.INSTALLABLE_GAMES:
+		var requires := str(entry.get("requires", ""))
+		if str(entry.get("kind", "game")) != "modpack" or not games.has(requires):
+			continue
+		var marker := str((entry.get("members", [entry["id"]]) as Array)[0])
+		for installed in installed_mods:
+			var name := str(installed)
+			if name == str(entry["id"]):
+				out.append({"title": str(entry["title"]), "meta": "%s|%s" % [requires, name]})
+				break
+			if LocalServer.mod_members(mods_dir.path_join(name)).has(marker):
+				out.append({"title": "%s from mods/%s" % [str(entry["title"]), name],
+						"meta": "%s|%s" % [requires, name]})
+				break
+	return out
+
+# What a host tells friends: how Scan finds this world, and the address to
+# type when it does not.
+func _lan_notice(port: int) -> String:
+	var addresses := LocalServer.lan_addresses()
+	if addresses.is_empty():
+		return "Open to LAN on port %d, but this computer has no local network address." % port
+	var text := "Open to LAN: friends choose Join Game, then Scan local network, or type %s port %d." % [
+		" or ".join(addresses), port]
+	if port < 30000 or port > 30005:
+		text += " Scan looks only at ports 30000 to 30005, so on port %d they must type it." % port
+	return text
+
+func _refresh_lan_hint() -> void:
+	if not is_instance_valid(lan_hint) or not is_instance_valid(host_check):
+		return
+	lan_hint.visible = host_check.button_pressed
+	var ptext := server_port_edit.text.strip_edges() if is_instance_valid(server_port_edit) else "30000"
+	var port := int(ptext) if ptext.is_valid_int() else 30000
+	lan_hint.text = _lan_notice(port) + " If they cannot find it, allow UDP port %d through this computer's firewall. Name, password and port are on the Hosting tab." % port
 
 func _on_world_selected(index: int) -> void:
 	var entry: Dictionary = world_option.get_item_metadata(index)
@@ -1813,6 +1927,13 @@ func _on_world_selected(index: int) -> void:
 	var gid := str(options.get("gameid", ""))
 	for i in game_option.item_count:
 		if str(game_option.get_item_metadata(i)) == gid:
+			game_option.select(i)
+			break
+	# A world made with a game modpack (Kindred) shows as that game.
+	for i in game_option.item_count:
+		var meta := str(game_option.get_item_metadata(i))
+		if meta.get_slice("|", 0) == gid and meta.contains("|") \
+				and (options.get("mods", []) as Array).has(meta.get_slice("|", 1)):
 			game_option.select(i)
 			break
 	var saved_terrain := str(options.get("terrain_world", ""))
@@ -2045,7 +2166,11 @@ func _confirm_delete_world() -> void:
 	dialog.popup_centered()
 
 func _on_start_local() -> void:
-	var game := str(game_option.get_item_metadata(game_option.selected))
+	# "<gameid>|<mod>" for a game published as a modpack: the server runs
+	# the game and the world loads the modpack (_modpack_games).
+	var game_choice := str(game_option.get_item_metadata(game_option.selected))
+	var game := game_choice.get_slice("|", 0)
+	var game_pack := game_choice.get_slice("|", 1) if game_choice.contains("|") else ""
 	var generator := str(generator_option.get_item_metadata(generator_option.selected))
 	var terrain_world_id := generator.substr(8) if generator.begins_with("terrain:") else ""
 	var terrain_diffusion := terrain_world_id != ""
@@ -2086,12 +2211,14 @@ func _on_start_local() -> void:
 	for mod in mod_checks:
 		if (mod_checks[mod] as CheckBox).button_pressed:
 			enabled_mods.append(mod)
+	if game_pack != "" and not enabled_mods.has(game_pack):
+		enabled_mods.append(game_pack)
 	# Scripted runs must not touch the player's remembered choices: a test
 	# world would otherwise turn up prefilled the next time they open the menu.
 	if OS.get_environment("GOANNA_LOCAL_TEST") == "":
 		var cfg := ConfigFile.new()
 		cfg.load(CFG_PATH)
-		cfg.set_value("local", "game", game)
+		cfg.set_value("local", "game", game_choice)
 		cfg.set_value("local", "terrain_diffusion", terrain_diffusion)
 		cfg.set_value("local", "terrain_world", terrain_world_id)
 		cfg.set_value("local", "world", world)
@@ -2131,6 +2258,11 @@ func _on_start_local() -> void:
 	start_button.disabled = true
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Starting %s ..." % world
+	# Said again in chat once the host is in the world (game_ui.gd), where
+	# the friends asking for the address are.
+	OS.set_environment("GOANNA_LAN_NOTICE", _lan_notice(server.port) if host_check.button_pressed else "")
+	if host_check.button_pressed:
+		status_label.text += " " + _lan_notice(server.port)
 	server_deadline = _now() + SERVER_START_TIMEOUT_SECONDS
 	set_process(true)
 
@@ -2544,6 +2676,8 @@ func _on_server_picked() -> void:
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 
 func _on_connect() -> void:
+	# Not a world this client opened, so no Open to LAN notice in its chat.
+	OS.set_environment("GOANNA_LAN_NOTICE", "")
 	var host := host_edit.text.strip_edges()
 	if host == "":
 		host = "127.0.0.1"

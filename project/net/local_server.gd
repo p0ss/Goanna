@@ -185,6 +185,9 @@ const INSTALLABLE_GAMES := [
 		"version": "e394015697fc",
 		"kind": "modpack",
 		"requires": "mineclonia",
+		# Its packages, the first used to recognise a copy installed under
+		# another folder name (menu.gd, _modpack_games).
+		"members": ["kindred", "kindred_creatures", "kindred_cultures", "kindred_world"],
 		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.2/kindred-holdfast-preview-e394015697fc.zip",
 		"sha256": "5d4fb18c657eea243702b485bfdf1fd96b04a8c18afba5a011467e6ef78af6b5",
 		"bytes": 177831813,
@@ -1643,6 +1646,11 @@ func start_config(options: Dictionary) -> String:
 		# curl, and secure.http_mods granted nothing there.
 		cf.store_string("goanna_director = true\n")
 		cf.store_string("goanna_director_transport = file\n")
+		# The director may move a stuck or lost player, telling them why.
+		# The host is the operator here, as above. Read by
+		# goanna_server_mod/director/init.lua; a mod without the setting
+		# ignores the line.
+		cf.store_string("goanna_director_move_players = true\n")
 		# The player's own Far draw distance setting is the grant, floored at
 		# the old conservative bound. It is their machine paying for the
 		# mapgen and the drawing, so how vast the vista gets is their call;
@@ -1692,7 +1700,13 @@ func start_config(options: Dictionary) -> String:
 		# by default, not even the admin (give_to_admin follows
 		# give_to_singleplayer, and those are registered false), which is why
 		# name= below is not enough on its own.
-		cf.store_string("default_privs = interact, shout, fly, fast, noclip, teleport, give, settime\n")
+		# Opened to the LAN, other people join, and they get the game's
+		# ordinary privileges rather than flight and give. The host is still
+		# the admin (name= below) and can grant more.
+		if hosting:
+			cf.store_string("default_privs = interact, shout\n")
+		else:
+			cf.store_string("default_privs = interact, shout, fly, fast, noclip, teleport, give, settime\n")
 		# This is a private server launched by this client for its owner. The
 		# movement validator still rejects fast flight even with fly/fast
 		# privileges (the server log then repeats "moved too fast" while the
@@ -1743,7 +1757,6 @@ func start_config(options: Dictionary) -> String:
 		"--world", world_path,
 		"--gameid", gameid,
 		"--port", str(port),
-		"--logfile", log_path,
 		"--config", conf_path,
 	])
 	# fresh log so readiness detection is not fooled by an old run
@@ -1753,11 +1766,42 @@ func start_config(options: Dictionary) -> String:
 		lf = null
 	var exe: String = argv[0]
 	var args := argv.slice(1)
+	if OS.get_name() == "Windows":
+		args.append_array(["--logfile", log_path])
+	else:
+		# The server's own output goes to the log, written by a shell outside
+		# any sandbox. Luanti's --logfile was used before, and the Flathub
+		# Luanti cannot open a file outside its sandbox: given the release's
+		# logs folder (GOANNA_LOG_DIR) it stopped at once with "Failed to open
+		# log file", said only on its stderr, which nothing kept. The menu
+		# then showed an empty log and "stopped before it finished starting"
+		# (2026-10-31). Its stderr carries everything poll_ready looks for:
+		# errors, warnings and the "listening on" line. exec keeps the PID,
+		# so stop() still stops the server itself.
+		args = ["-c", "log=\"$1\"; shift; exec \"$@\" >\"$log\" 2>&1", "sh", log_path, exe] + args
+		exe = "/bin/sh"
 	pid = OS.create_process(exe, PackedStringArray(args))
 	owned_process.adopt(pid)
 	if pid <= 0:
 		return "Could not launch the server (%s)." % exe
 	return ""
+
+## This machine's private IPv4 addresses, the ones friends on the same network
+## can reach a world opened to the LAN at. Loopback and public addresses are
+## left out.
+static func lan_addresses() -> Array:
+	var out: Array = []
+	for a in IP.get_local_addresses():
+		var s := str(a)
+		if not s.is_valid_ip_address() or s.contains(":"):
+			continue
+		var p := s.split(".")
+		var b0 := int(p[0])
+		var b1 := int(p[1])
+		if (b0 == 10 or (b0 == 172 and b1 >= 16 and b1 <= 31) or (b0 == 192 and b1 == 168)) \
+				and not out.has(s):
+			out.append(s)
+	return out
 
 # Whether a UDP port can be bound on `address`, tested by binding it.
 static func udp_port_free(p: int, address: String) -> bool:

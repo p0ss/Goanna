@@ -248,6 +248,27 @@ password. Start Game, the local server described above, has its own screen
 with World, Mods and Hosting tabs. Local players sets up experimental split
 screen, whose first player is the one named on Start Game or Join Game.
 
+Open to LAN, on the World tab, binds the server to every address rather
+than loopback, on the Hosting tab's port (30000 unless changed), gives
+joining players only `interact` and `shout`, and shows the host the
+addresses friends can type; the host is told again in chat once in the
+world. Friends find it with Join Game, Scan local network, which tries
+ports 30000 to 30005 only. A game published as a modpack on another game
+(Kindred Holdfast on Mineclonia) appears in the Game list as itself once
+installed; choosing it starts the base game with the modpack enabled.
+
+The server's output (stdout and stderr) is written to
+`goanna_singleplayer.log` by a shell outside any sandbox, in the release's
+`logs` folder when the launcher sets `GOANNA_LOG_DIR`, else in the Luanti
+data folder. Luanti's own `--logfile` is no longer given on Linux and
+macOS: the Flathub Luanti cannot open a file outside its sandbox and
+stopped at once. A failed start shows the log path as a link.
+
+Two development aids drive these paths headless:
+`GOANNA_LOCAL_TEST_LAN=<port>` ticks Open to LAN for a `GOANNA_LOCAL_TEST`
+start, and `GOANNA_JOIN_SCAN=<host>:<port>` with `GOANNA_JOIN_SCAN_NAME`
+opens Join Game, scans, picks that server from the results and connects.
+
 The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or
 `GOANNA_NAME` (or one of the test modes, listed in `SKIP_VARS` at the top of
