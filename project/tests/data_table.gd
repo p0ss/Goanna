@@ -95,6 +95,12 @@ func run() -> void:
 	var bare := {"title": "Bare", "columns": [{"id": "a", "label": "A"}], "rows": [{"id": "x", "cells": {"a": "One"}}]}
 	t.set_table(bare)
 	check(t.filters.get_child_count() == 0 and not t.note.visible and t.shown_rows.size() == 1, "a table without filters, sort or note draws")
+	var plans := {"title": "Plans", "columns": [{"id": "plan", "label": "Plan", "wide": true},
+		{"id": "state", "label": "State"}, {"id": "where", "label": "Where"}],
+		"rows": [{"id": "p1", "cells": {"plan": "Raiders were seen at the east gate.", "state": "Danger", "where": "12 east, level 10"}}]}
+	t.set_table(plans)
+	check(t.tree.is_column_expanding(0) and not t.tree.is_column_expanding(1) and not t.tree.is_column_expanding(2),
+		"a wide column takes the spare width; the others are fitted")
 	var odd := {"title": "Odd", "columns": "nope", "rows": [1, "x", {"cells": 3}]}
 	t.set_table(odd)
 	check(t.shown_rows.is_empty() and t.empty_box.visible, "a malformed table draws an empty state, not an error")

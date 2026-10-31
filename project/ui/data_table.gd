@@ -9,6 +9,8 @@
 ## Rows carry two optional fields beyond that shape: keys (column id to the
 ## value to sort by, where the displayed text would sort wrongly) and
 ## detail (lines shown when the row is chosen). Ids never reach the screen.
+## A column marked wide takes the width the others leave; they are then
+## fitted to their longest cell.
 ##
 ## Choosing a row (click, arrows) emits row_chosen; Enter or a double click
 ## emits row_activated. Locked rows are greyed with their reason as the
@@ -27,6 +29,8 @@ const TEXT := Color(0.92, 0.94, 0.96)
 const GREY := Color(0.5, 0.52, 0.56)
 const ASC := " ▲"
 const DESC := " ▼"
+## A fitted column's most characters, beside a wide one.
+const FIT := 26
 
 var shape: Dictionary = {}
 var sort_column := ""
@@ -193,21 +197,43 @@ func _build_filters() -> void:
 func _build_columns() -> void:
 	var cols := columns()
 	tree.columns = maxi(1, cols.size())
+	var wide := -1
+	for i in cols.size():
+		if cols[i].get("wide", false) == true:
+			wide = i
+			break
 	for i in cols.size():
 		var c: Dictionary = cols[i]
 		var number := str(c.get("kind", "text")) == "number"
 		var arrow := (ASC if sort_order == "asc" else DESC) if str(c.id) == sort_column else ""
 		tree.set_column_title(i, str(c.get("label", "")) + arrow)
 		tree.set_column_title_alignment(i, HORIZONTAL_ALIGNMENT_RIGHT if number else HORIZONTAL_ALIGNMENT_LEFT)
+		tree.set_column_clip_content(i, true)
+		var size := tree.get_theme_font_size("font_size")
+		var chars := maxi(5 if number else (14 if i == 0 else 8), str(c.get("label", "")).length() + 3)
+		if wide >= 0 and i != wide:
+			# A table with a wide column (Plans' title) fits the others to
+			# their longest cell, up to FIT characters, and gives the wide
+			# one everything they leave.
+			var longest := str(c.get("label", "")).length() + 3
+			for r in rows():
+				longest = maxi(longest, _cell_text(r.cells.get(str(c.id))).length() + 2)
+			chars = mini(longest, FIT)
+			tree.set_column_expand(i, false)
+			var icon := 24 if str(c.get("kind", "")) == "swatch" or (i == 0 and _has_glyphs()) else 0
+			tree.set_column_custom_minimum_width(i, int(size * 0.6 * chars) + icon)
+			continue
 		tree.set_column_expand(i, true)
 		# The first column names the row; it gets the most room.
 		tree.set_column_expand_ratio(i, 1 if number else (3 if i == 0 else 2))
-		tree.set_column_clip_content(i, true)
 		# Enough for a short value at the current text size; past that the
 		# rows scroll sideways rather than clipping every cell to nothing.
-		var size := tree.get_theme_font_size("font_size")
-		var chars := maxi(5 if number else (14 if i == 0 else 8), str(c.get("label", "")).length() + 3)
 		tree.set_column_custom_minimum_width(i, int(size * 0.6 * chars))
+
+func _has_glyphs() -> bool:
+	for r in rows():
+		if r.get("glyph") is String: return true
+	return false
 
 ## Clicking a heading sorts by it; clicking it again reverses.
 func sort_by_index(index: int) -> void:
