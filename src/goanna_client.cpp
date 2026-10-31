@@ -321,6 +321,8 @@ Dictionary GoannaClient::status() const {
     d["blocks_meshed"] = (int)m_near_blocks.size();
     d["resident_blocks"] = m_session ? (int)m_session->residentBlocks() : 0;
     d["entities"] = m_entities ? m_entities->count() : 0;
+    d["stroke_models"] = strokeModelCount();
+    d["stroke_poses"] = (int64_t)strokePoseCount();
     d["media_received"] = (int)s.media_received;
     d["media_cached"] = (int)s.media_cached;
     d["media_downloaded"] = (int)s.media_downloaded;

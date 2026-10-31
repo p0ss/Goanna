@@ -56,6 +56,8 @@ code disagree, the code is right.
   block limbed models bend and swim.
 - [Jiggle bones](jiggle-bones.md): cloth and hair a model marks, swung
   by the wearer's motion and gravity; the units games author against.
+- [Melee strokes](melee-strokes.md): whole-body strokes a server sends as
+  an angle and a time, posed by Goanna from a plan the model declares.
 - [Interface style](interface-style.md): the dark glass style and game
   theme for menus and server forms.
 - [Local multiplayer architecture](local-multiplayer.md): splitscreen

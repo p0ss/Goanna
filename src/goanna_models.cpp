@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <json/json.h>
 #include <optional>
 #include <vector>
 
@@ -38,6 +39,7 @@
 #include "activeobject.h"
 #include "constants.h"
 #include "goanna_luanti_client.h"
+#include "goanna_strokes.h"
 #include "log.h"
 
 scene::IAnimatedMesh *Client::getMesh(const std::string &filename, bool *is_shared) {
@@ -163,6 +165,62 @@ const ModelExtras *ModelCache::extras(const std::string &name) const {
     return it == m_extras.end() ? nullptr : &it->second;
 }
 
+namespace {
+int g_stroke_models = 0;
+uint64_t g_stroke_poses = 0;
+} // namespace
+
+int strokeModelCount() { return g_stroke_models; }
+uint64_t strokePoseCount() { return g_stroke_poses; }
+
+void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value marks;
+    std::string errors;
+    const std::string &text = extras.strokes;
+    if (!reader->parse(text.data(), text.data() + text.size(), &marks, &errors) || !marks.isObject()
+            || !marks["family"].isString() || !marks["state"].isString()) {
+        warningstream << "Goanna: unreadable stroke marks in " << name << std::endl;
+        return;
+    }
+    const std::string family_name = marks["family"].asString();
+    std::shared_ptr<const StrokeFamily> family;
+    auto known = m_stroke_families.find(family_name);
+    if (known != m_stroke_families.end()) {
+        family = known->second;
+    } else {
+        // The family travels as a glTF with no scene (Luanti serves no
+        // .json media), in its root extras.
+        std::string bytes;
+        Json::Value file;
+        auto parsed = std::make_shared<StrokeFamily>();
+        if (!m_media(family_name, bytes)
+                || !reader->parse(bytes.data(), bytes.data() + bytes.size(), &file, &errors)
+                || !file.isObject() || !file["extras"].isObject()
+                || !parseStrokeFamily(file["extras"]["stroke_family"], *parsed)) {
+            warningstream << "Goanna: stroke family " << family_name << " for " << name
+                    << " is missing or unreadable" << std::endl;
+            return;
+        }
+        family = parsed;
+        m_stroke_families[family_name] = family;
+    }
+    StrokePlan plan;
+    if (!parseStrokePlan(marks["plan"], plan)) {
+        warningstream << "Goanna: unreadable stroke plan in " << name << std::endl;
+        return;
+    }
+    auto evaluator = std::make_shared<StrokeEvaluator>(plan, family);
+    if (!evaluator->valid()) {
+        warningstream << "Goanna: " << name << " lacks the bones its stroke plan needs" << std::endl;
+        return;
+    }
+    extras.stroke_evaluator = std::move(evaluator);
+    extras.stroke_state = marks["state"].asString();
+    ++g_stroke_models;
+}
+
 scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
     if (cache) {
         auto it = m_cache.find(name);
@@ -181,10 +239,13 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         return nullptr;
     // The loader drops node extras; read them for the jiggle marks.
     ModelExtras extras;
-    if (parseModelExtras(name, bytes, extras) && !extras.empty())
+    if (parseModelExtras(name, bytes, extras) && !extras.empty()) {
+        if (!extras.strokes.empty())
+            buildStrokes(name, extras);
         m_extras[name] = std::move(extras);
-    else
+    } else {
         m_extras.erase(name);
+    }
     if (cache) {
         mesh->grab();
         m_cache[name] = mesh;
@@ -369,6 +430,10 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
                 l.seam_bone = model->bone_count++;
             }
             model->jiggle = buildJiggleRig(*skinned, extras);
+            if (extras && extras->stroke_evaluator) {
+                model->strokes = extras->stroke_evaluator;
+                model->stroke_state = extras->stroke_state;
+            }
         }
     }
     // joint index of a rigidly attached buffer, or -1
@@ -559,6 +624,63 @@ void ModelAnimator::inheritPose(const ModelAnimator &previous) {
         m_old_transforms = previous.m_old_transforms;
 }
 
+void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
+        const std::map<std::string, BoneOverride> &overrides) {
+    // The state: position (told angle in degrees, stroke time when sent,
+    // target height), scale (action serial, phase: 0 none, 1 preparing,
+    // 2 committed, format).
+    auto it = overrides.find(m_model->stroke_state);
+    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != 1) {
+        m_melee = MeleeStroke();
+        return;
+    }
+    const BoneOverride &state = it->second;
+    const int action = (int)std::lround(state.scale.vector.X);
+    const int phase = (int)std::lround(state.scale.vector.Y);
+    const float told = state.position.vector.X;
+    if (phase <= 0) {
+        m_melee = MeleeStroke();
+        return;
+    }
+    const bool fresh = !m_melee.active || action != m_melee.action;
+    if (fresh || phase != m_melee.phase || std::fabs(told - m_melee.told) > 1e-3f) {
+        if (fresh)
+            m_melee.angle = told;
+        m_melee.active = true;
+        m_melee.action = action;
+        m_melee.phase = phase;
+        m_melee.told = told;
+        // dtime_passed has already advanced by this step's dt.
+        m_melee.t = state.position.vector.Y + state.dtime_passed;
+    } else {
+        m_melee.t += dt;
+    }
+    // Ease towards the told angle the short way round, as the server does
+    // (900 degrees a second).
+    const float d = std::remainder(m_melee.told - m_melee.angle, 360.0f);
+    const float step = 900.0f * dt;
+    m_melee.angle = std::fmod(m_melee.angle + std::clamp(d, -step, step) + 360.0f, 360.0f);
+    if (m_melee.t > m_model->strokes->length())
+        return; // over: the game's clip holds its last frame
+    scene::SkinnedMesh *mesh = m_model->skinned;
+    ++g_stroke_poses;
+    for (const StrokeBonePose &b : m_model->strokes->evaluate(m_melee.angle, m_melee.t)) {
+        auto jn = mesh->getJointNumber(b.bone);
+        if (!jn)
+            continue;
+        auto *t = std::get_if<core::Transform>(&locals[*jn]);
+        if (!t)
+            continue;
+        // Exactly what an absolute Luanti bone override with these values
+        // does (the old per-tick stream sent the same numbers).
+        t->translation = v3f(b.p[0], b.p[1], b.p[2]);
+        core::quaternion q(v3f(b.r[0], b.r[1], b.r[2]));
+        v3f euler;
+        q.toEuler(euler);
+        t->rotation = core::quaternion(euler).makeInverse();
+    }
+}
+
 void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
         Skeleton3D *skeleton, Skeleton3D *unshrunk) {
     scene::SkinnedMesh *mesh = m_model->skinned;
@@ -618,6 +740,10 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
         }
         ++it;
     }
+
+    // A melee stroke the server announced, evaluated here (goanna_strokes.h).
+    if (m_model->strokes)
+        poseStroke(dt, locals, overrides);
 
     // Goanna's strokes in the water, on the shoulders and hips.
     if (!m_model->limbs.empty())

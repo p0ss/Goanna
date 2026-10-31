@@ -51,6 +51,8 @@ class IMeshLoader;
 
 namespace goanna {
 
+struct StrokeFamily;
+
 // Bytes of a media file by name; false if unknown.
 using MediaGetter = std::function<bool(const std::string &name, std::string &out)>;
 
@@ -81,10 +83,14 @@ public:
     const ModelExtras *extras(const std::string &name) const;
 
 private:
+    // A model's stroke evaluator, from its extras and the family file they
+    // name (each family read once).
+    void buildStrokes(const std::string &name, ModelExtras &extras);
     ModelLoader m_loader;
     MediaGetter m_media;
     std::map<std::string, scene::IAnimatedMesh *> m_cache;
     std::map<std::string, ModelExtras> m_extras;
+    std::map<std::string, std::shared_ptr<const StrokeFamily>> m_stroke_families;
 };
 
 // An Irrlicht mesh converted for Godot.
@@ -115,6 +121,11 @@ struct GodotModel {
     // Animated models only: the jiggle bones and collider capsules
     // (goanna_jiggle.h). Empty for most models.
     JiggleRig jiggle;
+    // Animated models only: a stroke evaluator (goanna_strokes.h) and the
+    // bone whose override carries the server's stroke state, for a model
+    // whose file declares a stroke plan. Null for most models.
+    std::shared_ptr<const StrokeEvaluator> strokes;
+    std::string stroke_state;
     ~GodotModel();
 };
 
@@ -213,6 +224,9 @@ public:
 
 private:
     void poseLimbs(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
+    // A stroke from the server's stroke state (GodotModel::strokes): the
+    // evaluated pose on its bones, over the game's animation and overrides.
+    void poseStroke(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
     void updateMotion(float dt);
     LimbAngles motionAngles(size_t limb) const;
     void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
@@ -265,10 +279,28 @@ private:
     float m_lean_sign = 1.0f, m_bank_sign = 1.0f;
     float m_leg_upper = 0.0f, m_leg_lower = 0.0f;
     float m_stroke_phase = 0.0f;
+    // The stroke being shown from the server's stroke state: its action
+    // serial and phase, the angle last told and the angle shown (eased
+    // towards it), and its own clock. Resent state with nothing changed
+    // does not reset the clock: Luanti resends every override an object
+    // holds whenever any one changes.
+    struct MeleeStroke {
+        bool active = false;
+        int action = -1;
+        int phase = 0;
+        float told = 0.0f;
+        float angle = 0.0f;
+        float t = 0.0f;
+    } m_melee;
     JiggleFrame m_jiggle_frame;
     JiggleSolver m_jiggle;
     bool m_posed = false; // m_globals holds a stepped pose
 };
+
+// How many loaded models carry a stroke evaluator, and how many stroke
+// poses animators have evaluated, since start: for status and live tests.
+int strokeModelCount();
+uint64_t strokePoseCount();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);

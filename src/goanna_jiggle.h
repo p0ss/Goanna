@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -56,11 +57,19 @@ struct JiggleColliderMark {
     std::string tip;
 };
 
-// The marks a model's nodes carry, by node name.
+class StrokeEvaluator;
+
+// The marks a model's nodes carry, by node name, and its whole-file marks.
 struct ModelExtras {
     std::map<std::string, JiggleParams> jiggle;
     std::map<std::string, JiggleColliderMark> colliders;
-    bool empty() const { return jiggle.empty() && colliders.empty(); }
+    // {"strokes": {...}} in the file's root extras, as JSON text: a stroke
+    // plan, the stroke family's file and the bone the server's stroke state
+    // rides on (goanna_strokes.h). ModelCache builds the evaluator from it.
+    std::string strokes;
+    std::shared_ptr<const StrokeEvaluator> stroke_evaluator;
+    std::string stroke_state;
+    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty(); }
 };
 
 // Reads the node extras of a .gltf (JSON) or a .glb (its JSON chunk), by

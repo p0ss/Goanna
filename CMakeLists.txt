@@ -107,6 +107,7 @@ add_library(goanna SHARED
     src/goanna_ripples.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
+    src/goanna_strokes.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
@@ -369,6 +370,15 @@ add_executable(goanna_jiggle_test EXCLUDE_FROM_ALL src/goanna_jiggle_test.cpp)
 target_include_directories(goanna_jiggle_test PRIVATE src)
 target_link_libraries(goanna_jiggle_test PRIVATE goanna luanti_core godot::cpp)
 
+# Melee strokes posed from a drag angle and time, against reference
+# evaluations from DorfCraft's Lua evaluator in tools/test/strokes. Links
+# only jsoncpp, not the library.
+add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
+    src/goanna_strokes_test.cpp
+    src/goanna_strokes.cpp)
+target_include_directories(goanna_strokes_test PRIVATE src)
+target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -403,6 +413,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_radial_form_test
     goanna_ripples_test
     goanna_schedule_test
+    goanna_strokes_test
     goanna_surface_test
     goanna_upright_sprite_test
 )
