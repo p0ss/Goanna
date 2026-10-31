@@ -26,6 +26,18 @@
 // - bipeds at 60 fps: a planted foot is out of reach by at most 0.03
 //   nodes at the fixture's pace, 0.1 at Mineclonia's walking pace.
 // Quadrupeds and 20 fps runs are reported, not checked, for reach.
+//
+// Then a wolf with two girdles (DorfCraft's wolf_carved_adult: hind legs
+// on the pelvis, fore legs on the chest) walks over the slab at its own
+// walking pace, turns, trots back at twice it, walks, backs and stands.
+// Checked: the planted, ground, foothold and standing rules above; at a
+// walk one leg at a time, in the order hind, fore, other hind, other fore
+// (the reverse backing; on level ground and a second into the gait, as a
+// step or the change of gait may take one out of turn; at 60 fps); at a
+// trot only diagonal pairs swing together; it walks below the trot's
+// Froude number and trots above; the chest rises against the pelvis
+// climbing onto the slab and (at 60 fps) falls stepping off; settled
+// standing (after 1.2 s: four feet settle in two pairs) no foot steps.
 // It prints, per run, steps, settles, forced lifts, rejected and
 // unreachable footholds, frames out of reach and the body's height.
 
@@ -85,6 +97,7 @@ struct BodyLeg {
     float x, y, z; // hip from the root: right, up, forward, nodes
     float length, ankle;
     int group;
+    int slow_group = -1, girdle = 0;
 };
 
 struct Body {
@@ -146,7 +159,7 @@ Result run(const Body *body_ptr, const std::vector<Segment> &script, float dt, f
     const Body &body = *body_ptr;
     std::vector<StepLeg> legs;
     for (const BodyLeg &l : body_ptr->legs)
-        legs.push_back({l.length, l.ankle, l.group});
+        legs.push_back({l.length, l.ankle, l.group, l.slow_group, l.girdle});
     StepPlanner planner(legs);
     Result res;
     float x = 0, z = 0, yaw = M_PI;
@@ -321,6 +334,163 @@ int main(int argc, char **argv) {
                             what + "a planted foot out of reach by " + std::to_string(s.most_stretch));
                 }
             }
+        }
+    }
+
+    // The wolf: hips 0.72 up; hind 0.28 behind the root, legs 0.5 with the
+    // ankle 0.22 up; fore 0.38 ahead, legs 0.56, ankle 0.16. Walk groups in
+    // order: left hind, left fore, right hind, right fore. Its walking
+    // pace is 1 node a second; the trot is twice that.
+    {
+        const Body wolf{"wolf",
+                0.72f,
+                {{-0.125f, 0.72f, -0.28f, 0.5f, 0.22f, 1, 0, 0},
+                        {-0.125f, 0.72f, 0.375f, 0.56f, 0.16f, 0, 1, 1},
+                        {0.125f, 0.72f, -0.28f, 0.5f, 0.22f, 0, 2, 0},
+                        {0.125f, 0.72f, 0.375f, 0.56f, 0.16f, 1, 3, 1}},
+                false};
+        // Forward is -z here (yaw pi), as in the fixture.
+        const std::vector<Segment> path = {
+                {1, 0, 0, 0, false}, {4, 0, -1.0f, 0, false}, {1, 0, 0, float(M_PI), false},
+                {3, 0, 2.0f, 0, false}, {2, 0, 1.0f, 0, false}, {2, 0, -0.6f, 0, false}, {1.5f, 0, 0, 0, false}};
+        for (float fps : {60.0f, 20.0f}) {
+            const float dt = 1.0f / fps;
+            std::vector<StepLeg> legs;
+            for (const BodyLeg &l : wolf.legs)
+                legs.push_back({l.length, l.ankle, l.group, l.slow_group, l.girdle});
+            StepPlanner p(legs);
+            float x = 0, z = 0, yaw = M_PI, slide = 0, off = 0, pitch_most = 0, pitch_least = 0;
+            int no_support = 0, still_steps = 0, two_at_walk = 0, out_of_order = 0, wrong_pair = 0;
+            int walk_frames_fast = 0, trot_frames_slow = 0, last_lift = -1;
+            float since_change = 0;
+            uint64_t walk_steps = 0, trot_steps = 0;
+            std::vector<StepFoot> last;
+            const std::string what = "wolf at " + std::to_string((int)fps) + " fps: ";
+            for (const Segment &seg : path) {
+                const int frames = (int)std::lround(seg.seconds / dt);
+                for (int f = 0; f < frames; ++f) {
+                    x += seg.vx * dt;
+                    z += seg.vz * dt;
+                    yaw += seg.yaw_rate * dt;
+                    const float y = (z <= -2.5f && z >= -4.5f) ? 0.5f : 0.0f;
+                    const float fx = -std::sin(yaw), fz = std::cos(yaw), rx = std::cos(yaw), rz = std::sin(yaw);
+                    StepInput in;
+                    in.dt = dt;
+                    in.root = {x, y, z};
+                    in.yaw = yaw;
+                    in.floor = floorAt;
+                    for (const BodyLeg &l : wolf.legs) {
+                        in.hips.push_back({x + rx * l.x + fx * l.z, y + l.y, z + rz * l.x + fz * l.z});
+                        in.rest.push_back({x + rx * l.x + fx * l.z, y, z + rz * l.x + fz * l.z});
+                    }
+                    const uint64_t before = p.stats().steps;
+                    std::vector<char> was_planted;
+                    for (const StepFoot &ft : p.feet())
+                        was_planted.push_back(ft.planted);
+                    const bool was_walking = p.walking();
+                    p.step(in);
+                    if (p.walking() != was_walking) {
+                        last_lift = -1; // a new gait starts its order afresh
+                        since_change = 0;
+                    }
+                    since_change = std::min(since_change + dt, (float)f * dt);
+                    const auto &feet = p.feet();
+                    const float speed = std::hypot(seg.vx, seg.vz);
+                    const float froude = speed * speed / (9.81f * 0.53f);
+                    if (speed > 0 && f * dt > 0.6f) {
+                        if (froude > STEP_TROT_FROUDE + 0.1f && p.walking())
+                            ++trot_frames_slow;
+                        if (froude < STEP_WALK_FROUDE - 0.1f && !p.walking())
+                            ++walk_frames_fast;
+                    }
+                    int swinging = 0, planted = 0;
+                    for (size_t i = 0; i < feet.size(); ++i) {
+                        if (!feet[i].planted) {
+                            ++swinging;
+                            // A leg lifting this frame: the walk's order.
+                            if (!was_planted.empty() && was_planted[i] && p.walking() && speed > 0) {
+                                const int g = wolf.legs[i].slow_group;
+                                // On level ground: a step up or down may
+                                // take a foot out of turn.
+                                // Settled into the gait: a second after it or
+                                // the direction changed (after a trot the
+                                // pairs are in step, and a foot well out of
+                                // reach goes out of turn while they part).
+                                const bool level = std::fabs(z + 2.5f) > 0.9f && std::fabs(z + 4.5f) > 0.9f
+                                        && since_change > 1.0f;
+                                const bool backing = (-std::sin(yaw)) * seg.vx + std::cos(yaw) * seg.vz < 0;
+                                if (last_lift >= 0 && g != (last_lift + (backing ? 3 : 1)) % 4 && level) {
+                                    ++out_of_order;
+                                }
+                                last_lift = g;
+                            }
+                            continue;
+                        }
+                        ++planted;
+                        if (!last.empty() && last[i].planted && last[i].supported && feet[i].supported)
+                            slide = std::max(slide, std::hypot(std::hypot(feet[i].sole[0] - last[i].sole[0],
+                                                                    feet[i].sole[1] - last[i].sole[1]),
+                                                            feet[i].sole[2] - last[i].sole[2]));
+                        if (feet[i].supported) {
+                            auto h = floorAt(feet[i].sole[0], feet[i].sole[2], feet[i].sole[1] + 0.01f,
+                                    feet[i].sole[1] - 0.01f);
+                            off = std::max(off, h ? std::fabs(*h - feet[i].sole[1]) : 1.0f);
+                        }
+                    }
+                    if (!p.walking()) {
+                        // Swinging legs at a trot: a diagonal pair or one.
+                        for (size_t i = 0; i < feet.size(); ++i)
+                            for (size_t j = i + 1; j < feet.size(); ++j)
+                                if (!feet[i].planted && !feet[j].planted && wolf.legs[i].group != wolf.legs[j].group)
+                                    ++wrong_pair;
+                        trot_steps += p.stats().steps - before;
+                    } else {
+                        if (swinging > 1 && speed > 0)
+                            ++two_at_walk;
+                        walk_steps += p.stats().steps - before;
+                    }
+                    if (planted == 0)
+                        ++no_support;
+                    // Four feet take longer to settle than two: 1.2 s.
+                    if (speed == 0 && seg.yaw_rate == 0 && f * dt > 1.2f) {
+                        still_steps += int(p.stats().steps - before);
+                    }
+                    // Fore feet on the slab, hind feet on the floor.
+                    // The chest against the pelvis: up while climbing onto the
+                    // slab, down while stepping off it.
+                    const float pitch = p.girdleDrop(1) - p.girdleDrop(0);
+                    if (seg.vz < 0)
+                        pitch_most = std::max(pitch_most, pitch);
+                    else if (seg.vz > 0)
+                        pitch_least = std::min(pitch_least, pitch);
+                    last = feet;
+                }
+            }
+            const StepStats &s = p.stats();
+            std::printf("wolf %2.0f fps: %llu steps (%llu walking, %llu trotting), forced %llu, unreachable %llu, "
+                        "stretched %llu frames (worst %.3f), chest against pelvis %.3f to %.3f, walk lifts out of order %d\n",
+                    fps, (unsigned long long)s.steps, (unsigned long long)walk_steps, (unsigned long long)trot_steps,
+                    (unsigned long long)s.forced, (unsigned long long)s.unreachable,
+                    (unsigned long long)s.stretched, s.most_stretch, pitch_least, pitch_most, out_of_order);
+            expect(slide == 0.0f, what + "a planted foot moved " + std::to_string(slide));
+            expect(off < 1e-4f, what + "a planted foot off the ground by " + std::to_string(off));
+            expect(s.unreachable == 0, what + std::to_string(s.unreachable) + " landings with no foothold");
+            expect(no_support == 0, what + std::to_string(no_support) + " frames with no foot planted");
+            expect(still_steps == 0, what + std::to_string(still_steps) + " steps while standing settled");
+            expect(walk_steps > 10 && trot_steps > 10, what + "walked " + std::to_string(walk_steps)
+                            + " steps and trotted " + std::to_string(trot_steps));
+            expect(two_at_walk == 0, what + std::to_string(two_at_walk) + " walking frames with two legs up");
+            // The walk's order and the chest stepping down at a display's
+            // frame rate; at 20 fps, reported (forced lifts break the order).
+            if (fps > 30)
+                expect(out_of_order == 0, what + std::to_string(out_of_order) + " walking lifts out of order");
+            expect(wrong_pair == 0, what + std::to_string(wrong_pair) + " trotting frames with a lateral pair up");
+            expect(trot_frames_slow == 0 && walk_frames_fast == 0,
+                    what + "walked at a trot's speed " + std::to_string(trot_frames_slow)
+                            + " frames, trotted at a walk's " + std::to_string(walk_frames_fast));
+            expect(pitch_most > 0.2f, what + "chest raised only " + std::to_string(pitch_most) + " climbing");
+            if (fps > 30)
+                expect(pitch_least < -0.2f, what + "chest lowered only " + std::to_string(pitch_least) + " stepping down");
         }
     }
 

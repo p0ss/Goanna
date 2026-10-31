@@ -177,11 +177,16 @@ uint64_t g_feet_frames = 0;
 float g_feet_most = 0.0f;
 uint64_t g_steps = 0, g_steps_unreachable = 0;
 float g_steps_stretch = 0.0f;
+uint64_t g_steps_walking = 0, g_steps_trotting = 0;
+float g_steps_pitch = 0.0f;
 } // namespace
 
 uint64_t plannedSteps() { return g_steps; }
 uint64_t plannedStepsUnreachable() { return g_steps_unreachable; }
 float plannedStepsStretchMost() { return g_steps_stretch; }
+uint64_t plannedStepsWalking() { return g_steps_walking; }
+uint64_t plannedStepsTrotting() { return g_steps_trotting; }
+float plannedGirdlePitchMost() { return g_steps_pitch; }
 
 int strokeModelCount() { return g_stroke_models; }
 uint64_t strokePoseCount() { return g_stroke_poses; }
@@ -466,6 +471,10 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
                 model->strokes = extras->stroke_evaluator;
                 model->tasks = extras->task_evaluators;
                 model->stroke_state = extras->stroke_state;
+            }
+            if (extras && extras->steps) {
+                model->steps = true;
+                model->step_clips = extras->step_clips;
             }
         }
     }
@@ -761,6 +770,9 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
 void ModelAnimator::findFeet() {
     m_feet_found = true;
     scene::SkinnedMesh *mesh = m_model->skinned;
+    for (const std::string &clip : m_model->step_clips)
+        if (auto n = mesh->getTrackNumber(clip))
+            m_step_tracks.push_back(*n);
     const auto &joints = mesh->getAllJoints();
     auto pelvis = mesh->getJointNumber("body");
     if (!pelvis)
@@ -776,24 +788,43 @@ void ModelAnimator::findFeet() {
                 out.push_back(c);
         return out;
     };
-    // A leg: a joint named leg... on the pelvis, then single children down
-    // to the ankle (a tentacle's further segments ride on the ankle).
-    for (u32 hip : children[*pelvis]) {
-        const auto &name = joints[hip]->Name;
-        if (!name || name->rfind("leg", 0) != 0 || children[hip].size() != 1)
-            continue;
+    // A leg: a joint named leg... (or a four-legged body's hind...) on the
+    // pelvis, or fore... on the chest, then single children down to the
+    // ankle (a tentacle's further segments ride on the ankle). The creature
+    // kit's fore legs bend their middle joint the other way from its hind
+    // legs and a biped's.
+    auto chest = mesh->getJointNumber("chest");
+    auto addLeg = [&](u32 parent, u32 hip, int girdle) {
+        if (children[hip].size() != 1)
+            return;
         const u32 knee = children[hip][0];
         if (children[knee].size() != 1)
-            continue;
+            return;
         FootFit f;
         f.hip = hip;
         f.knee = knee;
         f.ankle = children[knee][0];
+        f.parent = parent;
+        f.girdle = girdle;
+        f.knee_back = girdle == 1;
         f.below_hip = below(hip);
         f.below_knee = below(knee);
         f.below_ankle = below(f.ankle);
         m_feet.push_back(std::move(f));
+    };
+    for (u32 hip : children[*pelvis]) {
+        const auto &name = joints[hip]->Name;
+        if (name && (name->rfind("leg", 0) == 0 || name->rfind("hind", 0) == 0))
+            addLeg(*pelvis, hip, 0);
     }
+    if (chest && *chest != *pelvis && joints[*chest]->ParentJointID == *pelvis)
+        for (u32 hip : children[*chest]) {
+            const auto &name = joints[hip]->Name;
+            if (name && name->rfind("fore", 0) == 0)
+                addLeg(*chest, hip, 1);
+        }
+    for (const FootFit &f : m_feet)
+        m_chest_girdle = m_chest_girdle || f.girdle == 1;
 
     // Planned steps: every leg a two-bone chain with at most a toe below
     // the ankle (a tentacle lower body keeps the fitting above).
@@ -834,10 +865,26 @@ void ModelAnimator::findFeet() {
                 [](const FootFit *a, const FootFit *b) { return a->rest_ankle.origin.z < b->rest_ankle.origin.z; });
         for (size_t k = 0; k < along.size(); ++k)
             along[k]->group = int((k + (side > 0 ? 1 : 0)) % 2);
+        // Two girdles of two: the walk steps left hind, left fore, right
+        // hind, right fore (along runs front to back).
+        if (m_chest_girdle && m_feet.size() == 4 && along.size() == 2)
+            for (size_t k = 0; k < 2; ++k)
+                along[k]->slow_group = (side < 0 ? 0 : 2) + (k == 0 ? 1 : 0);
     }
     m_pelvis = *pelvis;
     m_bind_pelvis = bindLocal(*pelvis);
-    // The look: the pelvis's children that are not legs (the chest).
+    // The look: the pelvis's children that are not legs (the chest); on a
+    // four-legged body the chest is the fore legs', and the look is what
+    // else hangs from it (the neck).
+    if (m_chest_girdle) {
+        for (u32 c : children[*chest]) {
+            const auto &name = joints[c]->Name;
+            if (!name || name->rfind("fore", 0) != 0)
+                m_look_joints.push_back(c);
+        }
+        m_plans_steps = true;
+        return;
+    }
     for (u32 c : children[*pelvis]) {
         const auto &name = joints[c]->Name;
         if (name && *name == "chest") {
@@ -857,6 +904,14 @@ void ModelAnimator::findFeet() {
 // was refused, so the pose's look and blade are kept from the chest up.
 void ModelAnimator::ownPelvis(JointTransforms &locals) {
     constexpr float STEP_PELVIS_TURN = 15.0f * 3.14159265f / 180.0f;
+    // A four-legged body's legs own both girdles: the pelvis is the bind's,
+    // and the server's lean and height for clients without planned steps
+    // (DorfCraft's terrain fit) give way to the planner's.
+    if (m_chest_girdle) {
+        m_crouch_request = 0.0f;
+        locals[m_pelvis] = fromGodotTransform(m_bind_pelvis);
+        return;
+    }
     const Transform3D posed = std::visit(
             [](const auto &t) {
                 if constexpr (std::is_same_v<std::decay_t<decltype(t)>, core::Transform>)
@@ -992,7 +1047,8 @@ void ModelAnimator::planSteps() {
     if (!m_steps || std::fabs(scale - m_steps_scale) > 0.01f * m_steps_scale) {
         std::vector<StepLeg> legs;
         for (const FootFit &f : m_feet)
-            legs.push_back({f.length * scale, std::max(0.0f, f.rest_ankle.origin.y) * scale, f.group});
+            legs.push_back({f.length * scale, std::max(0.0f, f.rest_ankle.origin.y) * scale, f.group, f.slow_group,
+                    f.girdle});
         m_steps = std::make_shared<StepPlanner>(std::move(legs));
         m_steps_scale = scale;
     }
@@ -1027,6 +1083,10 @@ void ModelAnimator::planSteps() {
     g_steps += now.steps - before.steps;
     g_steps_unreachable += now.unreachable - before.unreachable;
     g_steps_stretch = std::max(g_steps_stretch, now.most_stretch);
+    if (m_chest_girdle) {
+        (m_steps->walking() ? g_steps_walking : g_steps_trotting) += now.steps - before.steps;
+        g_steps_pitch = std::max(g_steps_pitch, std::fabs(m_steps->girdleDrop(1) - m_steps->girdleDrop(0)));
+    }
 }
 
 void ModelAnimator::applySteps() {
@@ -1079,6 +1139,44 @@ void ModelAnimator::applySteps() {
     }
     turn(below_pelvis, twist, pelvis_at);
     turn(look, twist.inverse(), pelvis_at);
+    // A four-legged body: the chest's girdle lowered for the fore feet, the
+    // pelvis's for the hind, so the body pitches about the hind hips; the
+    // neck turned back, so the head keeps its look.
+    if (m_chest_girdle) {
+        Vector3 hind, fore;
+        int hinds = 0, fores = 0;
+        for (const FootFit &f : m_feet) {
+            const Vector3 h = global(f.hip).origin;
+            if (f.girdle == 1)
+                fore += h, ++fores;
+            else
+                hind += h, ++hinds;
+        }
+        if (hinds && fores) {
+            hind /= float(hinds);
+            fore /= float(fores);
+            const float along = Vector2(fore.x - hind.x, fore.z - hind.z).length();
+            const float rise = (m_steps->girdleDrop(1) - m_steps->girdleDrop(0)) / scale;
+            if (along > 1e-4f && std::fabs(rise) > 1e-5f) {
+                const Vector3 axis = global(m_pelvis).basis.get_column(0).normalized();
+                const Basis pitch(axis, std::atan2(rise, along));
+                turn(below_pelvis, pitch, hind);
+                if (!m_look_joints.empty()) {
+                    std::vector<u32> neck;
+                    const auto &joints = m_model->skinned->getAllJoints();
+                    std::vector<char> in(joints.size(), 0);
+                    in[m_look_joints[0]] = 1;
+                    for (u32 i = 0; i < joints.size(); ++i) {
+                        if (auto par = joints[i]->ParentJointID)
+                            in[i] |= in[*par];
+                        if (in[i])
+                            neck.push_back(i);
+                    }
+                    turn(neck, pitch.inverse(), global(m_look_joints[0]).origin);
+                }
+            }
+        }
+    }
 
     const auto &feet = m_steps->feet();
     const float body_yaw = [&] {
@@ -1091,7 +1189,7 @@ void ModelAnimator::applySteps() {
         const FootFit &f = m_feet[i];
         // The clip's leg motion replaced: the leg back to its bind under
         // the pelvis, then solved to the planned ankle.
-        set(f.below_hip, pelvis * f.bind_hip);
+        set(f.below_hip, global(f.parent) * f.bind_hip);
         set(f.below_knee, global(f.hip) * f.bind_knee);
         set(f.below_ankle, global(f.knee) * f.bind_ankle);
         const StepVec &sole = feet[i].sole;
@@ -1108,6 +1206,8 @@ void ModelAnimator::applySteps() {
         // The knee forward, between the body's facing and the foot's.
         const Basis foot_turn(Vector3(0, 1, 0), feet[i].yaw - body_yaw);
         Vector3 pole = twist.xform(forward) + foot_turn.xform(forward);
+        if (f.knee_back)
+            pole = -pole;
         Vector3 side = pole - dir * pole.dot(dir);
         if (side.length() < 1e-4f)
             side = forward - dir * forward.dot(dir);
@@ -1136,18 +1236,27 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // animateJoints: local transforms for this frame, each track blending
     // from the pose shown last step.
     anim.advance(dt);
-    if (m_model->strokes) {
+    if (fitsFeet()) {
         m_stroke_lod.step(dt, m_stroke_detail);
         if (!m_feet_found)
             findFeet();
         // Far off (goanna_stroke_detail.h) a planned body shows the clip's
         // legs; its planner is dropped, to plant afresh when it comes back.
-        m_planning = m_plans_steps && m_stroke_lod.detail() != StrokeDetail::Clip;
+        // So does a body planned without strokes playing a clip that is
+        // not one of its planned clips (sleeping, dying, grazing).
+        bool planned_clip = m_model->strokes != nullptr;
+        if (!planned_clip) {
+            planned_clip = true;
+            for (const auto &track : anim.tracks)
+                if (std::find(m_step_tracks.begin(), m_step_tracks.end(), track.first) == m_step_tracks.end())
+                    planned_clip = false;
+        }
+        m_planning = m_plans_steps && planned_clip && m_stroke_lod.detail() != StrokeDetail::Clip;
         if (m_planning)
             m_plan_dt = dt;
         else if (m_plans_steps)
             m_steps.reset();
-        else
+        else if (m_model->strokes)
             fitFeet(dt);
     }
     const auto &joints = mesh->getAllJoints();

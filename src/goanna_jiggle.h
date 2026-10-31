@@ -73,7 +73,12 @@ struct ModelExtras {
     // entry is null when its family is missing or unreadable.
     std::vector<std::shared_ptr<const StrokeEvaluator>> task_evaluators;
     std::string stroke_state;
-    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty(); }
+    // {"steps": {"clips": [...]}} in the file's root extras: the model's
+    // legs are planned (goanna_steps.h) while it plays one of these clips,
+    // and follow any other clip (sleeping, dying) as authored.
+    bool steps = false;
+    std::vector<std::string> step_clips;
+    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty() && !steps; }
 };
 
 // Reads the node extras of a .gltf (JSON) or a .glb (its JSON chunk), by

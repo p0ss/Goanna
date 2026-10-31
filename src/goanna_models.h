@@ -129,6 +129,10 @@ struct GodotModel {
     std::shared_ptr<const StrokeEvaluator> strokes;
     std::vector<std::shared_ptr<const StrokeEvaluator>> tasks;
     std::string stroke_state;
+    // Animated models only: planned steps without strokes, while one of
+    // these clips plays (ModelExtras::steps). False for most models.
+    bool steps = false;
+    std::vector<std::string> step_clips;
     ~GodotModel();
 };
 
@@ -205,7 +209,7 @@ public:
     // ground under them: each foot is lifted or lowered to the surface under
     // it, the body lowered for the lower foot, the leg bent to suit. The
     // renderer says where the model stands each frame.
-    bool fitsFeet() const { return m_model->strokes != nullptr; }
+    bool fitsFeet() const { return m_model->strokes != nullptr || m_model->steps; }
     void setGround(GroundFrame frame) { m_ground = std::move(frame); }
     // How much of the stroke and foot fitting to work out from the next
     // step (goanna_stroke_detail.h), chosen by the renderer from the
@@ -356,6 +360,12 @@ private:
         godot::Transform3D bind_hip, bind_knee, bind_ankle, rest_ankle;
         float length = 0.0f;
         int group = 0;
+        // A four-legged body: the walk's group, the girdle the leg hangs
+        // from (0 the pelvis, 1 the chest), its parent joint, and whether
+        // its middle joint bends backwards (a kit fore leg's).
+        int slow_group = -1, girdle = 0;
+        u32 parent = 0;
+        bool knee_back = false;
         float want = 0.0f; // the lift the ground last asked for
     };
     std::vector<FootFit> m_feet;
@@ -370,6 +380,11 @@ private:
     std::vector<u32> m_look_joints;
     godot::Transform3D m_bind_pelvis;
     float m_crouch_request = 0.0f, m_plan_dt = 0.0f, m_steps_scale = 0.0f;
+    // A four-legged body: its fore legs hang from the chest. And for a
+    // model planned without strokes, the clips it is planned in (track
+    // numbers): any other clip leaves its legs to the clip.
+    bool m_chest_girdle = false;
+    std::vector<u16> m_step_tracks;
     std::shared_ptr<StepPlanner> m_steps;
     float m_body_drop = 0.0f;
     GroundFrame m_ground;
@@ -402,6 +417,12 @@ float fittedFootMost();
 uint64_t plannedSteps();
 uint64_t plannedStepsUnreachable();
 float plannedStepsStretchMost();
+// Four-legged bodies: steps taken walking (one leg at a time) and trotting
+// (diagonal pairs), and the most the chest's girdle has stood above or
+// below the pelvis's, nodes.
+uint64_t plannedStepsWalking();
+uint64_t plannedStepsTrotting();
+float plannedGirdlePitchMost();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);
