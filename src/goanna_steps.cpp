@@ -40,6 +40,15 @@ void StepPlanner::reset() {
         l = Leg();
 }
 
+void StepPlanner::seed(const std::vector<StepVec> &soles) {
+    for (size_t i = 0; i < state_.size() && i < soles.size(); ++i) {
+        state_[i].foot.sole = soles[i];
+        state_[i].foot.planted = false;
+    }
+    have_ = true;
+    airborne_ = true;
+}
+
 StepPlanner::Gait StepPlanner::gait(float length, float speed, int groups) {
     // Longer legs swing slower and stride further (a pendulum's time goes
     // with the root of its length); faster bodies stride further.

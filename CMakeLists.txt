@@ -109,6 +109,7 @@ add_library(goanna SHARED
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
     src/goanna_steps.cpp
+    src/goanna_climb.cpp
     src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
@@ -388,6 +389,12 @@ add_executable(goanna_steps_test EXCLUDE_FROM_ALL
     src/goanna_steps.cpp)
 target_include_directories(goanna_steps_test PRIVATE src)
 target_link_libraries(goanna_steps_test PRIVATE jsoncpp)
+# Planned climbs: ladders, mantles onto a ledge, a failed mantle and a
+# stroke during a climb, with no Godot runtime.
+add_executable(goanna_climb_test EXCLUDE_FROM_ALL
+    src/goanna_climb_test.cpp
+    src/goanna_climb.cpp)
+target_include_directories(goanna_climb_test PRIVATE src)
 # Melee strokes by distance from the camera: tiers, fades, interpolation
 # against full evaluation, and the cost of a crowd before and after.
 add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL
@@ -418,6 +425,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_light_test
     goanna_light_hue_test
     goanna_climate_test
+    goanna_climb_test
     goanna_limbs_test
     goanna_lod_storage_test
     goanna_lod_test

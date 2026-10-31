@@ -2262,6 +2262,11 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                     }
                     return best;
                 };
+                gf.climbable = [map, ndef](float x, float y, float z) {
+                    const MapNode n = map->getNode(v3s16((s16)std::floor(x + 0.5f), (s16)std::floor(y + 0.5f),
+                            (s16)std::floor(z + 0.5f)));
+                    return n.getContent() != CONTENT_IGNORE && ndef->get(n).climbable;
+                };
             }
             en.animator->setGround(std::move(gf));
         }

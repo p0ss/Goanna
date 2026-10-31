@@ -9,6 +9,7 @@
 
 #include "goanna_models.h"
 #include "goanna_steps.h"
+#include "goanna_climb.h"
 
 #include <algorithm>
 #include <cmath>
@@ -179,6 +180,11 @@ uint64_t g_steps = 0, g_steps_unreachable = 0;
 float g_steps_stretch = 0.0f;
 } // namespace
 
+uint64_t g_climb_ladders = 0, g_climb_mantles = 0, g_climb_landed = 0, g_climb_moves = 0;
+uint64_t climbLadders() { return g_climb_ladders; }
+uint64_t climbMantles() { return g_climb_mantles; }
+uint64_t climbMantlesLanded() { return g_climb_landed; }
+uint64_t climbMoves() { return g_climb_moves; }
 uint64_t plannedSteps() { return g_steps; }
 uint64_t plannedStepsUnreachable() { return g_steps_unreachable; }
 float plannedStepsStretchMost() { return g_steps_stretch; }
@@ -812,6 +818,46 @@ void ModelAnimator::findFeet() {
             m_look_joints.push_back(c);
     }
     m_plans_steps = true;
+    findArms(children);
+}
+
+// Arms for climbing: under the chest (or whatever keeps the look), a joint
+// named arm... with one child, the elbow, with one child, the hand.
+void ModelAnimator::findArms(const std::vector<std::vector<u32>> &children) {
+    const auto &joints = m_model->skinned->getAllJoints();
+    auto below = [&](u32 top) {
+        std::vector<u32> out{top};
+        for (size_t k = 0; k < out.size(); ++k)
+            for (u32 c : children[out[k]])
+                out.push_back(c);
+        return out;
+    };
+    auto origin = [&](u32 j) {
+        const auto &t = joints[j]->transform;
+        if (const auto *tr = std::get_if<core::Transform>(&t))
+            return toGodotTransform(tr->buildMatrix()).origin;
+        return toGodotTransform(std::get<core::matrix4>(t)).origin;
+    };
+    for (u32 look : m_look_joints) {
+        for (u32 s : children[look]) {
+            const auto &name = joints[s]->Name;
+            if (!name || name->rfind("arm", 0) != 0 || children[s].size() != 1)
+                continue;
+            const u32 elbow = children[s][0];
+            if (children[elbow].size() != 1)
+                continue;
+            ArmFit a;
+            a.shoulder = s;
+            a.elbow = elbow;
+            a.hand = children[elbow][0];
+            a.below_shoulder = below(s);
+            a.below_elbow = below(elbow);
+            a.length = origin(elbow).length() + origin(a.hand).length();
+            a.side = origin(s).x < 0 ? -1 : 1;
+            if (a.length > 1e-4f)
+                m_arms.push_back(std::move(a));
+        }
+    }
 }
 
 // The legs own the pelvis: its place and base turn are the planner's. What
@@ -983,6 +1029,7 @@ void ModelAnimator::planSteps() {
         in.hips.push_back(world(toGodotTransform(m_globals[f.hip]).origin));
         in.rest.push_back(world(striking ? toGodotTransform(m_globals[f.ankle]).origin : f.rest_ankle.origin));
     }
+    planClimb(in);
     const StepStats before = m_steps->stats();
     m_steps->step(in);
     const StepStats &now = m_steps->stats();
@@ -1086,6 +1133,174 @@ void ModelAnimator::applySteps() {
         want.basis = foot_turn * f.rest_ankle.basis;
         set(f.below_ankle, want);
     }
+    applyClimb();
+}
+
+// The climb's input from what this client sees: the body's rise, a
+// climbable node at it and the wall it is on, or a ledge ahead while it
+// rises. Climbing, the step planner lets the feet go (as in the air); when
+// the climb ends it plants them from where the climb left them.
+void ModelAnimator::planClimb(StepInput &in) {
+    if (m_arms.size() != 2 || m_feet.size() != 2 || !m_ground.climbable || !m_ground.floor) {
+        m_climb.reset();
+        return;
+    }
+    const float scale = m_steps_scale;
+    if (!m_climb || std::fabs(m_climb->limbs()[2].length - m_feet[0].length * scale) > 0.01f * scale) {
+        std::vector<ClimbLimb> limbs;
+        for (const ArmFit &a : m_arms)
+            limbs.push_back({a.length * scale, 0.0f, true, a.side});
+        for (size_t i = 0; i < m_feet.size(); ++i)
+            limbs.push_back({m_feet[i].length * scale, m_steps->legs()[i].ankle, false,
+                    m_feet[i].rest_ankle.origin.x < 0 ? -1 : 1});
+        m_climb = std::make_shared<ClimbPlanner>(std::move(limbs));
+    }
+    const float y = in.root[1];
+    if (m_climb_have && in.dt > 0.0f) {
+        const float raw = (y - m_climb_last_y) / in.dt;
+        if (std::fabs(raw) < 30.0f)
+            m_climb_vy += (raw - m_climb_vy) * (1.0f - std::exp(-in.dt / 0.05f));
+    } else {
+        m_climb_vy = 0.0f;
+    }
+    m_climb_last_y = y;
+    m_climb_have = true;
+    const float x = in.root[0], z = in.root[2];
+    const Vector3 a = m_ground.mesh_to_world.basis.xform(Vector3(0, 0, -1));
+    float fx = a.x, fz = -a.z;
+    const float fl = std::hypot(fx, fz);
+    if (fl < 1e-4f)
+        return;
+    fx /= fl;
+    fz /= fl;
+
+    ClimbInput c;
+    c.dt = in.dt;
+    c.root = in.root;
+    c.yaw = in.yaw;
+    c.vy = m_climb_vy;
+    c.grounded = in.grounded && m_ground.floor(x, z, y + 0.05f, y - 0.1f).has_value() && std::fabs(m_climb_vy) < 1.0f;
+    c.striking = m_melee.active && m_model->strokes && m_melee.t <= m_model->strokes->length();
+    const Transform3D &w = m_ground.mesh_to_world;
+    for (const ArmFit &arm : m_arms) {
+        const Vector3 s = w.xform(toGodotTransform(m_globals[arm.shoulder]).origin);
+        c.anchors.push_back({s.x, s.y, -s.z});
+    }
+    for (const StepVec &h : in.hips)
+        c.anchors.push_back(h);
+    if (m_steps && m_steps->feet().size() == m_feet.size())
+        for (const StepFoot &f : m_steps->feet())
+            c.soles.push_back(f.sole);
+    // A ladder: a climbable node at the body; its wall the walkable node
+    // beside it nearest ahead, else straight ahead.
+    for (float up : {0.5f, 1.2f}) {
+        if (!m_ground.climbable(x, y + up, z))
+            continue;
+        const float cx = std::floor(x + 0.5f), cy = std::floor(y + up + 0.5f), cz = std::floor(z + 0.5f);
+        float best = -2.0f;
+        c.face = {x + fx * 0.3f, y, z + fz * 0.3f};
+        c.face_nx = -fx;
+        c.face_nz = -fz;
+        for (const auto &d : {std::array<float, 2>{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            if (!m_ground.floor(cx + d[0], cz + d[1], cy + 0.5f, cy - 0.4f))
+                continue;
+            const float along = d[0] * fx + d[1] * fz;
+            if (along > best) {
+                best = along;
+                c.face = {cx + d[0] * 0.5f, y, cz + d[1] * 0.5f};
+                c.face_nx = -d[0];
+                c.face_nz = -d[1];
+            }
+        }
+        c.ladder = true;
+        break;
+    }
+    // A ledge ahead while rising: the first walkable top between
+    // CLIMB_LEDGE_LOW and CLIMB_LEDGE_HIGH above the root.
+    if (!c.ladder && m_climb->mode() == ClimbMode::None && m_climb_vy > CLIMB_RISE) {
+        for (float d = 0.1f; d <= 1.0f; d += 0.05f) {
+            if (auto top = m_ground.floor(x + fx * d, z + fz * d, y + CLIMB_LEDGE_HIGH, y + CLIMB_LEDGE_LOW)) {
+                c.ledge = true;
+                c.edge = {x + fx * (d - 0.025f), *top, z + fz * (d - 0.025f)};
+                c.edge_nx = -fx;
+                c.edge_nz = -fz;
+                break;
+            }
+        }
+    }
+    const ClimbStats before = m_climb->stats();
+    m_climb->step(c);
+    const ClimbStats &now = m_climb->stats();
+    g_climb_ladders += now.ladders - before.ladders;
+    g_climb_mantles += now.mantles - before.mantles;
+    g_climb_landed += now.landed - before.landed;
+    g_climb_moves += now.moves - before.moves;
+    if (m_climb->mode() != ClimbMode::None)
+        in.grounded = false;
+    if (m_climb->ended()) {
+        std::vector<StepVec> soles;
+        for (size_t i = m_arms.size(); i < m_climb->contacts().size(); ++i)
+            soles.push_back(m_climb->contacts()[i].at);
+        m_steps->seed(soles);
+    }
+}
+
+// Each limb the climb holds, solved to its hold as far as the climb's
+// weight on it says, over whatever the clip and the step planner gave it.
+void ModelAnimator::applyClimb() {
+    if (!m_climb || m_climb->weight() <= 0.0f)
+        return;
+    const Transform3D to_mesh = m_ground.mesh_to_world.affine_inverse();
+    auto global = [&](u32 j) { return toGodotTransform(m_globals[j]); };
+    auto turn = [&](const std::vector<u32> &joints, const Basis &b, const Vector3 &about) {
+        const Transform3D x(b, about - b.xform(about));
+        for (u32 j : joints)
+            m_globals[j] = fromGodotTransform(x * toGodotTransform(m_globals[j]));
+    };
+    const auto &contacts = m_climb->contacts();
+    const auto &limbs = m_climb->limbs();
+    for (size_t i = 0; i < contacts.size() && i < limbs.size(); ++i) {
+        const float wt = contacts[i].weight;
+        if (wt <= 1e-3f)
+            continue;
+        const bool arm = i < m_arms.size();
+        u32 top, mid, end;
+        const std::vector<u32> *below_top, *below_mid;
+        Vector3 pole;
+        if (arm) {
+            const ArmFit &a = m_arms[i];
+            top = a.shoulder, mid = a.elbow, end = a.hand;
+            below_top = &a.below_shoulder, below_mid = &a.below_elbow;
+            pole = Vector3(0.6f * a.side, -1.0f, 0.5f); // elbows down, out and back
+        } else {
+            const FootFit &f = m_feet[i - m_arms.size()];
+            top = f.hip, mid = f.knee, end = f.ankle;
+            below_top = &f.below_hip, below_mid = &f.below_knee;
+            pole = Vector3(0, 0, -1); // knees forward, towards what is climbed
+        }
+        const StepVec &at = contacts[i].at;
+        const Vector3 want = to_mesh.xform(Vector3(at[0], at[1] + limbs[i].end, -at[2]));
+        const Vector3 h = global(top).origin, k = global(mid).origin, e = global(end).origin;
+        Vector3 target = e + (want - e) * wt;
+        const float l1 = (k - h).length(), l2 = (e - k).length();
+        if (l1 < 1e-4f || l2 < 1e-4f)
+            continue;
+        const Vector3 reach = target - h;
+        if (reach.length() < 1e-4f)
+            continue;
+        const float d = std::clamp(reach.length(), std::fabs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
+        const Vector3 dir = reach.normalized();
+        target = h + dir * d;
+        Vector3 side = pole - dir * pole.dot(dir);
+        if (side.length() < 1e-4f)
+            continue;
+        side.normalize();
+        const float along = (l1 * l1 - l2 * l2 + d * d) / (2.0f * d);
+        const Vector3 knee = h + dir * along + side * std::sqrt(std::max(0.0f, l1 * l1 - along * along));
+        turn(*below_top, Basis(Quaternion((k - h).normalized(), (knee - h).normalized())), h);
+        const Vector3 e1 = global(end).origin;
+        turn(*below_mid, Basis(Quaternion((e1 - knee).normalized(), (target - knee).normalized())), knee);
+    }
 }
 
 void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
@@ -1107,8 +1322,10 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
         m_planning = m_plans_steps && m_stroke_lod.detail() != StrokeDetail::Clip;
         if (m_planning)
             m_plan_dt = dt;
-        else if (m_plans_steps)
+        else if (m_plans_steps) {
             m_steps.reset();
+            m_climb.reset();
+        }
         else
             fitFeet(dt);
     }
