@@ -294,11 +294,27 @@ are refused the floor half a node down and crowd under the body. The
 stroke family asks the pelvis for a drop of 0.069 to 0.134 hip heights
 (the 45 degree stroke) and a turn of up to 52 degrees (any stroke).
 
+Planned steps, live, 31 October 2026: DorfCraft's melee trial job (its
+probe from `strokes/submit_trial.py`, the slab strip under one foot) on a
+private Luanti 5.17.0 server with Mineclonia, a Goanna client from this
+code (Godot 4.5.1, software rendering, llvmpipe), with walking added to
+the script: forward and back 1.5 s each, left and right 1 s each, forward
+0.8 s twice between strokes and back 1.2 s at the end, around twelve
+strokes. The job passed, so the server's checks passed. The client built
+evaluators for three bodies, evaluated 202 stroke poses and landed 58
+planned steps (22 of them in the walking before the first stroke), with
+no landing short of a foothold; the furthest a planted foot was out of
+reach was 0.081 nodes. No recording was made: nothing here shows that the
+knees bend the right way, that the feet point the right way or that the
+gait looks right, only that the planner ran on the trial bodies without
+losing a foothold.
+
 ## Not done yet
 
 - Planned steps are checked offline only for the planner; the posing
   (pelvis ownership, the leg solve, the knee's side, the foot's turn) has
-  no offline check, only the live run below, if any.
+  no offline check, and the live run above made no recording, so how
+  it looks is unseen.
 - Quadrupeds and hexapods are grouped and planned by the same code but
   only the made-up quadruped in the offline test has run; no body in the
   game has four planned legs yet, and on a slab's edge it is out of reach
