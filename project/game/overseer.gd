@@ -632,7 +632,7 @@ func _receive(msg: Dictionary) -> void:
 	elif type == "affordances":
 		_receive_affordances(msg)
 	elif type == "plans" and msg.get("plans") is Array:
-		ui.update_plans(msg.plans)
+		ui.update_plans(msg.plans, msg.get("table"))
 	elif type == "houses" and session_ready:
 		ui.houses.update(msg)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:

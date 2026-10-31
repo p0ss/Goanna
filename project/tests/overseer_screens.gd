@@ -161,6 +161,75 @@ func view_menu(main: Node, client: Node) -> void:
 	check(not bare.ui.view_menu.visible, "a task view with no overlays shows no empty View menu")
 	scoped._close(); bare._close()
 
+func plans_shape() -> Dictionary:
+	return {"title": "Plans",
+		"columns": [{"id": "plan", "label": "Plan", "kind": "text"}, {"id": "kind", "label": "Kind", "kind": "text"},
+			{"id": "state", "label": "State", "kind": "text"}, {"id": "progress", "label": "Progress", "kind": "text"},
+			{"id": "who", "label": "Asked by", "kind": "text"}, {"id": "level", "label": "Level", "kind": "number"},
+			{"id": "where", "label": "Where", "kind": "text"}],
+		"sort": {"column": "state", "order": "asc"}, "filters": [{"id": "kind", "label": "Kind", "options": ["Digging", "Officer's page"]}],
+		"rows": [
+			{"id": "o7", "cells": {"plan": "Excavation", "kind": "Digging", "state": "Working", "progress": "3 of 8",
+				"who": "ana", "level": 0, "where": "4 north of the middle"}, "keys": {"state": 5, "progress": 0.375},
+				"kind": "Digging", "pos": {"x": 1, "y": 0, "z": 4}, "detail": ["Asked by ana."],
+				"actions": [{"id": "cancel", "label": "Cancel"}]},
+			{"id": "page:p3", "cells": {"plan": "Nothing here can make stone.", "kind": "Officer's page", "state": "Danger",
+				"who": "Ada, manager", "level": 0, "where": "Granary"}, "keys": {"state": 0}, "kind": "Officer's page",
+				"pos": {"x": 3, "y": 0, "z": 3}, "page": true, "new": true, "detail": ["Not yet read."],
+				"actions": [{"id": "act", "label": "Act", "primary": true}, {"id": "cancel", "label": "Drop"}]}],
+		"empty": {"why": "No plans or pages yet.", "what": "Choose a tool under Plan."},
+		"note": "Plans are work marked on the map and officers' pages."}
+
+func plans(main: Node, client: Node) -> void:
+	var view := open_view(main, client, {"sections": sections({})})
+	var ui = view.ui
+	ui.choose_family("Plans")
+	check(client.sent[-1].t == "plans", "Plans asks the server")
+	var list := [{"id": "o7", "kind": "dig", "title": "Excavation", "state": "Working", "done": 3, "total": 8}]
+	view._receive({"v": 1, "t": "plans", "plans": list, "table": plans_shape()})
+	check(ui.table_panel.visible and ui.table_kind == "plans" and not ui.plans.visible and not ui.panel.visible,
+		"Plans is a table covering the map, without the older list")
+	check(ui.table.shown_rows[0].id == "page:p3", "Plans opens danger first")
+	var texts := ""
+	for item in ui.table.tree.get_root().get_children():
+		for i in 7: texts += item.get_text(i) + "|"
+	check(not "o7" in texts and not "page:" in texts, "no plan id is shown in the table")
+	client.sent.clear()
+	ui.table.choose_index(0)
+	check(ui.panel.visible and ui.title.text == "Nothing here can make stone." and ui.detail_actions.visible,
+		"choosing a page shows its detail and actions in the context panel")
+	check(client.sent.any(func(m: Dictionary) -> bool: return m.get("t") == "seen" and m.get("id") == "page:p3"),
+		"choosing a new page marks it read")
+	var labels: Array = []
+	var accents := 0
+	for b in ui.detail_actions.get_children():
+		labels.append(b.text)
+		if b.has_theme_stylebox_override("normal"): accents += 1
+	if ui.detail_primary.visible and ui.detail_primary.has_theme_stylebox_override("normal"): accents += 1
+	check(labels == ["Act", "Drop"] and ui.detail_primary.visible and accents == 1, "Act is the one accent; Drop and Show on map are quiet")
+	client.sent.clear()
+	ui.detail_actions.get_child(0).pressed.emit()
+	check(client.sent.size() == 1 and client.sent[0].t == "act" and client.sent[0].id == "page:p3", "Act sends the page's id")
+	view._receive({"v": 1, "t": "reply", "req": client.sent[0].req, "ok": true, "reason": "Acted on 1 request."})
+	ui.table.choose_index(1)
+	accents = 0
+	if ui.detail_primary.has_theme_stylebox_override("normal"): accents += 1
+	check(ui.detail_actions.get_child(0).text == "Cancel" and accents == 1, "a plan without a primary action keeps Show on map as the accent")
+	client.sent.clear()
+	ui.detail_actions.get_child(0).pressed.emit()
+	check(client.sent.size() == 1 and client.sent[0].t == "cancel" and client.sent[0].id == "o7", "Cancel sends the plan's id")
+	view._receive({"v": 1, "t": "reply", "req": client.sent[0].req, "ok": true, "reason": "Plan cancelled."})
+	ui.detail_primary.pressed.emit()
+	check(ui.family == "Select" and view.centre == Vector2(1, 4), "Show on map returns to the map at the plan")
+	# The Progress verb opens Plans at its plan.
+	ui.selected_id = "o7"
+	ui.choose_family("Plans")
+	view._receive({"v": 1, "t": "plans", "plans": list, "table": plans_shape()})
+	check(ui.table.selected_id == "o7" and ui.panel.visible, "Progress opens Plans with its plan chosen")
+	view.go_back()
+	check(ui.table.selected_id == "" and ui.selected_id == "", "Back clears the chosen plan first")
+	view._close()
+
 func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var main := Unit.TestMain.new(); root.add_child(main)
@@ -172,5 +241,6 @@ func run() -> void:
 	await houses_shown(main, client)
 	shapes(main, client)
 	view_menu(main, client)
+	plans(main, client)
 	print("Overseer screens: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

@@ -363,6 +363,13 @@ func choose_index(index: int) -> void:
 	tree.scroll_to_item(item)
 	_choose(item.get_metadata(0))
 
+## Chooses the row with this id, if it is shown.
+func choose_id(id: String) -> void:
+	for i in shown_rows.size():
+		if str(shown_rows[i].get("id", "")) == id:
+			choose_index(i)
+			return
+
 func clear_choice() -> void:
 	selected_id = ""
 	tree.deselect_all()

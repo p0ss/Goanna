@@ -76,7 +76,14 @@ const QUIET := Color(0.62, 0.64, 0.68)
 var table_panel: PanelContainer
 var table: DataTable
 var table_refresh: Button
-## "people", "supplies", "workshops" or "" when the map shows.
+## The server's Plans table (DorfCraft tables.lua, plans_table), or empty
+## for an older server, whose list stays in the side panel.
+var plans_table: Dictionary = {}
+## The chosen Plans row's actions (Act, Drop, Cancel) in the context panel.
+var detail_actions: VBoxContainer
+var detail_actions_key: Variant = null
+var accent_style: StyleBoxFlat
+## "people", "supplies", "workshops", "plans" or "" when the map shows.
 var table_kind := ""
 var detail: VBoxContainer
 var detail_body: Label
@@ -244,7 +251,8 @@ func build(host: Node) -> void:
 	table.row_chosen.connect(show_detail)
 	table.row_activated.connect(activate_row)
 	table_scroll.add_child(table)
-	table_refresh = button(table.host_tools, "Refresh", func() -> void: view._send({"t": "overview"}))
+	table_refresh = button(table.host_tools, "Refresh", func() -> void:
+		view._send({"t": "plans"} if table_kind == "plans" else {"t": "overview"}))
 	table_refresh.size_flags_horizontal = Control.SIZE_SHRINK_END
 	table_refresh.autowrap_mode = TextServer.AUTOWRAP_OFF
 	panel = box(view.root_control)
@@ -269,11 +277,14 @@ func build(host: Node) -> void:
 	detail_body = label(detail, "")
 	detail_reason = label(detail, "")
 	detail_reason.add_theme_color_override("font_color", QUIET)
+	detail_actions = VBoxContainer.new()
+	detail_actions.add_theme_constant_override("separation", 8)
+	detail.add_child(detail_actions)
 	detail_primary = button(detail, "Show on map", detail_action)
-	var accent := StyleBoxFlat.new()
-	accent.bg_color = Color("285b85")
-	accent.set_corner_radius_all(5)
-	detail_primary.add_theme_stylebox_override("normal", accent)
+	accent_style = StyleBoxFlat.new()
+	accent_style.bg_color = Color("285b85")
+	accent_style.set_corner_radius_all(5)
+	detail_primary.add_theme_stylebox_override("normal", accent_style)
 	detail.hide()
 	zone_property = label(context, "Type")
 	zone_options = OptionButton.new()
@@ -589,6 +600,7 @@ func grey(b: Button) -> void:
 ## its table (an older server's lists stay in the side panel), or the
 ## workshop picker while no workshop is chosen or Change workshop is open.
 func current_table() -> String:
+	if family == "Plans": return "plans" if not plans_table.is_empty() else ""
 	if family in ["People", "Supplies"]:
 		var tables: Variant = overview.get("tables")
 		if tables is Dictionary and tables.get(family.to_lower()) is Dictionary: return family.to_lower()
@@ -634,8 +646,12 @@ func refresh_table() -> void:
 		table.clear_choice()
 	table_panel.visible = kind != ""
 	if kind == "workshops": table.set_table(workshop_table())
+	elif kind == "plans":
+		table.set_table(plans_table)
+		# A plan chosen elsewhere (the Progress verb) opens chosen.
+		if not selected_id.is_empty() and table.selected_id != selected_id: table.choose_id(selected_id)
 	elif kind != "": table.set_table(overview.tables[kind])
-	table_refresh.visible = kind in ["people", "supplies"]
+	table_refresh.visible = kind in ["people", "supplies", "plans"]
 	var row: Dictionary = table.selected_row() if kind != "" else {}
 	detail.visible = not row.is_empty()
 	if not row.is_empty(): fill_detail(row)
@@ -659,14 +675,50 @@ func fill_detail(row: Dictionary) -> void:
 	var locked: bool = table.row_locked(row)
 	detail_reason.text = str(row.get("reason", "")) if locked else ""
 	detail_reason.visible = locked
+	var primary_action := fill_actions(row)
 	if table_kind == "workshops":
 		detail_primary.text = "Use this workshop"
 		detail_primary.visible = not locked
 	else:
 		detail_primary.text = "Show on map"
 		detail_primary.visible = row.get("pos") is Dictionary and view._pos(row.pos)
+	# One accent button: the server's primary action, else this one.
+	if primary_action: detail_primary.remove_theme_stylebox_override("normal")
+	else: detail_primary.add_theme_stylebox_override("normal", accent_style)
 
-func show_detail(_row: Dictionary) -> void:
+## The chosen row's own actions, as the server lists them (Plans: Act or
+## Confirm, Drop or Cancel). Rebuilt only when they change, so a refresh
+## keeps focus. Returns whether one is the primary action.
+func fill_actions(row: Dictionary) -> bool:
+	var list: Array = row.get("actions") if table_kind == "plans" and row.get("actions") is Array else []
+	var key := [row.get("id"), list, view.pending.is_empty()]
+	var primary := false
+	for a in list:
+		if a is Dictionary and a.get("primary", false): primary = true
+	if key == detail_actions_key: return primary
+	detail_actions_key = key
+	view._clear_children(detail_actions)
+	for a in list:
+		if not a is Dictionary: continue
+		var b := button(detail_actions, str(a.get("label", "")), plan_action.bind(str(a.get("id", "")), str(row.get("id", ""))))
+		b.tooltip_text = str(a.get("help", ""))
+		b.set_meta("action", str(a.get("id", "")))
+		b.disabled = not view.pending.is_empty() and view.pending.get("id") != str(row.get("id", ""))
+		if a.get("primary", false): b.add_theme_stylebox_override("normal", accent_style)
+	detail_actions.visible = not list.is_empty()
+	return primary
+
+## A Plans row's action, through the same requests as the older list.
+func plan_action(action: String, id: String) -> void:
+	selected_id = id
+	if action == "act": act_plan()
+	elif action == "cancel": cancel_plan()
+
+func show_detail(row: Dictionary) -> void:
+	if table_kind == "plans":
+		selected_id = str(row.get("id", ""))
+		if row.get("page", false) and row.get("new", false):
+			view.mark_page_seen(selected_id.trim_prefix("page:"))
 	refresh()
 
 ## Enter on a row: the detail's action, if the row has one.
@@ -700,6 +752,7 @@ func show_on_map(pos: Dictionary) -> void:
 func close_choice() -> bool:
 	if table_kind == "" or table.selected_id.is_empty(): return false
 	table.clear_choice()
+	if table_kind == "plans": selected_id = ""
 	refresh()
 	return true
 
@@ -909,8 +962,11 @@ func refresh() -> void:
 	title.text = "Plans" if is_plans else family
 	houses.root.visible = family == "Houses"
 	actions.visible = not is_plans
-	for control in [plans, plan_detail, locate, cancel]: control.visible = is_plans
-	act.visible = is_plans and _selected().get("can_act", false)
+	# With the server's table, Plans covers the map; the older list stays
+	# for an older server.
+	var plan_list: bool = is_plans and plans_table.is_empty()
+	for control in [plans, plan_detail, locate, cancel]: control.visible = plan_list
+	act.visible = plan_list and _selected().get("can_act", false)
 	view.room_name.visible = view.tool.begins_with("room:") and not is_plans
 	var has_draft: bool = view.first_corner != null
 	actions.visible = not is_plans and not is_overview and not has_draft
@@ -953,7 +1009,11 @@ func by_house(entry: Dictionary, fallback: String) -> String:
 	return str(entry.get("by", fallback)) + view._house_suffix(view.house_table(view.snapshot), entry)
 
 ## Takes the server's answer to a "plans" request.
-func update_plans(value: Array) -> void:
+func update_plans(value: Array, shape: Variant = null) -> void:
+	var t: Dictionary = shape if shape is Dictionary and shape.get("columns") is Array else {}
+	if t != plans_table:
+		plans_table = t
+		if family == "Plans": refresh()
 	if records == value: return
 	records = value
 	plans.clear()
@@ -986,7 +1046,7 @@ func select_plan(index: int) -> void:
 		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, by_house(entry, "Fortress"), str(entry.get("reason", ""))]
 	locate.disabled = not entry.get("pos") is Dictionary
 	cancel.disabled = not entry.get("can_cancel", false)
-	act.visible = family == "Plans" and entry.get("can_act", false)
+	act.visible = family == "Plans" and plans_table.is_empty() and entry.get("can_act", false)
 	act.text = "Confirm" if entry.get("confirm", false) else "Act"
 	act.tooltip_text = "Let workers take up this proposed plan." if entry.get("confirm", false) \
 		else "Do what the office would do, where it can be done from afar."
