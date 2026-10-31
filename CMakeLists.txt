@@ -105,6 +105,7 @@ add_library(goanna SHARED
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
+    src/goanna_air.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
@@ -381,6 +382,13 @@ add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_strokes_test PRIVATE src)
 target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 
+# Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
+add_executable(goanna_air_test EXCLUDE_FROM_ALL
+    src/goanna_air_test.cpp
+    src/goanna_air.cpp)
+target_include_directories(goanna_air_test PRIVATE src)
+target_link_libraries(goanna_air_test PRIVATE jsoncpp)
+
 # Planned steps over DorfCraft's stance fixture terrain (a floor and a half
 # slab). Links only jsoncpp, for the stroke family's pelvis drop.
 add_executable(goanna_steps_test EXCLUDE_FROM_ALL
@@ -405,6 +413,7 @@ target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
+    goanna_air_test
     goanna_attachment_test
     goanna_jiggle_test
     goanna_animation_test

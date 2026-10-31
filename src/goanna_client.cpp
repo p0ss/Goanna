@@ -321,6 +321,11 @@ Dictionary GoannaClient::status() const {
     d["blocks_meshed"] = (int)m_near_blocks.size();
     d["resident_blocks"] = m_session ? (int)m_session->residentBlocks() : 0;
     d["entities"] = m_entities ? m_entities->count() : 0;
+    d["air_models"] = airModelCount();
+    d["air_flying_frames"] = (int64_t)airFlyingFrames();
+    d["air_talon_frames"] = (int64_t)airTalonFrames();
+    d["air_bank_frames"] = (int64_t)airBankFrames();
+    d["air_bank_agreeing"] = (int64_t)airBankAgreeing();
     d["stroke_models"] = strokeModelCount();
     d["stroke_poses"] = (int64_t)strokePoseCount();
     d["stroke_evaluations"] = (int64_t)strokeEvaluationCount();

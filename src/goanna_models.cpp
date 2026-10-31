@@ -276,9 +276,11 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         return nullptr;
     // The loader drops node extras; read them for the jiggle marks.
     ModelExtras extras;
-    if (parseModelExtras(name, bytes, extras) && !extras.empty()) {
+    if (parseModelExtras(name, bytes, extras) && (!extras.empty() || !extras.air.empty())) {
         if (!extras.strokes.empty())
             buildStrokes(name, extras);
+        if (!extras.air.empty())
+            buildAir(name, extras);
         m_extras[name] = std::move(extras);
     } else {
         m_extras.erase(name);
@@ -467,6 +469,8 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
                 l.seam_bone = model->bone_count++;
             }
             model->jiggle = buildJiggleRig(*skinned, extras);
+            if (extras && extras->air_plan)
+                model->air = extras->air_plan;
             if (extras && extras->stroke_evaluator) {
                 model->strokes = extras->stroke_evaluator;
                 model->tasks = extras->task_evaluators;
@@ -765,6 +769,197 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
             t->rotation = q;
         }
     }
+}
+
+// ---- fliers -----------------------------------------------------------------
+
+namespace {
+int g_air_models = 0;
+uint64_t g_air_flying = 0, g_air_talons = 0, g_air_bank = 0, g_air_bank_agreeing = 0;
+
+// The server's action state on a body's state bone (goanna_strokes.h,
+// goanna_air.h) when it is of this format, else null: one action at a
+// time rides on the bone, each kind reading only its own format.
+const BoneOverride *actionState(const std::map<std::string, BoneOverride> &overrides,
+        const std::string &bone, int format) {
+    auto it = overrides.find(bone);
+    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != format)
+        return nullptr;
+    return &it->second;
+}
+} // namespace
+
+int airModelCount() { return g_air_models; }
+uint64_t airFlyingFrames() { return g_air_flying; }
+uint64_t airTalonFrames() { return g_air_talons; }
+uint64_t airBankFrames() { return g_air_bank; }
+uint64_t airBankAgreeing() { return g_air_bank_agreeing; }
+
+void ModelCache::buildAir(const std::string &name, ModelExtras &extras) {
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value marks;
+    std::string errors;
+    auto plan = std::make_shared<AirPlan>();
+    if (!reader->parse(extras.air.data(), extras.air.data() + extras.air.size(), &marks, &errors)
+            || !parseAirPlan(marks, *plan)) {
+        warningstream << "Goanna: unreadable air plan in " << name << std::endl;
+        return;
+    }
+    extras.air_plan = std::move(plan);
+    ++g_air_models;
+}
+
+void ModelAnimator::stepAir(float dt, scene::AnimSpec &anim, const std::map<std::string, BoneOverride> &overrides) {
+    const AirPlan &plan = *m_model->air;
+    scene::SkinnedMesh *mesh = m_model->skinned;
+    if (!m_air_found) {
+        m_air_found = true;
+        for (const AirPlan::Leg &l : plan.legs) {
+            auto upper = mesh->getJointNumber(l.upper), lower = mesh->getJointNumber(l.lower);
+            if (upper && lower)
+                m_air_legs.push_back({*upper, *lower});
+        }
+        // Each wing's root and the first joint past it, whose height against
+        // the other wing's says which way the wings banked.
+        const auto &joints = mesh->getAllJoints();
+        for (const std::string &w : plan.wings) {
+            auto root = mesh->getJointNumber(w);
+            if (!root)
+                continue;
+            u32 tip = *root;
+            for (size_t j = 0; j < joints.size(); ++j) {
+                if (joints[j]->ParentJointID && *joints[j]->ParentJointID == *root) {
+                    tip = (u32)j;
+                    break;
+                }
+            }
+            m_air_wings.push_back({*root, tip});
+        }
+        m_air_fly_track = mesh->getTrackNumber(plan.fly);
+        // The leg poses are the clips' own first frames: tucked from the fly
+        // clip, standing from the idle, talons forward from the swoop.
+        auto first = [&](const std::string &clip) {
+            scene::AnimSpec a;
+            if (auto track = mesh->getTrackNumber(clip))
+                a.tracks[*track] = scene::TrackAnimSpec{};
+            return animateTracks(*mesh, a, OldJointTransforms(joints.size()));
+        };
+        m_air_tuck = first(plan.fly);
+        m_air_stand = first(plan.stand);
+        m_air_talons = first(plan.talons);
+    }
+    // The server's air state: a new serial or manoeuvre restarts the clock
+    // from the time sent; a resend of the same (every override is resent
+    // when any changes) does not.
+    if (const BoneOverride *s = actionState(overrides, plan.state, AIR_STATE_FORMAT)) {
+        const int serial = (int)std::lround(s->scale.vector.X);
+        const auto manoeuvre = (AirManoeuvre)std::lround(s->scale.vector.Y);
+        if (serial != m_air_state.serial || manoeuvre != m_air_state.manoeuvre) {
+            m_air_state.serial = serial;
+            m_air_state.manoeuvre = manoeuvre;
+            m_air_state.since = s->position.vector.Y + s->dtime_passed;
+            m_air_state.param = s->position.vector.X;
+        } else {
+            m_air_state.since += dt;
+        }
+    } else {
+        m_air_state = decltype(m_air_state){};
+    }
+    m_air_out = AirOutput();
+    const float scale = m_ground.mesh_to_world.basis.get_column(1).length();
+    if (m_ground.known && scale > 1e-6f) {
+        AirInput in;
+        in.dt = dt;
+        const Vector3 o = m_ground.mesh_to_world.origin;
+        in.x = o.x, in.y = o.y, in.z = -o.z;
+        const Vector3 ahead = m_ground.mesh_to_world.basis.xform(Vector3(0, 0, -1));
+        in.yaw = std::atan2(ahead.x, ahead.z);
+        if (m_ground.floor)
+            in.floor = m_ground.floor(in.x, in.z, in.y + 0.5f, in.y - 8.0f);
+        in.leg = plan.leg_length * scale;
+        in.serial = m_air_state.serial;
+        in.manoeuvre = m_air_state.manoeuvre;
+        in.since = m_air_state.since;
+        in.param = m_air_state.param;
+        m_air_out = m_air.step(in);
+        if (m_air_out.flying)
+            ++g_air_flying;
+        if (m_air_out.talons > 0.5f)
+            ++g_air_talons;
+    }
+    // The fly clip at the flight's beat (until poseAir puts it back), the
+    // other tracks as they are.
+    scene::TrackAnimSpec *fly = nullptr;
+    if (m_air_fly_track) {
+        auto it = anim.tracks.find(*m_air_fly_track);
+        if (it != anim.tracks.end())
+            fly = &it->second;
+    }
+    m_air_fly_spec = fly;
+    if (fly) {
+        m_air_fly_fps = fly->fps;
+        fly->fps *= m_air_out.beat_rate;
+    }
+}
+
+void ModelAnimator::poseAir(JointTransforms &locals) {
+    // The fly clip has advanced at the flight's beat: back to the server's
+    // rate.
+    if (m_air_fly_spec)
+        m_air_fly_spec->fps = m_air_fly_fps;
+    m_air_fly_spec = nullptr;
+    const AirOutput &o = m_air_out;
+    auto rotation = [](const JointTransforms &pose, u32 j) -> std::optional<core::quaternion> {
+        if (j >= pose.size())
+            return std::nullopt;
+        if (auto *t = std::get_if<core::Transform>(&pose[j]))
+            return t->rotation;
+        return std::nullopt;
+    };
+    // The legs: tucked to standing by the reach, then the talons forward,
+    // over the clip's by the weight (the clip's own on the ground).
+    if (o.weight > 0.001f) {
+        for (const auto &[upper, lower] : m_air_legs) {
+            for (u32 j : {upper, lower}) {
+                auto *t = j < locals.size() ? std::get_if<core::Transform>(&locals[j]) : nullptr;
+                auto tuck = rotation(m_air_tuck, j), stand = rotation(m_air_stand, j);
+                auto talons = rotation(m_air_talons, j);
+                if (!t || !tuck || !stand || !talons)
+                    continue;
+                core::quaternion want, out;
+                want.slerp(*tuck, *stand, o.reach);
+                if (o.talons > 0.0f) {
+                    core::quaternion forward;
+                    forward.slerp(want, *talons, o.talons);
+                    want = forward;
+                }
+                out.slerp(t->rotation, want, o.weight);
+                t->rotation = out;
+            }
+        }
+    }
+    // The wings banked about the body's length, both the same way.
+    if (std::fabs(o.bank) > 1e-4f) {
+        const core::quaternion bank(v3f(0.0f, 0.0f, o.bank));
+        for (const auto &[root, tip] : m_air_wings) {
+            (void)tip;
+            if (auto *t = root < locals.size() ? std::get_if<core::Transform>(&locals[root]) : nullptr)
+                t->rotation = t->rotation * bank;
+        }
+    }
+}
+
+// Whether the wings banked the way the turn goes: turning left (bank
+// positive), the left wing's joint lower than the right's.
+void ModelAnimator::checkAirBank() {
+    if (std::fabs(m_air_out.bank) < 0.15f || m_air_wings.size() < 2)
+        return;
+    const float left = m_globals[m_air_wings[0].second].getTranslation().Y;
+    const float right = m_globals[m_air_wings[1].second].getTranslation().Y;
+    ++g_air_bank;
+    if ((m_air_out.bank > 0.0f) == (left < right))
+        ++g_air_bank_agreeing;
 }
 
 void ModelAnimator::findFeet() {
@@ -1232,6 +1427,11 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     if (!mesh)
         return;
 
+    // A flier (goanna_air.h): its flight this frame, and its fly clip set
+    // to beat at the rate the flight asks for until poseAir.
+    if (m_model->air)
+        stepAir(dt, anim, overrides);
+
     // AnimatedMeshSceneNode::OnAnimate: advance every track, then
     // animateJoints: local transforms for this frame, each track blending
     // from the pose shown last step.
@@ -1314,6 +1514,8 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
         poseStroke(dt, locals, overrides);
     if (m_planning && m_ground.known)
         ownPelvis(locals);
+    if (m_model->air)
+        poseAir(locals);
 
     // Goanna's strokes in the water, on the shoulders and hips.
     if (!m_model->limbs.empty())
@@ -1408,6 +1610,8 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     }
     to_globals();
     m_posed = true;
+    if (m_model->air)
+        checkAirBank();
     if (!m_model->limbs.empty())
         m_skin = mesh->calculateSkinMatrices(m_globals);
     if (!skeleton)
