@@ -164,9 +164,7 @@ func run() -> void:
 		"y":0,"body":{"x":0,"y":0,"z":0},"tools":caps.tools,"capabilities":caps})
 	check(scoped.ui.family == "Gather", "a task view opens on its section")
 	check(scoped.ui.header.text.begins_with("Hold | Farming | Live"), "the header names the task")
-	var offered := []
-	for child in scoped.ui.footer.get_child(0).get_children():
-		if child is Button and child.has_meta("overlay") and child.visible: offered.append(child.get_meta("overlay"))
+	var offered: Array = scoped.ui.offered_overlays()
 	check(offered == ["heat", "wet"] and scoped.shown_overlays.heat and not scoped.shown_overlays.wet
 		and not scoped.shown_overlays.traffic, "only the task's overlays are offered, the first switched on")
 	var rail_shown := []

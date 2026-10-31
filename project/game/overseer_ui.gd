@@ -24,8 +24,22 @@ var cancel: Button
 var act: Button
 var page_banner: Button
 var plans_button: Button
-## Shown once the server answers that it draws world marks.
-var marks_toggle: Button
+## The footer's View menu: one button whose list holds a check item per
+## map overlay and, once the server answers that it draws world marks, the
+## Marks setting (interface-layout.md: no row of equal toggles).
+var view_menu: MenuButton
+## Overlays the menu offers now; a task view offers only its own.
+var overlay_offered := {}
+## null until the server says whether this player's world marks show.
+var marks_shown: Variant = null
+const MARKS_ITEM := 100
+const OVERLAYS := [["rooms", "Rooms", "Show room quality by tier"],
+	["miasma", "Miasma", "Show smell from seen carrion"],
+	["traffic", "Traffic", "Show where workers go, where they are and their recent trails"],
+	["heat", "Heat", "Show how hot or cold the fortress has found each place"],
+	["wet", "Wetness", "Show how wet or dry the fortress has found each place"],
+	["ownership", "Houses", "Show which house holds each place"],
+	["access", "Access", "Show what each house has shared or locked"]]
 var family := "Select"
 var records: Array = []
 var selected_id := ""
@@ -353,25 +367,22 @@ func build(host: Node) -> void:
 	view.status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	view.status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	view.status.custom_minimum_size.x = 120
-	for pair in [["Rooms", "rooms", "Show room quality by tier"], ["Miasma", "miasma", "Show smell from seen carrion"],
-			["Traffic", "traffic", "Show where workers go, where they are and their recent trails"],
-			["Heat", "heat", "Show how hot or cold the fortress has found each place"],
-			["Wetness", "wet", "Show how wet or dry the fortress has found each place"],
-			["Houses", "ownership", "Show which house holds each place"],
-			["Access", "access", "Show what each house has shared or locked"]]:
-		var toggle := button(footer_row, pair[0], view.toggle_overlay.bind(pair[1]))
-		toggle.toggle_mode = true
-		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
-		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-		toggle.tooltip_text = pair[2]
-		toggle.set_meta("overlay", pair[1])
-	marks_toggle = button(footer_row, "Marks", func() -> void: view.set_world_marks(marks_toggle.button_pressed))
-	marks_toggle.toggle_mode = true
-	marks_toggle.set_pressed_no_signal(true)
-	marks_toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
-	marks_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-	marks_toggle.tooltip_text = "Show planned work in the world: shaded outlines with the tool's rune"
-	marks_toggle.visible = false
+	view_menu = MenuButton.new()
+	view_menu.text = "View"
+	view_menu.flat = false
+	view_menu.custom_minimum_size = Vector2(48, 48)
+	view_menu.size_flags_horizontal = Control.SIZE_SHRINK_END
+	view_menu.tooltip_text = "Choose what the map shows over the terrain"
+	view_menu.focus_mode = Control.FOCUS_ALL
+	footer_row.add_child(view_menu)
+	var popup := view_menu.get_popup()
+	popup.hide_on_checkable_item_selection = false
+	popup.id_pressed.connect(choose_view_item)
+	popup.about_to_popup.connect(refresh_view_menu)
+	for entry in OVERLAYS: overlay_offered[entry[0]] = true
+	refresh_view_menu()
+	# Legend stays its own quiet button: it is help to read, not a setting
+	# to switch, and a menu would hide it behind a second click.
 	var legend := button(footer_row, "Legend", func() -> void:
 		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. Faint patterned fill: a house's plan, room or designation, in the house colour and the fortress's field pattern. Houses: each house's places tinted in its colour, in place of the patterned fills; the owner's house paler and striped. Access: a ring in the house colour where it is shared, a ring with a solid corner where it is locked. Each plan carries its tool's rune once. Marks: show your planned work in the world too. The world remains live."
 	)
@@ -739,10 +750,8 @@ func apply_scope(scope: Dictionary) -> void:
 	var wanted: Array = scope.get("overlays") if scope.get("overlays") is Array else []
 	var first: String = str(wanted[0]) if wanted.size() > 0 else ""
 	for kind in view.shown_overlays: view.shown_overlays[kind] = kind == first
-	for child in footer.get_child(0).get_children():
-		if child is Button and child.has_meta("overlay"):
-			child.visible = child.get_meta("overlay") in wanted
-			(child as Button).set_pressed_no_signal(child.get_meta("overlay") == first)
+	for entry in OVERLAYS: overlay_offered[entry[0]] = entry[0] in wanted
+	refresh_view_menu()
 	var section := str(scope.get("section", ""))
 	if not section.is_empty() and str(section_states.get(section, {}).get("state", "shown")) == "shown":
 		family = section
@@ -751,9 +760,50 @@ func apply_scope(scope: Dictionary) -> void:
 
 ## Takes the tools and limits the server granted, from its hello or a pong.
 func set_marks_shown(shown: bool) -> void:
-	if marks_toggle == null: return
-	marks_toggle.visible = true
-	marks_toggle.set_pressed_no_signal(shown)
+	marks_shown = shown
+	refresh_view_menu()
+
+## Rebuilds the View menu's items from what is offered and what is on, and
+## names what is on in the button ("View: Heat", "View (2)").
+func refresh_view_menu() -> void:
+	if view_menu == null: return
+	var popup := view_menu.get_popup()
+	popup.clear()
+	var on: Array[String] = []
+	for i in OVERLAYS.size():
+		var entry: Array = OVERLAYS[i]
+		if not overlay_offered.get(entry[0], false): continue
+		popup.add_check_item(entry[1], i)
+		var index := popup.get_item_index(i)
+		popup.set_item_checked(index, bool(view.shown_overlays.get(entry[0], false)))
+		popup.set_item_tooltip(index, entry[2])
+		if popup.is_item_checked(index): on.append(entry[1])
+	if marks_shown != null:
+		popup.add_separator()
+		popup.add_check_item("Plan marks in the world", MARKS_ITEM)
+		var index := popup.get_item_index(MARKS_ITEM)
+		popup.set_item_checked(index, marks_shown == true)
+		popup.set_item_tooltip(index, "Show planned work in the world: shaded outlines with the tool's rune")
+	view_menu.text = "View" if on.is_empty() else ("View: " + on[0] if on.size() == 1 else "View (%d)" % on.size())
+	# While a table covers the map the footer's controls are put away
+	# (reflow); they come back as they were.
+	if table_kind == "": view_menu.visible = popup.item_count > 0
+
+## One View menu item chosen: an overlay switches, or the world marks do.
+func choose_view_item(id: int) -> void:
+	if id == MARKS_ITEM:
+		marks_shown = not (marks_shown == true)
+		view.set_world_marks(marks_shown)
+	elif id >= 0 and id < OVERLAYS.size():
+		view.toggle_overlay(OVERLAYS[id][0])
+	refresh_view_menu()
+
+## The overlays the View menu offers, in its order, for tests and captures.
+func offered_overlays() -> Array:
+	var out: Array = []
+	for entry in OVERLAYS:
+		if overlay_offered.get(entry[0], false): out.append(entry[0])
+	return out
 
 func update_capabilities(value: Dictionary) -> void:
 	if value == capabilities: return

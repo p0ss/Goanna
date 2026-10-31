@@ -121,6 +121,46 @@ func shapes(main: Node, client: Node) -> void:
 	check(view.tool == "shape:wall", "choosing Wall sets the shape tool")
 	view._close()
 
+## The footer's View menu replaces the row of overlay toggles.
+func view_menu(main: Node, client: Node) -> void:
+	var view := open_view(main, client, {"sections": sections({})})
+	var ui = view.ui
+	var footer_buttons: Array = []
+	for child in ui.footer.get_child(0).get_children():
+		if child is Button and child.visible: footer_buttons.append(child.text)
+	check(footer_buttons == ["View", "Legend"], "the footer holds one View menu and Legend, not a row of toggles: %s" % [footer_buttons])
+	var popup: PopupMenu = ui.view_menu.get_popup()
+	check(popup.item_count == 7 and popup.is_item_checkable(0) and popup.get_item_text(4) == "Wetness",
+		"the View menu lists each overlay as a check item")
+	ui.choose_view_item(3)
+	check(view.shown_overlays.heat and popup.is_item_checked(3) and ui.view_menu.text == "View: Heat",
+		"choosing an item switches its overlay on and names it on the button")
+	ui.choose_view_item(4)
+	check(view.shown_overlays.wet and ui.view_menu.text == "View (2)", "two overlays on show as a count")
+	ui.choose_view_item(3); ui.choose_view_item(4)
+	check(not view.shown_overlays.heat and ui.view_menu.text == "View", "choosing again switches it off")
+	# The marks part's per-player setting answers once asked.
+	check(popup.get_item_index(ui.MARKS_ITEM) == -1, "Marks is not offered before the server answers")
+	view._receive({"v": 1, "t": "marks", "shown": true})
+	var marks := popup.get_item_index(ui.MARKS_ITEM)
+	check(marks >= 0 and popup.is_item_checked(marks), "the server's marks answer adds a checked Marks item")
+	client.sent.clear()
+	ui.choose_view_item(ui.MARKS_ITEM)
+	check(client.sent.size() == 1 and client.sent[0].t == "marks" and client.sent[0].shown == false
+		and not popup.is_item_checked(popup.get_item_index(ui.MARKS_ITEM)), "unchecking Marks tells the server to hide them")
+	view._close()
+	# A task view (DorfCraft task_tools.lua) offers only its own overlays.
+	var scoped := open_view(main, client, {"sections": sections({}),
+		"scope": {"task": "farming", "title": "Farming", "section": "Zones", "overlays": ["wet", "heat"]}})
+	var spopup: PopupMenu = scoped.ui.view_menu.get_popup()
+	check(scoped.ui.offered_overlays() == ["heat", "wet"] and spopup.item_count == 2
+		and scoped.shown_overlays.wet and not scoped.shown_overlays.heat and scoped.ui.view_menu.text == "View: Wetness",
+		"a task view's menu offers only its overlays, the first on")
+	var bare := open_view(main, client, {"sections": sections({}),
+		"scope": {"task": "felling", "title": "Felling", "section": "Gather", "overlays": []}})
+	check(not bare.ui.view_menu.visible, "a task view with no overlays shows no empty View menu")
+	scoped._close(); bare._close()
+
 func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var main := Unit.TestMain.new(); root.add_child(main)
@@ -131,5 +171,6 @@ func run() -> void:
 	view._close()
 	await houses_shown(main, client)
 	shapes(main, client)
+	view_menu(main, client)
 	print("Overseer screens: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
