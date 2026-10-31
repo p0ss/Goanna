@@ -325,6 +325,9 @@ Dictionary GoannaClient::status() const {
     d["stroke_poses"] = (int64_t)strokePoseCount();
     d["feet_fitted_frames"] = (int64_t)fittedFootFrames();
     d["feet_fitted_most"] = fittedFootMost();
+    d["steps_planned"] = (int64_t)plannedSteps();
+    d["steps_unreachable"] = (int64_t)plannedStepsUnreachable();
+    d["steps_stretch_most"] = plannedStepsStretchMost();
     d["media_received"] = (int)s.media_received;
     d["media_cached"] = (int)s.media_cached;
     d["media_downloaded"] = (int)s.media_downloaded;

@@ -52,6 +52,7 @@ class IMeshLoader;
 namespace goanna {
 
 struct StrokeFamily;
+class StepPlanner;
 
 // Bytes of a media file by name; false if unknown.
 using MediaGetter = std::function<bool(const std::string &name, std::string &out)>;
@@ -209,6 +210,12 @@ public:
     size_t fittedFeet() const { return m_feet.size(); }
     float footLift(size_t i) const { return i < m_feet.size() ? m_feet[i].lift : 0.0f; }
     float bodyDrop() const { return m_body_drop; }
+    // Bodies whose legs are all two-bone chains (hip, knee, ankle and at
+    // most a toe) plan their steps instead (goanna_steps.h): planted feet
+    // stay fixed in the world and re-plant, the clip's leg motion is
+    // replaced, and the legs own the pelvis. Null until the first planned
+    // step and for bodies it cannot plan for.
+    const StepPlanner *steps() const { return m_steps.get(); }
     // The landing crouch now, 0 to 1, and how far the body is lowered for
     // it, mesh units; the lean forward and the bank left now, degrees.
     float landing() const { return m_land_amt; }
@@ -254,6 +261,12 @@ private:
     void findFeet();
     void fitFeet(float dt);
     void applyFeet();
+    // Planned steps: the pelvis taken from the clip and the stroke (a
+    // bounded twist and crouch kept as requests, the chest keeping the
+    // pose's look), then once a step the plan, and the legs solved to it.
+    void ownPelvis(JointTransforms &locals);
+    void planSteps();
+    void applySteps();
     void updateMotion(float dt);
     LimbAngles motionAngles(size_t limb) const;
     void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
@@ -325,9 +338,24 @@ private:
         u32 hip = 0, knee = 0, ankle = 0;
         std::vector<u32> below_hip, below_knee, below_ankle;
         float lift = 0.0f;
+        // For planned steps, Godot mesh space: each joint's bind local, the
+        // ankle at rest, the leg's length, its gait group.
+        godot::Transform3D bind_hip, bind_knee, bind_ankle, rest_ankle;
+        float length = 0.0f;
+        int group = 0;
     };
     std::vector<FootFit> m_feet;
     bool m_feet_found = false;
+    // Planned steps (goanna_steps.h): whether this body can be planned, its
+    // pelvis and the joints that keep the pose's look against it, the
+    // pelvis's bind local, the crouch the pose asked for (mesh units), the
+    // step's dt until planned, and the scale the planner was made for.
+    bool m_plans_steps = false;
+    u32 m_pelvis = 0;
+    std::vector<u32> m_look_joints;
+    godot::Transform3D m_bind_pelvis;
+    float m_crouch_request = 0.0f, m_plan_dt = 0.0f, m_steps_scale = 0.0f;
+    std::shared_ptr<StepPlanner> m_steps;
     float m_body_drop = 0.0f;
     GroundFrame m_ground;
     JiggleFrame m_jiggle_frame;
@@ -343,6 +371,11 @@ uint64_t strokePoseCount();
 // nodes to the ground, and the most any foot was, nodes, since start.
 uint64_t fittedFootFrames();
 float fittedFootMost();
+// Planned steps (goanna_steps.h) since start: feet landed, landings with
+// no foothold, and the furthest a planted foot was out of reach, nodes.
+uint64_t plannedSteps();
+uint64_t plannedStepsUnreachable();
+float plannedStepsStretchMost();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);

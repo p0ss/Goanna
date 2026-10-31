@@ -8,11 +8,14 @@
 // only; see goanna_models.h.
 
 #include "goanna_models.h"
+#include "goanna_steps.h"
 
 #include <algorithm>
 #include <cmath>
 #include <json/json.h>
 #include <optional>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
 #include <godot_cpp/variant/packed_float32_array.hpp>
@@ -170,7 +173,13 @@ int g_stroke_models = 0;
 uint64_t g_stroke_poses = 0;
 uint64_t g_feet_frames = 0;
 float g_feet_most = 0.0f;
+uint64_t g_steps = 0, g_steps_unreachable = 0;
+float g_steps_stretch = 0.0f;
 } // namespace
+
+uint64_t plannedSteps() { return g_steps; }
+uint64_t plannedStepsUnreachable() { return g_steps_unreachable; }
+float plannedStepsStretchMost() { return g_steps_stretch; }
 
 int strokeModelCount() { return g_stroke_models; }
 uint64_t strokePoseCount() { return g_stroke_poses; }
@@ -721,6 +730,97 @@ void ModelAnimator::findFeet() {
         f.below_ankle = below(f.ankle);
         m_feet.push_back(std::move(f));
     }
+
+    // Planned steps: every leg a two-bone chain with at most a toe below
+    // the ankle (a tentacle lower body keeps the fitting above).
+    if (m_feet.empty())
+        return;
+    for (const FootFit &f : m_feet)
+        if (f.below_ankle.size() > 2)
+            return;
+    auto bindLocal = [&](u32 j) {
+        const auto &t = joints[j]->transform;
+        if (const auto *tr = std::get_if<core::Transform>(&t))
+            return toGodotTransform(tr->buildMatrix());
+        return toGodotTransform(std::get<core::matrix4>(t));
+    };
+    std::vector<core::matrix4> rest(joints.size());
+    for (u32 i = 0; i < joints.size(); ++i)
+        rest[i] = fromGodotTransform(bindLocal(i));
+    mesh->calculateGlobalMatrices(rest);
+    for (FootFit &f : m_feet) {
+        f.bind_hip = bindLocal(f.hip);
+        f.bind_knee = bindLocal(f.knee);
+        f.bind_ankle = bindLocal(f.ankle);
+        f.rest_ankle = toGodotTransform(rest[f.ankle]);
+        const Vector3 h = toGodotTransform(rest[f.hip]).origin, k = toGodotTransform(rest[f.knee]).origin;
+        f.length = (k - h).length() + (f.rest_ankle.origin - k).length();
+        if (f.length < 1e-4f)
+            return;
+    }
+    // Gait groups: each side ordered front to back (Godot mesh space faces
+    // -z), alternating along a side and across: a biped's two legs, a
+    // quadruped's diagonals, a hexapod's tripods.
+    for (int side : {-1, 1}) {
+        std::vector<FootFit *> along;
+        for (FootFit &f : m_feet)
+            if ((f.rest_ankle.origin.x < 0 ? -1 : 1) == side)
+                along.push_back(&f);
+        std::sort(along.begin(), along.end(),
+                [](const FootFit *a, const FootFit *b) { return a->rest_ankle.origin.z < b->rest_ankle.origin.z; });
+        for (size_t k = 0; k < along.size(); ++k)
+            along[k]->group = int((k + (side > 0 ? 1 : 0)) % 2);
+    }
+    m_pelvis = *pelvis;
+    m_bind_pelvis = bindLocal(*pelvis);
+    // The look: the pelvis's children that are not legs (the chest).
+    for (u32 c : children[*pelvis]) {
+        const auto &name = joints[c]->Name;
+        if (name && *name == "chest") {
+            m_look_joints = {c};
+            break;
+        }
+        if (!name || name->rfind("leg", 0) != 0)
+            m_look_joints.push_back(c);
+    }
+    m_plans_steps = true;
+}
+
+// The legs own the pelvis: its place and base turn are the planner's. What
+// the clip or the stroke gave it is kept only as a request: a turn bounded
+// to STEP_PELVIS_TURN, applied, and a crouch for the planner (its drop
+// below the bind, mesh units). The chest is turned back by what the pelvis
+// was refused, so the pose's look and blade are kept from the chest up.
+void ModelAnimator::ownPelvis(JointTransforms &locals) {
+    constexpr float STEP_PELVIS_TURN = 15.0f * 3.14159265f / 180.0f;
+    const Transform3D posed = std::visit(
+            [](const auto &t) {
+                if constexpr (std::is_same_v<std::decay_t<decltype(t)>, core::Transform>)
+                    return toGodotTransform(t.buildMatrix());
+                else
+                    return toGodotTransform(t);
+            },
+            locals[m_pelvis]);
+    Quaternion turn = (m_bind_pelvis.basis.inverse() * posed.basis).get_rotation_quaternion();
+    const float angle = turn.get_angle();
+    if (angle > STEP_PELVIS_TURN)
+        turn = Quaternion().slerp(turn, STEP_PELVIS_TURN / angle);
+    m_crouch_request = std::min(0.0f, posed.origin.y - m_bind_pelvis.origin.y);
+    const Transform3D owned(m_bind_pelvis.basis * Basis(turn), m_bind_pelvis.origin);
+    Transform3D refused = owned.affine_inverse() * posed;
+    refused.origin = Vector3();
+    locals[m_pelvis] = fromGodotTransform(owned);
+    for (u32 c : m_look_joints) {
+        const Transform3D local = std::visit(
+                [](const auto &t) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(t)>, core::Transform>)
+                        return toGodotTransform(t.buildMatrix());
+                    else
+                        return toGodotTransform(t);
+                },
+                locals[c]);
+        locals[c] = fromGodotTransform(refused * local);
+    }
 }
 
 void ModelAnimator::fitFeet(float dt) {
@@ -812,6 +912,145 @@ void ModelAnimator::applyFeet() {
     }
 }
 
+void ModelAnimator::planSteps() {
+    const float dt = m_plan_dt;
+    m_plan_dt = 0.0f;
+    const float scale = m_ground.mesh_to_world.basis.get_column(1).length();
+    if (scale < 1e-6f || !m_ground.floor)
+        return;
+    if (!m_steps || std::fabs(scale - m_steps_scale) > 0.01f * m_steps_scale) {
+        std::vector<StepLeg> legs;
+        for (const FootFit &f : m_feet)
+            legs.push_back({f.length * scale, std::max(0.0f, f.rest_ankle.origin.y) * scale, f.group});
+        m_steps = std::make_shared<StepPlanner>(std::move(legs));
+        m_steps_scale = scale;
+    }
+    // Luanti world nodes from Godot mesh space (z mirrored).
+    auto world = [&](const Vector3 &p) {
+        const Vector3 w = m_ground.mesh_to_world.xform(p);
+        return StepVec{w.x, w.y, -w.z};
+    };
+    StepInput in;
+    in.dt = dt;
+    in.root = world(Vector3());
+    const Vector3 ahead = m_ground.mesh_to_world.basis.xform(Vector3(0, 0, -1));
+    in.yaw = std::atan2(ahead.x, ahead.z);
+    in.grounded = m_ground.grounded;
+    in.floor = m_ground.floor;
+    // While a stroke is shown its legs' stance is where the feet belong;
+    // otherwise the bind's.
+    const bool striking = m_melee.active && m_melee.t <= m_model->strokes->length();
+    in.hold = striking && m_melee.phase >= 2;
+    in.crouch = striking ? m_crouch_request * scale : 0.0f;
+    for (const FootFit &f : m_feet) {
+        in.hips.push_back(world(toGodotTransform(m_globals[f.hip]).origin));
+        in.rest.push_back(world(striking ? toGodotTransform(m_globals[f.ankle]).origin : f.rest_ankle.origin));
+    }
+    const StepStats before = m_steps->stats();
+    m_steps->step(in);
+    const StepStats &now = m_steps->stats();
+    g_steps += now.steps - before.steps;
+    g_steps_unreachable += now.unreachable - before.unreachable;
+    g_steps_stretch = std::max(g_steps_stretch, now.most_stretch);
+}
+
+void ModelAnimator::applySteps() {
+    if (!m_ground.known)
+        return;
+    if (m_plan_dt > 0.0f)
+        planSteps();
+    if (!m_steps)
+        return;
+    const float scale = m_ground.mesh_to_world.basis.get_column(1).length();
+    if (scale < 1e-6f)
+        return;
+    const Transform3D to_mesh = m_ground.mesh_to_world.affine_inverse();
+    auto global = [&](u32 j) { return toGodotTransform(m_globals[j]); };
+    auto turn = [&](const std::vector<u32> &joints, const Basis &b, const Vector3 &about) {
+        const Transform3D x(b, about - b.xform(about));
+        for (u32 j : joints)
+            m_globals[j] = fromGodotTransform(x * toGodotTransform(m_globals[j]));
+    };
+    auto set = [&](const std::vector<u32> &joints, const Transform3D &want) {
+        const Transform3D x = want * global(joints[0]).affine_inverse();
+        for (u32 j : joints)
+            m_globals[j] = fromGodotTransform(x * toGodotTransform(m_globals[j]));
+    };
+    // The whole body down by the planner's drop (mesh units).
+    const float drop = m_steps->drop() / scale;
+    if (drop < -1e-5f)
+        for (core::matrix4 &m : m_globals)
+            m[13] += drop;
+    // The pelvis turned towards the feet, the look turned back.
+    const Basis twist(Vector3(0, 1, 0), m_steps->pelvisYaw());
+    const Vector3 pelvis_at = global(m_pelvis).origin;
+    std::vector<u32> below_pelvis, look;
+    {
+        const auto &joints = m_model->skinned->getAllJoints();
+        std::vector<char> in_look(joints.size(), 0), in_body(joints.size(), 0);
+        in_body[m_pelvis] = 1;
+        for (u32 c : m_look_joints)
+            in_look[c] = 1;
+        for (u32 i = 0; i < joints.size(); ++i) {
+            if (auto p = joints[i]->ParentJointID) {
+                in_body[i] |= in_body[*p];
+                in_look[i] |= in_look[*p];
+            }
+            if (in_body[i])
+                below_pelvis.push_back(i);
+            if (in_look[i])
+                look.push_back(i);
+        }
+    }
+    turn(below_pelvis, twist, pelvis_at);
+    turn(look, twist.inverse(), pelvis_at);
+
+    const auto &feet = m_steps->feet();
+    const float body_yaw = [&] {
+        const Vector3 a = m_ground.mesh_to_world.basis.xform(Vector3(0, 0, -1));
+        return std::atan2(a.x, a.z);
+    }();
+    const Vector3 forward(0, 0, -1);
+    const Transform3D pelvis = global(m_pelvis);
+    for (size_t i = 0; i < m_feet.size() && i < feet.size(); ++i) {
+        const FootFit &f = m_feet[i];
+        // The clip's leg motion replaced: the leg back to its bind under
+        // the pelvis, then solved to the planned ankle.
+        set(f.below_hip, pelvis * f.bind_hip);
+        set(f.below_knee, global(f.hip) * f.bind_knee);
+        set(f.below_ankle, global(f.knee) * f.bind_ankle);
+        const StepVec &sole = feet[i].sole;
+        const Vector3 target_world(sole[0], sole[1] + m_steps->legs()[i].ankle, -sole[2]);
+        Vector3 target = to_mesh.xform(target_world);
+        const Vector3 h = global(f.hip).origin, k = global(f.knee).origin, a = global(f.ankle).origin;
+        const float l1 = (k - h).length(), l2 = (a - k).length();
+        if (l1 < 1e-4f || l2 < 1e-4f)
+            continue;
+        const Vector3 reach = target - h;
+        const float d = std::clamp(reach.length(), std::fabs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
+        const Vector3 dir = reach.normalized();
+        target = h + dir * d;
+        // The knee forward, between the body's facing and the foot's.
+        const Basis foot_turn(Vector3(0, 1, 0), feet[i].yaw - body_yaw);
+        Vector3 pole = twist.xform(forward) + foot_turn.xform(forward);
+        Vector3 side = pole - dir * pole.dot(dir);
+        if (side.length() < 1e-4f)
+            side = forward - dir * forward.dot(dir);
+        if (side.length() < 1e-4f)
+            continue;
+        side.normalize();
+        const float along = (l1 * l1 - l2 * l2 + d * d) / (2.0f * d);
+        const Vector3 knee = h + dir * along + side * std::sqrt(std::max(0.0f, l1 * l1 - along * along));
+        turn(f.below_hip, Basis(Quaternion((k - h).normalized(), (knee - h).normalized())), h);
+        const Vector3 a1 = global(f.ankle).origin;
+        turn(f.below_knee, Basis(Quaternion((a1 - knee).normalized(), (target - knee).normalized())), knee);
+        // The foot flat, pointing where the planner has it.
+        Transform3D want = global(f.ankle);
+        want.basis = foot_turn * f.rest_ankle.basis;
+        set(f.below_ankle, want);
+    }
+}
+
 void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
         Skeleton3D *skeleton, Skeleton3D *unshrunk) {
     scene::SkinnedMesh *mesh = m_model->skinned;
@@ -822,8 +1061,14 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // animateJoints: local transforms for this frame, each track blending
     // from the pose shown last step.
     anim.advance(dt);
-    if (m_model->strokes)
-        fitFeet(dt);
+    if (m_model->strokes) {
+        if (!m_feet_found)
+            findFeet();
+        if (m_plans_steps)
+            m_plan_dt = dt;
+        else
+            fitFeet(dt);
+    }
     const auto &joints = mesh->getAllJoints();
     JointTransforms locals = animateTracks(*mesh, anim, m_old_transforms);
     // The arm also inherits the baked punch's torso twist. Hold its ancestor
@@ -877,6 +1122,8 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // A melee stroke the server announced, evaluated here (goanna_strokes.h).
     if (m_model->strokes)
         poseStroke(dt, locals, overrides);
+    if (m_plans_steps && m_ground.known)
+        ownPelvis(locals);
 
     // Goanna's strokes in the water, on the shoulders and hips.
     if (!m_model->limbs.empty())
@@ -915,7 +1162,9 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
                 m_globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
         }
         mesh->calculateGlobalMatrices(m_globals);
-        if (m_model->strokes)
+        if (m_plans_steps)
+            applySteps();
+        else if (m_model->strokes)
             applyFeet();
     };
     // A bone animated to zero scale (models hide parts that way) has a
