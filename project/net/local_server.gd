@@ -182,13 +182,13 @@ const INSTALLABLE_GAMES := [
 	{
 		"id": "kindred_holdfast",
 		"title": "Kindred Holdfast (preview)",
-		"version": "d6b6bceb32b0",
+		"version": "e394015697fc",
 		"kind": "modpack",
 		"requires": "mineclonia",
-		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.1/kindred-holdfast-preview-d6b6bceb32b0.zip",
-		"sha256": "edfa7a86d38aad2b038ae84d1a6c57f2dbc51dba21f651e3820eaf0fdfd1f052",
-		"bytes": 177040333,
-		"upstream": "Kindred repository commit d6b6bceb32b0922e675a1d172dc31d3be2131d47"
+		"url": "https://github.com/p0ss/Goanna/releases/download/games-2026.10.2/kindred-holdfast-preview-e394015697fc.zip",
+		"sha256": "5d4fb18c657eea243702b485bfdf1fd96b04a8c18afba5a011467e6ef78af6b5",
+		"bytes": 177831813,
+		"upstream": "Kindred repository commit e394015697fc5f7023a9c209b2f486c046a7bab0"
 	}
 ]
 const STARTER_GAME := INSTALLABLE_GAMES[0]
