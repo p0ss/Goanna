@@ -179,7 +179,6 @@ uint64_t g_steps = 0, g_steps_unreachable = 0;
 float g_steps_stretch = 0.0f;
 } // namespace
 
-
 uint64_t plannedSteps() { return g_steps; }
 uint64_t plannedStepsUnreachable() { return g_steps_unreachable; }
 float plannedStepsStretchMost() { return g_steps_stretch; }
