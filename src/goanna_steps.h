@@ -16,6 +16,12 @@
 // foot it could not otherwise reach. Any number of legs: legs of one group
 // step together, groups take turns.
 //
+// A four-legged body has two girdles: the hind legs carry the pelvis and
+// the fore legs the chest, each lowered for its own feet (girdleDrop), so
+// the body pitches between them on a slope or a step. It may also have a
+// slow grouping: one leg at a time in a fixed order (a walk) below a
+// Froude number of STEP_TROT_FROUDE, its two diagonals (a trot) above.
+//
 // Pure C++ with no Godot types, so goanna_steps_test can drive it over
 // scripted terrain. Positions are Luanti world nodes (y up); yaws are
 // radians about y, in whatever sense the caller uses consistently.
@@ -37,6 +43,10 @@ struct StepLeg {
     float length = 0.8f; // hip to ankle at full reach, nodes
     float ankle = 0.09f; // ankle above the sole, nodes
     int group = 0; // legs of one group step together; groups take turns
+    // The grouping at a walk, in the order the groups step (-1: none, the
+    // body keeps `group` at every speed).
+    int slow_group = -1;
+    int girdle = 0; // 0: carries the pelvis; 1: carries the chest
 };
 
 struct StepInput {
@@ -90,6 +100,10 @@ constexpr float STEP_HOLD = 2.0f; // stride threshold scale while holding
 constexpr float STEP_HALF_STRIDE = 0.35f; // furthest ahead or behind rest, L
 constexpr float STEP_CROUCH_MOST = 0.2f; // most crouch honoured, L
 constexpr float STEP_TWIST_MOST = 0.5f; // most pelvis twist to the feet, rad
+// Walk to trot and back, as Froude numbers (speed squared over gravity
+// times leg length): animals change gait near 0.5.
+constexpr float STEP_TROT_FROUDE = 0.5f;
+constexpr float STEP_WALK_FROUDE = 0.35f;
 
 class StepPlanner {
 public:
@@ -103,6 +117,11 @@ public:
     const std::vector<StepFoot> &feet() const { return feet_; }
     // How far the body is lowered now, nodes (zero or negative).
     float drop() const { return drop_; }
+    // How far each girdle is lowered (0 the pelvis, 1 the chest), nodes;
+    // the chest's is the pelvis's on a body without one.
+    float girdleDrop(int girdle) const { return girdle == 1 ? chest_drop_ : drop_; }
+    // Whether the legs are in their slow grouping (a walk) now.
+    bool walking() const { return slow_; }
     // The pelvis's turn from the body's facing towards where the planted
     // feet point, eased and bounded by STEP_TWIST_MOST: the legs own the
     // pelvis, the chest keeps the look.
@@ -139,15 +158,20 @@ private:
     void swing(size_t i, const StepInput &in);
     void plantAll(const StepInput &in, bool at_rest);
     void settleBody(const StepInput &in, bool at_once);
+    int groupOf(size_t i) const { return slow_ ? legs_[i].slow_group : legs_[i].group; }
+    int groupCount() const { return slow_ ? slow_groups_ : groups_; }
+    float dropOf(size_t i) const { return girdleDrop(legs_[i].girdle); }
 
     std::vector<StepLeg> legs_;
     std::vector<Leg> state_;
     std::vector<StepFoot> feet_;
-    int groups_ = 1;
+    int groups_ = 1, slow_groups_ = 0, last_group_ = -1;
+    bool slow_ = false, chest_ = false;
     bool have_ = false, airborne_ = false;
     StepVec last_root_{};
     float last_yaw_ = 0, yaw_rate_ = 0;
     float drop_ = 0, soft_drop_ = 0, pelvis_yaw_ = 0, hurry_ = 1;
+    float chest_drop_ = 0, chest_soft_drop_ = 0;
     StepStats stats_;
 };
 

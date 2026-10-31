@@ -27,15 +27,26 @@ float ease(float dt, float tau) { return 1.0f - std::exp(-dt / tau); }
 StepPlanner::StepPlanner(std::vector<StepLeg> legs) : legs_(std::move(legs)) {
     state_.resize(legs_.size());
     feet_.resize(legs_.size());
-    for (const StepLeg &l : legs_)
+    bool slow = !legs_.empty();
+    for (const StepLeg &l : legs_) {
         groups_ = std::max(groups_, l.group + 1);
+        slow_groups_ = std::max(slow_groups_, l.slow_group + 1);
+        slow = slow && l.slow_group >= 0;
+        chest_ = chest_ || l.girdle == 1;
+    }
+    if (!slow)
+        slow_groups_ = 0;
+    slow_ = slow_groups_ > 0;
 }
 
 void StepPlanner::reset() {
     have_ = false;
     airborne_ = false;
     drop_ = soft_drop_ = 0;
+    chest_drop_ = chest_soft_drop_ = 0;
     pelvis_yaw_ = 0;
+    slow_ = slow_groups_ > 0;
+    last_group_ = -1;
     for (Leg &l : state_)
         l = Leg();
 }
@@ -101,7 +112,7 @@ StepPlanner::Hold StepPlanner::foothold(size_t i, float x, float z, const StepIn
 void StepPlanner::target(size_t i, const StepInput &in) {
     Leg &l = state_[i];
     const float speed = std::hypot(l.rest_vel[0], l.rest_vel[2]);
-    const Gait g = gait(legs_[i].length, speed, groups_);
+    const Gait g = gait(legs_[i].length, speed, groupCount());
     const float remaining = std::max(0.0f, l.swing_time - l.t);
     // Land half a stride ahead of where rest will be when the foot is down.
     const float lead = speed > 0.05f ? std::min(0.5f * g.threshold / speed, 0.5f) : 0.0f;
@@ -121,7 +132,7 @@ void StepPlanner::lift(size_t i, const StepInput &in, bool settle, bool forced) 
     l.from = l.foot.sole;
     l.from_yaw = l.foot.yaw;
     l.t = 0;
-    l.swing_time = settle ? 0.8f * STEP_SWING_MAX * k : gait(legs_[i].length, speed, groups_).swing;
+    l.swing_time = settle ? 0.8f * STEP_SWING_MAX * k : gait(legs_[i].length, speed, groupCount()).swing;
     l.settle = settle;
     l.foot.planted = false;
     if (forced)
@@ -190,30 +201,43 @@ void StepPlanner::plantAll(const StepInput &in, bool at_rest) {
 void StepPlanner::settleBody(const StepInput &in, bool at_once) {
     // The body down for the lower foot (eased), and at once for any planted
     // foot it could not reach otherwise; never above where the server has
-    // it. A root that jumps up a step leaves the body where it was.
-    float soft = 0, hard = 0, lowest = 0, shortest = std::numeric_limits<float>::infinity();
-    for (size_t i = 0; i < legs_.size(); ++i) {
-        const Leg &l = state_[i];
-        const StepLeg &leg = legs_[i];
-        shortest = std::min(shortest, leg.length);
-        if (!l.foot.supported)
-            continue;
-        const StepVec &stand = l.foot.planted ? l.foot.sole : l.to;
-        soft = std::min(soft, stand[1] - in.root[1]);
-        if (!l.foot.planted)
-            continue;
-        lowest = std::min(lowest, l.foot.sole[1] - in.root[1]);
-        const float reach = STEP_REACH * leg.length;
-        const float across = flat(in.hips[i], l.foot.sole);
-        const float up = std::sqrt(std::max(0.0f, reach * reach - across * across));
-        hard = std::min(hard, l.foot.sole[1] + leg.ankle + up - in.hips[i][1]);
-    }
-    soft += std::clamp(in.crouch, -STEP_CROUCH_MOST * shortest, 0.0f);
-    soft_drop_ = at_once ? soft : soft_drop_ + (soft - soft_drop_) * ease(in.dt, 0.08f);
-    // No deeper than a crouch below standing on the lowest planted foot: a
-    // root that jumps up a step leaves the body where it was until the
-    // trailing foot follows.
-    drop_ = std::max(std::min(soft_drop_, hard), lowest - STEP_DROP_MOST * shortest);
+    // it. A root that jumps up a step leaves the body where it was. Each
+    // girdle for its own feet: the pelvis for the hind legs (every leg of
+    // a body without a chest girdle), the chest for the fore.
+    auto settle = [&](int girdle, float &soft_drop, float &drop) {
+        float soft = 0, hard = 0, lowest = 0, shortest = std::numeric_limits<float>::infinity();
+        for (size_t i = 0; i < legs_.size(); ++i) {
+            const Leg &l = state_[i];
+            const StepLeg &leg = legs_[i];
+            if (leg.girdle != girdle)
+                continue;
+            shortest = std::min(shortest, leg.length);
+            if (!l.foot.supported)
+                continue;
+            const StepVec &stand = l.foot.planted ? l.foot.sole : l.to;
+            soft = std::min(soft, stand[1] - in.root[1]);
+            if (!l.foot.planted)
+                continue;
+            lowest = std::min(lowest, l.foot.sole[1] - in.root[1]);
+            const float reach = STEP_REACH * leg.length;
+            const float across = flat(in.hips[i], l.foot.sole);
+            const float up = std::sqrt(std::max(0.0f, reach * reach - across * across));
+            hard = std::min(hard, l.foot.sole[1] + leg.ankle + up - in.hips[i][1]);
+        }
+        if (!std::isfinite(shortest))
+            return;
+        soft += std::clamp(in.crouch, -STEP_CROUCH_MOST * shortest, 0.0f);
+        soft_drop = at_once ? soft : soft_drop + (soft - soft_drop) * ease(in.dt, 0.08f);
+        // No deeper than a crouch below standing on the lowest planted foot: a
+        // root that jumps up a step leaves the body where it was until the
+        // trailing foot follows.
+        drop = std::max(std::min(soft_drop, hard), lowest - STEP_DROP_MOST * shortest);
+    };
+    settle(0, soft_drop_, drop_);
+    if (chest_)
+        settle(1, chest_soft_drop_, chest_drop_);
+    else
+        chest_soft_drop_ = soft_drop_, chest_drop_ = drop_;
 }
 
 void StepPlanner::step(const StepInput &in) {
@@ -261,6 +285,8 @@ void StepPlanner::step(const StepInput &in) {
         }
         drop_ += (0.0f - drop_) * ease(dt, 0.08f);
         soft_drop_ = drop_;
+        chest_drop_ += (0.0f - chest_drop_) * ease(dt, 0.08f);
+        chest_soft_drop_ = chest_drop_;
         pelvis_yaw_ += (0.0f - pelvis_yaw_) * ease(dt, 0.08f);
         feet_.clear();
         for (const Leg &l : state_)
@@ -279,9 +305,45 @@ void StepPlanner::step(const StepInput &in) {
         settleBody(in, true);
     }
 
+    // Walk or trot, by Froude number, changed only with every foot down so
+    // a step is never cut over from one grouping to the other.
+    if (slow_groups_ > 0) {
+        float speed = 0, length = 0;
+        bool down = true;
+        for (size_t i = 0; i < n; ++i) {
+            speed += std::hypot(state_[i].rest_vel[0], state_[i].rest_vel[2]) / n;
+            length += legs_[i].length / n;
+            down = down && state_[i].foot.planted;
+        }
+        const float froude = speed * speed / (9.81f * std::max(length, 0.05f));
+        if (down && slow_ && froude > STEP_TROT_FROUDE) {
+            slow_ = false;
+            last_group_ = -1;
+        } else if (down && !slow_ && froude < STEP_WALK_FROUDE) {
+            slow_ = true;
+            last_group_ = -1;
+        }
+    }
+
+    // Backing, a walk's order runs the other way (fore, hind, other fore,
+    // other hind). Forward is from the hind hips to the fore.
+    int order_step = 1;
+    if (slow_ && chest_) {
+        float fx = 0, fz = 0, vx = 0, vz = 0;
+        for (size_t i = 0; i < n; ++i) {
+            const float s = legs_[i].girdle == 1 ? 1.0f : -1.0f;
+            fx += s * in.hips[i][0];
+            fz += s * in.hips[i][2];
+            vx += state_[i].rest_vel[0];
+            vz += state_[i].rest_vel[2];
+        }
+        if (fx * vx + fz * vz < 0)
+            order_step = slow_groups_ - 1;
+    }
+
     // Each planted foot: how badly it wants to step.
     std::vector<float> score(n, 0.0f);
-    std::vector<char> settle(n, 0), forced(n, 0);
+    std::vector<char> settle(n, 0), forced(n, 0), lost_ground(n, 0);
     for (size_t i = 0; i < n; ++i) {
         Leg &l = state_[i];
         const StepLeg &leg = legs_[i];
@@ -298,10 +360,11 @@ void StepPlanner::step(const StepInput &in) {
             if (foothold(i, in.rest[i][0], in.rest[i][2], in).supported) {
                 score[i] = 1.5f;
                 forced[i] = 1;
+                lost_ground[i] = 1;
             }
             continue;
         }
-        const Gait g = gait(leg.length, speed, groups_);
+        const Gait g = gait(leg.length, speed, groupCount());
         const float th = g.threshold * (in.hold ? STEP_HOLD : 1.0f);
         const float ex = l.foot.sole[0] - in.rest[i][0], ez = l.foot.sole[2] - in.rest[i][2];
         const float d = std::hypot(ex, ez);
@@ -322,26 +385,29 @@ void StepPlanner::step(const StepInput &in) {
         // Out of reach, or the ground under the foot is gone.
         const StepVec &hip = in.hips[i];
         const float reach_now = std::hypot(std::hypot(hip[0] - l.foot.sole[0], hip[2] - l.foot.sole[2]),
-                hip[1] + drop_ - (l.foot.sole[1] + leg.ankle));
+                hip[1] + dropOf(i) - (l.foot.sole[1] + leg.ankle));
         bool lost = false;
         if (l.foot.supported && in.floor)
             lost = !in.floor(l.foot.sole[0], l.foot.sole[2], l.foot.sole[1] + 0.05f, l.foot.sole[1] - 0.05f);
         if (reach_now > 0.995f * leg.length || lost) {
             s = std::max(s, 2.0f);
             forced[i] = 1;
+            // Past reach by more than a little: no waiting for its turn.
+            lost_ground[i] = lost || reach_now > 1.02f * leg.length;
         }
         score[i] = s;
     }
 
     // Lift the most wanting foot whose turn it is, and its group with it.
-    std::vector<char> swinging_group(groups_, 0);
-    std::vector<float> least_planted(groups_, std::numeric_limits<float>::infinity());
+    const int groups = groupCount();
+    std::vector<char> swinging_group(groups, 0);
+    std::vector<float> least_planted(groups, std::numeric_limits<float>::infinity());
     for (size_t i = 0; i < n; ++i) {
         const Leg &l = state_[i];
         if (!l.foot.planted)
-            swinging_group[legs_[i].group] = 1;
+            swinging_group[groupOf(i)] = 1;
         else
-            least_planted[legs_[i].group] = std::min(least_planted[legs_[i].group], l.planted_for);
+            least_planted[groupOf(i)] = std::min(least_planted[groupOf(i)], l.planted_for);
     }
     std::vector<size_t> order(n);
     for (size_t i = 0; i < n; ++i)
@@ -350,14 +416,20 @@ void StepPlanner::step(const StepInput &in) {
     for (size_t i : order) {
         if (score[i] < 1.0f || !state_[i].foot.planted)
             continue;
-        const int grp = legs_[i].group;
+        const int grp = groupOf(i);
+        // A walk steps its legs in order (hind, fore, other hind, other
+        // fore), even a foot falling out of reach (the body is lowered for
+        // it meanwhile), unless its ground is gone, it is well past reach
+        // (a step up or down) or the body stands.
+        if (slow_ && last_group_ >= 0 && !lost_ground[i] && !settle[i] && grp != (last_group_ + order_step) % groups)
+            continue;
         bool blocked = false;
         const float speed = std::hypot(state_[i].rest_vel[0], state_[i].rest_vel[2]);
-        const Gait g = gait(legs_[i].length, speed, groups_);
+        const Gait g = gait(legs_[i].length, speed, groupCount());
         // Each other group down long enough that the groups share the
         // cycle evenly: this is what makes a biped alternate.
-        const float dwell = groups_ > 1 ? clampf(g.cycle / groups_ - g.swing, 0.04f, 0.25f) : 0.0f;
-        for (int o = 0; o < groups_; ++o) {
+        const float dwell = groups > 1 ? clampf(g.cycle / groups - g.swing, 0.04f, 0.25f) : 0.0f;
+        for (int o = 0; o < groups; ++o) {
             if (o == grp)
                 continue;
             if (swinging_group[o] || (!forced[i] && least_planted[o] < dwell))
@@ -367,9 +439,16 @@ void StepPlanner::step(const StepInput &in) {
             continue;
         lift(i, in, settle[i] != 0, forced[i] != 0);
         swinging_group[grp] = 1;
+        last_group_ = grp;
         for (size_t j = 0; j < n; ++j)
-            if (j != i && legs_[j].group == grp && state_[j].foot.planted && score[j] >= 0.3f)
+            if (j != i && groupOf(j) == grp && state_[j].foot.planted && score[j] >= 0.3f)
                 lift(j, in, settle[j] != 0, forced[j] != 0);
+        // Standing, a walk's legs settle in their trotting pairs, so a
+        // four-legged body settles in two steps, as a biped does.
+        if (slow_ && settle[i])
+            for (size_t j = 0; j < n; ++j)
+                if (j != i && legs_[j].group == legs_[i].group && state_[j].foot.planted && settle[j])
+                    lift(j, in, true, false);
     }
 
     // A foot that must step but waits on a swinging one hurries it down.
@@ -393,7 +472,7 @@ void StepPlanner::step(const StepInput &in) {
             continue;
         const StepVec &hip = in.hips[i];
         const float r = std::hypot(std::hypot(hip[0] - l.foot.sole[0], hip[2] - l.foot.sole[2]),
-                hip[1] + drop_ - (l.foot.sole[1] + legs_[i].ankle));
+                hip[1] + dropOf(i) - (l.foot.sole[1] + legs_[i].ankle));
         const float over = r - legs_[i].length;
         if (over > 1e-4f) {
             stretched = true;
