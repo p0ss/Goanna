@@ -22,7 +22,9 @@ signal row_activated(row: Dictionary)
 signal view_changed
 
 const QUIET := Color(1, 1, 1, 0.5)
-const GREY := Color(0.62, 0.64, 0.68)
+## Shown rows in body text, locked rows clearly quieter.
+const TEXT := Color(0.92, 0.94, 0.96)
+const GREY := Color(0.5, 0.52, 0.56)
 const ASC := " ▲"
 const DESC := " ▼"
 
@@ -37,7 +39,7 @@ var shown_rows: Array = []
 var glyph_texture: Callable
 
 var title_label: Label
-var tools: HBoxContainer
+var tools: HFlowContainer
 var search: LineEdit
 var filters: HBoxContainer
 ## The host's quiet buttons (Refresh) sit here, at the end of the tools.
@@ -56,8 +58,10 @@ func _init() -> void:
 	title_label = Label.new()
 	title_label.add_theme_font_size_override("font_size", 23)
 	add_child(title_label)
-	tools = HBoxContainer.new()
-	tools.add_theme_constant_override("separation", 8)
+	# Wraps rather than widening the table when large text leaves no room.
+	tools = HFlowContainer.new()
+	tools.add_theme_constant_override("h_separation", 8)
+	tools.add_theme_constant_override("v_separation", 8)
 	add_child(tools)
 	search = LineEdit.new()
 	search.placeholder_text = "Search"
@@ -137,6 +141,10 @@ func set_table(value: Dictionary) -> void:
 	_build_columns()
 	_refresh_rows()
 
+## Lays the columns out again after the text size changed.
+func refit() -> void:
+	_build_columns()
+
 func columns() -> Array:
 	var out: Array = []
 	if shape.get("columns") is Array:
@@ -195,6 +203,11 @@ func _build_columns() -> void:
 		# The first column names the row; it gets the most room.
 		tree.set_column_expand_ratio(i, 1 if number else (3 if i == 0 else 2))
 		tree.set_column_clip_content(i, true)
+		# Enough for a short value at the current text size; past that the
+		# rows scroll sideways rather than clipping every cell to nothing.
+		var size := tree.get_theme_font_size("font_size")
+		var chars := maxi(5 if number else 8, str(c.get("label", "")).length() + 3)
+		tree.set_column_custom_minimum_width(i, int(size * 0.6 * chars))
 
 ## Clicking a heading sorts by it; clicking it again reverses.
 func sort_by_index(index: int) -> void:
@@ -282,6 +295,7 @@ func _refresh_rows() -> void:
 				item.set_custom_color(i, GREY)
 				item.set_tooltip_text(i, str(r.get("reason", "Not available yet.")))
 			else:
+				item.set_custom_color(i, TEXT)
 				item.set_tooltip_text(i, "")
 		if r.get("glyph") is String and glyph_texture.is_valid():
 			var tex: Variant = glyph_texture.call(r.glyph)

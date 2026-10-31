@@ -73,6 +73,7 @@ var change_workshop: Button
 var picking_workshop := false
 ## Footer toggles put away while a table covers the map.
 var footer_hidden: Array = []
+var table_scale := 0.0
 
 func label(parent: Node, text: String) -> Label:
 	var result := Label.new()
@@ -183,11 +184,15 @@ func build(host: Node) -> void:
 	table_panel = box(view.root_control)
 	table_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	table_panel.hide()
+	# At large text the table region scrolls; the rows keep a useful height.
+	var table_scroll := ScrollContainer.new()
+	table_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	table_panel.add_child(table_scroll)
 	table = DataTable.new()
 	table.glyph_texture = rune_for
 	table.row_chosen.connect(show_detail)
 	table.row_activated.connect(activate_row)
-	table_panel.add_child(table)
+	table_scroll.add_child(table)
 	table_refresh = button(table.host_tools, "Refresh", func() -> void: view._send({"t": "overview"}))
 	table_refresh.size_flags_horizontal = Control.SIZE_SHRINK_END
 	table_refresh.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -353,7 +358,7 @@ func reflow() -> void:
 	if not is_instance_valid(view) or not view.active or view.ui != self or not is_instance_valid(panel): return
 	var size: Vector2 = view.get_viewport().get_visible_rect().size
 	var scale := maxf(1.0, view.root_control.theme.default_font_size / 18.0)
-	var width := minf(336.0 * scale, size.x * 0.48)
+	var width := minf(336.0 * scale, size.x * (0.34 if table_kind != "" else 0.48))
 	var footer_height := maxf(68.0, footer.get_combined_minimum_size().y)
 	footer.offset_top = -footer_height - 12
 	var top_edge := top.position.y + top.size.y + 8
@@ -394,6 +399,10 @@ func reflow() -> void:
 	table_panel.offset_right = (panel.offset_left - 8) if panel.visible else -12.0
 	table.title_label.add_theme_font_size_override("font_size", roundi(23 * scale))
 	table.empty_why.add_theme_font_size_override("font_size", roundi(23 * scale))
+	table.tree.custom_minimum_size.y = 6 * (18 * scale * 1.6 + 8)
+	if tabled and table_scale != scale:
+		table_scale = scale
+		table.refit()
 	title.add_theme_font_size_override("font_size", roundi(23 * scale))
 
 func focus_map() -> void:
