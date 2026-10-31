@@ -29,8 +29,10 @@ const TEXT := Color(0.92, 0.94, 0.96)
 const GREY := Color(0.5, 0.52, 0.56)
 const ASC := " ▲"
 const DESC := " ▼"
-## A fitted column's most characters, beside a wide one.
-const FIT := 26
+## A fitted column's most characters, beside a wide one, and the least a
+## wide one keeps.
+const FIT := 20
+const WIDE_MIN := 24
 
 var shape: Dictionary = {}
 var sort_column := ""
@@ -221,8 +223,13 @@ func _build_columns() -> void:
 			chars = mini(longest, FIT)
 			tree.set_column_expand(i, false)
 			var icon := 24 if str(c.get("kind", "")) == "swatch" or (i == 0 and _has_glyphs()) else 0
-			tree.set_column_custom_minimum_width(i, int(size * 0.6 * chars) + icon)
+			# About half an em a character for mixed text.
+			tree.set_column_custom_minimum_width(i, int(size * 0.52 * chars) + icon)
 			continue
+		if i == wide:
+			# The wide column keeps a readable title before the rest
+			# scroll sideways.
+			chars = maxi(chars, WIDE_MIN)
 		tree.set_column_expand(i, true)
 		# The first column names the row; it gets the most room.
 		tree.set_column_expand_ratio(i, 1 if number else (3 if i == 0 else 2))

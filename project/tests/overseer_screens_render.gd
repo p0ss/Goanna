@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-## Captures the overseer's second screens pass (the grouped rail, the View
-## menu, Plans, Houses and the workshop picker) from a live DorfCraft
+## Captures the overseer's second and third screens passes (the grouped
+## rail, the View menu, Plans, Supplies, Houses and the workshop picker)
+## from a live DorfCraft
 ## server, at the window's size and again at 200 percent text. A scene,
 ## not a --script test, and it renders: the DorfCraft runner
 ## mods/kindred/settlement/overseer/tests/screens_live/run.py starts the
@@ -59,6 +60,12 @@ func screens(suffix: String) -> void:
 	await shot("plans" + suffix)
 	ui.table.choose_index(0)
 	await shot("plans-row" + suffix)
+	# Supplies, opened by what runs low (third screens pass).
+	ui.choose_family("Supplies")
+	await wait_for(func() -> bool: return ui.table_kind == "supplies", 20)
+	await shot("supplies" + suffix)
+	ui.table.choose_index(0)
+	await shot("supplies-row" + suffix)
 	ui.choose_family("Houses")
 	await wait_for(func() -> bool: return ui.table_kind == "houses", 20)
 	await shot("houses" + suffix)
@@ -99,7 +106,7 @@ func _ready() -> void:
 	for attempt in 12:
 		await pause(3.0)
 		client.send_chat("/overseer")
-		if await wait_for(func() -> bool: return view.session_ready and not view.snapshot.is_empty(), 8):
+		if await wait_for(func() -> bool: return view.session_ready and not view.snapshot.is_empty(), 40):
 			opened = true
 			break
 	if not opened:

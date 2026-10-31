@@ -520,3 +520,32 @@ rail), overseer_houses 55, overseer_tables 33 (the check that the Build
 tools stay beside the picker is replaced by its opposite), data_table 21
 and overseer_screens 57, all passing. The table widget's first column now
 keeps room for 14 characters.
+
+### Screens, third pass, 1 November 2026
+
+- **Wide columns.** A column the server marks `wide` (DorfCraft sends it
+  for Plans' title, Supplies' item, People's name and Houses' house) takes
+  the width the others leave; the others stop expanding and are fitted to
+  their longest cell, up to 20 characters (`FIT`, at about half an em a
+  character), plus room for a rune or swatch; the wide column keeps at
+  least 24 (`WIDE_MIN`) before the rows scroll sideways. A table without
+  one lays out as before.
+- **Fewer columns.** DorfCraft now sends Plans with Where holding the
+  level ("12 east, level 10"), Houses with one Access column ("1 shared,
+  2 locked") and no Players column while each house has one player, and
+  Supplies with Days left, opening shortest first. No Goanna change was
+  needed for those beyond the wide column.
+- `tests/overseer_screens_render.tscn` also captures Supplies and a chosen
+  Supplies row, and waits 40 seconds, not 8, for the session before
+  sending `/overseer` again: on a loaded machine the second command closed
+  the session it had just opened ("used") and the capture crashed on the
+  freed panel.
+- `tests/formspec_capture_render.tscn` draws server formspecs saved as
+  files through the formspec renderer in dark glass, one PNG each, over a
+  flat backdrop. DorfCraft's third screens pass uses it for the workshop
+  ledger's pages: a live client's shots through `goanna-headless shot`
+  came back stale (the loading screen, the Godot splash) under load. It
+  changes nothing in the renderer.
+
+`tests/data_table.gd` gains a check that a wide column expands and the
+others do not (22 checks).
