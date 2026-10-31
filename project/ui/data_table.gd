@@ -192,7 +192,8 @@ func _build_columns() -> void:
 		tree.set_column_title(i, str(c.get("label", "")) + arrow)
 		tree.set_column_title_alignment(i, HORIZONTAL_ALIGNMENT_RIGHT if number else HORIZONTAL_ALIGNMENT_LEFT)
 		tree.set_column_expand(i, true)
-		tree.set_column_expand_ratio(i, 1 if number else 2)
+		# The first column names the row; it gets the most room.
+		tree.set_column_expand_ratio(i, 1 if number else (3 if i == 0 else 2))
 		tree.set_column_clip_content(i, true)
 
 ## Clicking a heading sorts by it; clicking it again reverses.

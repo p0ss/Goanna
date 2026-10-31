@@ -71,6 +71,8 @@ var detail_primary: Button
 var change_workshop: Button
 ## The picker reopened over a chosen workshop by Change workshop.
 var picking_workshop := false
+## Footer toggles put away while a table covers the map.
+var footer_hidden: Array = []
 
 func label(parent: Node, text: String) -> Label:
 	var result := Label.new()
@@ -304,6 +306,11 @@ func build(host: Node) -> void:
 	var footer_row := HBoxContainer.new()
 	footer.add_child(footer_row)
 	view.status = label(footer_row, "Opening overseer view...")
+	# One line that shortens rather than wrapping a letter at a time when
+	# large text leaves it little room.
+	view.status.autowrap_mode = TextServer.AUTOWRAP_OFF
+	view.status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	view.status.custom_minimum_size.x = 120
 	for pair in [["Rooms", "rooms", "Show room quality by tier"], ["Miasma", "miasma", "Show smell from seen carrion"],
 			["Traffic", "traffic", "Show where workers go, where they are and their recent trails"],
 			["Heat", "heat", "Show how hot or cold the fortress has found each place"],
@@ -328,6 +335,13 @@ func build(host: Node) -> void:
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
+	# The chosen row's or workshop's detail sits at the top of the context
+	# panel, above the Build tools, with the chosen workshop under it.
+	context.move_child(detail, 1)
+	context.move_child(material_label, 2)
+	context.move_child(view.build_material, 3)
+	context.move_child(requirements, 4)
+	context.move_child(change_workshop, 5)
 	view.root_control.resized.connect(reflow)
 	view.root_control.theme.changed.connect(func() -> void: reflow.call_deferred())
 	top.resized.connect(func() -> void: reflow.call_deferred())
@@ -362,6 +376,17 @@ func reflow() -> void:
 	# context panel runs to the footer.
 	var tabled := table_kind != ""
 	nav.visible = not tabled
+	# Map overlays mean nothing over a table: the toggles shown are put
+	# away while it covers the map and come back as they were.
+	if tabled and footer_hidden.is_empty():
+		for child in footer.get_child(0).get_children():
+			if child is Button and child.visible:
+				footer_hidden.append(child)
+				child.hide()
+	elif not tabled and not footer_hidden.is_empty():
+		for child in footer_hidden:
+			if is_instance_valid(child): child.show()
+		footer_hidden.clear()
 	panel.offset_bottom = bottom_edge if tabled else bottom_edge - nav_height - 8
 	table_panel.offset_left = left.offset_right + 8
 	table_panel.offset_top = top_edge

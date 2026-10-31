@@ -64,6 +64,10 @@ func run() -> void:
 	view._receive({"v": 1, "t": "overview", "people": [], "supplies": [], "tables": {"people": people_table(),
 		"supplies": supplies_table([])}})
 	check(ui.table_panel.visible and ui.table_kind == "people", "People is a table covering the map")
+	var shown_toggles := 0
+	for child in ui.footer.get_child(0).get_children():
+		if child is Button and child.visible: shown_toggles += 1
+	check(shown_toggles == 0, "map overlay toggles are put away while a table covers the map")
 	check(not ui.nav.visible and not ui.panel.visible and not ui.overview_text.visible, "the map's navigation and an empty context panel step aside")
 	check(ui.table.shown_rows[0].cells.name == "Bo" and ui.table.shown_rows[-1].cells.name == "Cy", "People opens idle first and unseen last")
 	ui.table.choose_index(1)
@@ -78,6 +82,10 @@ func run() -> void:
 	check(ui.family == "Select" and view.level == -2 and view.centre == Vector2(4, 7) and view.cursor.x == 4 and not ui.table_panel.visible,
 		"Show on map returns to the map centred on the row's place")
 	check(ui.nav.visible, "the map's navigation returns with the map")
+	var toggles := 0
+	for child in ui.footer.get_child(0).get_children():
+		if child is Button and child.visible: toggles += 1
+	check(toggles > 0 and ui.footer_hidden.is_empty(), "the overlay toggles come back with the map")
 	ui.choose_family("Supplies")
 	view._receive({"v": 1, "t": "overview", "tables": {"people": people_table(), "supplies": supplies_table([])}})
 	check(ui.table.empty_box.visible and ui.table.empty_why.text == "No stockpiles yet." and ui.table.empty_what.text.contains("Zones"),
@@ -116,6 +124,8 @@ func run() -> void:
 	ui.refresh()
 	check(ui.table_kind == "workshops" and ui.table_panel.visible and not view.build_material.visible, "Set up workshop opens the picker table, not a dropdown")
 	check(ui.panel.visible and ui.actions.visible, "the Build tools stay beside the picker")
+	check(ui.detail.get_index() < ui.actions.get_index() and ui.requirements.get_index() < ui.actions.get_index(),
+		"the chosen workshop's detail sits above the Build tools")
 	check(ui.table.shown_rows[0].cells.workshop == "Woodworking" and ui.table.row_locked(ui.table.shown_rows[1]), "ready workshops come first; the rest are greyed")
 	var locked_item: TreeItem = ui.table.tree.get_root().get_child(1)
 	check(locked_item.get_tooltip_text(0) == "Needs a Barrel in fortress stock.", "a greyed workshop says what it needs on hover")
