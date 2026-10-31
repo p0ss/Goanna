@@ -83,13 +83,20 @@ var plans_table: Dictionary = {}
 var detail_actions: VBoxContainer
 var detail_actions_key: Variant = null
 var accent_style: StyleBoxFlat
-## "people", "supplies", "workshops", "plans" or "" when the map shows.
+## Houses: "" for the table, "manage" for the owner's controls, offices
+## and the head's workers, "mark" for the access marks on the map.
+var houses_mode := ""
+var houses_manage: Button
+var houses_mark: Button
+var houses_back: Button
+## "people", "supplies", "workshops", "plans", "houses" or "" when the map shows.
 var table_kind := ""
 var detail: VBoxContainer
 var detail_body: Label
 var detail_reason: Label
 var detail_primary: Button
 var change_workshop: Button
+var other_tools: Button
 ## The picker reopened over a chosen workshop by Change workshop.
 var picking_workshop := false
 ## Footer toggles put away while a table covers the map.
@@ -252,7 +259,8 @@ func build(host: Node) -> void:
 	table.row_activated.connect(activate_row)
 	table_scroll.add_child(table)
 	table_refresh = button(table.host_tools, "Refresh", func() -> void:
-		view._send({"t": "plans"} if table_kind == "plans" else {"t": "overview"}))
+		if table_kind == "houses": houses.request()
+		else: view._send({"t": "plans"} if table_kind == "plans" else {"t": "overview"}))
 	table_refresh.size_flags_horizontal = Control.SIZE_SHRINK_END
 	table_refresh.autowrap_mode = TextServer.AUTOWRAP_OFF
 	panel = box(view.root_control)
@@ -309,6 +317,10 @@ func build(host: Node) -> void:
 		picking_workshop = true
 		refresh())
 	change_workshop.hide()
+	# With a workshop chosen the panel is that workshop's; the other Build
+	# tools are one press away, not listed beneath it.
+	other_tools = button(context, "Other Build tools", func() -> void: view.choose_tool("inspect"))
+	other_tools.hide()
 	context.move_child(material_label, 1)
 	context.move_child(view.build_material, 2)
 	view.facing_picker = OptionButton.new()
@@ -341,6 +353,20 @@ func build(host: Node) -> void:
 	act = button(context, "Act", act_plan)
 	act.tooltip_text = "Do what the office would do, where it can be done from afar."
 	houses = preload("res://game/overseer_houses.gd").new(self, context)
+	houses_back = button(context, "Back to houses", func() -> void:
+		houses_mode = ""
+		refresh())
+	context.move_child(houses_back, 1)
+	houses_back.hide()
+	houses_manage = button(table.host_tools, "Offices and workers", func() -> void:
+		houses_mode = "manage"
+		refresh())
+	houses_mark = button(table.host_tools, "Mark access", func() -> void:
+		houses_mode = "mark"
+		refresh())
+	for b in [houses_manage, houses_mark]:
+		b.size_flags_horizontal = Control.SIZE_SHRINK_END
+		b.autowrap_mode = TextServer.AUTOWRAP_OFF
 	nav = box(view.root_control)
 	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	nav.offset_left = -316; nav.offset_right = -12
@@ -406,6 +432,8 @@ func build(host: Node) -> void:
 	context.move_child(view.build_material, 3)
 	context.move_child(requirements, 4)
 	context.move_child(change_workshop, 5)
+	context.move_child(other_tools, 6)
+	context.move_child(houses_back, 1)
 	view.root_control.resized.connect(reflow)
 	view.root_control.theme.changed.connect(func() -> void: reflow.call_deferred())
 	top.resized.connect(func() -> void: reflow.call_deferred())
@@ -537,6 +565,7 @@ func choose_family(value: String) -> void:
 		view.inspector.text = "Submit or discard this draft before choosing another tool family."
 		return
 	family = value
+	houses_mode = ""
 	view.tool = "inspect"
 	refresh_tools()
 	if family == "Plans": view._send({"t": "plans"})
@@ -586,6 +615,11 @@ func choose_group(group: String) -> void:
 			return
 	view.inspector.text = "This zone type is unavailable."
 
+## Takes a "houses" message: the page, and the table drawn from it.
+func update_houses(msg: Dictionary) -> void:
+	houses.update(msg)
+	refresh()
+
 func update_overview(value: Dictionary) -> void:
 	overview = value
 	refresh_overview()
@@ -601,6 +635,8 @@ func grey(b: Button) -> void:
 ## workshop picker while no workshop is chosen or Change workshop is open.
 func current_table() -> String:
 	if family == "Plans": return "plans" if not plans_table.is_empty() else ""
+	if family == "Houses":
+		return "houses" if houses_mode == "" and houses.page.get("table") is Dictionary else ""
 	if family in ["People", "Supplies"]:
 		var tables: Variant = overview.get("tables")
 		if tables is Dictionary and tables.get(family.to_lower()) is Dictionary: return family.to_lower()
@@ -650,16 +686,26 @@ func refresh_table() -> void:
 		table.set_table(plans_table)
 		# A plan chosen elsewhere (the Progress verb) opens chosen.
 		if not selected_id.is_empty() and table.selected_id != selected_id: table.choose_id(selected_id)
+	elif kind == "houses": table.set_table(houses.page.table)
 	elif kind != "": table.set_table(overview.tables[kind])
-	table_refresh.visible = kind in ["people", "supplies", "plans"]
+	table_refresh.visible = kind in ["people", "supplies", "plans", "houses"]
+	houses_manage.visible = kind == "houses"
+	houses_mark.visible = kind == "houses" and view.tools.any(func(t: Variant) -> bool:
+		return t is Dictionary and str(t.get("family", "")) == "House")
 	var row: Dictionary = table.selected_row() if kind != "" else {}
 	detail.visible = not row.is_empty()
 	if not row.is_empty(): fill_detail(row)
 	# People and Supplies show the context panel only for a chosen row.
-	panel.visible = kind in ["", "workshops"] or not row.is_empty()
+	panel.visible = kind == "" or not row.is_empty()
+	# One task per panel: while a table covers the map, the map's tools
+	# (Build wall, Place door and the rest) are not beneath its detail.
+	if kind != "": actions.visible = false
 	if kind == "workshops":
 		for control in [material_label, view.build_material, requirements, change_workshop, draft_label, submit, discard, return_draft]:
 			control.visible = false
+	if kind in ["workshops", "houses"]:
+		view.inspector.visible = false
+		other_tools.visible = false
 	reflow()
 
 func fill_detail(row: Dictionary) -> void:
@@ -750,6 +796,10 @@ func show_on_map(pos: Dictionary) -> void:
 
 ## Back with a row chosen clears the choice first.
 func close_choice() -> bool:
+	if family == "Houses" and houses_mode != "":
+		houses_mode = ""
+		refresh()
+		return true
 	if table_kind == "" or table.selected_id.is_empty(): return false
 	table.clear_choice()
 	if table_kind == "plans": selected_id = ""
@@ -960,7 +1010,8 @@ func refresh() -> void:
 		if child is Button:
 			child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool or (child.has_meta("group") and child.get_meta("group") == view.tool_definition().get("group")))
 	title.text = "Plans" if is_plans else family
-	houses.root.visible = family == "Houses"
+	houses.root.visible = family == "Houses" and (houses_mode == "manage" or not houses.page.get("table") is Dictionary)
+	houses_back.visible = family == "Houses" and houses_mode != ""
 	actions.visible = not is_plans
 	# With the server's table, Plans covers the map; the older list stays
 	# for an older server.
@@ -969,7 +1020,8 @@ func refresh() -> void:
 	act.visible = plan_list and _selected().get("can_act", false)
 	view.room_name.visible = view.tool.begins_with("room:") and not is_plans
 	var has_draft: bool = view.first_corner != null
-	actions.visible = not is_plans and not is_overview and not has_draft
+	actions.visible = not is_plans and not is_overview and not has_draft \
+		and not (family == "Houses" and houses_mode == "manage")
 	draft_label.visible = has_draft
 	draft_label.text = view.draft_summary() if has_draft else ""
 	submit.visible = has_draft and view.last_corner != null
@@ -996,6 +1048,8 @@ func refresh() -> void:
 	var workshop: bool = view.tool == "workshop"
 	if workshop: view.build_material.visible = false
 	change_workshop.visible = workshop and family == "Build" and view.pending.is_empty() and view.build_material.selected >= 0
+	other_tools.visible = workshop and family == "Build" and view.pending.is_empty() and not has_draft
+	if workshop and family == "Build": actions.visible = false
 	requirements.visible = not requirements.text.is_empty() and not is_plans and not is_overview
 	material_label.text = "Workshop type" if view.tool == "workshop" else "Material"
 	material_label.visible = (view.build_material.visible or change_workshop.visible) and not is_plans

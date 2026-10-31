@@ -303,6 +303,10 @@ func _refresh_rows() -> void:
 				item.set_icon(0, tex)
 				item.set_icon_max_width(0, 22)
 				if locked: item.set_icon_modulate(0, Color(1, 1, 1, 0.45))
+		# A swatch column (a house's colour) leads its label with the colour.
+		for i in cols.size():
+			if str(cols[i].get("kind", "")) == "swatch" and r.get("swatch") is String and Color.html_is_valid(r.swatch):
+				item.set_icon(i, swatch(Color.html(r.swatch)))
 		item.set_metadata(0, r)
 		if str(r.get("id", "")) == selected_id and not selected_id.is_empty(): chosen = item
 	if chosen != null:
@@ -319,6 +323,16 @@ func _refresh_rows() -> void:
 		empty_what.visible = not empty_what.text.is_empty()
 		empty_clear.visible = not all_empty
 	view_changed.emit()
+
+static var swatches := {}
+## A small square of one colour, cached.
+static func swatch(colour: Color) -> Texture2D:
+	var key := colour.to_html(false)
+	if not swatches.has(key):
+		var image := Image.create(18, 18, false, Image.FORMAT_RGBA8)
+		image.fill(colour)
+		swatches[key] = ImageTexture.create_from_image(image)
+	return swatches[key]
 
 func _cell_text(v: Variant) -> String:
 	if v == null: return ""

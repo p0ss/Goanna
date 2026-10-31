@@ -123,9 +123,7 @@ func run() -> void:
 			"reason": "The equipment is in fortress stock.", "requirements": "Requires: 1 Crafting table (in stock)."}])
 	ui.refresh()
 	check(ui.table_kind == "workshops" and ui.table_panel.visible and not view.build_material.visible, "Set up workshop opens the picker table, not a dropdown")
-	check(ui.panel.visible and ui.actions.visible, "the Build tools stay beside the picker")
-	check(ui.detail.get_index() < ui.actions.get_index() and ui.requirements.get_index() < ui.actions.get_index(),
-		"the chosen workshop's detail sits above the Build tools")
+	check(not ui.panel.visible and not ui.actions.visible, "the picker covers the map alone; the Build tools are not beside it")
 	check(ui.table.shown_rows[0].cells.workshop == "Woodworking" and ui.table.row_locked(ui.table.shown_rows[1]), "ready workshops come first; the rest are greyed")
 	var locked_item: TreeItem = ui.table.tree.get_root().get_child(1)
 	check(locked_item.get_tooltip_text(0) == "Needs a Barrel in fortress stock.", "a greyed workshop says what it needs on hover")

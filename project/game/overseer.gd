@@ -634,7 +634,7 @@ func _receive(msg: Dictionary) -> void:
 	elif type == "plans" and msg.get("plans") is Array:
 		ui.update_plans(msg.plans, msg.get("table"))
 	elif type == "houses" and session_ready:
-		ui.houses.update(msg)
+		ui.update_houses(msg)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:
 		if msg.get("what") == "done": pages.erase(str(msg.page.get("id", "")))
 		else: _take_page(msg.page)
