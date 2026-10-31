@@ -712,7 +712,9 @@ func refresh_zone_property() -> void:
 	var group := str(definition.get("group", ""))
 	zone_tools.clear()
 	zone_options.clear()
-	zone_property.visible = family == "Zones" and not group.is_empty()
+	# Any grouped tool picks its member here: Zones' crop, room and storage
+	# types, and Build's Shape (DorfCraft's building part).
+	zone_property.visible = not group.is_empty() and family not in ["Plans", "People", "Supplies", "Houses"]
 	zone_options.visible = zone_property.visible
 	zone_options.disabled = view.first_corner != null or not view.pending.is_empty()
 	if not zone_options.visible: return

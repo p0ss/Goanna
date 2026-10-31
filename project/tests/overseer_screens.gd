@@ -95,6 +95,32 @@ func houses_shown(main: Node, client: Node) -> void:
 		"a group with every section hidden loses its heading")
 	view._close(); only_select._close()
 
+func find_button(node: Node, text: String) -> Button:
+	if node is Button and (node as Button).text == text: return node
+	for child in node.get_children():
+		var found := find_button(child, text)
+		if found != null: return found
+	return null
+
+## DorfCraft's building part adds a Shape group to Build (docs/building.md).
+func shapes(main: Node, client: Node) -> void:
+	var view := open_view(main, client, {"sections": sections({})})
+	var tools: Array = view.tools.duplicate()
+	for pair in [["line", "Line"], ["wall", "Wall"], ["box", "Box"]]:
+		tools.append({"id": "shape:" + pair[0], "title": pair[1], "family": "Build", "group": "Shape",
+			"group_property": "Shape", "option": pair[1], "material": "block", "height": 3,
+			"icon": "build_wall", "group_icon": "build_wall"})
+	view.ui.update_capabilities({"tools": tools, "sections": sections({})})
+	view.ui.choose_family("Build")
+	var group := find_button(view.ui.actions, "Shape")
+	check(group != null and group.icon != null, "Build offers one Shape group with its icon")
+	group.pressed.emit()
+	check(view.tool == "shape:line" and view.ui.zone_options.visible and view.ui.zone_property.text == "Shape"
+		and view.ui.zone_options.item_count == 3, "the Shape group picks its shape in the context panel")
+	view.ui.zone_options.select(1); view.ui.zone_options.item_selected.emit(1)
+	check(view.tool == "shape:wall", "choosing Wall sets the shape tool")
+	view._close()
+
 func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var main := Unit.TestMain.new(); root.add_child(main)
@@ -104,5 +130,6 @@ func run() -> void:
 	await rail(view)
 	view._close()
 	await houses_shown(main, client)
+	shapes(main, client)
 	print("Overseer screens: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
