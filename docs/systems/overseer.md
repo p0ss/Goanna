@@ -139,9 +139,11 @@ The Access toggle draws the `access` overlay, `{pos, state, house}`: a
 shared cell is a ring in the house colour, a locked one a thicker ring with
 a solid corner, so the two read apart even in one colour; a mark naming no
 listed house is off-white. The Houses toggle draws an ownership field: one
-sheet over the layer, sampling a texel a cell with linear filtering like a
-field, so a glance shows the fortress divided among houses with soft edges
-between them. A cell is held by its access mark, else the room it lies in,
+sheet over the layer, a texel a cell, so a glance shows the fortress
+divided among houses. Each cell keeps its own house's colour; where two
+houses meet a dark rule a fifth of a cell wide separates them, so near
+colours still read apart (two blues read as one in the first live run),
+and towards unheld ground the tint fades over the cell's outer half. A cell is held by its access mark, else the room it lies in,
 else a housed plan, zone, lock or station on it; cells with none stay
 clear. The owner's house tints too, paler and with diagonal stripes. While
 the field is on it replaces the patterned fills rather than sitting over
@@ -152,6 +154,32 @@ sends no per-cell field. Inspect and Plans add "(House Surname)" after
 the room, zone, lock, station, order or author, and Inspect says what a
 shared or locked mark allows. An older server sends none of this, and the
 view is unchanged.
+
+The Houses section of the rail (with the server's `Houses` rune when its
+signposts name one) holds the server's House access tools and the Houses
+page, from DorfCraft's `{"t": "houses"}` request, which the server pushes
+again on every change. The page lists each house with a swatch of the
+fortress pattern in its colour, its head as "Ana of house Stonehand" (the
+server's `head_title`), and its workers. The owner gets the open to
+settlers toggle and Banish, which first sends the action without
+`confirm` and shows the server's confirm text with Confirm and Keep them.
+Offices show their holder; one the viewer may fill has a candidate picker
+with Appoint and Vacate. The viewer's own workers have a checkbox per
+labour, sending the whole list, and a workshop picker. The stream of work
+picker stays disabled with the reason while the server offers no streams.
+A house the viewer heads, or any house for the owner, has a rename row
+for the head's first name and the surname; only changed names are sent.
+Every action is one `{"t": "house", "req", "op"}` through the view's
+pending request, so a retry reuses its id, and a refusal redraws the page.
+Colours come from the server; the client hard-codes none.
+
+The view sends its keep-alive before handling the frame's messages and
+again between them, and handles messages within 8 ms a frame, leaving the
+rest for the next. On 31 October 2026 the first view of a live session
+kept the client silent for 15 s and the server timed it out; this keeps a
+backlog from starving the ping. Whether the stall itself is gone has not
+been checked live: the synthetic CPU benchmark puts the GDScript side of a
+63 by 63 first view under 100 ms, so it may lie in the native mesher.
 
 Officers' pages arrive in the hello and as `page` messages. The newest
 unseen danger page is a red line in the header that locates it and marks

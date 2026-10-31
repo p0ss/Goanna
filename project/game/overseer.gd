@@ -57,6 +57,10 @@ var parts: Dictionary = {}
 var last_receive := 0.0
 var layer_received := 0.0
 var last_ping := 0.0
+# Server messages taken but not yet handled, and the time a frame spends on
+# them before leaving the rest for the next.
+var inbox: Array = []
+const INBOX_BUDGET_USEC := 8000
 var last_request := 0.0
 var hud_poll := 0.0
 var need_view := false
@@ -140,6 +144,44 @@ void fragment() {
 const HOUSE_PATTERNS := ["", "chequy", "lozengy", "paly", "barry", "bendy", "fretty",
 	"masoned", "gyronny", "diaper", "semy"]
 const HOUSE_LIMIT := 64
+# The field patterns as one shader function, shared by the map's fills and
+# the Houses page's swatches. p is in pattern cells (a node on the map).
+const HOUSE_PATTERN_FN := """
+float aa(float v) { return max(fwidth(v), 1e-4); }
+// 1 on the middle half of each period of v.
+float half_period(float v) { return clamp((0.25 - abs(fract(v) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
+// 1 within w of a whole number of v.
+float line(float v, float w) { return clamp((w - abs(fract(v + 0.5) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
+float either(float a, float b) { return a + b - 2.0 * a * b; }
+float house_pattern(int kind, vec2 p) {
+	if (kind == 1) return either(half_period(p.x), half_period(p.y));
+	if (kind == 2) return either(half_period(p.x + p.y), half_period(p.x - p.y));
+	if (kind == 3) return half_period(p.x);
+	if (kind == 4) return half_period(p.y);
+	if (kind == 5) return half_period((p.x + p.y) * 1.5);
+	if (kind == 6) return max(line((p.x + p.y) * 1.5, 0.09), line((p.x - p.y) * 1.5, 0.09));
+	if (kind == 7) {
+		float row = floor(p.y * 2.0);
+		return max(line(p.y * 2.0, 0.08), line(p.x + 0.5 * mod(row, 2.0), 0.05));
+	}
+	if (kind == 8) {
+		vec2 c = fract(p) - 0.5;
+		return mod(floor(atan(c.y, c.x) / 0.785398 + 8.0), 2.0);
+	}
+	if (kind == 9) {
+		vec2 q = vec2(p.x + p.y, p.x - p.y) * 1.5;
+		vec2 d = fract(q) - 0.5;
+		return max(max(line(q.x, 0.05), line(q.y, 0.05)),
+			clamp((0.14 - length(d)) / aa(q.x) + 0.5, 0.0, 1.0));
+	}
+	if (kind == 10) {
+		vec2 q = p * 2.0;
+		float kept = 1.0 - mod(floor(q.x) + floor(q.y), 2.0);
+		return kept * clamp((0.2 - length(fract(q) - 0.5)) / aa(q.x) + 0.5, 0.0, 1.0);
+	}
+	return line((p.x - p.y) * 3.0, 0.1);
+}
+"""
 const HOUSE_FILL := """
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
@@ -152,39 +194,22 @@ void vertex() {
 	// Node (x, z) is drawn at (x, -z); cell edges fall on whole numbers.
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz * vec2(1.0, -1.0) + 0.5;
 }
-float aa(float v) { return max(fwidth(v), 1e-4); }
-// 1 on the middle half of each period of v.
-float half_period(float v) { return clamp((0.25 - abs(fract(v) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
-// 1 within w of a whole number of v.
-float line(float v, float w) { return clamp((w - abs(fract(v + 0.5) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
-float either(float a, float b) { return a + b - 2.0 * a * b; }
+""" + HOUSE_PATTERN_FN + """
 void fragment() {
-	vec2 p = world;
-	float m;
-	if (pattern == 1) m = either(half_period(p.x), half_period(p.y));
-	else if (pattern == 2) m = either(half_period(p.x + p.y), half_period(p.x - p.y));
-	else if (pattern == 3) m = half_period(p.x);
-	else if (pattern == 4) m = half_period(p.y);
-	else if (pattern == 5) m = half_period((p.x + p.y) * 1.5);
-	else if (pattern == 6) m = max(line((p.x + p.y) * 1.5, 0.09), line((p.x - p.y) * 1.5, 0.09));
-	else if (pattern == 7) {
-		float row = floor(p.y * 2.0);
-		m = max(line(p.y * 2.0, 0.08), line(p.x + 0.5 * mod(row, 2.0), 0.05));
-	} else if (pattern == 8) {
-		vec2 c = fract(p) - 0.5;
-		m = mod(floor(atan(c.y, c.x) / 0.785398 + 8.0), 2.0);
-	} else if (pattern == 9) {
-		vec2 q = vec2(p.x + p.y, p.x - p.y) * 1.5;
-		vec2 d = fract(q) - 0.5;
-		m = max(max(line(q.x, 0.05), line(q.y, 0.05)),
-			clamp((0.14 - length(d)) / aa(q.x) + 0.5, 0.0, 1.0));
-	} else if (pattern == 10) {
-		vec2 q = p * 2.0;
-		float kept = 1.0 - mod(floor(q.x) + floor(q.y), 2.0);
-		m = kept * clamp((0.2 - length(fract(q) - 0.5)) / aa(q.x) + 0.5, 0.0, 1.0);
-	} else m = line((p.x - p.y) * 3.0, 0.1);
 	ALBEDO = ink.rgb;
-	ALPHA = ink.a * mix(base, strength, m);
+	ALPHA = ink.a * mix(base, strength, house_pattern(pattern, world));
+}
+"""
+# A swatch on the Houses page: the pattern in the house colour over a dark
+# ground, four pattern cells across.
+const HOUSE_SWATCH := """
+shader_type canvas_item;
+uniform vec4 ink : source_color;
+uniform int pattern = 0;
+""" + HOUSE_PATTERN_FN + """
+void fragment() {
+	float m = house_pattern(pattern, UV * 4.0);
+	COLOR = vec4(mix(ink.rgb * 0.55, ink.rgb, m), 1.0);
 }
 """
 # Access marks: shared is a ring in the house colour; locked adds a solid
@@ -214,34 +239,58 @@ void fragment() {
 	ALPHA = ink.a * mark;
 }
 """
-# The ownership field: which house holds each cell, one texel a cell. The
-# `owners` texture carries the house colour (spread one texel into empty
-# neighbours so edges fade without darkening); `flags` carries coverage in
-# red and "the owner's house" in green. Linear filtering softens the edges
-# between houses over one cell, as a field and not a grid. The owner's house is paler and carries
-# faint diagonal stripes, so the fortress's own share reads apart from
-# its settlers' even in a close colour.
+# The ownership field: which house holds each cell, one texel a cell, read
+# unfiltered so each cell keeps its own house. `owners` carries the house
+# colour; `flags` carries "held" in red and "the owner's house" in green.
+# Where two houses meet, a dark rule a fifth of a cell wide separates them,
+# so near colours still read apart; towards unheld ground the tint fades
+# over the cell's outer half. The owner's house is paler and striped, so
+# the fortress's own share reads apart from its settlers' in any colour.
 const OWNERSHIP_FIELD := """
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
-uniform sampler2D owners : source_color, filter_linear, repeat_disable;
-uniform sampler2D flags : filter_linear, repeat_disable;
+uniform sampler2D owners : source_color, filter_nearest, repeat_disable;
+uniform sampler2D flags : filter_nearest, repeat_disable;
 uniform vec2 origin;
 uniform vec2 size = vec2(1.0);
 varying vec2 world;
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz * vec2(1.0, -1.0);
 }
+vec2 flag_at(ivec2 p) {
+	if (p.x < 0 || p.y < 0 || p.x >= int(size.x) || p.y >= int(size.y)) return vec2(0.0);
+	return texelFetch(flags, p, 0).rg;
+}
+vec3 colour_at(ivec2 p) {
+	if (p.x < 0 || p.y < 0 || p.x >= int(size.x) || p.y >= int(size.y)) return vec3(0.0);
+	return texelFetch(owners, p, 0).rgb;
+}
 void fragment() {
-	vec2 uv = (world - origin + vec2(0.5)) / size;
-	vec2 f = texture(flags, uv).rg;
-	if (f.r < 0.01) discard;
-	float owner = clamp(f.g / f.r, 0.0, 1.0);
-	float cover = clamp(f.r * 1.6, 0.0, 1.0);
+	vec2 c = world - origin + vec2(0.5);
+	ivec2 cell = ivec2(floor(c));
+	vec2 f = fract(c);
+	vec2 me = flag_at(cell);
+	if (me.r < 0.5) discard;
+	vec3 colour = colour_at(cell);
+	float w = max(fwidth(c.x), 1e-4);
+	float fade = 1.0;
+	float rule = 0.0;
+	ivec2 sides[4] = ivec2[4](ivec2(-1, 0), ivec2(1, 0), ivec2(0, -1), ivec2(0, 1));
+	float dist[4] = float[4](f.x, 1.0 - f.x, f.y, 1.0 - f.y);
+	for (int i = 0; i < 4; i++) {
+		ivec2 n = cell + sides[i];
+		vec2 other = flag_at(n);
+		if (other.r < 0.5) {
+			fade = min(fade, mix(0.35, 1.0, smoothstep(0.0, 0.5, dist[i])));
+		} else if (distance(colour_at(n), colour) > 0.004 || abs(other.g - me.g) > 0.5) {
+			rule = max(rule, clamp((0.1 - dist[i]) / w + 0.5, 0.0, 1.0));
+		}
+	}
 	float v = (world.x + world.y) * 2.0;
 	float stripe = clamp((0.15 - abs(fract(v) - 0.5)) / max(fwidth(v), 1e-4) + 0.5, 0.0, 1.0);
-	ALBEDO = texture(owners, uv).rgb;
-	ALPHA = cover * mix(0.42, 0.18 + 0.2 * stripe, owner);
+	float strength = mix(0.58, 0.3 + 0.25 * stripe, me.g);
+	ALBEDO = mix(colour, vec3(0.04), rule);
+	ALPHA = mix(strength * fade, 0.85, rule);
 }
 """
 const ACCESS_UNKNOWN_HOUSE := Color(0.92, 0.92, 0.88)
@@ -303,19 +352,29 @@ func tick(delta: float) -> void:
 				_open()
 	if not active:
 		return
-	for raw in client.overseer_take():
+	# The keep-alive goes first, and again between messages: the server
+	# drops a session it has not heard from, and a slow first view (the
+	# first layer and its prefetched neighbours) once kept it silent for
+	# 15 s. Messages are handled within a frame budget; the rest wait in
+	# the inbox for the next frame rather than stalling this one.
+	_keep_alive()
+	inbox.append_array(client.overseer_take())
+	var started := Time.get_ticks_usec()
+	while not inbox.is_empty() and active:
+		var raw: Variant = inbox.pop_front()
 		if str(raw).length() <= 60000:
 			var message: Variant = JSON.parse_string(raw)
 			if message is Dictionary:
 				_receive(message)
+		_keep_alive()
+		if Time.get_ticks_usec() - started > INBOX_BUDGET_USEC:
+			break
 	if not active:
 		return
 	_build_next_mesh()
 	_sync_lighting()
 	var now := _now()
-	if now - last_ping > (3.0 if session_ready else 0.5):
-		last_ping = now
-		_send({"t": "ping"} if session_ready else {"t": "ready", "prefetch": true})
+	_keep_alive()
 	if now - last_receive > 12.0:
 		leave()
 		return
@@ -345,11 +404,18 @@ func tick(delta: float) -> void:
 		if need_view and now - last_request > 0.2:
 			_request_view()
 
+func _keep_alive() -> void:
+	var now := _now()
+	if now - last_ping > (3.0 if session_ready else 0.5):
+		last_ping = now
+		_send({"t": "ping"} if session_ready else {"t": "ready", "prefetch": true})
+
 func _open() -> void:
 	active = true
 	session_ready = false
 	last_receive = _now()
 	last_ping = 0.0
+	inbox.clear()
 	saved_capture = main.pointer_captured()
 	saved_mask = main.cam.cull_mask
 	main.cam.cull_mask = 0
@@ -468,6 +534,7 @@ func _clear_layer() -> void:
 		_clear_children(preview)
 
 func _close() -> void:
+	inbox.clear()
 	client.overseer_entities(null, {})
 	active = false
 	session_ready = false
@@ -561,6 +628,8 @@ func _receive(msg: Dictionary) -> void:
 		_receive_affordances(msg)
 	elif type == "plans" and msg.get("plans") is Array:
 		ui.update_plans(msg.plans)
+	elif type == "houses" and session_ready:
+		ui.houses.update(msg)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:
 		if msg.get("what") == "done": pages.erase(str(msg.page.get("id", "")))
 		else: _take_page(msg.page)
@@ -571,7 +640,9 @@ func _receive(msg: Dictionary) -> void:
 			return
 		inspector.text = str(msg.get("reason", "Request answered"))
 		var was_order: bool = pending.get("t") == "order"
+		var sent := pending
 		pending = {}
+		if sent.get("t") == "house": ui.houses.on_reply(sent, msg)
 		if msg.get("ok", false) and was_order:
 			discard_draft()
 		ui.refresh()
@@ -666,7 +737,7 @@ func _receive_part(msg: Dictionary) -> void:
 			raw.append_array(p.chunks[i])
 		parts.erase(id)
 		var inner: Variant = JSON.parse_string(raw.get_string_from_utf8())
-		if inner is Dictionary and inner.get("t", "") in ["hello", "layer"]:
+		if inner is Dictionary and inner.get("t", "") in ["hello", "layer", "houses"]:
 			_receive(inner)
 
 static func _number(v: Variant, whole := true) -> bool:
@@ -1211,8 +1282,8 @@ func _draw_overlays() -> void:
 				var ink: Color = houses[id].colour if houses.has(id) else ACCESS_UNKNOWN_HOUSE
 				_planes(overlay_sheets, positions, _access_material(ink, state == "locked"), 1.0, 1.0)
 
-# One sheet over the layer's rectangle, sampling one texel a cell with
-# linear filtering, so neighbouring houses blend over a cell's width.
+# One sheet over the layer's rectangle, one texel a cell; the shader rules
+# the borders between houses and fades the outer edges.
 func _draw_ownership(houses: Dictionary) -> void:
 	var field := ownership_field(snapshot)
 	if field.is_empty(): return
@@ -1228,18 +1299,6 @@ func _draw_ownership(houses: Dictionary) -> void:
 		colours.set_pixel(i % w, i / w, houses[owners[i]].colour)
 		flags.set_pixel(i % w, i / w, Color(1, 1 if houses[owners[i]].owner else 0, 0))
 	if not any: return
-	# Spread each colour into empty neighbours: filtering then fades a
-	# house's edge to clear, not through black.
-	for i in owners.size():
-		if not owners[i].is_empty(): continue
-		var x := i % w
-		var z := i / w
-		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var nx: int = x + d.x
-			var nz: int = z + d.y
-			if nx >= 0 and nx < w and nz >= 0 and nz < h and not owners[nz * w + nx].is_empty():
-				colours.set_pixel(x, z, houses[owners[nz * w + nx]].colour)
-				break
 	if ownership_shader == null:
 		ownership_shader = Shader.new()
 		ownership_shader.code = OWNERSHIP_FIELD

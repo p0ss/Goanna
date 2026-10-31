@@ -124,8 +124,8 @@ func run() -> void:
 	var colours: Image = field_sheets[0].get_shader_parameter("owners").get_image()
 	check(flags.get_pixel(4, 0).g > 0.99 and flags.get_pixel(0, 0).g < 0.01 and flags.get_pixel(6, 0).r < 0.01,
 		"the owner's house is flagged apart, and an unheld cell is clear")
-	check(colours.get_pixel(6, 0).is_equal_approx(Color.html("#30a050")),
-		"an empty neighbour takes the house colour so the edge fades without darkening")
+	check(colours.get_pixel(5, 0).is_equal_approx(Color.html("#30a050")) and flags.get_pixel(5, 0).r > 0.99,
+		"each held cell carries its own house colour, unblended")
 	view.toggle_overlay("ownership")
 	check(sheets_with(view, view.house_shader).size() == 2, "the patterned fills return with the Houses toggle off")
 	check(Overseer.overlay_notes(housed, {"x": 4, "y": 0, "z": 0}).contains("Held by House Stonehelm (its room)")
@@ -153,7 +153,167 @@ func run() -> void:
 	check(view.ui.plan_detail.text.contains("Issued by alice (House Brightvein)"), "Plans names the author's house")
 	view.ui.select_plan(1)
 	check(view.ui.plan_detail.text.contains("Issued by owner\n"), "an unhoused plan's author reads as before")
+	houses_page(view, client)
 	view.free()
+	keep_alive(main)
 	main.queue_free()
 	print("Overseer houses: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
+
+class HudClient extends Unit.TestClient:
+	var queued: Array = []
+	func hud_state() -> Dictionary:
+		return {"elements": [{"name": "dorfcraft:overseer", "text": "dorfcraft:overseer:1"}]}
+	func overseer_take() -> Array:
+		var out := queued
+		queued = []
+		return out
+
+## A slow first view must not starve the keep-alive: it goes out before
+## any message is handled, and a long backlog is spread over frames.
+func keep_alive(main: Node) -> void:
+	var client := HudClient.new(); main.add_child(client)
+	var view := Overseer.new(); view.main = main; view.client = client; main.add_child(view)
+	var padding := "x".repeat(50000)
+	for i in 300: client.queued.append(JSON.stringify({"v": 1, "t": "pong", "padding": padding}))
+	view.tick(0.016)
+	check(view.active and client.sent.size() >= 1 and client.sent[0].get("t") == "ready",
+		"the keep-alive is sent before the backlog is handled")
+	check(not view.inbox.is_empty() and view.inbox.size() < 300, "a long backlog waits for the next frame")
+	var before := view.inbox.size()
+	view.tick(0.016)
+	check(view.inbox.size() < before, "the next frame carries on with it")
+	view.free()
+
+static func controls(node: Node, kind: String, out: Array = []) -> Array:
+	for child in node.get_children():
+		if child.is_class(kind) and not child.is_queued_for_deletion(): out.append(child)
+		controls(child, kind, out)
+	return out
+
+static func find_text(node: Node, kind: String, text: String) -> Variant:
+	for c in controls(node, kind):
+		if str(c.text).contains(text): return c
+	return null
+
+const PAGE := {"v": 1, "t": "houses", "fid": "f1", "available": true, "owner": "owner",
+	"open": false, "can_open": true, "manage_houses": true,
+	"houses": [{"id": "h1", "surname": "Ironfoot", "head": "owner", "head_name": "Ana",
+			"head_title": "Ana of house Ironfoot", "can_rename": true,
+			"colour": "#aa3322", "pattern": "chequy", "workers": [{"id": "w1", "name": "Urist Ironfoot"}],
+			"mine": true, "can_banish": false},
+		{"id": "h2", "surname": "Stonehand", "head": "settler", "colour": "#2266aa", "pattern": "diaper",
+			"workers": [{"id": "w7", "name": "Bo Stonehand"}], "mine": false, "can_banish": true}],
+	"offices_available": true,
+	"offices": [{"role": "manager", "title": "manager", "holder": null, "holder_name": "nobody",
+		"can_appoint": true, "candidates": [{"id": "w1", "name": "Urist Ironfoot"},
+			{"id": "player:settler", "name": "settler (player, head of house Stonehand)"}]},
+		{"role": "captain", "title": "captain", "holder": "w1", "holder_name": "Urist Ironfoot (Ironfoot)",
+			"can_appoint": false, "candidates": []}],
+	"candidates": [],
+	"panel": {"workers": [{"id": "w1", "name": "Urist Ironfoot", "labours": ["dig", "haul"], "workshop": null}],
+		"labours": ["build", "dig", "haul"],
+		"workshops": [{"id": 3, "kind": "carpenter", "title": "Carpenter's workshop", "worker": null}],
+		"streams": null}}
+
+func last_house(client: Node) -> Dictionary:
+	for i in range(client.sent.size() - 1, -1, -1):
+		if client.sent[i] is Dictionary and client.sent[i].get("t") == "house": return client.sent[i]
+	return {}
+
+func answer(view: Node, ok: bool, reason: String) -> void:
+	view._receive({"v": 1, "t": "reply", "req": view.pending.req, "ok": ok, "reason": reason})
+
+func houses_page(view: Node, client: Node) -> void:
+	var bounds := {"min": {"x": -16, "y": -8, "z": -16}, "max": {"x": 16, "y": 8, "z": 16}}
+	view._receive({"v": 1, "t": "hello", "claim": bounds, "y": 0, "body": {"x": 0, "y": 0, "z": 0},
+		"tools": [{"id": "inspect", "title": "Inspect"},
+			{"id": "access:shared", "title": "Mark shared", "family": "House"},
+			{"id": "access:locked", "title": "Mark locked", "family": "House"}]})
+	var rail_button: Variant = find_text(view.ui.rail, "Button", "Houses")
+	check(rail_button != null, "the rail offers a Houses page")
+	client.sent.clear()
+	view.ui.choose_family("Houses")
+	check(client.sent.any(func(m: Variant) -> bool: return m.get("t") == "houses"), "opening Houses asks the server for the page")
+	check(view.ui.houses.root.visible and find_text(view.ui.actions, "Button", "Mark shared") != null,
+		"the page shows, with the server's House access tools above it")
+	var root: Node = view.ui.houses.root
+	# A page too big for one packet still arrives.
+	var bytes := JSON.stringify(PAGE).to_utf8_buffer()
+	view._receive({"v": 1, "t": "part", "id": 7, "i": 1, "n": 1, "data": Marshalls.raw_to_base64(bytes)})
+	check(view.ui.houses.page.get("fid") == "f1", "a chunked houses page is reassembled")
+	var text := ""
+	for l in controls(root, "Label"): text += l.text + "\n"
+	check(text.contains("Ironfoot house (yours)") and text.contains("Head: Ana of house Ironfoot")
+		and text.contains("Head: settler") and text.contains("Workers: Bo Stonehand"),
+		"houses list surname, head by first name where given, and workers")
+	var swatches := controls(root, "ColorRect")
+	check(swatches.size() == 2 and swatches[0].material.get_shader_parameter("pattern") == 1
+		and swatches[1].material.get_shader_parameter("ink") == Color.html("#2266aa"),
+		"each house has a swatch of the fortress pattern in its colour")
+	check(text.contains("Manager: nobody") and text.contains("Captain: Urist Ironfoot (Ironfoot)"),
+		"offices list their holders")
+	check(find_text(root, "Label", "Streams of work are not available yet.") != null
+		and controls(root, "OptionButton").any(func(o: OptionButton) -> bool: return o.disabled and o.get_item_text(0) == "Stream of work"),
+		"the stream of work is shown disabled with the reason")
+	# Owner: open toggle.
+	client.sent.clear()
+	var open: CheckButton = find_text(root, "CheckButton", "Open to settlers")
+	open.button_pressed = true
+	check(last_house(client).get("op") == "open" and last_house(client).get("on") == true, "the open toggle asks the server")
+	answer(view, true, "Open to settlers.")
+	# Banish asks first; the server's confirm text is shown.
+	root = view.ui.houses.root
+	var banish: Button = find_text(root, "Button", "Banish settler")
+	banish.pressed.emit()
+	check(last_house(client).get("op") == "banish" and not last_house(client).has("confirm"), "banish first asks without confirm")
+	answer(view, false, "Confirm to banish settler. Their workers stay as fortress workers.")
+	check(find_text(root, "Label", "Confirm to banish settler. Their workers stay") != null, "the server's confirm text is shown")
+	var yes: Button = find_text(root, "Button", "Confirm banish")
+	yes.pressed.emit()
+	check(last_house(client).get("confirm") == true and last_house(client).get("name") == "settler", "Confirm sends confirm = true")
+	answer(view, true, "settler is banished.")
+	check(find_text(root, "Button", "Confirm banish") == null, "the confirm step closes after the answer")
+	# Renaming: only changed names are sent.
+	var edits := controls(root, "LineEdit")
+	check(edits.size() == 2 and edits[0].text == "Ana" and edits[1].text == "Ironfoot",
+		"the viewer's own house offers a rename, filled with its names; others do not")
+	edits[1].text = "Ironhand"
+	var rename: Button = find_text(root, "Button", "Rename")
+	rename.pressed.emit()
+	check(last_house(client).get("op") == "rename" and last_house(client).get("house") == "h1"
+		and last_house(client).get("surname") == "Ironhand" and not last_house(client).has("first"),
+		"Rename sends the house id and only the changed name")
+	answer(view, true, "Now Ana of house Ironhand.")
+	# Offices.
+	var picker: OptionButton = controls(root, "OptionButton").filter(func(o: OptionButton) -> bool: return o.get_meta("role", "") == "manager")[0]
+	picker.select(1)
+	var appoint: Button = find_text(root, "Button", "Appoint")
+	appoint.pressed.emit()
+	check(last_house(client).get("op") == "appoint" and last_house(client).get("role") == "manager"
+		and last_house(client).get("holder") == "player:settler", "Appoint sends the chosen candidate")
+	answer(view, true, "appointed")
+	check(controls(root, "OptionButton").all(func(o: OptionButton) -> bool: return o.get_meta("role", "") != "captain"),
+		"an office the viewer may not fill has no picker")
+	# The head's own workers.
+	var haul: CheckBox = controls(root, "CheckBox").filter(func(c: CheckBox) -> bool: return c.get_meta("labour") == "build")[0]
+	haul.button_pressed = true
+	check(last_house(client).get("op") == "labours" and last_house(client).get("worker") == "w1"
+		and last_house(client).get("labours") == ["build", "dig", "haul"], "a labour toggle sends the worker's whole list")
+	answer(view, false, "Not changed.")
+	haul = controls(root, "CheckBox").filter(func(c: CheckBox) -> bool: return c.get_meta("labour") == "build")[0]
+	check(not haul.button_pressed, "a refused change is undone on the page")
+	var shop: OptionButton = controls(root, "OptionButton").filter(func(o: OptionButton) -> bool:
+		return o.get_meta("worker", "") == "w1" and o.get_item_text(0) == "No workshop")[0]
+	shop.select(1); shop.item_selected.emit(1)
+	check(last_house(client).get("op") == "workshop" and last_house(client).get("workshop") == 3, "the workshop picker attaches")
+	answer(view, true, "kept")
+	shop = controls(root, "OptionButton").filter(func(o: OptionButton) -> bool:
+		return o.get_meta("worker", "") == "w1" and o.get_item_text(0) == "No workshop")[0]
+	shop.select(0); shop.item_selected.emit(0)
+	check(last_house(client).get("op") == "workshop" and not last_house(client).has("workshop"), "No workshop detaches")
+	answer(view, true, "left")
+	view.ui.houses.update({"v": 1, "t": "houses", "available": false})
+	check(find_text(root, "Label", "Houses are not available") != null, "an unavailable page says so")
+	view.ui.choose_family("Select")
+	check(not view.ui.houses.root.visible, "the page hides on other sections")

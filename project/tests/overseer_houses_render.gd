@@ -3,7 +3,8 @@
 ## layer, with no server: one housed room per field pattern in DorfCraft's
 ## list (and one with an id this client does not know), order outlines over
 ## a fill, shared and locked marks, then the Houses ownership field with
-## the owner's hall. Frames go to $GOANNA_OUT (default /tmp/overseer-houses/).
+## the owner's hall and two near colours side by side, and the Houses
+## page from the headless suite's sample. Frames go to $GOANNA_OUT (default /tmp/overseer-houses/).
 ## It renders, so run it through the launcher, software preferred:
 ## tools/goanna-headless fixture res://tests/overseer_houses_render.tscn --software
 extends Node
@@ -47,6 +48,11 @@ func _ready() -> void:
 		access.append({"pos": {"x": x0 + 4, "y": 0, "z": z0}, "state": "locked", "house": id})
 	houses["1"] = {"surname": "Owner", "head": "owner", "colour": "#e8d8a0", "pattern": "chequy", "owner": true}
 	rooms.append({"rect": {"x0": -18, "x1": 18, "z0": -1, "z1": 0}, "title": "Hall", "name": "Great", "house": "1"})
+	# Two houses in near blues, side by side, as in the first live run.
+	houses["20"] = {"surname": "Near", "head": "a", "colour": "#2266aa", "pattern": "diaper"}
+	houses["21"] = {"surname": "Nearer", "head": "b", "colour": "#2a5fb5", "pattern": "diaper"}
+	rooms.append({"rect": {"x0": -17, "x1": -12, "z0": -7, "z1": -6}, "title": "Room", "name": "a", "house": "20"})
+	rooms.append({"rect": {"x0": -11, "x1": -6, "z0": -7, "z1": -6}, "title": "Room", "name": "b", "house": "21"})
 	var orders: Array = []
 	for x in range(-17, -12):
 		orders.append({"pos": {"x": x, "y": 0, "z": 4}, "kind": "dig", "state": "accepted", "house": "2"})
@@ -80,4 +86,11 @@ func _ready() -> void:
 	await shot("ownership-overview")
 	view.extent = 6.0; view.centre = Vector2(-15, 0); view._move_camera()
 	await shot("ownership-close")
+	view.centre = Vector2(-12, -5); view._move_camera()
+	await shot("ownership-near-colours")
+	view.toggle_overlay("ownership")
+	view.extent = 18.0; view.centre = Vector2(0, 0); view._move_camera()
+	view.ui.choose_family("Houses")
+	view.ui.houses.update(preload("res://tests/overseer_houses.gd").PAGE)
+	await shot("houses-page")
 	get_tree().quit()

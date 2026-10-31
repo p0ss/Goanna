@@ -52,6 +52,7 @@ const STRIP_VERBS := 6
 const ICONS := "res://ui/overseer_icons/"
 static var icon_cache := {}
 var nudges: VBoxContainer
+var houses: RefCounted
 
 func label(parent: Node, text: String) -> Label:
 	var result := Label.new()
@@ -145,7 +146,7 @@ func build(host: Node) -> void:
 	rail = VBoxContainer.new()
 	rail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rail_scroll.add_child(rail)
-	for name in ["Select", "Zones", "Build", "Terrain", "Gather", "Devices", "Defence", "People", "Supplies", "Plans"]:
+	for name in ["Select", "Zones", "Build", "Terrain", "Gather", "Devices", "Defence", "People", "Supplies", "Houses", "Plans"]:
 		var b := button(rail, name, choose_family.bind(name))
 		b.set_meta("family", name)
 		if name == "Plans": plans_button = b
@@ -224,6 +225,7 @@ func build(host: Node) -> void:
 	cancel = button(context, "Cancel pending work", cancel_plan)
 	act = button(context, "Act", act_plan)
 	act.tooltip_text = "Do what the office would do, where it can be done from afar."
+	houses = preload("res://game/overseer_houses.gd").new(self, context)
 	nav = box(view.root_control)
 	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	nav.offset_left = -316; nav.offset_right = -12
@@ -332,10 +334,13 @@ func choose_family(value: String) -> void:
 	refresh_tools()
 	if family == "Plans": view._send({"t": "plans"})
 	if family in ["People", "Supplies"]: view._send({"t": "overview"})
+	if family == "Houses": houses.request()
 	refresh()
 
 func tool_family(t: Dictionary) -> String:
-	if t.has("family"): return str(t.family)
+	# The server's access tools come as family "House"; they sit on the
+	# Houses page above its controls.
+	if t.has("family"): return "Houses" if str(t.family) == "House" else str(t.family)
 	var id := str(t.id)
 	if id in ["dig", "detail"]: return "Terrain"
 	if id in ["chop", "harvest"]: return "Gather"
@@ -419,7 +424,8 @@ func update_capabilities(value: Dictionary) -> void:
 		if child is Button and child.has_meta("family"):
 			var b := child as Button
 			b.icon = null
-			set_icon(b, null, false, section_runes.get(str(b.get_meta("family"))))
+			var section := str(b.get_meta("family"))
+			set_icon(b, null, false, section_runes.get(section, section_runes.get("House") if section == "Houses" else null))
 	header.text = "%s | Overseer | Live\n%s" % [str(value.get("fortress", "Fortress")), str(value.get("summary", "Server planning permissions"))]
 	if value.get("tools") is Array: view.tools = value.tools
 	refresh_tools()
@@ -431,7 +437,7 @@ func update_capabilities(value: Dictionary) -> void:
 func refresh_verbs() -> void:
 	var sel: Dictionary = view.selection
 	var shown: bool = not sel.is_empty() and int(sel.a.y) == view.level and view.tool == "inspect" \
-		and view.first_corner == null and view.pending.is_empty() and family not in ["Plans", "People", "Supplies"]
+		and view.first_corner == null and view.pending.is_empty() and family not in ["Plans", "People", "Supplies", "Houses"]
 	verb_strip.visible = shown
 	if not shown:
 		verbs_expanded = false
@@ -511,6 +517,7 @@ func refresh() -> void:
 		if child is Button:
 			child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool or (child.has_meta("group") and child.get_meta("group") == view.tool_definition().get("group")))
 	title.text = "Plans" if is_plans else family
+	houses.root.visible = family == "Houses"
 	actions.visible = not is_plans
 	for control in [plans, plan_detail, locate, cancel]: control.visible = is_plans
 	act.visible = is_plans and _selected().get("can_act", false)
