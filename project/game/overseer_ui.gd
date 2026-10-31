@@ -55,6 +55,22 @@ const ICONS := "res://ui/overseer_icons/"
 static var icon_cache := {}
 var nudges: VBoxContainer
 var houses: RefCounted
+## The main-area table (ui/data_table.gd) for People, Supplies and the
+## workshop picker; it covers the map while shown.
+const DataTable := preload("res://ui/data_table.gd")
+const QUIET := Color(0.62, 0.64, 0.68)
+var table_panel: PanelContainer
+var table: DataTable
+var table_refresh: Button
+## "people", "supplies", "workshops" or "" when the map shows.
+var table_kind := ""
+var detail: VBoxContainer
+var detail_body: Label
+var detail_reason: Label
+var detail_primary: Button
+var change_workshop: Button
+## The picker reopened over a chosen workshop by Change workshop.
+var picking_workshop := false
 
 func label(parent: Node, text: String) -> Label:
 	var result := Label.new()
@@ -162,6 +178,17 @@ func build(host: Node) -> void:
 	for pair in [["North", 0, 1], ["South", 0, -1], ["West", -1, 0], ["East", 1, 0]]:
 		button(nudges, pair[0], nudge.bind(pair[1], pair[2]))
 	button(nudges, "Select cell", func() -> void: view.select_cell(view.cursor))
+	table_panel = box(view.root_control)
+	table_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	table_panel.hide()
+	table = DataTable.new()
+	table.glyph_texture = rune_for
+	table.row_chosen.connect(show_detail)
+	table.row_activated.connect(activate_row)
+	table_panel.add_child(table)
+	table_refresh = button(table.host_tools, "Refresh", func() -> void: view._send({"t": "overview"}))
+	table_refresh.size_flags_horizontal = Control.SIZE_SHRINK_END
+	table_refresh.autowrap_mode = TextServer.AUTOWRAP_OFF
 	panel = box(view.root_control)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -316; panel.offset_right = -12
@@ -177,6 +204,19 @@ func build(host: Node) -> void:
 	title.add_theme_font_size_override("font_size", 23)
 	actions = VBoxContainer.new()
 	context.add_child(actions)
+	# The chosen table row's detail and its one action.
+	detail = VBoxContainer.new()
+	detail.add_theme_constant_override("separation", 8)
+	context.add_child(detail)
+	detail_body = label(detail, "")
+	detail_reason = label(detail, "")
+	detail_reason.add_theme_color_override("font_color", QUIET)
+	detail_primary = button(detail, "Show on map", detail_action)
+	var accent := StyleBoxFlat.new()
+	accent.bg_color = Color("285b85")
+	accent.set_corner_radius_all(5)
+	detail_primary.add_theme_stylebox_override("normal", accent)
+	detail.hide()
 	zone_property = label(context, "Type")
 	zone_options = OptionButton.new()
 	zone_options.fit_to_longest_item = false
@@ -196,6 +236,10 @@ func build(host: Node) -> void:
 	view.build_material.item_selected.connect(func(_i: int) -> void: view.refresh_draft())
 	context.add_child(view.build_material)
 	requirements = label(context, "")
+	change_workshop = button(context, "Change workshop", func() -> void:
+		picking_workshop = true
+		refresh())
+	change_workshop.hide()
 	context.move_child(material_label, 1)
 	context.move_child(view.build_material, 2)
 	view.facing_picker = OptionButton.new()
@@ -313,7 +357,17 @@ func reflow() -> void:
 	panel.offset_left = -width - 12
 	panel.offset_right = -12
 	panel.offset_top = top_edge
-	panel.offset_bottom = bottom_edge - nav_height - 8
+	# A table covers the map, so the map's navigation steps aside and the
+	# context panel runs to the footer.
+	var tabled := table_kind != ""
+	nav.visible = not tabled
+	panel.offset_bottom = bottom_edge if tabled else bottom_edge - nav_height - 8
+	table_panel.offset_left = left.offset_right + 8
+	table_panel.offset_top = top_edge
+	table_panel.offset_bottom = bottom_edge
+	table_panel.offset_right = (panel.offset_left - 8) if panel.visible else -12.0
+	table.title_label.add_theme_font_size_override("font_size", roundi(23 * scale))
+	table.empty_why.add_theme_font_size_override("font_size", roundi(23 * scale))
 	title.add_theme_font_size_override("font_size", roundi(23 * scale))
 
 func focus_map() -> void:
@@ -402,8 +456,9 @@ func refresh_tools() -> void:
 		b.set_meta("tool", str(t.id))
 		b.toggle_mode = true
 		set_icon(b, t.get("icon"), t.get("disabled", false), t.get("rune"))
-		# Keep unavailable controls focusable so their reason can be read.
-		if t.get("disabled", false): b.text += " (unavailable)"
+		# Keep unavailable controls focusable so their reason can be read,
+		# greyed rather than labelled.
+		if t.get("disabled", false): grey(b)
 	view._update_materials(view.material_catalog)
 
 func choose_group(group: String) -> void:
@@ -416,6 +471,130 @@ func choose_group(group: String) -> void:
 func update_overview(value: Dictionary) -> void:
 	overview = value
 	refresh_overview()
+	refresh()
+
+## Quiet text, no hover lift: how an unavailable control looks.
+func grey(b: Button) -> void:
+	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+		b.add_theme_color_override(state, QUIET)
+
+## Which table covers the map now: People or Supplies when the server sent
+## its table (an older server's lists stay in the side panel), or the
+## workshop picker while no workshop is chosen or Change workshop is open.
+func current_table() -> String:
+	if family in ["People", "Supplies"]:
+		var tables: Variant = overview.get("tables")
+		if tables is Dictionary and tables.get(family.to_lower()) is Dictionary: return family.to_lower()
+		return ""
+	if family == "Build" and view.tool == "workshop" and view.pending.is_empty() \
+			and (picking_workshop or view.build_material.selected < 0):
+		return "workshops"
+	return ""
+
+## The workshop picker as a table, from the server's station entries: their
+## titles, whether the equipment is in stock, and what each still needs.
+func workshop_table() -> Dictionary:
+	var rows: Array = []
+	for i in view.build_materials.size():
+		var e: Dictionary = view.build_materials[i]
+		var missing := bool(e.get("missing", false))
+		var lines: Array = []
+		if e.get("needs") is Array:
+			for n in e.needs:
+				if n is Dictionary:
+					lines.append("%d %s: %s" % [int(n.get("count", 1)), str(n.get("title", "Unnamed")), "in stock" if n.get("ready", false) else "needed"])
+		elif e.get("requirements") is String:
+			lines.append(str(e.requirements))
+		var whole := str(e.get("title", "Unnamed")).split("\n")[0]
+		rows.append({"id": "w%d" % i, "index": i,
+			"cells": {"workshop": str(e.get("trade", whole)), "station": str(e.get("station", "")),
+				"equipment": "Needed" if missing else "In stock"},
+			"keys": {"equipment": 1 if missing else 0},
+			"state": "locked" if missing else "shown",
+			"reason": str(e.get("reason", "Needs equipment in fortress stock.")), "detail": lines})
+	return {"title": "Choose a workshop",
+		"columns": [{"id": "workshop", "label": "Workshop", "kind": "text"},
+			{"id": "station", "label": "Station", "kind": "text"},
+			{"id": "equipment", "label": "Equipment", "kind": "text"}],
+		"sort": {"column": "equipment", "order": "asc"}, "rows": rows,
+		"empty": {"why": "No workshops are offered here.", "what": "Choose another Build tool."},
+		"note": "Workers set a workshop up from fortress stock. Greyed workshops need equipment first."}
+
+func refresh_table() -> void:
+	var kind := current_table()
+	if kind != table_kind:
+		table_kind = kind
+		table.clear_choice()
+	table_panel.visible = kind != ""
+	if kind == "workshops": table.set_table(workshop_table())
+	elif kind != "": table.set_table(overview.tables[kind])
+	table_refresh.visible = kind in ["people", "supplies"]
+	var row: Dictionary = table.selected_row() if kind != "" else {}
+	detail.visible = not row.is_empty()
+	if not row.is_empty(): fill_detail(row)
+	# People and Supplies show the context panel only for a chosen row.
+	panel.visible = kind in ["", "workshops"] or not row.is_empty()
+	if kind == "workshops":
+		for control in [material_label, view.build_material, requirements, change_workshop, draft_label, submit, discard, return_draft]:
+			control.visible = false
+	reflow()
+
+func fill_detail(row: Dictionary) -> void:
+	var cols: Array = table.columns()
+	var lines: Array[String] = []
+	for i in range(1, cols.size()):
+		var v: Variant = row.cells.get(str(cols[i].id))
+		if v != null and not str(v).is_empty(): lines.append("%s: %s" % [str(cols[i].label), table._cell_text(v)])
+	if row.get("detail") is Array:
+		for d in row.detail: lines.append(str(d))
+	if not cols.is_empty(): title.text = str(row.cells.get(str(cols[0].id), ""))
+	detail_body.text = "\n".join(lines)
+	var locked: bool = table.row_locked(row)
+	detail_reason.text = str(row.get("reason", "")) if locked else ""
+	detail_reason.visible = locked
+	if table_kind == "workshops":
+		detail_primary.text = "Use this workshop"
+		detail_primary.visible = not locked
+	else:
+		detail_primary.text = "Show on map"
+		detail_primary.visible = row.get("pos") is Dictionary and view._pos(row.pos)
+
+func show_detail(_row: Dictionary) -> void:
+	refresh()
+
+## Enter on a row: the detail's action, if the row has one.
+func activate_row(row: Dictionary) -> void:
+	if row.is_empty() or table.row_locked(row): return
+	if table_kind == "workshops": use_workshop(row)
+	elif row.get("pos") is Dictionary: show_on_map(row.pos)
+
+func detail_action() -> void:
+	activate_row(table.selected_row())
+
+func use_workshop(row: Dictionary) -> void:
+	var i := int(row.get("index", -1))
+	if table.row_locked(row) or i < 0 or i >= view.build_material.item_count: return
+	view.build_material.select(i)
+	picking_workshop = false
+	view.refresh_draft()
+
+## Back to the map, centred on a row's place, with the cursor on it.
+func show_on_map(pos: Dictionary) -> void:
+	if not view._pos(pos): return
+	choose_family("Select")
+	if family != "Select": return
+	view.level = int(pos.y)
+	view.centre = Vector2(pos.x, pos.z)
+	view.cursor = {"x": int(pos.x), "y": int(pos.y), "z": int(pos.z)}
+	view._move_camera(); view._request_view(); view.show_cursor()
+	map_button.grab_focus()
+
+## Back with a row chosen clears the choice first.
+func close_choice() -> bool:
+	if table_kind == "" or table.selected_id.is_empty(): return false
+	table.clear_choice()
+	refresh()
+	return true
 
 func refresh_overview() -> void:
 	var lines: Array[String] = []
@@ -504,8 +683,8 @@ func refresh_verbs() -> void:
 	for n in limit:
 		var entry: Dictionary = entries[n]
 		var text := ("%d  " % (n + 1) if n < STRIP_VERBS else "") + str(entry.label)
-		if entry.disabled: text += " (unavailable)"
 		var b := button(verb_row, text, view.choose_verb.bind(int(entry.verb)))
+		if entry.disabled: grey(b)
 		b.autowrap_mode = TextServer.AUTOWRAP_OFF
 		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		b.tooltip_text = str(entry.reason)
@@ -545,8 +724,9 @@ func refresh() -> void:
 	refresh_verbs()
 	var is_plans := family == "Plans"
 	var is_overview := family in ["People", "Supplies"]
-	overview_text.visible = is_overview
-	overview_refresh.visible = is_overview
+	var legacy := is_overview and current_table() == ""
+	overview_text.visible = legacy
+	overview_refresh.visible = legacy
 	view.inspector.visible = not is_overview
 	refresh_overview()
 	refresh_zone_property()
@@ -579,13 +759,23 @@ func refresh() -> void:
 	requirements.text = ""
 	if view.build_material.selected >= 0 and view.build_material.selected < view.build_materials.size():
 		var entry: Dictionary = view.build_materials[view.build_material.selected]
-		requirements.text = str(entry.get("reason", ""))
+		# The chosen workshop: what it is, and what is still missing if any.
+		if view.tool == "workshop":
+			requirements.text = str(entry.get("title", "")).split("\n")[0]
+			if entry.get("missing", false): requirements.text += "\n" + str(entry.get("reason", ""))
+		else:
+			requirements.text = str(entry.get("reason", ""))
 		if not str(entry.get("requirements", "")).is_empty():
 			requirements.text += "\n" + str(entry.requirements)
+	# A workshop is chosen in the picker table, never from a dropdown.
+	var workshop: bool = view.tool == "workshop"
+	if workshop: view.build_material.visible = false
+	change_workshop.visible = workshop and family == "Build" and view.pending.is_empty() and view.build_material.selected >= 0
 	requirements.visible = not requirements.text.is_empty() and not is_plans and not is_overview
 	material_label.text = "Workshop type" if view.tool == "workshop" else "Material"
-	material_label.visible = view.build_material.visible and not is_plans
+	material_label.visible = (view.build_material.visible or change_workshop.visible) and not is_plans
 	if is_plans: view.build_material.hide()
+	refresh_table()
 	if is_plans and not plans.get_selected_items().is_empty(): select_plan(plans.get_selected_items()[0])
 
 ## An entry's author, with its house when the server names one the layer

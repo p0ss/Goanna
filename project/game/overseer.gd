@@ -686,12 +686,16 @@ func _update_materials(value: Variant) -> void:
 		for entry in available:
 			if str(entry.name) == selected_name: found = true
 		if not found:
-			available.append({"name": selected_name, "title": "Unavailable: " + selected_name, "kind": wanted, "missing": true})
+			# Never the id: the title it had, or a plain note.
+			var gone := "No longer in stock"
+			for entry in build_materials:
+				if str(entry.name) == selected_name: gone = "No longer in stock: " + str(entry.get("title", "")).split("\n")[0]
+			available.append({"name": selected_name, "title": gone, "kind": wanted, "missing": true, "reason": gone + "."})
 	build_materials = available
 	build_material.clear()
 	var matched := false
 	for entry in build_materials:
-		build_material.add_item(str(entry.title).split("\n")[0] + (" (unavailable)" if entry.get("missing", false) else ""))
+		build_material.add_item(str(entry.title).split("\n")[0])
 		build_material.set_item_tooltip(build_material.item_count - 1, str(entry.title) + "\n" + str(entry.get("reason", "")) + "\n" + str(entry.get("requirements", "")))
 		if str(entry.name) == selected_name:
 			build_material.select(build_material.item_count - 1)
@@ -2228,6 +2232,7 @@ func go_back() -> void:
 		inspector.text = "Submission pending. Use Leave to exit; submitted work may continue."
 	elif first_corner != null: discard_draft()
 	elif not selection.is_empty(): clear_selection()
+	elif ui.close_choice(): pass
 	elif tool != "inspect": choose_tool("inspect")
 	elif ui.family != "Select": ui.choose_family("Select")
 	else: leave()
@@ -2278,6 +2283,7 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
 			if ui.submit.visible: ui.submit.grab_focus()
 			elif ui.verb_strip.visible and ui.first_verb() != null: ui.first_verb().grab_focus()
+			elif ui.table_panel.visible: ui.table.focus_rows()
 			else: ui.rail.get_child(0).grab_focus()
 		elif ui.map_focused():
 			if cursor.is_empty(): cursor = {"x": roundi(centre.x), "y": level, "z": roundi(centre.y)}
@@ -2313,9 +2319,9 @@ func _input(event: InputEvent) -> void:
 			else: show_cursor()
 		elif event.keycode >= KEY_1 and event.keycode <= KEY_6 and ui.verb_strip.visible:
 			ui.press_verb(event.keycode - KEY_1)
-		elif event.keycode == KEY_PAGEUP:
+		elif event.keycode == KEY_PAGEUP and not ui.table_panel.visible:
 			change_level(1)
-		elif event.keycode == KEY_PAGEDOWN:
+		elif event.keycode == KEY_PAGEDOWN and not ui.table_panel.visible:
 			change_level(-1)
 		else:
 			return

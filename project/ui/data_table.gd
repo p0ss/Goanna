@@ -115,6 +115,8 @@ func _init() -> void:
 ## search, filters and chosen row; another table starts from its own
 ## opening sort with no search or filter.
 func set_table(value: Dictionary) -> void:
+	# Hosts refresh often; an unchanged table keeps its rows and focus.
+	if not shape.is_empty() and value == shape: return
 	var same := not shape.is_empty() and str(shape.get("title", "")) == str(value.get("title", ""))
 	shape = value
 	if not same:
