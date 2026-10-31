@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 ## Renders the overseer's house fills and access marks from a synthetic
-## layer, with no server: one housed room per field pattern in DorfCraft's list (and one with an
-## id this client does not know), order outlines over a fill, and shared and
-## locked marks. Frames go to $GOANNA_OUT (default /tmp/overseer-houses/).
+## layer, with no server: one housed room per field pattern in DorfCraft's
+## list (and one with an id this client does not know), order outlines over
+## a fill, shared and locked marks, then the Houses ownership field with
+## the owner's hall. Frames go to $GOANNA_OUT (default /tmp/overseer-houses/).
 ## It renders, so run it through the launcher, software preferred:
 ## tools/goanna-headless fixture res://tests/overseer_houses_render.tscn --software
 extends Node
@@ -44,7 +45,8 @@ func _ready() -> void:
 		rooms.append({"rect": {"x0": x0, "x1": x0 + 4, "z0": z0, "z1": z0 + 3}, "title": "Room", "name": patterns[i], "house": id})
 		access.append({"pos": {"x": x0, "y": 0, "z": z0}, "state": "shared", "house": id})
 		access.append({"pos": {"x": x0 + 4, "y": 0, "z": z0}, "state": "locked", "house": id})
-	houses["1"] = {"surname": "Owner", "head": "owner", "colour": "#ffffff", "pattern": "chequy", "owner": true}
+	houses["1"] = {"surname": "Owner", "head": "owner", "colour": "#e8d8a0", "pattern": "chequy", "owner": true}
+	rooms.append({"rect": {"x0": -18, "x1": 18, "z0": -1, "z1": 0}, "title": "Hall", "name": "Great", "house": "1"})
 	var orders: Array = []
 	for x in range(-17, -12):
 		orders.append({"pos": {"x": x, "y": 0, "z": 4}, "kind": "dig", "state": "accepted", "house": "2"})
@@ -72,4 +74,10 @@ func _ready() -> void:
 	await shot("houses-close")
 	view.extent = 60.0; view.centre = Vector2(0, 0); view._move_camera()
 	await shot("houses-far")
+	view.toggle_overlay("ownership")
+	await shot("ownership-far")
+	view.extent = 18.0; view._move_camera()
+	await shot("ownership-overview")
+	view.extent = 6.0; view.centre = Vector2(-15, 0); view._move_camera()
+	await shot("ownership-close")
 	get_tree().quit()

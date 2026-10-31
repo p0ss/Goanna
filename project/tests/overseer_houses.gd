@@ -110,6 +110,27 @@ func run() -> void:
 	check(unknown.size() == 1, "a mark of an unknown house is drawn in a neutral colour")
 	view.toggle_overlay("access")
 	check(sheets_with(view, view.access_shader).is_empty(), "the Access toggle hides the marks again")
+	# Ownership: access mark, then room, then plan or designation; the
+	# owner's house counts; unknown cells and unknown houses stay clear.
+	var held := Overseer.ownership_field(housed)
+	check(Array(held.owners) == ["2", "2", "2", "2", "1", "3", ""] and Array(held.rank) == [3, 3, 1, 1, 2, 3, 0],
+		"each cell is held by its access mark, else its room, else its plan or zone")
+	check(Overseer.ownership_field(layer).is_empty(), "an older server's layer has no ownership field")
+	view.toggle_overlay("ownership")
+	var field_sheets := sheets_with(view, view.ownership_shader)
+	check(field_sheets.size() == 1 and sheets_with(view, view.house_shader).is_empty(),
+		"the Houses toggle draws one field sheet in place of the patterned fills")
+	var flags: Image = field_sheets[0].get_shader_parameter("flags").get_image()
+	var colours: Image = field_sheets[0].get_shader_parameter("owners").get_image()
+	check(flags.get_pixel(4, 0).g > 0.99 and flags.get_pixel(0, 0).g < 0.01 and flags.get_pixel(6, 0).r < 0.01,
+		"the owner's house is flagged apart, and an unheld cell is clear")
+	check(colours.get_pixel(6, 0).is_equal_approx(Color.html("#30a050")),
+		"an empty neighbour takes the house colour so the edge fades without darkening")
+	view.toggle_overlay("ownership")
+	check(sheets_with(view, view.house_shader).size() == 2, "the patterned fills return with the Houses toggle off")
+	check(Overseer.overlay_notes(housed, {"x": 4, "y": 0, "z": 0}).contains("Held by House Stonehelm (its room)")
+		and Overseer.overlay_notes(housed, {"x": 0, "y": 0, "z": 0}).contains("Held by House Brightvein (its access mark)"),
+		"Inspect says which house holds a cell, and why")
 	# Inspect and Plans name the house where the author or entry shows.
 	var notes := Overseer.overlay_notes(housed, {"x": 0, "y": 0, "z": 0})
 	check(notes.contains("Bedroom \"Ada\" (House Brightvein)") and notes.contains("Shared by House Brightvein"),

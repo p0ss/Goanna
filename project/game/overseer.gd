@@ -214,6 +214,36 @@ void fragment() {
 	ALPHA = ink.a * mark;
 }
 """
+# The ownership field: which house holds each cell, one texel a cell. The
+# `owners` texture carries the house colour (spread one texel into empty
+# neighbours so edges fade without darkening); `flags` carries coverage in
+# red and "the owner's house" in green. Linear filtering softens the edges
+# between houses over one cell, as a field and not a grid. The owner's house is paler and carries
+# faint diagonal stripes, so the fortress's own share reads apart from
+# its settlers' even in a close colour.
+const OWNERSHIP_FIELD := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
+uniform sampler2D owners : source_color, filter_linear, repeat_disable;
+uniform sampler2D flags : filter_linear, repeat_disable;
+uniform vec2 origin;
+uniform vec2 size = vec2(1.0);
+varying vec2 world;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz * vec2(1.0, -1.0);
+}
+void fragment() {
+	vec2 uv = (world - origin + vec2(0.5)) / size;
+	vec2 f = texture(flags, uv).rg;
+	if (f.r < 0.01) discard;
+	float owner = clamp(f.g / f.r, 0.0, 1.0);
+	float cover = clamp(f.r * 1.6, 0.0, 1.0);
+	float v = (world.x + world.y) * 2.0;
+	float stripe = clamp((0.15 - abs(fract(v) - 0.5)) / max(fwidth(v), 1e-4) + 0.5, 0.0, 1.0);
+	ALBEDO = texture(owners, uv).rgb;
+	ALPHA = cover * mix(0.42, 0.18 + 0.2 * stripe, owner);
+}
+"""
 const ACCESS_UNKNOWN_HOUSE := Color(0.92, 0.92, 0.88)
 const WATCH := Color(0.55, 0.65, 1.0, 0.85)
 # The seasons' field (the layer's `climate` overlay), by level 1 to 15 of
@@ -226,12 +256,13 @@ const HEAT_RAMP := [[1, Color(0.15, 0.25, 0.85, 0.5)], [6, Color(0.55, 0.8, 1.0,
 const WET_RAMP := [[1, Color(0.85, 0.6, 0.3, 0.5)], [4, Color(0.95, 0.85, 0.55, 0.34)],
 	[7, Color(0.9, 0.92, 0.9, 0.12)], [9, Color(0.4, 0.8, 0.6, 0.3)],
 	[11, Color(0.2, 0.6, 0.95, 0.4)], [15, Color(0.1, 0.2, 0.8, 0.55)]]
-var shown_overlays := {"rooms": false, "miasma": false, "traffic": false, "heat": false, "wet": false, "access": false}
+var shown_overlays := {"rooms": false, "miasma": false, "traffic": false, "heat": false, "wet": false, "access": false, "ownership": false}
 # Officers' pages to this planner, by id, as the server last sent them.
 var pages: Dictionary = {}
 var overlay_sheets: Node3D
 var house_shader: Shader
 var access_shader: Shader
+var ownership_shader: Shader
 
 func _ready() -> void:
 	layer = 150
@@ -1111,9 +1142,13 @@ func _draw_overlays() -> void:
 			for c in by_level[lv]:
 				positions.append(Vector3(c.x, level + 30.03, -c.y))
 			_planes(overlay_sheets, positions, _colour(climate_colour(kind, lv)), step, step)
-	# Housed plans, under every other sheet and outline.
 	var houses := house_table(snapshot)
-	var fills := house_cells(snapshot)
+	# Ownership replaces the patterned fills while it is on: both say which
+	# house holds a cell, and two tints of one colour would only muddy it.
+	if shown_overlays.ownership:
+		_draw_ownership(houses)
+	# Housed plans, under every other sheet and outline.
+	var fills := {} if shown_overlays.ownership else house_cells(snapshot)
 	for id in fills:
 		var positions: Array = []
 		for c in fills[id]:
@@ -1175,6 +1210,47 @@ func _draw_overlays() -> void:
 					positions.append(Vector3(c.x, level + 30.09, -c.y))
 				var ink: Color = houses[id].colour if houses.has(id) else ACCESS_UNKNOWN_HOUSE
 				_planes(overlay_sheets, positions, _access_material(ink, state == "locked"), 1.0, 1.0)
+
+# One sheet over the layer's rectangle, sampling one texel a cell with
+# linear filtering, so neighbouring houses blend over a cell's width.
+func _draw_ownership(houses: Dictionary) -> void:
+	var field := ownership_field(snapshot)
+	if field.is_empty(): return
+	var w: int = field.w
+	var h: int = field.h
+	var colours := Image.create(w, h, false, Image.FORMAT_RGB8)
+	var flags := Image.create(w, h, false, Image.FORMAT_RG8)
+	var owners: PackedStringArray = field.owners
+	var any := false
+	for i in owners.size():
+		if owners[i].is_empty(): continue
+		any = true
+		colours.set_pixel(i % w, i / w, houses[owners[i]].colour)
+		flags.set_pixel(i % w, i / w, Color(1, 1 if houses[owners[i]].owner else 0, 0))
+	if not any: return
+	# Spread each colour into empty neighbours: filtering then fades a
+	# house's edge to clear, not through black.
+	for i in owners.size():
+		if not owners[i].is_empty(): continue
+		var x := i % w
+		var z := i / w
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var nx: int = x + d.x
+			var nz: int = z + d.y
+			if nx >= 0 and nx < w and nz >= 0 and nz < h and not owners[nz * w + nx].is_empty():
+				colours.set_pixel(x, z, houses[owners[nz * w + nx]].colour)
+				break
+	if ownership_shader == null:
+		ownership_shader = Shader.new()
+		ownership_shader.code = OWNERSHIP_FIELD
+	var material := ShaderMaterial.new()
+	material.shader = ownership_shader
+	material.set_shader_parameter("owners", ImageTexture.create_from_image(colours))
+	material.set_shader_parameter("flags", ImageTexture.create_from_image(flags))
+	material.set_shader_parameter("origin", Vector2(field.x0, field.z0))
+	material.set_shader_parameter("size", Vector2(w, h))
+	_planes(overlay_sheets, [Vector3((field.x0 + field.x0 + w - 1) * 0.5, level + 30.035,
+		-(field.z0 + field.z0 + h - 1) * 0.5)], material, w, h)
 
 func _house_material(house: Dictionary) -> ShaderMaterial:
 	if house_shader == null:
@@ -1445,6 +1521,53 @@ static func house_cells(layer: Dictionary) -> Dictionary:
 	for id in sets: out[id] = sets[id].keys()
 	return out
 
+## Which house holds each known cell of the layer's rectangle: {x0, z0, w,
+## h, owners}, owners a house id ("" for none) per cell, row by row from
+## z0. An access mark on the cell wins, then the room it lies in, then a
+## plan or designation (zone, lock, station, order) covering it. The owner's
+## house counts here too. Empty when the layer lists no houses.
+static func ownership_field(layer: Dictionary) -> Dictionary:
+	var houses := house_table(layer)
+	var r: Variant = layer.get("rect")
+	if houses.is_empty() or not r is Dictionary or not _guard_rect({"rect": r}): return {}
+	var w := int(r.x1) - int(r.x0) + 1
+	var h := int(r.z1) - int(r.z0) + 1
+	if w <= 0 or h <= 0 or w * h > 4096: return {}
+	var owners := PackedStringArray()
+	owners.resize(w * h)
+	var rank := PackedInt32Array()
+	rank.resize(w * h)
+	var claim := func(id: String, cells: Array, level_rank: int) -> void:
+		if not houses.has(id): return
+		for c in cells:
+			var i: int = (c.y - int(r.z0)) * w + c.x - int(r.x0)
+			if rank[i] < level_rank:
+				rank[i] = level_rank
+				owners[i] = id
+	for kind in ["zones"]:
+		for e in _overlay_list(layer, kind):
+			if e is Dictionary and e.has("house"): claim.call(house_id(e.house), _rectangle_cells(layer, [e]), 1)
+	for kind in ["locks", "stations"]:
+		for e in _overlay_list(layer, kind):
+			var p: Variant = _cell_of(e)
+			if p != null and e.has("house") and _known_cell(layer, int(p.x), int(p.z)):
+				claim.call(house_id(e.house), [Vector2i(int(p.x), int(p.z))], 1)
+	var orders: Variant = layer.get("orders")
+	if orders is Array:
+		for e in orders.slice(0, 4096):
+			if e is Dictionary and e.has("house") and _pos(e.get("pos")) and int(e.pos.y) == int(layer.get("y", -32000)) \
+					and _known_cell(layer, int(e.pos.x), int(e.pos.z)):
+				claim.call(house_id(e.house), [Vector2i(int(e.pos.x), int(e.pos.z))], 1)
+	for e in _overlay_list(layer, "rooms"):
+		if e is Dictionary and e.has("house"): claim.call(house_id(e.house), _rectangle_cells(layer, [e]), 2)
+	for e in _overlay_list(layer, "access"):
+		var p: Variant = _cell_of(e)
+		if p == null or not e.get("state") in ["shared", "locked"]: continue
+		if p.has("y") and int(p.y) != int(layer.get("y", -32000)): continue
+		if _known_cell(layer, int(p.x), int(p.z)):
+			claim.call(house_id(e.get("house")), [Vector2i(int(p.x), int(p.z))], 3)
+	return {"x0": int(r.x0), "z0": int(r.z0), "w": w, "h": h, "owners": owners, "rank": rank}
+
 ## Access marks on known cells of this level: {"shared": {house id: cells},
 ## "locked": {...}}. A mark naming no known house keys as "".
 static func access_marks(layer: Dictionary) -> Dictionary:
@@ -1660,6 +1783,14 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 			elif entry.get("state") == "shared":
 				notes += "\nShared by %s: others may use it, not dig it" % who
 			break
+	var field := ownership_field(layer)
+	if not field.is_empty():
+		var dx := int(pos.x) - int(field.x0)
+		var dz := int(pos.z) - int(field.z0)
+		if dx >= 0 and dx < int(field.w) and dz >= 0 and dz < int(field.h) and not field.owners[dz * field.w + dx].is_empty():
+			var i: int = dz * field.w + dx
+			notes += "\nHeld by %s (%s)" % [house_name(houses, field.owners[i]),
+				["", "its plans", "its room", "its access mark"][field.rank[i]]]
 	notes += guard_notes(layer, pos)
 	for e in _overlay_list(layer, "watch"):
 		if e is Dictionary and e.get("kind") == "door" and e.get("x") == pos.x and e.get("z") == pos.z:

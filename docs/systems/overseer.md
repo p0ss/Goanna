@@ -138,7 +138,17 @@ list, and a house marked `owner = true` look as they did before houses.
 The Access toggle draws the `access` overlay, `{pos, state, house}`: a
 shared cell is a ring in the house colour, a locked one a thicker ring with
 a solid corner, so the two read apart even in one colour; a mark naming no
-listed house is off-white. Inspect and Plans add "(House Surname)" after
+listed house is off-white. The Houses toggle draws an ownership field: one
+sheet over the layer, sampling a texel a cell with linear filtering like a
+field, so a glance shows the fortress divided among houses with soft edges
+between them. A cell is held by its access mark, else the room it lies in,
+else a housed plan, zone, lock or station on it; cells with none stay
+clear. The owner's house tints too, paler and with diagonal stripes. While
+the field is on it replaces the patterned fills rather than sitting over
+or under them: both say which house holds a cell, and two tints of one
+colour on the same cell only muddy it. Inspect says "Held by House X" and
+which source decided it. It is built from the data above; the server
+sends no per-cell field. Inspect and Plans add "(House Surname)" after
 the room, zone, lock, station, order or author, and Inspect says what a
 shared or locked mark allows. An older server sends none of this, and the
 view is unchanged.
