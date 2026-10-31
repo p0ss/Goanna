@@ -599,8 +599,13 @@ func _receive(msg: Dictionary) -> void:
 			for page in msg.pages.slice(0, 64): _take_page(page)
 		ui.refresh_pages()
 		session_ready = true
+		# World marks (DorfCraft's marks part): ask whether this player's
+		# plan marks are shown. A server without it never answers.
+		_send({"t": "marks"})
 		_move_camera()
 		_request_view()
+	elif type == "marks" and msg.get("shown") is bool:
+		ui.set_marks_shown(msg.shown)
 	elif type == "layer" and session_ready:
 		if msg.get("palette") == null: msg.palette = []
 		if msg.get("orders") == null: msg.orders = []
@@ -912,6 +917,67 @@ func change_level(step: int) -> void:
 	_request_view()
 	refresh_draft()
 
+## The rune of a plan's tool (the tool list's `rune`), by the order kinds
+## the layer reports: a tool id ("dig"), its prefix ("farm" of
+## "farm:wheat") or a room kind ("bedroom" of "room:bedroom").
+func plan_rune(kind: String) -> Variant:
+	var by_prefix: Variant = null
+	for t in tools:
+		if not t is Dictionary or not t.get("rune") is String:
+			continue
+		var id := str(t.get("id", ""))
+		if id == kind:
+			return t.rune
+		var parts := id.split(":", true, 1)
+		if parts.size() == 2 and (parts[0] == kind or parts[1] == kind) and by_prefix == null:
+			by_prefix = t.rune
+	return by_prefix
+
+## One rune per plan on this level, on the plan's cell nearest its middle,
+## so many plans stay readable (maintainer, 31 October 2026: shaded
+## outlines and one rune, not a rune on every cell).
+func _draw_plan_runes(rect: Dictionary) -> void:
+	var cells := {}
+	for order in snapshot.get("orders", []):
+		if not order is Dictionary or not _pos(order.get("pos")) or str(order.get("state", "")) == "done":
+			continue
+		var p: Dictionary = order.pos
+		if int(p.y) != level or p.x < rect.x0 or p.x > rect.x1 or p.z < rect.z0 or p.z > rect.z1:
+			continue
+		var key := "%s|%s" % [str(order.get("id", "")), str(order.get("kind", ""))]
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(Vector2(float(p.x), float(p.z)))
+	for key in cells:
+		var rune: Variant = plan_rune(str(key).split("|", true, 1)[1])
+		var texture: Texture2D = ui.rune_for(rune) if rune != null else null
+		if texture == null:
+			continue
+		var list: Array = cells[key]
+		var mean := Vector2.ZERO
+		for c in list: mean += c
+		mean /= list.size()
+		var best: Vector2 = list[0]
+		for c in list:
+			if c.distance_squared_to(mean) < best.distance_squared_to(mean): best = c
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		m.albedo_texture = texture
+		var mesh := PlaneMesh.new()
+		mesh.size = Vector2(0.8, 0.8)
+		mesh.material = m
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.position = Vector3(best.x, level + 30.12, -best.y)
+		overlay.add_child(node)
+
+## The Marks toggle: show or hide this player's plan marks in the world.
+func set_world_marks(shown: bool) -> void:
+	_send({"t": "marks", "shown": shown})
+
 func _planes(parent: Node3D, positions: Array, material: Material, width := 0.98, depth := 0.98) -> void:
 	if positions.is_empty():
 		return
@@ -1161,6 +1227,7 @@ func _draw_layer() -> void:
 			vertical.append(p - Vector3(0.45, 0, 0))
 		_planes(overlay, horizontal, _colour(colour), 0.94, 0.06)
 		_planes(overlay, vertical, _colour(colour), 0.06, 0.94)
+	_draw_plan_runes(rect)
 	_draw_player_marker()
 	_draw_overlays()
 

@@ -91,6 +91,18 @@ sequence and have a newer revision. Missing, empty, out-of-claim and stale
 layers stay dark grey. Closing restores the original camera mask, UI visibility
 and pointer capture.
 
+Each open plan on the viewed level carries its tool's rune once, on the
+plan's cell nearest its middle, above the coloured state outlines. The
+rune comes from the tool list's `rune`, matched by the order's kind: a
+tool id, a tool prefix (`farm` of `farm:wheat`) or a room kind. Done
+cells draw none.
+
+The footer's Marks toggle appears when the server answers `{t = "marks"}`
+(DorfCraft's world marks): it shows or hides the player's planned work in
+the world, which the server draws as shaded outlines with the same rune
+for every client. The choice is kept on the server, for vanilla clients
+too (`/marks on|off`).
+
 The footer's Rooms and Miasma toggles draw the layer's overlays as
 translucent sheets just under the order marks. Rooms are grey until the
 server says every cell is known, then tinted by tier (bare, furnished,

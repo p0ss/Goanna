@@ -24,6 +24,8 @@ var cancel: Button
 var act: Button
 var page_banner: Button
 var plans_button: Button
+## Shown once the server answers that it draws world marks.
+var marks_toggle: Button
 var family := "Select"
 var records: Array = []
 var selected_id := ""
@@ -269,8 +271,15 @@ func build(host: Node) -> void:
 		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
+	marks_toggle = button(footer_row, "Marks", func() -> void: view.set_world_marks(marks_toggle.button_pressed))
+	marks_toggle.toggle_mode = true
+	marks_toggle.set_pressed_no_signal(true)
+	marks_toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
+	marks_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	marks_toggle.tooltip_text = "Show planned work in the world: shaded outlines with the tool's rune"
+	marks_toggle.visible = false
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. Faint patterned fill: a house's plan, room or designation, in the house colour and the fortress's field pattern. Houses: each house's places tinted in its colour, in place of the patterned fills; the owner's house paler and striped. Access: a ring in the house colour where it is shared, a ring with a solid corner where it is locked. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. Faint patterned fill: a house's plan, room or designation, in the house colour and the fortress's field pattern. Houses: each house's places tinted in its colour, in place of the patterned fills; the owner's house paler and striped. Access: a ring in the house colour where it is shared, a ring with a solid corner where it is locked. Each plan carries its tool's rune once. Marks: show your planned work in the world too. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -442,6 +451,11 @@ func refresh_zone_property() -> void:
 		if str(t.id) == view.tool: zone_options.select(index)
 
 ## Takes the tools and limits the server granted, from its hello or a pong.
+func set_marks_shown(shown: bool) -> void:
+	if marks_toggle == null: return
+	marks_toggle.visible = true
+	marks_toggle.set_pressed_no_signal(shown)
+
 func update_capabilities(value: Dictionary) -> void:
 	if value == capabilities: return
 	capabilities = value
