@@ -103,6 +103,9 @@ func _ready() -> void:
 		finish(1, "no connection"); return
 	view = preload("res://game/overseer.gd").new(); view.main = main; view.client = client; main.add_child(view)
 	var opened := false
+	# The fixture's probe founds the fortress and joins the second house
+	# as this client arrives; the overseer's hello lists sections once.
+	await pause(12.0)
 	for attempt in 12:
 		await pause(3.0)
 		client.send_chat("/overseer")
