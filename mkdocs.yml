@@ -162,6 +162,7 @@ nav:
           - Jiggle bones: systems/jiggle-bones.md
           - Melee strokes: systems/melee-strokes.md
           - Interface style: systems/interface-style.md
+          - Interface layout: systems/interface-layout.md
           - Local multiplayer architecture: systems/local-multiplayer.md
           - Overseer camera: systems/overseer.md
       - Protocol coverage: systems/protocol-coverage.md
