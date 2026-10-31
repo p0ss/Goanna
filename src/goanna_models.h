@@ -122,6 +122,9 @@ struct GodotModel {
     std::vector<LimbBend> limbs;
     int bone_count = 0;
     bool animated = false;
+    // Animated models only: a flier's air plan (goanna_air.h). Null for
+    // most models.
+    std::shared_ptr<const AirPlan> air;
     // Animated models only: the jiggle bones and collider capsules
     // (goanna_jiggle.h). Empty for most models.
     JiggleRig jiggle;
@@ -130,9 +133,6 @@ struct GodotModel {
     // whose file declares a stroke plan. Null for most models.
     std::shared_ptr<const StrokeEvaluator> strokes;
     std::string stroke_state;
-    // Animated models only: a flier's air plan (goanna_air.h). Null for
-    // most models.
-    std::shared_ptr<const AirPlan> air;
     ~GodotModel();
 };
 
@@ -351,24 +351,6 @@ private:
         float angle = 0.0f;
         float t = 0.0f;
     } m_melee;
-    // A flier in the air (goanna_air.h): its motion and this frame's output,
-    // the server's air state (serial, manoeuvre, its clock and parameter),
-    // the legs' and wings' joints (each wing's root and the joint past it),
-    // the fly clip's track, and the leg poses read from the clips (tucked,
-    // standing, talons forward).
-    AirMotion m_air;
-    AirOutput m_air_out;
-    struct {
-        int serial = -1;
-        AirManoeuvre manoeuvre = AirManoeuvre::None;
-        float since = 0.0f, param = 0.0f;
-    } m_air_state;
-    bool m_air_found = false;
-    std::vector<std::pair<u32, u32>> m_air_legs;
-    std::vector<std::pair<u32, u32>> m_air_wings;
-    std::optional<u16> m_air_fly_track;
-    float m_air_leg = 0.35f;
-    JointTransforms m_air_tuck, m_air_stand, m_air_talons;
     // Fitted feet: each leg's hip, knee and ankle joints, every joint below
     // each of them, and the foot's lift now (eased, nodes); the body's drop.
     struct FootFit {
@@ -405,6 +387,28 @@ private:
     JiggleFrame m_jiggle_frame;
     JiggleSolver m_jiggle;
     bool m_posed = false; // m_globals holds a stepped pose
+    // A flier in the air (goanna_air.h): its motion and this frame's output,
+    // the server's air state (serial, manoeuvre, its clock and parameter),
+    // the legs' and wings' joints (each wing's root and the joint past it),
+    // the fly clip's track, and the leg poses read from the clips (tucked,
+    // standing, talons forward).
+    AirMotion m_air;
+    AirOutput m_air_out;
+    struct {
+        int serial = -1;
+        AirManoeuvre manoeuvre = AirManoeuvre::None;
+        float since = 0.0f, param = 0.0f;
+    } m_air_state;
+    bool m_air_found = false;
+    std::vector<std::pair<u32, u32>> m_air_legs;
+    std::vector<std::pair<u32, u32>> m_air_wings;
+    std::optional<u16> m_air_fly_track;
+    float m_air_leg = 0.35f;
+    JointTransforms m_air_tuck, m_air_stand, m_air_talons;
+    // The fly track set to the flight's beat this step, and the rate to put
+    // back (stepAir to poseAir).
+    scene::TrackAnimSpec *m_air_fly_spec = nullptr;
+    float m_air_fly_fps = 0.0f;
 };
 
 // How many loaded models carry a stroke evaluator, and how many stroke
@@ -425,6 +429,8 @@ float fittedFootMost();
 // no foothold, and the furthest a planted foot was out of reach, nodes.
 uint64_t plannedSteps();
 uint64_t plannedStepsUnreachable();
+float plannedStepsStretchMost();
+
 // Fliers (goanna_air.h) since start: loaded models with an air plan, frames
 // posed in the air, frames with the talons forward, and frames whose wings
 // banked the way the turn goes (the left wing lower turning left) against
@@ -434,7 +440,6 @@ uint64_t airFlyingFrames();
 uint64_t airTalonFrames();
 uint64_t airBankFrames();
 uint64_t airBankAgreeing();
-float plannedStepsStretchMost();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);

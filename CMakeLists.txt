@@ -105,10 +105,10 @@ add_library(goanna SHARED
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
+    src/goanna_air.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
-    src/goanna_air.cpp
     src/goanna_steps.cpp
     src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
@@ -382,6 +382,13 @@ add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_strokes_test PRIVATE src)
 target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 
+# Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
+add_executable(goanna_air_test EXCLUDE_FROM_ALL
+    src/goanna_air_test.cpp
+    src/goanna_air.cpp)
+target_include_directories(goanna_air_test PRIVATE src)
+target_link_libraries(goanna_air_test PRIVATE jsoncpp)
+
 # Planned steps over DorfCraft's stance fixture terrain (a floor and a half
 # slab). Links only jsoncpp, for the stroke family's pelvis drop.
 add_executable(goanna_steps_test EXCLUDE_FROM_ALL
@@ -389,12 +396,6 @@ add_executable(goanna_steps_test EXCLUDE_FROM_ALL
     src/goanna_steps.cpp)
 target_include_directories(goanna_steps_test PRIVATE src)
 target_link_libraries(goanna_steps_test PRIVATE jsoncpp)
-# Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
-add_executable(goanna_air_test EXCLUDE_FROM_ALL
-    src/goanna_air_test.cpp
-    src/goanna_air.cpp)
-target_include_directories(goanna_air_test PRIVATE src)
-target_link_libraries(goanna_air_test PRIVATE jsoncpp)
 # Melee strokes by distance from the camera: tiers, fades, interpolation
 # against full evaluation, and the cost of a crowd before and after.
 add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL

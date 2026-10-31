@@ -177,26 +177,8 @@ uint64_t g_feet_frames = 0;
 float g_feet_most = 0.0f;
 uint64_t g_steps = 0, g_steps_unreachable = 0;
 float g_steps_stretch = 0.0f;
-int g_air_models = 0;
-uint64_t g_air_flying = 0, g_air_talons = 0, g_air_bank = 0, g_air_bank_agreeing = 0;
-
-// The server's action state on a body's state bone (goanna_strokes.h,
-// goanna_air.h) when it is of this format, else null: one action at a
-// time rides on the bone, each kind reading only its own format.
-const BoneOverride *actionState(const std::map<std::string, BoneOverride> &overrides,
-        const std::string &bone, int format) {
-    auto it = overrides.find(bone);
-    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != format)
-        return nullptr;
-    return &it->second;
-}
 } // namespace
 
-int airModelCount() { return g_air_models; }
-uint64_t airFlyingFrames() { return g_air_flying; }
-uint64_t airTalonFrames() { return g_air_talons; }
-uint64_t airBankFrames() { return g_air_bank; }
-uint64_t airBankAgreeing() { return g_air_bank_agreeing; }
 
 uint64_t plannedSteps() { return g_steps; }
 uint64_t plannedStepsUnreachable() { return g_steps_unreachable; }
@@ -262,21 +244,6 @@ void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
     ++g_stroke_models;
 }
 
-void ModelCache::buildAir(const std::string &name, ModelExtras &extras) {
-    Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    Json::Value marks;
-    std::string errors;
-    auto plan = std::make_shared<AirPlan>();
-    if (!reader->parse(extras.air.data(), extras.air.data() + extras.air.size(), &marks, &errors)
-            || !parseAirPlan(marks, *plan)) {
-        warningstream << "Goanna: unreadable air plan in " << name << std::endl;
-        return;
-    }
-    extras.air_plan = std::move(plan);
-    ++g_air_models;
-}
-
 scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
     if (cache) {
         auto it = m_cache.find(name);
@@ -295,7 +262,7 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         return nullptr;
     // The loader drops node extras; read them for the jiggle marks.
     ModelExtras extras;
-    if (parseModelExtras(name, bytes, extras) && !extras.empty()) {
+    if (parseModelExtras(name, bytes, extras) && (!extras.empty() || !extras.air.empty())) {
         if (!extras.strokes.empty())
             buildStrokes(name, extras);
         if (!extras.air.empty())
@@ -488,12 +455,12 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
                 l.seam_bone = model->bone_count++;
             }
             model->jiggle = buildJiggleRig(*skinned, extras);
+            if (extras && extras->air_plan)
+                model->air = extras->air_plan;
             if (extras && extras->stroke_evaluator) {
                 model->strokes = extras->stroke_evaluator;
                 model->stroke_state = extras->stroke_state;
             }
-            if (extras && extras->air_plan)
-                model->air = extras->air_plan;
         }
     }
     // joint index of a rigidly attached buffer, or -1
@@ -693,14 +660,12 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     // ends unprompted at its length, commits by its clock, and phase 2 or
     // 0 arrive only for a frozen angle away from the told one or a stroke
     // cut short.
-    // Another kind of action on the bone (an air manoeuvre, a task)
-    // replaces the stroke.
-    const BoneOverride *held = actionState(overrides, m_model->stroke_state, 1);
-    if (!held) {
+    auto it = overrides.find(m_model->stroke_state);
+    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != 1) {
         m_melee = MeleeStroke();
         return;
     }
-    const BoneOverride &state = *held;
+    const BoneOverride &state = it->second;
     const int action = (int)std::lround(state.scale.vector.X);
     const int phase = (int)std::lround(state.scale.vector.Y);
     const float told = state.position.vector.X;
@@ -763,6 +728,43 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
 }
 
 // ---- fliers -----------------------------------------------------------------
+
+namespace {
+int g_air_models = 0;
+uint64_t g_air_flying = 0, g_air_talons = 0, g_air_bank = 0, g_air_bank_agreeing = 0;
+
+// The server's action state on a body's state bone (goanna_strokes.h,
+// goanna_air.h) when it is of this format, else null: one action at a
+// time rides on the bone, each kind reading only its own format.
+const BoneOverride *actionState(const std::map<std::string, BoneOverride> &overrides,
+        const std::string &bone, int format) {
+    auto it = overrides.find(bone);
+    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != format)
+        return nullptr;
+    return &it->second;
+}
+} // namespace
+
+int airModelCount() { return g_air_models; }
+uint64_t airFlyingFrames() { return g_air_flying; }
+uint64_t airTalonFrames() { return g_air_talons; }
+uint64_t airBankFrames() { return g_air_bank; }
+uint64_t airBankAgreeing() { return g_air_bank_agreeing; }
+
+void ModelCache::buildAir(const std::string &name, ModelExtras &extras) {
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value marks;
+    std::string errors;
+    auto plan = std::make_shared<AirPlan>();
+    if (!reader->parse(extras.air.data(), extras.air.data() + extras.air.size(), &marks, &errors)
+            || !parseAirPlan(marks, *plan)) {
+        warningstream << "Goanna: unreadable air plan in " << name << std::endl;
+        return;
+    }
+    extras.air_plan = std::move(plan);
+    ++g_air_models;
+}
 
 void ModelAnimator::stepAir(float dt, scene::AnimSpec &anim, const std::map<std::string, BoneOverride> &overrides) {
     const AirPlan &plan = *m_model->air;
@@ -842,22 +844,27 @@ void ModelAnimator::stepAir(float dt, scene::AnimSpec &anim, const std::map<std:
         if (m_air_out.talons > 0.5f)
             ++g_air_talons;
     }
-    // The fly clip at the flight's beat, the other tracks as they are.
+    // The fly clip at the flight's beat (until poseAir puts it back), the
+    // other tracks as they are.
     scene::TrackAnimSpec *fly = nullptr;
     if (m_air_fly_track) {
         auto it = anim.tracks.find(*m_air_fly_track);
         if (it != anim.tracks.end())
             fly = &it->second;
     }
-    const float fps = fly ? fly->fps : 0.0f;
-    if (fly)
-        fly->fps = fps * m_air_out.beat_rate;
-    anim.advance(dt);
-    if (fly)
-        fly->fps = fps;
+    m_air_fly_spec = fly;
+    if (fly) {
+        m_air_fly_fps = fly->fps;
+        fly->fps *= m_air_out.beat_rate;
+    }
 }
 
 void ModelAnimator::poseAir(JointTransforms &locals) {
+    // The fly clip has advanced at the flight's beat: back to the server's
+    // rate.
+    if (m_air_fly_spec)
+        m_air_fly_spec->fps = m_air_fly_fps;
+    m_air_fly_spec = nullptr;
     const AirOutput &o = m_air_out;
     auto rotation = [](const JointTransforms &pose, u32 j) -> std::optional<core::quaternion> {
         if (j >= pose.size())
@@ -1283,14 +1290,15 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     if (!mesh)
         return;
 
-    // AnimatedMeshSceneNode::OnAnimate: advance every track, then
-    // animateJoints: local transforms for this frame, each track blending
-    // from the pose shown last step. A flier's fly clip beats at the rate
-    // its flight asks for (goanna_air.h).
+    // A flier (goanna_air.h): its flight this frame, and its fly clip set
+    // to beat at the rate the flight asks for until poseAir.
     if (m_model->air)
         stepAir(dt, anim, overrides);
-    else
-        anim.advance(dt);
+
+    // AnimatedMeshSceneNode::OnAnimate: advance every track, then
+    // animateJoints: local transforms for this frame, each track blending
+    // from the pose shown last step.
+    anim.advance(dt);
     if (m_model->strokes) {
         m_stroke_lod.step(dt, m_stroke_detail);
         if (!m_feet_found)

@@ -74,7 +74,7 @@ struct ModelExtras {
     // (goanna_air.h). ModelCache parses it.
     std::string air;
     std::shared_ptr<const AirPlan> air_plan;
-    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty() && air.empty(); }
+    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty(); }
 };
 
 // Reads the node extras of a .gltf (JSON) or a .glb (its JSON chunk), by
