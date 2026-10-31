@@ -159,6 +159,19 @@ func view_menu(main: Node, client: Node) -> void:
 	var bare := open_view(main, client, {"sections": sections({}),
 		"scope": {"task": "felling", "title": "Felling", "section": "Gather", "overlays": []}})
 	check(not bare.ui.view_menu.visible, "a task view with no overlays shows no empty View menu")
+	# The night watch's dotted ring is explained, and left out of other tasks.
+	var watched := {"rect": {"x0": 0, "x1": 2, "z0": 0, "z1": 0}, "cells": [2, 2, 2], "states": [2, 2, 2],
+		"overlays": {"watch": [{"kind": "night", "x": 1, "z": 1, "ring": 1}],
+			"stations": [{"squad": "*", "x": 1, "y": 0, "z": 0, "ring": 1}]}}
+	check(scoped.drawn_zone_marks(watched).watch.is_empty() and scoped.drawn_zone_marks(watched).post.is_empty(),
+		"a farming view leaves out the night watch and stations")
+	var full := open_view(main, client, {"sections": sections({})})
+	check(not full.drawn_zone_marks(watched).watch.is_empty() and not full.drawn_zone_marks(watched).post.is_empty(),
+		"the full overseer draws them")
+	var legend := find_button(full.ui.footer, "Legend")
+	legend.pressed.emit()
+	check(full.inspector.text.contains("night watch"), "the legend explains the night watch's small pale blue squares")
+	full._close()
 	scoped._close(); bare._close()
 
 func plans_shape() -> Dictionary:
@@ -230,6 +243,84 @@ func plans(main: Node, client: Node) -> void:
 	check(ui.table.selected_id == "" and ui.selected_id == "", "Back clears the chosen plan first")
 	view._close()
 
+func houses_table(main: Node, client: Node) -> void:
+	var view := open_view(main, client, {"sections": sections({})})
+	var tools: Array = view.tools.duplicate()
+	tools.append({"id": "access:shared", "title": "Mark shared", "family": "House"})
+	view.ui.update_capabilities({"tools": tools, "sections": sections({})})
+	var ui = view.ui
+	ui.choose_family("Houses")
+	check(client.sent[-1].t == "houses" and not ui.table_panel.visible and ui.houses.root.visible,
+		"Houses asks the server and says so until the page arrives")
+	var page := {"t": "houses", "fid": "f1", "available": true, "owner": "ana", "open": false, "can_open": true,
+		"manage_houses": true, "houses": [], "offices": [], "candidates": [], "offices_available": true,
+		"panel": {"workers": [], "labours": [], "workshops": []},
+		"table": {"title": "Houses",
+			"columns": [{"id": "house", "label": "House", "kind": "text"}, {"id": "head", "label": "Head", "kind": "text"},
+				{"id": "members", "label": "Players", "kind": "number"}, {"id": "workers", "label": "Workers", "kind": "number"},
+				{"id": "colour", "label": "Colour", "kind": "swatch"}, {"id": "shared", "label": "Shared", "kind": "number"},
+				{"id": "locked", "label": "Locked", "kind": "number"}],
+			"sort": {"column": "house", "order": "asc"},
+			"rows": [{"id": "h1", "cells": {"house": "Ironfoot (yours)", "head": "ana of house Ironfoot", "members": 1, "workers": 7,
+					"colour": "Red", "shared": 0, "locked": 1}, "swatch": "#aa3322", "detail": ["Workers: Urist."]},
+				{"id": "h2", "cells": {"house": "Stonehand", "head": "Bera of house Stonehand", "members": 1, "workers": 2,
+					"colour": "Blue", "shared": 1, "locked": 2}, "swatch": "#2266aa", "detail": ["Workers: Kib."]}],
+			"empty": {"why": "No houses yet.", "what": "Houses appear when another player joins this fortress."},
+			"note": "A house is a player and the workers who came with them."}}
+	view._receive({"v": 1, "t": "houses"}.merged(page))
+	check(ui.table_panel.visible and ui.table_kind == "houses" and not ui.panel.visible and not ui.actions.visible,
+		"Houses is a table covering the map, with no access tools beside it")
+	var first: TreeItem = ui.table.tree.get_root().get_child(0)
+	check(first.get_icon(4) != null and first.get_text(4) == "Red", "the colour column leads its name with a swatch")
+	check(ui.houses_manage.visible and ui.houses_mark.visible, "Offices and workers and Mark access sit with the table's tools")
+	ui.table.choose_index(1)
+	check(ui.panel.visible and ui.title.text == "Stonehand" and ui.detail_body.text.contains("Locked: 2")
+		and not ui.detail_primary.visible and not ui.houses.root.visible, "choosing a house shows its detail alone")
+	ui.houses_manage.pressed.emit()
+	check(not ui.table_panel.visible and ui.houses.root.visible and ui.houses_back.visible and not ui.actions.visible,
+		"Offices and workers shows the owner's controls with a way back")
+	view.go_back()
+	check(ui.table_panel.visible and ui.houses_mode == "", "Back returns to the houses table")
+	ui.houses_mark.pressed.emit()
+	check(not ui.table_panel.visible and ui.actions.visible and find_button(ui.actions, "Mark shared") != null
+		and not ui.houses.root.visible, "Mark access shows the access tools on the map")
+	ui.houses_back.pressed.emit()
+	check(ui.table_panel.visible, "Back to houses returns to the table")
+	var empty: Dictionary = page.duplicate(true)
+	empty.table.rows = []
+	empty.v = 1
+	view._receive(empty)
+	check(ui.table.empty_box.visible and ui.table.empty_why.text == "No houses yet.", "an empty Houses table says why and what to do")
+	view._close()
+
+## The workshop picker: one task in the context panel (task 5).
+func workshop_picker(main: Node, client: Node) -> void:
+	var view := open_view(main, client, {"sections": sections({})})
+	var ui = view.ui
+	ui.choose_family("Build")
+	view.choose_tool("workshop")
+	view._update_materials([
+		{"name": "forge", "title": "Smithing - Forge", "trade": "Smithing", "station": "Forge", "kind": "station", "missing": true,
+			"reason": "Needs a Barrel in fortress stock.", "needs": [{"title": "Barrel", "count": 1, "ready": false}]},
+		{"name": "table", "title": "Woodworking - Crafting table", "trade": "Woodworking", "station": "Crafting table", "kind": "station",
+			"reason": "The equipment is in fortress stock.", "requirements": "Requires: 1 Crafting table (in stock)."}])
+	ui.refresh()
+	check(ui.table_kind == "workshops" and not ui.panel.visible, "while choosing, nothing else sits in a context panel")
+	ui.table.choose_index(0)
+	var shown: Array = []
+	for child in ui.context.get_children():
+		if child is Control and child.visible: shown.append(child)
+	check(ui.panel.visible and not ui.actions.visible and not view.inspector.visible and shown.size() == 2
+		and ui.detail.visible and ui.detail_primary.visible and ui.detail_primary.text == "Use this workshop",
+		"a chosen workshop's panel holds its detail and one primary action only")
+	ui.detail_primary.pressed.emit()
+	check(not ui.table_panel.visible and not ui.actions.visible and ui.requirements.visible and ui.other_tools.visible,
+		"after choosing, the panel is that workshop's; the Build tools are one press away, not beneath it")
+	ui.other_tools.pressed.emit()
+	check(view.tool == "inspect" and ui.actions.visible and find_button(ui.actions, "Build wall") != null,
+		"Other Build tools returns to the Build tool list")
+	view._close()
+
 func run() -> void:
 	root.size = Vector2i(1280, 720)
 	var main := Unit.TestMain.new(); root.add_child(main)
@@ -242,5 +333,7 @@ func run() -> void:
 	shapes(main, client)
 	view_menu(main, client)
 	plans(main, client)
+	houses_table(main, client)
+	workshop_picker(main, client)
 	print("Overseer screens: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

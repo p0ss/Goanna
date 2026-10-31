@@ -1310,7 +1310,7 @@ func _draw_overlays() -> void:
 		for band in busy:
 			groups.append([TRAFFIC_BANDS[band], busy[band]])
 	# Designations are plans, always shown like order marks.
-	var marks := zone_cells(snapshot)
+	var marks := drawn_zone_marks(snapshot)
 	groups.append([PROTECTED, marks.area])
 	groups.append([FORBIDDEN, marks.forbid])
 	groups.append([STATION_RING, marks.ring])
@@ -1447,6 +1447,16 @@ static func worker_marks(layer: Dictionary) -> Dictionary:
 				if _number(trail[i]) and _number(trail[i + 1]) and _known_cell(layer, int(trail[i]), int(trail[i + 1])):
 					out.trail.append(Vector2i(int(trail[i]), int(trail[i + 1])))
 	return out
+
+## The zone marks this view draws: a task view other than Defence
+## (DorfCraft task_tools.lua) leaves out the militia's stations, their
+## rings and the watch, which belong to defence.
+func drawn_zone_marks(layer: Dictionary) -> Dictionary:
+	var marks := zone_cells(layer)
+	var scope: Variant = ui.applied_scope if ui != null else null
+	if scope is Dictionary and str(scope.get("section", "")) != "Defence":
+		marks.ring = []; marks.post = []; marks.watch = []
+	return marks
 
 # Forbidden areas, locked doors and militia stations with their rings,
 # on known cells.
