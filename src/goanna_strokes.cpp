@@ -655,13 +655,23 @@ void StrokeEvaluator::evaluate(float angle_deg, float t_f, std::vector<StrokeBon
         e.present = e.has_q = true;
         e.q = q;
     };
+    // The legs own the pelvis: the stroke's pelvis turn and drop are only
+    // requests, bounded as the step planner bounds them (15 degrees, a
+    // crouch of 0.2 hip heights), and the chest takes back the refused
+    // turn so it keeps the authored world rotation and the blade its line.
+    // As DorfCraft's evaluate.lua (31 October 2026).
+    Q pelvis = s.pelvis;
     {
+        const double turn = 15.0 * M_PI / 180.0;
+        const double a = 2 * std::acos(std::min(1.0, std::fabs(pelvis[3])));
+        if (a > turn)
+            pelvis = slerp({0, 0, 0, 1}, pelvis, turn / a);
         Work::Entry &e = w.layer[pelvis_];
         e.present = e.has_p = true;
-        e.p = add(bones_[pelvis_].translation, mul(s.drop, hip_));
+        e.p = add(bones_[pelvis_].translation, {0, clamp(s.drop[1], -0.2, 0) * hip_, 0});
     }
-    setQ(pelvis_, s.pelvis);
-    setQ(chest_, s.chest);
+    setQ(pelvis_, pelvis);
+    setQ(chest_, product(inverse(pelvis), product(s.pelvis, s.chest)));
     if (head_ >= 0)
         setQ(head_, s.head);
     forward(w);

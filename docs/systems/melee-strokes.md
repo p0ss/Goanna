@@ -204,26 +204,22 @@ than two nodes in a frame (a teleport) plants them afresh at rest.
 
 ### The evaluator contract
 
-Today the stroke family authors the pelvis: each sample's `pelvis`
-rotation and `drop` (DorfCraft's `evaluate.lua`, layer
-`pelvis = {q = s.pelvis, p = rest + drop * hip}`; Goanna's port in
-`src/goanna_strokes.cpp` does the same), and the evaluator plants the legs
-itself at a fixed stance (`leg_left` {-0.1, 0, -0.2}, `leg_right`
-{0.1, 0, 0.2} hip heights). Goanna now treats those as requests, as
-above, without changing the evaluator. The change proposed for both
-sides, to be made by the coordinating session:
+The stroke family authors a pelvis rotation and `drop` per sample. Since
+31 October 2026 both evaluators (DorfCraft's `evaluate.lua` and the port
+in `src/goanna_strokes.cpp`) take them only as bounded requests: the
+pelvis turns at most 15 degrees towards the authored turn, the drop keeps
+only its y, as a crouch of at most 0.2 hip heights, and the chest takes
+back the refused turn, so the chest, arms and blade keep their authored
+world rotation. The server's blade contact and Goanna's drawn chest then
+agree in rotation; in place they differ by the planner's height for the
+ground, which the server does not model. The family asks for a pelvis
+turn of up to 52 degrees, so most of a stroke's turn is now the chest's.
 
-- `pelvis` (rotation) becomes a request, `pelvis_turn`, bounded by the
-  consumer (Goanna takes 15 degrees; the family asks up to 52).
-- `drop` becomes a request, `crouch`: its y only, in hip heights, bounded
-  by the consumer (Goanna takes 0.2 leg lengths). Its x and z go: the
-  pelvis's place is the legs'.
-- The chest and everything above it are evaluated against the pelvis
-  the legs give, not the authored one, so the server's blade contact is
-  computed against the same chest the client draws.
-- The fixed leg stance becomes a stance request (each foot's place,
-  in hip heights from its bind), and the legs leave the evaluator's
-  output: the planner steps the feet there.
+Not changed yet: the evaluator's fixed leg stance (`leg_left`
+{-0.1, 0, -0.2}, `leg_right` {0.1, 0, 0.2} hip heights) is used by the
+planner as where the feet belong during a stroke and by DorfCraft's
+offline review to plant the legs; it is not yet a per-foot request in the
+family.
 
 ## Distance
 
@@ -259,12 +255,13 @@ evaluator calls since start, beside `stroke_poses`, the poses shown.
 
 ## Checks
 
-`goanna_strokes_test` compares the port with the Lua on 144 evaluations of
-two bodies (two-bone arms and four-bone tentacle arms), at in-between
-angles and at times before commit, in contact and late. The worst
-differences are 5e-6 nodes and 5e-4 degrees, the fixtures' own printing
-precision. An evaluation takes about 30 microseconds for two-bone arms
-and 90 for tentacle arms on the development machine.
+`goanna_strokes_test` compares the port with the Lua on 384 evaluations of
+two bodies (two-bone arms and four-bone tentacle arms): 24 drag angles,
+15 degrees apart, at 8 times each, before commit, in contact and late.
+The worst differences are 5e-6 nodes and 5e-4 degrees, the fixtures' own
+printing precision. An evaluation takes about 25 microseconds for
+two-bone arms and 83 for tentacle arms on the development machine
+(31 October 2026, fixtures regenerated after the pelvis change).
 
 `goanna_stroke_detail_test` checks the tiers and their hysteresis, the
 fade's length and step, and the Reduced tier against a full evaluation
@@ -381,10 +378,6 @@ losing a foothold.
   does not pitch. Feet do not follow a slope.
 - A foot over an edge takes the surface its centre is over; the foot's
   length is not checked against the edge.
-- The stroke's pelvis turn and crouch are taken as bounded requests on
-  Goanna's side only; the server's evaluator still uses the authored
-  pelvis for its blade contact, so the drawn chest can differ from the
-  server's by the refused part (see "The evaluator contract").
 - Steps are planned from where the renderer draws the body, which for
   other players is the interpolated position; a lagging or jumpy position
   shows as hurried steps.
