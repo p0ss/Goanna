@@ -74,6 +74,14 @@ var picking_workshop := false
 ## Footer toggles put away while a table covers the map.
 var footer_hidden: Array = []
 var table_scale := 0.0
+## Every section button: Select in the header, the rest on the rail.
+var family_buttons: Array = []
+var rail_scroll: ScrollContainer
+var rail_headings := {}
+## The rail's groups and their sections, as DorfCraft's sections.lua
+## groups them (maintainer, 31 October 2026).
+const RAIL_GROUPS := [["plan", "Plan", ["Zones", "Build", "Terrain", "Gather", "Devices", "Defence"]],
+	["fortress", "Fortress", ["People", "Supplies", "Houses", "Plans"]]]
 
 func label(parent: Node, text: String) -> Label:
 	var result := Label.new()
@@ -92,6 +100,18 @@ func button(parent: Node, text: String, action: Callable) -> Button:
 	result.pressed.connect(action)
 	parent.add_child(result)
 	return result
+
+## One section's button. Labels never wrap: the rail widens to its longest
+## label, and scrolls at large text instead.
+func section_button(parent: Node, name: String) -> Button:
+	var b := button(parent, name, choose_family.bind(name))
+	b.set_meta("family", name)
+	b.autowrap_mode = TextServer.AUTOWRAP_OFF
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.tooltip_text = "Inspect places and objects" if name == "Select" else name
+	if parent != rail: b.size_flags_horizontal = Control.SIZE_SHRINK_END
+	family_buttons.append(b)
+	return b
 
 ## The icon the server named, or null for a name this client does not draw.
 static func icon_for(name: Variant) -> Texture2D:
@@ -150,6 +170,13 @@ func build(host: Node) -> void:
 	var row := HBoxContainer.new()
 	top.add_child(row)
 	header = label(row, "Overseer | Connecting")
+	# The view's tools sit in the header (interface-layout.md, Regions):
+	# Select, the map's own section, and Map focus for keyboard targeting.
+	section_button(row, "Select")
+	map_button = button(row, "Map focus", focus_map)
+	map_button.tooltip_text = "Arrows: target cell. Enter: select. Tab: controls."
+	map_button.autowrap_mode = TextServer.AUTOWRAP_OFF
+	map_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	# The newest unseen danger page; pressing it shows where and marks it seen.
 	page_banner = button(row, "", open_banner)
 	page_banner.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
@@ -161,20 +188,30 @@ func build(host: Node) -> void:
 	left = box(view.root_control)
 	left.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
 	left.offset_left = 12; left.offset_right = 148
-	var rail_scroll := ScrollContainer.new()
+	rail_scroll = ScrollContainer.new()
 	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	left.add_child(rail_scroll)
 	rail = VBoxContainer.new()
 	rail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rail.add_theme_constant_override("separation", 8)
 	rail_scroll.add_child(rail)
-	for name in ["Select", "Zones", "Build", "Terrain", "Gather", "Devices", "Defence", "People", "Supplies", "Houses", "Plans"]:
-		var b := button(rail, name, choose_family.bind(name))
-		b.set_meta("family", name)
-		if name == "Plans": plans_button = b
-		b.custom_minimum_size.x = 112
-		b.tooltip_text = "Inspect places and objects" if name == "Select" else name
-	map_button = button(rail, "Map focus", focus_map)
-	map_button.tooltip_text = "Arrows: target cell. Enter: select. Tab: controls."
+	# Two groups under small headings (maintainer, 31 October 2026), 24 px
+	# apart: the rail's separation plus a spacer.
+	for group in RAIL_GROUPS:
+		if rail.get_child_count() > 0:
+			var gap := Control.new()
+			gap.custom_minimum_size.y = 16
+			gap.set_meta("rail_group", group[0])
+			rail.add_child(gap)
+		var heading := Label.new()
+		heading.text = group[1]
+		heading.add_theme_color_override("font_color", QUIET)
+		heading.set_meta("rail_group", group[0])
+		rail.add_child(heading)
+		rail_headings[group[0]] = heading
+		for name in group[2]:
+			var b := section_button(rail, name)
+			if name == "Plans": plans_button = b
 	nudges = VBoxContainer.new()
 	rail.add_child(nudges)
 	nudges.hide()
@@ -365,9 +402,17 @@ func reflow() -> void:
 	var bottom_edge := -footer_height - 20
 	left.offset_top = top_edge
 	left.offset_bottom = bottom_edge
-	left.offset_right = minf(136.0 * scale, size.x * 0.25) + 12
-	for child in rail.get_children():
-		if child is Button: child.custom_minimum_size = Vector2(0, maxf(48, 18 * scale * 1.6 + 8))
+	# As wide as the longest shown label, so none wraps mid-word; at large
+	# text, past a quarter of the window, the rail scrolls sideways.
+	var widest := 0.0
+	for b in family_buttons:
+		b.custom_minimum_size = Vector2(0, maxf(48, 18 * scale * 1.6 + 8))
+		if b.get_parent() == rail and b.visible: widest = maxf(widest, b.get_combined_minimum_size().x)
+	var wanted := widest + 24.0 + 4.0
+	var room := maxf(136.0, size.x * 0.25)
+	left.offset_right = minf(maxf(136.0, wanted), room) + 12
+	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if wanted > room \
+		else ScrollContainer.SCROLL_MODE_DISABLED
 	navigation.columns = 3 if scale > 1.3 else 5
 	var nav_height := ((maxf(48, 18 * scale * 1.6 + 8) * 2.0 + 28) if scale > 1.3 else 80.0) + player_location.get_combined_minimum_size().y + 4
 	nav.offset_left = -width - 12
@@ -405,6 +450,16 @@ func reflow() -> void:
 		table.refit()
 	title.add_theme_font_size_override("font_size", roundi(23 * scale))
 
+## The header's Select button.
+func select_button() -> Button:
+	return family_buttons[0] if not family_buttons.is_empty() else null
+
+## The first section on the rail the player may open, for the controller.
+func first_section() -> Button:
+	for b in family_buttons:
+		if b.visible and b.get_parent() == rail: return b
+	return family_buttons[0]
+
 func focus_map() -> void:
 	map_button.grab_focus()
 	nudges.show()
@@ -431,14 +486,20 @@ func apply_sections(list) -> void:
 		for sec in list:
 			if sec is Dictionary:
 				section_states[str(sec.get("label", ""))] = sec
+	var group_shown := {}
+	for b in family_buttons:
+		var sec: Dictionary = section_states.get(str(b.get_meta("family")), {})
+		var state := str(sec.get("state", "shown"))
+		b.visible = state != "hidden"
+		b.modulate = Color(1, 1, 1, 0.45) if state == "locked" else Color.WHITE
+		b.tooltip_text = str(sec.get("how", "")) if state == "locked" else str(b.get_meta("family"))
+		if b.visible:
+			for group in RAIL_GROUPS:
+				if str(b.get_meta("family")) in group[2]: group_shown[group[0]] = true
+	# A heading with nothing under it goes too.
 	for child in rail.get_children():
-		if child is Button and child.has_meta("family"):
-			var b := child as Button
-			var sec: Dictionary = section_states.get(str(b.get_meta("family")), {})
-			var state := str(sec.get("state", "shown"))
-			b.visible = state != "hidden"
-			b.modulate = Color(1, 1, 1, 0.45) if state == "locked" else Color.WHITE
-			b.tooltip_text = str(sec.get("how", "")) if state == "locked" else str(b.get_meta("family"))
+		if child.has_meta("rail_group"): child.visible = group_shown.has(child.get_meta("rail_group"))
+	reflow.call_deferred()
 	if str(section_states.get(family, {}).get("state", "shown")) != "shown":
 		family = "Select"
 
@@ -696,12 +757,10 @@ func update_capabilities(value: Dictionary) -> void:
 	if value == capabilities: return
 	capabilities = value
 	var section_runes: Dictionary = value.get("section_runes", {})
-	for child in rail.get_children():
-		if child is Button and child.has_meta("family"):
-			var b := child as Button
-			b.icon = null
-			var section := str(b.get_meta("family"))
-			set_icon(b, null, false, section_runes.get(section, section_runes.get("House") if section == "Houses" else null))
+	for b in family_buttons:
+		b.icon = null
+		var section := str(b.get_meta("family"))
+		set_icon(b, null, false, section_runes.get(section, section_runes.get("House") if section == "Houses" else null))
 	apply_sections(value.get("sections"))
 	var scope: Dictionary = value.get("scope") if value.get("scope") is Dictionary else {}
 	apply_scope(scope)
@@ -789,10 +848,9 @@ func refresh() -> void:
 	view.inspector.visible = not is_overview
 	refresh_overview()
 	refresh_zone_property()
-	for child in rail.get_children():
-		if child is Button and child != map_button:
-			child.toggle_mode = true
-			child.set_pressed_no_signal(child.get_meta("family", child.text) == family)
+	for b in family_buttons:
+		b.toggle_mode = true
+		b.set_pressed_no_signal(b.get_meta("family") == family)
 	for child in actions.get_children():
 		if child is Button:
 			child.set_pressed_no_signal(child.get_meta("tool", "") == view.tool or (child.has_meta("group") and child.get_meta("group") == view.tool_definition().get("group")))

@@ -2284,7 +2284,7 @@ func _input(event: InputEvent) -> void:
 			if ui.submit.visible: ui.submit.grab_focus()
 			elif ui.verb_strip.visible and ui.first_verb() != null: ui.first_verb().grab_focus()
 			elif ui.table_panel.visible: ui.table.focus_rows()
-			else: ui.rail.get_child(0).grab_focus()
+			else: ui.first_section().grab_focus()
 		elif ui.map_focused():
 			if cursor.is_empty(): cursor = {"x": roundi(centre.x), "y": level, "z": roundi(centre.y)}
 			cursor.y = level
