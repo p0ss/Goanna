@@ -2209,6 +2209,40 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
             en.animator->setJiggleFrame(std::move(jf));
         }
+        // Feet on the ground for a model that fits them (a stroke plan,
+        // goanna_models.h): where it stands, and the walkable surface under
+        // a point from the map's collision boxes.
+        if (en.animator && en.animator->fitsFeet() && en.visual && en.visual->is_inside_tree()) {
+            GroundFrame gf;
+            gf.known = true;
+            gf.mesh_to_world = en.visual->get_global_transform();
+            gf.grounded = !(is_self && session.player()) || session.player()->touching_ground;
+            if (const NodeDefManager *ndef = session.nodeDefs()) {
+                GoannaMap *map = &session.map();
+                gf.floor = [map, ndef](float x, float z, float top, float bottom) -> std::optional<float> {
+                    std::optional<float> best;
+                    const s16 nx = (s16)std::floor(x + 0.5f), nz = (s16)std::floor(z + 0.5f);
+                    std::vector<aabb3f> boxes;
+                    for (s16 y = (s16)std::floor(top + 0.5f); y >= (s16)std::floor(bottom + 0.5f); --y) {
+                        const MapNode n = map->getNode(v3s16(nx, y, nz));
+                        if (n.getContent() == CONTENT_IGNORE || !ndef->get(n).walkable)
+                            continue;
+                        boxes.clear();
+                        n.getCollisionBoxes(ndef, &boxes);
+                        for (const aabb3f &b : boxes) {
+                            const float lx = (x - nx) * BS, lz = (z - nz) * BS;
+                            if (lx < b.MinEdge.X || lx > b.MaxEdge.X || lz < b.MinEdge.Z || lz > b.MaxEdge.Z)
+                                continue;
+                            const float h = y + b.MaxEdge.Y / BS;
+                            if (h <= top && h >= bottom && (!best || h > *best))
+                                best = h;
+                        }
+                    }
+                    return best;
+                };
+            }
+            en.animator->setGround(std::move(gf));
+        }
         // skeletal animation: AnimatedMeshSceneNode::OnAnimate on the tracks
         // playing on the object's mesh
         if (en.animator) {

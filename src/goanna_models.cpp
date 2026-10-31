@@ -168,10 +168,14 @@ const ModelExtras *ModelCache::extras(const std::string &name) const {
 namespace {
 int g_stroke_models = 0;
 uint64_t g_stroke_poses = 0;
+uint64_t g_feet_frames = 0;
+float g_feet_most = 0.0f;
 } // namespace
 
 int strokeModelCount() { return g_stroke_models; }
 uint64_t strokePoseCount() { return g_stroke_poses; }
+uint64_t fittedFootFrames() { return g_feet_frames; }
+float fittedFootMost() { return g_feet_most; }
 
 void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
     Json::CharReaderBuilder builder;
@@ -681,6 +685,133 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     }
 }
 
+void ModelAnimator::findFeet() {
+    m_feet_found = true;
+    scene::SkinnedMesh *mesh = m_model->skinned;
+    const auto &joints = mesh->getAllJoints();
+    auto pelvis = mesh->getJointNumber("body");
+    if (!pelvis)
+        return;
+    std::vector<std::vector<u32>> children(joints.size());
+    for (u32 i = 0; i < joints.size(); ++i)
+        if (joints[i]->ParentJointID)
+            children[*joints[i]->ParentJointID].push_back(i);
+    auto below = [&](u32 top) {
+        std::vector<u32> out{top};
+        for (size_t k = 0; k < out.size(); ++k)
+            for (u32 c : children[out[k]])
+                out.push_back(c);
+        return out;
+    };
+    // A leg: a joint named leg... on the pelvis, then single children down
+    // to the ankle (a tentacle's further segments ride on the ankle).
+    for (u32 hip : children[*pelvis]) {
+        const auto &name = joints[hip]->Name;
+        if (!name || name->rfind("leg", 0) != 0 || children[hip].size() != 1)
+            continue;
+        const u32 knee = children[hip][0];
+        if (children[knee].size() != 1)
+            continue;
+        FootFit f;
+        f.hip = hip;
+        f.knee = knee;
+        f.ankle = children[knee][0];
+        f.below_hip = below(hip);
+        f.below_knee = below(knee);
+        f.below_ankle = below(f.ankle);
+        m_feet.push_back(std::move(f));
+    }
+}
+
+void ModelAnimator::fitFeet(float dt) {
+    if (!m_feet_found)
+        findFeet();
+    if (m_feet.empty())
+        return;
+    const float ease = 1.0f - std::exp(-dt / 0.06f);
+    const bool fit = m_ground.known && m_ground.grounded && m_ground.floor && m_posed;
+    // Luanti world nodes from Irrlicht mesh space (z mirrored both ways).
+    auto world = [&](const v3f &p) {
+        const Vector3 w = m_ground.mesh_to_world.xform(Vector3(p.X, p.Y, -p.Z));
+        return Vector3(w.x, w.y, -w.z);
+    };
+    std::optional<float> base;
+    Vector3 root;
+    if (fit) {
+        const Vector3 o = m_ground.mesh_to_world.origin;
+        root = Vector3(o.x, o.y, -o.z);
+        base = m_ground.floor(root.x, root.z, root.y + 0.6f, root.y - 0.8f);
+    }
+    float drop = 0.0f, most = 0.0f;
+    for (FootFit &f : m_feet) {
+        float want = 0.0f;
+        if (fit && base) {
+            // Where the foot was shown last step, before its own lift.
+            Vector3 at = world(m_globals[f.ankle].getTranslation());
+            if (auto h = m_ground.floor(at.x, at.z, root.y + 0.7f, root.y - 0.8f))
+                want = std::clamp(*h - *base, -0.6f, 0.6f);
+        }
+        f.lift += (want - f.lift) * ease;
+        drop = std::min(drop, f.lift);
+        most = std::max(most, std::fabs(f.lift));
+    }
+    m_body_drop = drop;
+    if (most > 0.05f)
+        ++g_feet_frames;
+    g_feet_most = std::max(g_feet_most, most);
+}
+
+void ModelAnimator::applyFeet() {
+    if (m_feet.empty() || !m_ground.known)
+        return;
+    const float scale = m_ground.mesh_to_world.basis.get_column(1).length();
+    if (scale < 1e-6f)
+        return;
+    // The whole body down for the lower foot (mesh units).
+    if (m_body_drop < -1e-4f) {
+        const float d = m_body_drop / scale;
+        for (core::matrix4 &m : m_globals)
+            m[13] += d;
+    }
+    auto turn = [&](const std::vector<u32> &joints, const Quaternion &q, const Vector3 &about) {
+        const Transform3D x(Basis(q), about - Basis(q).xform(about));
+        for (u32 j : joints)
+            m_globals[j] = fromGodotTransform(x * toGodotTransform(m_globals[j]));
+    };
+    for (const FootFit &f : m_feet) {
+        const float up = (f.lift - m_body_drop) / scale;
+        if (up < 1e-3f)
+            continue;
+        const Vector3 h = toGodotTransform(m_globals[f.hip]).origin;
+        const Vector3 k = toGodotTransform(m_globals[f.knee]).origin;
+        const Vector3 a = toGodotTransform(m_globals[f.ankle]).origin;
+        const float l1 = (k - h).length(), l2 = (a - k).length();
+        if (l1 < 1e-4f || l2 < 1e-4f)
+            continue;
+        Vector3 target = a + Vector3(0, up, 0);
+        Vector3 reach = target - h;
+        const float d = std::clamp(reach.length(), std::fabs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
+        const Vector3 dir = reach.normalized();
+        target = h + dir * d;
+        // The knee stays on the side it is bent to now.
+        Vector3 side = (k - h) - dir * (k - h).dot(dir);
+        if (side.length() < 1e-4f)
+            side = (a - h).cross(Vector3(1, 0, 0)).cross(dir);
+        if (side.length() < 1e-4f)
+            continue;
+        side.normalize();
+        const float along = (l1 * l1 - l2 * l2 + d * d) / (2.0f * d);
+        const Vector3 knee = h + dir * along + side * std::sqrt(std::max(0.0f, l1 * l1 - along * along));
+        const Quaternion r1((k - h).normalized(), (knee - h).normalized());
+        turn(f.below_hip, r1, h);
+        const Vector3 a1 = toGodotTransform(m_globals[f.ankle]).origin;
+        const Quaternion r2((a1 - knee).normalized(), (target - knee).normalized());
+        turn(f.below_knee, r2, knee);
+        // The foot keeps the angle the animation gave it.
+        turn(f.below_ankle, (r2 * r1).inverse(), target);
+    }
+}
+
 void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, BoneOverride> &overrides,
         Skeleton3D *skeleton, Skeleton3D *unshrunk) {
     scene::SkinnedMesh *mesh = m_model->skinned;
@@ -691,6 +822,8 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // animateJoints: local transforms for this frame, each track blending
     // from the pose shown last step.
     anim.advance(dt);
+    if (m_model->strokes)
+        fitFeet(dt);
     const auto &joints = mesh->getAllJoints();
     JointTransforms locals = animateTracks(*mesh, anim, m_old_transforms);
     // The arm also inherits the baked punch's torso twist. Hold its ancestor
@@ -782,6 +915,8 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
                 m_globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
         }
         mesh->calculateGlobalMatrices(m_globals);
+        if (m_model->strokes)
+            applyFeet();
     };
     // A bone animated to zero scale (models hide parts that way) has a
     // singular basis that Godot cannot split into a rotation, and it says

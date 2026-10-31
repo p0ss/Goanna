@@ -52,6 +52,24 @@ The evaluated pose is applied exactly as an absolute Luanti bone override
 with the same numbers would be, after the server's own overrides and
 before Goanna's knees, elbows and jiggle bones.
 
+## Feet on the ground
+
+A model with a stroke plan also fits its feet to the ground, whether it
+is striking, walking (the game's walking loop) or standing. Each step,
+before posing, the animator looks at where each foot was shown last step
+and asks the map for the highest walkable collision box under it, within
+0.6 of a node of the ground under the model's root (`GroundFrame`, built
+by the entity renderer from the map's collision boxes). Each foot's lift
+is that difference, eased over about 60 ms. On the global matrices, after
+everything else has posed the body, the whole body is lowered by the
+lower foot's drop, then each leg (a joint named `leg...` on `body`, its
+single child the knee, the knee's the ankle) is bent with a two-bone
+solve so the ankle rises by its own lift, the knee staying on the side it
+was bent to, and the foot keeping the angle the animation gave it. A
+longer chain (a tentacle) rides its further segments on the ankle. The
+local player is fitted only while touching the ground; others whenever
+there is ground under them.
+
 ## Checks
 
 `goanna_strokes_test` compares the port with the Lua on 144 evaluations of
@@ -69,13 +87,24 @@ twelve strokes, and all the server's checks passed (six hits). In a low
 resolution recording seen from behind, the body strokes with the sword in
 hand and no visibly broken pose; that is all the recording shows.
 
+Feet, 31 October 2026, the same setup with a strip of stone half slabs
+under one foot (the player standing on the boundary of two node
+columns): 717 steps had a foot fitted, the most any foot moved was 0.5
+nodes, the slab's height, and all the server's checks passed. In a low
+resolution recording from behind, one foot stands on the slab and the
+other leg reaches down past its edge to the floor.
+
 ## Not done yet
 
 - No check that the pose Goanna shows matches the server's contact pose
   frame for frame; only the evaluator itself is compared.
-- Legs are planted on flat ground under the body; they are not fitted to
-  steps, and a stroke made while walking slides the feet.
-- `status` reports `stroke_models` and `stroke_poses`; there is no
-  per-entity inspection.
+- The gait is the game's clip: feet are lifted and lowered to the ground
+  but not re-planted, so they slide when the clip's pace and the body's
+  speed differ, and a stroke made while walking slides the planted feet.
+- Only the ground directly under each foot is consulted; a foot over an
+  edge takes whichever surface its centre is over.
+- `status` reports `stroke_models`, `stroke_poses`,
+  `feet_fitted_frames` and `feet_fitted_most`; there is no per-entity
+  inspection.
 - Every family and plan is evaluated in full each frame for every body in
   view; there is no distance cut-off yet.

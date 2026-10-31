@@ -133,6 +133,17 @@ struct GodotModel {
 // with the jiggle marks of its file, if it has any.
 std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const ModelExtras *extras = nullptr);
 
+// Where a model stands this frame, for fitting its feet to the ground
+// (ModelAnimator::setGround): its mesh-to-world transform (Godot world,
+// nodes), whether it is on the ground, and the highest walkable surface
+// under a point (Luanti world nodes, x and z) between two heights.
+struct GroundFrame {
+    bool known = false;
+    bool grounded = true;
+    godot::Transform3D mesh_to_world;
+    std::function<std::optional<float>(float x, float z, float top, float bottom)> floor;
+};
+
 // Per-instance animation state for a skinned GodotModel: what Irrlicht's
 // AnimatedMeshSceneNode does each frame (advance the tracks, pose the joints
 // from them in priority order, blend from last frame's pose), Luanti's bone
@@ -187,6 +198,17 @@ public:
     // landing, falling, stepping up and leaning into starts, stops and
     // turns.
     void setMotion(const BodyMotion &motion) { m_motion = motion; }
+    // Models with a stroke plan (GodotModel::strokes) fit their feet to the
+    // ground under them: each foot is lifted or lowered to the surface under
+    // it, the body lowered for the lower foot, the leg bent to suit. The
+    // renderer says where the model stands each frame.
+    bool fitsFeet() const { return m_model->strokes != nullptr; }
+    void setGround(GroundFrame frame) { m_ground = std::move(frame); }
+    // The lift of each fitted foot and the body's drop after the last step,
+    // nodes, for tests and status.
+    size_t fittedFeet() const { return m_feet.size(); }
+    float footLift(size_t i) const { return i < m_feet.size() ? m_feet[i].lift : 0.0f; }
+    float bodyDrop() const { return m_body_drop; }
     // The landing crouch now, 0 to 1, and how far the body is lowered for
     // it, mesh units; the lean forward and the bank left now, degrees.
     float landing() const { return m_land_amt; }
@@ -227,6 +249,11 @@ private:
     // A stroke from the server's stroke state (GodotModel::strokes): the
     // evaluated pose on its bones, over the game's animation and overrides.
     void poseStroke(float dt, JointTransforms &locals, const std::map<std::string, BoneOverride> &overrides);
+    // Feet on the ground: findFeet once, fitFeet each step from where the
+    // feet were last step, applyFeet on the global matrices.
+    void findFeet();
+    void fitFeet(float dt);
+    void applyFeet();
     void updateMotion(float dt);
     LimbAngles motionAngles(size_t limb) const;
     void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
@@ -292,6 +319,17 @@ private:
         float angle = 0.0f;
         float t = 0.0f;
     } m_melee;
+    // Fitted feet: each leg's hip, knee and ankle joints, every joint below
+    // each of them, and the foot's lift now (eased, nodes); the body's drop.
+    struct FootFit {
+        u32 hip = 0, knee = 0, ankle = 0;
+        std::vector<u32> below_hip, below_knee, below_ankle;
+        float lift = 0.0f;
+    };
+    std::vector<FootFit> m_feet;
+    bool m_feet_found = false;
+    float m_body_drop = 0.0f;
+    GroundFrame m_ground;
     JiggleFrame m_jiggle_frame;
     JiggleSolver m_jiggle;
     bool m_posed = false; // m_globals holds a stepped pose
@@ -301,6 +339,10 @@ private:
 // poses animators have evaluated, since start: for status and live tests.
 int strokeModelCount();
 uint64_t strokePoseCount();
+// How many animator steps had a foot lifted or lowered more than 0.05
+// nodes to the ground, and the most any foot was, nodes, since start.
+uint64_t fittedFootFrames();
+float fittedFootMost();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);
