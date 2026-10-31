@@ -1422,14 +1422,34 @@ static func director_tool(name: String) -> String:
 		else ProjectSettings.globalize_path("res://../tools").path_join(name).simplify_path()
 	return path if FileAccess.file_exists(path) else ""
 
+# How a language model app attaches the game master to the world folder
+# `world`: {claude: a Claude Code command line, json: the same server as MCP
+# settings for any other app}, or {} when this copy has no director service.
+# Goanna starts no director itself. A director is a model acting as game
+# master, and the join notice says so; the service alone, with no model
+# behind it, would make that notice untrue (2026-10-31). The model app starts
+# the service and owns it, so it lives exactly as long as the model is there.
+static func director_attach(world: String) -> Dictionary:
+	var service := director_tool("goanna-director-mcp")
+	if service == "":
+		return {}
+	var py := "python" if OS.get_name() == "Windows" else "python3"
+	var q := func(p: String) -> String: return "\"%s\"" % p
+	return {
+		# The separator goes in as an argument: it ends claude's own options.
+		"claude": "claude mcp add goanna-director %s %s %s --world %s" % ["--", py, q.call(service), q.call(world)],
+		"json": JSON.stringify({"mcpServers": {"goanna-director": {
+			"command": py, "args": [service, "--world", world]}}}, "  "),
+	}
+
 # The commands that connect a game master to this world, with this machine's
 # paths filled in, in <world>/goanna_director/connect.txt. A player coming to
 # the director cold (or a model helping them) needs nothing else; /director
 # points an operator here.
 func _write_director_connect(world: String) -> void:
-	var service := director_tool("goanna-director-mcp")
+	var attach := director_attach(world)
 	var cli := director_tool("goanna-director-cli")
-	if service == "":
+	if attach.is_empty():
 		return
 	var py := "python" if OS.get_name() == "Windows" else "python3"
 	var q := func(p: String) -> String: return "\"%s\"" % p
@@ -1438,8 +1458,10 @@ func _write_director_connect(world: String) -> void:
 		"It needs Python 3 and nothing else; it talks to the world through files in this folder.",
 		"",
 		"From an MCP app, such as Claude Code:",
-		# The separator goes in as an argument: it ends claude's own options.
-		"  claude mcp add goanna-director %s %s %s --world %s" % ["--", py, q.call(service), q.call(world)],
+		"  " + str(attach["claude"]),
+		"",
+		"Or, for another MCP app, in its server settings:",
+		str(attach["json"]),
 		"",
 		"From a shell, one command at a time (leave serve running):",
 		"  %s %s --world %s serve" % [py, q.call(cli), q.call(world)],
@@ -1777,14 +1799,79 @@ func start_config(options: Dictionary) -> String:
 		# then showed an empty log and "stopped before it finished starting"
 		# (2026-10-31). Its stderr carries everything poll_ready looks for:
 		# errors, warnings and the "listening on" line. exec keeps the PID,
-		# so stop() still stops the server itself.
-		args = ["-c", "log=\"$1\"; shift; exec \"$@\" >\"$log\" 2>&1", "sh", log_path, exe] + args
+		# so stop() still stops the server itself. SERVER_SHELL also ends the
+		# server when this Goanna ends.
+		args = ["-c", SERVER_SHELL, "sh", log_path, str(OS.get_process_id()), exe] + args
 		exe = "/bin/sh"
 	pid = OS.create_process(exe, PackedStringArray(args))
 	owned_process.adopt(pid)
 	if pid <= 0:
 		return "Could not launch the server (%s)." % exe
 	return ""
+
+# The shell the server starts through on Linux and macOS: sh -c SERVER_SHELL
+# sh <log> <owner pid> <server argv...>. It writes the server's output to the
+# log and execs the server, so the PID Goanna holds is the server's. Before
+# that it leaves a watchdog behind, detached (so it is no descendant of the
+# server and owned_process.stop never meets it), that ends the server when
+# the owner, this Goanna, is gone however it went: quit, crash, SIGTERM or
+# SIGKILL. A server Goanna started otherwise outlived it, holding the world
+# and the port, with nothing on an ordinary machine to stop it (2026-10-31).
+#
+# Once a second the watchdog checks the owner and the server by PID and, on
+# Linux, by start time from /proc, so a reused PID is neither waited on nor
+# signalled; a zombie counts as gone. When the server goes first it simply
+# exits. When the owner goes first it sends SIGTERM to the server's deepest
+# descendants (the Flathub Luanti's luantiserver sits under flatpak run and
+# bwrap; a bundled luanti-server is its own leaf), so Luanti saves and shuts
+# down and its launchers follow; whatever is left after 30 seconds gets
+# SIGKILL. macOS has no /proc: there it checks with kill -0 and signals the
+# server PID alone.
+const SERVER_SHELL := """log="$1"; owner="$2"; shift 2
+server=$$
+( (
+stat_of() {
+	st=""; t0=""
+	[ -r "/proc/$1/stat" ] || return 1
+	read -r line <"/proc/$1/stat" || return 1
+	line=${line##*") "}
+	set x $line
+	st=$2; shift 20; t0=$1
+}
+stat_of "$owner"; owner_t0=$t0
+stat_of "$server"; server_t0=$t0
+alive() {
+	if [ -n "$2" ]; then
+		stat_of "$1" && [ "$st" != Z ] && [ "$t0" = "$2" ]
+	else
+		kill -0 "$1" 2>/dev/null
+	fi
+}
+# The process and its descendants, deepest first; "leaves" for only those
+# with no children of their own.
+tree() {
+	kids=""
+	[ -r "/proc/$1/task/$1/children" ] && read -r kids <"/proc/$1/task/$1/children"
+	[ -z "$kids" ] && [ "$2" = leaves ] && echo "$1"
+	for kid in $kids; do tree "$kid" "$2"; done
+	[ "$2" = leaves ] || echo "$1"
+}
+while alive "$owner" "$owner_t0"; do
+	alive "$server" "$server_t0" || exit 0
+	sleep 1
+done
+alive "$server" "$server_t0" || exit 0
+kill -TERM $(tree "$server" leaves) 2>/dev/null
+waited=0
+while alive "$server" "$server_t0" && [ "$waited" -lt 30 ]; do
+	sleep 1; waited=$((waited + 1))
+done
+if alive "$server" "$server_t0"; then
+	kill -KILL $(tree "$server") 2>/dev/null
+fi
+) </dev/null >/dev/null 2>&1 & )
+exec "$@" >"$log" 2>&1
+"""
 
 ## This machine's private IPv4 addresses, the ones friends on the same network
 ## can reach a world opened to the LAN at. Loopback and public addresses are

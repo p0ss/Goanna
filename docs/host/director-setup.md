@@ -42,7 +42,14 @@ model  <-- MCP -->  goanna-director-mcp  <-- files in the world folder -->  Luan
 server mod and sets `goanna_director = true`. Start the world once. Goanna
 then writes `<world>/goanna_director/connect.txt`, holding the exact
 commands for step 2 with this machine's paths filled in, and `/director`
-in game tells the operator where it is.
+in game tells the operator where it is. The World page of Start Game has
+the same command ready to copy: Copy Claude Code command, or Copy MCP
+settings for another MCP app.
+
+Goanna runs no director service of its own. The join notice tells players
+that a language model is acting as game master, and a service with no
+model behind it would make that untrue, so the service runs only while a
+model app has started it, and stops with that app.
 
 **Any other Luanti server on this machine:**
 

@@ -31,3 +31,17 @@ the game scene has started connecting.
   reason told to the player, at most once every five seconds, and never a
   player who opted out or to one. Undo moves them back. The join notice
   says when this is on. MCP tool: `director_move_player`.
+- **Start Game copies the game master command.** The World page has Copy
+  Claude Code command and Copy MCP settings, filled in for the chosen
+  world. Goanna still runs no game master itself: players are told a
+  language model is acting as game master, so one runs only while a model
+  app has started it.
+
+## Hosting
+
+- **A local server ends with its Goanna.** When Goanna quits, crashes or
+  is killed, the Luanti server it started is sent SIGTERM within about a
+  second, saves and shuts down, freeing its port; anything left after 30
+  seconds is killed. Run on Linux with the Flathub Luanti and the bundled
+  server; macOS takes the same path but has not been tried. On Windows a
+  server whose Goanna crashed or was killed still keeps running.
