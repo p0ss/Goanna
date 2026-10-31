@@ -322,7 +322,33 @@ func nudge(dx: int, dz: int) -> void:
 func map_focused() -> bool:
 	return view.get_viewport().gui_get_focus_owner() == map_button
 
+## The server says which sections this player sees (DorfCraft's
+## overseer/sections.lua): hidden ones leave the rail, locked ones stay
+## greyed with how to unlock them. A server that sends no list shows all.
+var section_states := {}
+
+func apply_sections(list) -> void:
+	section_states.clear()
+	if list is Array:
+		for sec in list:
+			if sec is Dictionary:
+				section_states[str(sec.get("label", ""))] = sec
+	for child in rail.get_children():
+		if child is Button and child.has_meta("family"):
+			var b := child as Button
+			var sec: Dictionary = section_states.get(str(b.get_meta("family")), {})
+			var state := str(sec.get("state", "shown"))
+			b.visible = state != "hidden"
+			b.modulate = Color(1, 1, 1, 0.45) if state == "locked" else Color.WHITE
+			b.tooltip_text = str(sec.get("how", "")) if state == "locked" else str(b.get_meta("family"))
+	if str(section_states.get(family, {}).get("state", "shown")) != "shown":
+		family = "Select"
+
 func choose_family(value: String) -> void:
+	var sec: Dictionary = section_states.get(value, {})
+	if str(sec.get("state", "shown")) != "shown":
+		view.inspector.text = str(sec.get("how", "Not unlocked yet."))
+		return
 	if view.pending.size() > 0:
 		view.inspector.text = "Waiting for the server. Retry uses the same request."
 		return
@@ -426,6 +452,7 @@ func update_capabilities(value: Dictionary) -> void:
 			b.icon = null
 			var section := str(b.get_meta("family"))
 			set_icon(b, null, false, section_runes.get(section, section_runes.get("House") if section == "Houses" else null))
+	apply_sections(value.get("sections"))
 	header.text = "%s | Overseer | Live\n%s" % [str(value.get("fortress", "Fortress")), str(value.get("summary", "Server planning permissions"))]
 	if value.get("tools") is Array: view.tools = value.tools
 	refresh_tools()
