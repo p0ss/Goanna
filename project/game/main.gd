@@ -1376,6 +1376,10 @@ var connect_title: Label
 var connect_detail: Label
 var connect_bar: ProgressBar
 var _preparation_shown := false
+# Set once the world has been played; a refusal after that is a lost
+# connection, shown over the game (_show_connection_lost).
+var _was_playing := false
+var _connection_lost := false
 
 # When the connection screen went up, for the no answer timeout below.
 var _connect_started_ms := 0
@@ -1448,6 +1452,10 @@ func _build_connect_overlay() -> void:
 	_back_button.text = "Back to the menu"
 	_back_button.visible = false
 	_back_button.pressed.connect(func() -> void:
+		# The menu reopens the screen the join came from with this reason
+		# (menu.gd, GOANNA_MENU_RETURN), so a wrong password is retyped
+		# where it was typed.
+		OS.set_environment("GOANNA_MENU_REASON", connect_title.text + ". " + connect_detail.text)
 		if ui != null:
 			ui._disconnect())
 	box.add_child(_back_button)
@@ -1483,6 +1491,16 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		connect_detail.modulate = Color(1, 0.65, 0.55)
 		_show_connect_error()
 		return
+	if _connection_lost:
+		# A crash or kick mid game. Luanti's own client stops the game here
+		# too; before 0.16.1 Goanna left the player in a world nobody was
+		# answering, digging blocks locally (2026-10-31).
+		connect_title.text = "Disconnected from the server"
+		connect_bar.visible = false
+		connect_detail.text = msg if msg != "" else "The connection to the server was lost."
+		connect_detail.modulate = Color(1, 0.65, 0.55)
+		_show_connect_error()
+		return
 	if state == "denied" or state == "error" or msg.begins_with("access denied"):
 		# The server has refused and is not going to change its mind. Say what
 		# it said, rather than leaving the player watching a blank screen.
@@ -1515,6 +1533,20 @@ func _update_connect_overlay(s: Dictionary) -> void:
 		connect_bar.indeterminate = true
 		connect_detail.text = "%s\nElapsed: %d seconds." % [msg if msg != "" else state,
 			(Time.get_ticks_msec() - _connect_started_ms) / 1000]
+
+# The server dropped a game in progress: the connecting screen comes back on
+# top of everything, with its reason and the way back to the menu. Its
+# Back button disconnects as the pause menu's Disconnect does.
+func _show_connection_lost() -> void:
+	_connection_lost = true
+	set_pointer_captured(false)
+	_build_connect_overlay()
+	remove_child(connect_overlay)
+	connect_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	var layer := CanvasLayer.new()
+	layer.layer = 120
+	layer.add_child(connect_overlay)
+	add_child(layer)
 
 # A failed connection: the way back, focused, and the reason read aloud.
 func _show_connect_error() -> void:
@@ -1638,6 +1670,11 @@ func _process(delta: float) -> void:
 				render_features["render_fire_shimmer"] and not underwater)
 	if profile_frame_work: work_clock = _work_mark("sky", work_clock)
 	var s: Dictionary = client.status()
+	if s.get("state") == "ready":
+		_was_playing = true
+	elif _was_playing and not _connection_lost and not showcase_mode \
+			and str(s.get("state", "")) in ["denied", "disconnected", "error"]:
+		_show_connection_lost()
 	_update_connect_overlay(s)
 	if connect_overlay != null and not _materials_held and s.get("state") == "content-ready":
 		if not _preparation_shown:

@@ -164,7 +164,20 @@ func _ready() -> void:
 	add_to_group(GlassStyle.GROUP)
 	_build_frame()
 	_show_main()
-	if showcase_launch:
+	# Back from a failed or dropped join: Join Game again, with the reason,
+	# rather than the main menu (2026-10-31).
+	if OS.get_environment("GOANNA_MENU") != "" and OS.get_environment("GOANNA_MENU_RETURN") == "join":
+		var reason := OS.get_environment("GOANNA_MENU_REASON")
+		OS.set_environment("GOANNA_MENU_RETURN", "")
+		OS.set_environment("GOANNA_MENU_REASON", "")
+		_show_join()
+		if reason != "":
+			_fail(reason)
+			_join_reason_shown = true
+			if reason.to_lower().contains("password"):
+				pass_edit.grab_focus()
+	# Join Game stops the showcase (_show_join); do not start it behind it.
+	if showcase_launch and _screen_title != "Join Game":
 		_start_showcase()
 		return
 	if OS.get_environment("GOANNA_LOCAL_TEST") != "":
@@ -238,6 +251,12 @@ func _ready() -> void:
 				for i in tabs.get_tab_count():
 					if tabs.get_tab_title(i) == want.trim_prefix("settings-tab-"):
 						tabs.current_tab = i
+		elif want == "join-scan":
+			# Join Game after Scan local network has finished.
+			_show_join()
+			_scan_lan()
+			while lan_scan.running:
+				await get_tree().create_timer(0.25).timeout
 		elif want == "about":
 			_show_about()
 		elif want == "luanti":
@@ -2253,6 +2272,7 @@ func _local_player_name() -> String:
 func _show_join() -> void:
 	_stop_showcase()
 	_new_screen("Join Game", "")
+	_build_lan_list()
 	_build_server_list()
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -2317,6 +2337,90 @@ func _show_join() -> void:
 		e.text_submitted.connect(func(_t): _on_connect())
 	name_edit.grab_focus()
 
+# --- servers on this network ------------------------------------------------
+
+# Luanti servers do not announce themselves on a LAN, so Scan asks each
+# address on this machine's private /24 networks (net/lan_scan.gd). It runs
+# only when pressed.
+const LanScan := preload("res://net/lan_scan.gd")
+
+var lan_tree: Tree
+var lan_scan: Node
+var lan_button: Button
+
+func _build_lan_list() -> void:
+	var head := Label.new()
+	head.text = "On this network"
+	screen.add_child(head)
+	lan_tree = Tree.new()
+	lan_tree.custom_minimum_size = Vector2(0, 96)
+	lan_tree.columns = 1
+	lan_tree.hide_root = true
+	lan_tree.item_selected.connect(_on_lan_picked)
+	lan_tree.item_activated.connect(func() -> void:
+		_on_lan_picked()
+		_on_connect())
+	screen.add_child(lan_tree)
+	var root := lan_tree.create_item()
+	var hint := lan_tree.create_item(root)
+	hint.set_text(0, "Press Scan local network to look for Luanti servers here.")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	screen.add_child(row)
+	lan_button = _button("Scan local network", _scan_lan)
+	row.add_child(lan_button)
+
+func _scan_lan() -> void:
+	if lan_scan == null:
+		lan_scan = LanScan.new()
+		add_child(lan_scan)
+		lan_scan.found.connect(_on_lan_found)
+		lan_scan.finished.connect(_on_lan_finished)
+	lan_tree.clear()
+	var root := lan_tree.create_item()
+	var nets: Array = LanScan.local_prefixes()
+	if not lan_scan.start():
+		var it := lan_tree.create_item(root)
+		it.set_text(0, "No local network was found to scan. Type the host's address below.")
+		return
+	lan_button.disabled = true
+	var it := lan_tree.create_item(root)
+	it.set_text(0, "Scanning %s ..." % ", ".join(nets.map(func(n): return str(n) + ".x")))
+	it.set_metadata(0, "scanning")
+
+func _on_lan_found(host: String, port: int) -> void:
+	if not is_instance_valid(lan_tree):
+		return
+	var root := lan_tree.get_root()
+	var first := root.get_first_child()
+	if first != null and str(first.get_metadata(0)) == "scanning":
+		first.free()
+	var it := lan_tree.create_item(root)
+	it.set_text(0, "Luanti server at %s:%d" % [host, port])
+	it.set_metadata(0, {"address": host, "port": port})
+	# The only one found: fill the fields, so Connect is the next press.
+	if root.get_child_count() == 1:
+		it.select(0)
+
+func _on_lan_finished(count: int) -> void:
+	if not is_instance_valid(lan_tree):
+		return
+	lan_button.disabled = false
+	if count == 0:
+		lan_tree.clear()
+		var it := lan_tree.create_item(lan_tree.create_item())
+		it.set_text(0, "No Luanti servers answered on ports 30000 to 30005. Check the host is running and its firewall allows UDP 30000.")
+
+func _on_lan_picked() -> void:
+	var it := lan_tree.get_selected()
+	if it == null:
+		return
+	var e = it.get_metadata(0)
+	if typeof(e) != TYPE_DICTIONARY:
+		return
+	host_edit.text = str(e.address)
+	port_edit.text = str(e.port)
+
 # --- public server list ------------------------------------------------------
 
 # The same list Luanti's own client shows, from the same place: serverlist_url
@@ -2329,6 +2433,9 @@ const SERVER_LIST_URL := "https://servers.luanti.org/list"
 
 var server_tree: Tree
 var server_http: HTTPRequest
+# Why the last join ended, on the status line until the player acts: the
+# list's server count must not replace it when the list arrives.
+var _join_reason_shown := false
 var _server_rows: Array = []
 
 func _build_server_list() -> void:
@@ -2404,6 +2511,8 @@ func _on_server_list(_result: int, code: int, _headers: PackedStringArray, body:
 		it.set_text(3, "%s:%d" % [str(e.get("address", "")), int(e.get("port", 30000))])
 		it.set_metadata(0, e)
 		shown += 1
+	if _join_reason_shown:
+		return
 	status_label.text = "%d servers. Pick one to fill the fields below, or double click to join." % shown
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
 
@@ -2422,6 +2531,7 @@ func _on_server_picked() -> void:
 	var e = it.get_metadata(0)
 	if typeof(e) != TYPE_DICTIONARY:
 		return
+	_join_reason_shown = false
 	host_edit.text = str(e.get("address", ""))
 	port_edit.text = str(int(e.get("port", 30000)))
 	# The public list says which game a server runs, which a direct address
@@ -2484,6 +2594,7 @@ func _on_connect() -> void:
 	OS.set_environment("GOANNA_PBR_SET", "1")
 	OS.set_environment("GOANNA_PASS", pass_edit.text)
 	OS.set_environment("GOANNA_SP_PID", "")
+	OS.set_environment("GOANNA_MENU_RETURN", "join")
 	connect_button.disabled = true
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Connecting to %s:%s as %s" % [host, port_text, pname]
