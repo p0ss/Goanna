@@ -650,7 +650,11 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
         const std::map<std::string, BoneOverride> &overrides) {
     // The state: position (told angle in degrees, stroke time when sent,
     // target height), scale (action serial, phase: 0 none, 1 preparing,
-    // 2 committed, format).
+    // 2 committed, format). Each set resends every override the object
+    // holds, so the server sends only what this cannot work out: a stroke
+    // ends unprompted at its length, commits by its clock, and phase 2 or
+    // 0 arrive only for a frozen angle away from the told one or a stroke
+    // cut short.
     auto it = overrides.find(m_model->stroke_state);
     if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != 1) {
         m_melee = MeleeStroke();
@@ -969,9 +973,11 @@ void ModelAnimator::planSteps() {
     in.grounded = m_ground.grounded;
     in.floor = m_ground.floor;
     // While a stroke is shown its legs' stance is where the feet belong;
-    // otherwise the bind's.
+    // otherwise the bind's. The server sends a commit only when the angle
+    // it froze differs from the one told, so the stroke's own clock says
+    // when it has committed.
     const bool striking = m_melee.active && m_melee.t <= m_model->strokes->length();
-    in.hold = striking && m_melee.phase >= 2;
+    in.hold = striking && (m_melee.phase >= 2 || m_melee.t >= m_model->strokes->commit());
     in.crouch = striking ? m_crouch_request * scale : 0.0f;
     for (const FootFit &f : m_feet) {
         in.hips.push_back(world(toGodotTransform(m_globals[f.hip]).origin));

@@ -116,6 +116,8 @@ public:
     bool valid() const { return valid_; }
     // The family's stroke length (timing.length), seconds; 0 without one.
     float length() const { return family_ ? float(family_->length) : 0.0f; }
+    // When the stroke commits (timing.commit), seconds; 0 without one.
+    float commit() const { return family_ ? float(family_->commit) : 0.0f; }
 
     // The pose at drag angle (degrees) and stroke time t (seconds), legs
     // planted: one entry for each bone the evaluator moves, in plan order.
