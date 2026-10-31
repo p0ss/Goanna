@@ -225,6 +225,38 @@ sides, to be made by the coordinating session:
   in hip heights from its bind), and the legs leave the evaluator's
   output: the planner steps the feet there.
 
+## Distance
+
+`src/goanna_stroke_detail.h` keeps a crowd cheap. Each sync the entity
+renderer puts every body with a stroke plan in one of three tiers, by its
+distance from the camera, measured a node above its root, and whether that
+point is in the camera's frustum:
+
+| Tier | Where | Stroke | Feet |
+| --- | --- | --- | --- |
+| Full | on screen within 16 nodes | evaluated every step | ground asked every step |
+| Reduced | 16 to 48 nodes, or off screen within 48 | evaluated 15 times a second, interpolated | ground asked 15 times a second |
+| Clip | beyond 48 nodes | not evaluated: the game's clip shows | not asked: feet ease back to the clip's |
+
+A body keeps its tier until it is 2 nodes past the boundary, so one
+standing on it does not flicker. Your own body is always Full. The
+distances and rate are constants in `goanna_stroke_detail.h`, as the jiggle
+bones' `JIGGLE_DISTANCE` is; they are not settings.
+
+In Reduced, the stroke is evaluated one interval (1/15 s) ahead of its
+clock and the pose shown is interpolated between the last two
+evaluations, positions linearly and rotations by slerp, so it does not
+step. The feet keep easing every step towards the ground last found.
+Going into Clip the stroke pose fades out over the game's animation in a
+quarter of a second (smoothstep), and fades back in coming out of it; the
+feet ease to no lift over about the same time. Between Full and Reduced
+nothing fades: the first Reduced pose is the full evaluation at that
+moment.
+
+`status` reports `stroke_bodies_full`, `stroke_bodies_reduced` and
+`stroke_bodies_clip` for the last sync, and `stroke_evaluations`, the
+evaluator calls since start, beside `stroke_poses`, the poses shown.
+
 ## Checks
 
 `goanna_strokes_test` compares the port with the Lua on 144 evaluations of
@@ -233,6 +265,31 @@ angles and at times before commit, in contact and late. The worst
 differences are 5e-6 nodes and 5e-4 degrees, the fixtures' own printing
 precision. An evaluation takes about 30 microseconds for two-bone arms
 and 90 for tentacle arms on the development machine.
+
+`goanna_stroke_detail_test` checks the tiers and their hysteresis, the
+fade's length and step, and the Reduced tier against a full evaluation
+every step through whole strokes at ten angles, on the same fixtures. Run
+31 October 2026 (RelWithDebInfo flags, AMD Ryzen 7 7800X3D, other builds
+running on the machine), Reduced's 99th percentile error over every bone
+and step is 0.011 nodes and 6.5 degrees for two-bone arms, 0.013 nodes
+and 6.8 degrees for tentacle arms, at 13.5 evaluations a second. The worst
+single errors are larger (0.13 nodes, 103 degrees) and sit where the full
+evaluation itself turns a bone a long way in one step: see "Not done yet".
+
+The same test times a crowd stroking without pause, half two-bone and half
+tentacle arms, spread evenly from 2 to 80 nodes away with every fifth off
+screen, over 240 steps at 60 a second, best of three runs. Evaluation
+only, on one thread; the ground queries are counted, not timed:
+
+| Bodies | Every body full | With tiers (Full/Reduced/Clip) |
+| --- | --- | --- |
+| 10 | 503 us a step, 10 evaluations | 2/4/4: 154 us, 2.9 evaluations |
+| 30 | 1496 us a step, 30 evaluations | 5/13/12: 442 us, 7.9 evaluations |
+| 60 | 3008 us a step, 60 evaluations | 10/27/23: 858 us, 16 evaluations |
+
+Bodies asking for the ground fall the same way: 60 a step before, 16.8
+with tiers for 60 bodies. How much a crowd saves depends on where it
+stands; ten combatants all within 16 nodes and on screen save nothing.
 
 Live, 31 October 2026: DorfCraft's opt-in melee trial on a private
 Luanti 5.17.0 server with Mineclonia, a Goanna client (Godot 4.5.1,
@@ -331,16 +388,26 @@ losing a foothold.
 - Steps are planned from where the renderer draws the body, which for
   other players is the interpolated position; a lagging or jumpy position
   shows as hurried steps.
-
 - No check that the pose Goanna shows matches the server's contact pose
   frame for frame; only the evaluator itself is compared.
-- Bodies that are not planned (a tentacle lower body) keep the game's
-  clip with their feet only fitted to the ground, so they slide.
-- Only the ground directly under each foot is consulted; a foot over an
-  edge takes whichever surface its centre is over.
-- `status` reports `stroke_models`, `stroke_poses`,
-  `feet_fitted_frames`, `feet_fitted_most`, `steps_planned`,
-  `steps_unreachable` and `steps_stretch_most`; there is no per-entity
-  inspection.
-- Every family and plan is evaluated in full each frame for every body in
-  view; there is no distance cut-off yet.
+- The distance tiers have been measured only offline, on the evaluator
+  with the fixtures. No live run with a crowd has been made, the animator's
+  own cost (tracks, foot solve, skinning) is not in the numbers, and the
+  fade at 48 nodes has not been looked at on screen.
+- The evaluator itself is not smooth everywhere: on the two-bone fixture
+  body the weapon arm (`arm_right`, its lower arm and hand, and the sword)
+  turns a bone more than 30 degrees in one 60th of a second 18 times over
+  ten strokes, at most 130 degrees, and the tentacle body 23 times, at
+  most 87 degrees, so a near body's arm can snap. In Reduced the
+  interpolation spreads such a snap over a fifteenth of a second instead.
+- Reduced interpolates with the drag angle as it was at each evaluation,
+  so while the angle is still easing (preparing) the pose lags it by up to
+  a fifteenth of a second.
+- `status` reports `stroke_models`, `stroke_poses`, `stroke_evaluations`,
+  the bodies in each distance tier, `feet_fitted_frames`,
+  `feet_fitted_most`, `steps_planned`, `steps_unreachable` and
+  `steps_stretch_most`; there is no per-entity inspection.
+- Planned steps follow the distance tiers only at the far edge: in Clip a
+  planned body shows the game's clip and its planner is dropped, to plant
+  afresh when it comes back in, which is unchecked on screen. In Reduced
+  the planner still runs and asks the ground every step.

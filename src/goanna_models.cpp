@@ -171,6 +171,8 @@ const ModelExtras *ModelCache::extras(const std::string &name) const {
 namespace {
 int g_stroke_models = 0;
 uint64_t g_stroke_poses = 0;
+uint64_t g_stroke_evaluations = 0;
+int g_stroke_tiers[3] = {};
 uint64_t g_feet_frames = 0;
 float g_feet_most = 0.0f;
 uint64_t g_steps = 0, g_steps_unreachable = 0;
@@ -183,6 +185,13 @@ float plannedStepsStretchMost() { return g_steps_stretch; }
 
 int strokeModelCount() { return g_stroke_models; }
 uint64_t strokePoseCount() { return g_stroke_poses; }
+uint64_t strokeEvaluationCount() { return g_stroke_evaluations; }
+int strokeDetailCount(StrokeDetail detail) { return g_stroke_tiers[(int)detail]; }
+void setStrokeDetailCounts(int full, int reduced, int clip) {
+    g_stroke_tiers[0] = full;
+    g_stroke_tiers[1] = reduced;
+    g_stroke_tiers[2] = clip;
+}
 uint64_t fittedFootFrames() { return g_feet_frames; }
 float fittedFootMost() { return g_feet_most; }
 
@@ -675,9 +684,17 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     m_melee.angle = std::fmod(m_melee.angle + std::clamp(d, -step, step) + 360.0f, 360.0f);
     if (m_melee.t > m_model->strokes->length())
         return; // over: the game's clip holds its last frame
+    // Far off, the game's clip shows; at the edge, the pose fades in or
+    // out over it (goanna_stroke_detail.h).
+    const float w = m_stroke_lod.weight();
+    if (w <= 0.0f)
+        return;
     scene::SkinnedMesh *mesh = m_model->skinned;
     ++g_stroke_poses;
-    for (const StrokeBonePose &b : m_model->strokes->evaluate(m_melee.angle, m_melee.t)) {
+    const uint64_t evaluated = m_stroke_lod.evaluations();
+    m_stroke_lod.pose(*m_model->strokes, m_melee.angle, m_melee.t, fresh, m_stroke_pose);
+    g_stroke_evaluations += m_stroke_lod.evaluations() - evaluated;
+    for (const StrokeBonePose &b : m_stroke_pose) {
         auto jn = mesh->getJointNumber(b.bone);
         if (!jn)
             continue;
@@ -686,11 +703,18 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
             continue;
         // Exactly what an absolute Luanti bone override with these values
         // does (the old per-tick stream sent the same numbers).
-        t->translation = v3f(b.p[0], b.p[1], b.p[2]);
+        const v3f p(b.p[0], b.p[1], b.p[2]);
         core::quaternion q(v3f(b.r[0], b.r[1], b.r[2]));
         v3f euler;
         q.toEuler(euler);
-        t->rotation = core::quaternion(euler).makeInverse();
+        q = core::quaternion(euler).makeInverse();
+        if (w < 1.0f) {
+            t->translation = t->translation + (p - t->translation) * w;
+            t->rotation.slerp(t->rotation, q, w);
+        } else {
+            t->translation = p;
+            t->rotation = q;
+        }
     }
 }
 
@@ -828,8 +852,13 @@ void ModelAnimator::fitFeet(float dt) {
         findFeet();
     if (m_feet.empty())
         return;
-    const float ease = 1.0f - std::exp(-dt / 0.06f);
-    const bool fit = m_ground.known && m_ground.grounded && m_ground.floor && m_posed;
+    // By distance (goanna_stroke_detail.h): the ground asked for every
+    // step, or a few times a second with the feet easing towards what it
+    // last said, or not at all, the feet easing back to the clip's.
+    const bool clip = m_stroke_lod.detail() == StrokeDetail::Clip;
+    const bool due = m_stroke_lod.groundDue(dt);
+    const float ease = 1.0f - std::exp(-dt / (clip ? STROKE_DETAIL_BLEND / 3.0f : 0.06f));
+    const bool fit = due && m_ground.known && m_ground.grounded && m_ground.floor && m_posed;
     // Luanti world nodes from Irrlicht mesh space (z mirrored both ways).
     auto world = [&](const v3f &p) {
         const Vector3 w = m_ground.mesh_to_world.xform(Vector3(p.X, p.Y, -p.Z));
@@ -844,14 +873,16 @@ void ModelAnimator::fitFeet(float dt) {
     }
     float drop = 0.0f, most = 0.0f;
     for (FootFit &f : m_feet) {
-        float want = 0.0f;
-        if (fit && base) {
-            // Where the foot was shown last step, before its own lift.
-            Vector3 at = world(m_globals[f.ankle].getTranslation());
-            if (auto h = m_ground.floor(at.x, at.z, root.y + 0.7f, root.y - 0.8f))
-                want = std::clamp(*h - *base, -0.6f, 0.6f);
+        if (clip || due) {
+            f.want = 0.0f;
+            if (fit && base) {
+                // Where the foot was shown last step, before its own lift.
+                Vector3 at = world(m_globals[f.ankle].getTranslation());
+                if (auto h = m_ground.floor(at.x, at.z, root.y + 0.7f, root.y - 0.8f))
+                    f.want = std::clamp(*h - *base, -0.6f, 0.6f);
+            }
         }
-        f.lift += (want - f.lift) * ease;
+        f.lift += (f.want - f.lift) * ease;
         drop = std::min(drop, f.lift);
         most = std::max(most, std::fabs(f.lift));
     }
@@ -1062,10 +1093,16 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // from the pose shown last step.
     anim.advance(dt);
     if (m_model->strokes) {
+        m_stroke_lod.step(dt, m_stroke_detail);
         if (!m_feet_found)
             findFeet();
-        if (m_plans_steps)
+        // Far off (goanna_stroke_detail.h) a planned body shows the clip's
+        // legs; its planner is dropped, to plant afresh when it comes back.
+        m_planning = m_plans_steps && m_stroke_lod.detail() != StrokeDetail::Clip;
+        if (m_planning)
             m_plan_dt = dt;
+        else if (m_plans_steps)
+            m_steps.reset();
         else
             fitFeet(dt);
     }
@@ -1122,7 +1159,7 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // A melee stroke the server announced, evaluated here (goanna_strokes.h).
     if (m_model->strokes)
         poseStroke(dt, locals, overrides);
-    if (m_plans_steps && m_ground.known)
+    if (m_planning && m_ground.known)
         ownPelvis(locals);
 
     // Goanna's strokes in the water, on the shoulders and hips.
@@ -1162,9 +1199,9 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
                 m_globals[i] = std::get<core::Transform>(locals[i]).buildMatrix();
         }
         mesh->calculateGlobalMatrices(m_globals);
-        if (m_plans_steps)
+        if (m_planning)
             applySteps();
-        else if (m_model->strokes)
+        else if (m_model->strokes && !m_plans_steps)
             applyFeet();
     };
     // A bone animated to zero scale (models hide parts that way) has a
