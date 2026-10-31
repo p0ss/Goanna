@@ -167,8 +167,8 @@ func run() -> void:
 	var offered := []
 	for child in scoped.ui.footer.get_child(0).get_children():
 		if child is Button and child.has_meta("overlay") and child.visible: offered.append(child.get_meta("overlay"))
-	check(offered == ["heat", "wet"] and scoped.shown_overlays.heat and not scoped.shown_overlays.traffic,
-		"only the task's overlays are offered, and they start on")
+	check(offered == ["heat", "wet"] and scoped.shown_overlays.heat and not scoped.shown_overlays.wet
+		and not scoped.shown_overlays.traffic, "only the task's overlays are offered, the first switched on")
 	var rail_shown := []
 	for child in scoped.ui.rail.get_children():
 		if child is Button and child.has_meta("family") and child.visible: rail_shown.append(child.get_meta("family"))

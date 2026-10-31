@@ -666,20 +666,20 @@ func refresh_zone_property() -> void:
 
 ## A view opened from a task tool (DorfCraft's overseer/task_tools.lua):
 ## the server has already left out other sections and tools; this opens
-## on the task's section once, and offers only the task's overlays,
-## switched on.
+## on the task's section once, and offers only the task's overlays, the
+## first switched on (two fields drawn at once wash the map out).
 var applied_scope = null
 
 func apply_scope(scope: Dictionary) -> void:
 	if scope.is_empty() or scope == applied_scope: return
 	applied_scope = scope
 	var wanted: Array = scope.get("overlays") if scope.get("overlays") is Array else []
-	for kind in view.shown_overlays: view.shown_overlays[kind] = kind in wanted
+	var first: String = str(wanted[0]) if wanted.size() > 0 else ""
+	for kind in view.shown_overlays: view.shown_overlays[kind] = kind == first
 	for child in footer.get_child(0).get_children():
 		if child is Button and child.has_meta("overlay"):
-			var shown: bool = child.get_meta("overlay") in wanted
-			child.visible = shown
-			(child as Button).set_pressed_no_signal(shown)
+			child.visible = child.get_meta("overlay") in wanted
+			(child as Button).set_pressed_no_signal(child.get_meta("overlay") == first)
 	var section := str(scope.get("section", ""))
 	if not section.is_empty() and str(section_states.get(section, {}).get("state", "shown")) == "shown":
 		family = section
