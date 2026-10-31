@@ -108,6 +108,7 @@ add_library(goanna SHARED
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
+    src/goanna_air.cpp
     src/goanna_steps.cpp
     src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
@@ -388,6 +389,12 @@ add_executable(goanna_steps_test EXCLUDE_FROM_ALL
     src/goanna_steps.cpp)
 target_include_directories(goanna_steps_test PRIVATE src)
 target_link_libraries(goanna_steps_test PRIVATE jsoncpp)
+# Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
+add_executable(goanna_air_test EXCLUDE_FROM_ALL
+    src/goanna_air_test.cpp
+    src/goanna_air.cpp)
+target_include_directories(goanna_air_test PRIVATE src)
+target_link_libraries(goanna_air_test PRIVATE jsoncpp)
 # Melee strokes by distance from the camera: tiers, fades, interpolation
 # against full evaluation, and the cost of a crowd before and after.
 add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL
@@ -405,6 +412,7 @@ target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
+    goanna_air_test
     goanna_attachment_test
     goanna_jiggle_test
     goanna_animation_test

@@ -332,6 +332,11 @@ Dictionary GoannaClient::status() const {
     d["steps_planned"] = (int64_t)plannedSteps();
     d["steps_unreachable"] = (int64_t)plannedStepsUnreachable();
     d["steps_stretch_most"] = plannedStepsStretchMost();
+    d["air_models"] = airModelCount();
+    d["air_flying_frames"] = (int64_t)airFlyingFrames();
+    d["air_talon_frames"] = (int64_t)airTalonFrames();
+    d["air_bank_frames"] = (int64_t)airBankFrames();
+    d["air_bank_agreeing"] = (int64_t)airBankAgreeing();
     d["media_received"] = (int)s.media_received;
     d["media_cached"] = (int)s.media_cached;
     d["media_downloaded"] = (int)s.media_downloaded;

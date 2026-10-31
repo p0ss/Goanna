@@ -58,6 +58,7 @@ struct JiggleColliderMark {
 };
 
 class StrokeEvaluator;
+struct AirPlan;
 
 // The marks a model's nodes carry, by node name, and its whole-file marks.
 struct ModelExtras {
@@ -69,7 +70,11 @@ struct ModelExtras {
     std::string strokes;
     std::shared_ptr<const StrokeEvaluator> stroke_evaluator;
     std::string stroke_state;
-    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty(); }
+    // {"air": {...}} in the root extras, as JSON text: a flier's air plan
+    // (goanna_air.h). ModelCache parses it.
+    std::string air;
+    std::shared_ptr<const AirPlan> air_plan;
+    bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty() && air.empty(); }
 };
 
 // Reads the node extras of a .gltf (JSON) or a .glb (its JSON chunk), by

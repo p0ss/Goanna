@@ -39,6 +39,7 @@
 #include <IAnimatedMesh.h>
 #include <SkinnedMesh.h>
 
+#include "goanna_air.h"
 #include "goanna_animation.h"
 #include "goanna_jiggle.h"
 #include "goanna_limbs.h"
@@ -88,6 +89,7 @@ private:
     // A model's stroke evaluator, from its extras and the family file they
     // name (each family read once).
     void buildStrokes(const std::string &name, ModelExtras &extras);
+    void buildAir(const std::string &name, ModelExtras &extras);
     ModelLoader m_loader;
     MediaGetter m_media;
     std::map<std::string, scene::IAnimatedMesh *> m_cache;
@@ -128,6 +130,9 @@ struct GodotModel {
     // whose file declares a stroke plan. Null for most models.
     std::shared_ptr<const StrokeEvaluator> strokes;
     std::string stroke_state;
+    // Animated models only: a flier's air plan (goanna_air.h). Null for
+    // most models.
+    std::shared_ptr<const AirPlan> air;
     ~GodotModel();
 };
 
@@ -204,7 +209,8 @@ public:
     // ground under them: each foot is lifted or lowered to the surface under
     // it, the body lowered for the lower foot, the leg bent to suit. The
     // renderer says where the model stands each frame.
-    bool fitsFeet() const { return m_model->strokes != nullptr; }
+    // A flier (an air plan) takes the same frame for the floor under it.
+    bool fitsFeet() const { return m_model->strokes != nullptr || m_model->air != nullptr; }
     void setGround(GroundFrame frame) { m_ground = std::move(frame); }
     // How much of the stroke and foot fitting to work out from the next
     // step (goanna_stroke_detail.h), chosen by the renderer from the
@@ -272,6 +278,12 @@ private:
     // bounded twist and crouch kept as requests, the chest keeping the
     // pose's look), then once a step the plan, and the legs solved to it.
     void ownPelvis(JointTransforms &locals);
+    // A flier (GodotModel::air): before the tracks advance, this frame's air
+    // motion from where the body is and the server's air state, and the fly
+    // clip's beat; after the overrides, the legs and wings posed from it.
+    void stepAir(float dt, scene::AnimSpec &anim, const std::map<std::string, BoneOverride> &overrides);
+    void poseAir(JointTransforms &locals);
+    void checkAirBank();
     void planSteps();
     void applySteps();
     void updateMotion(float dt);
@@ -339,6 +351,24 @@ private:
         float angle = 0.0f;
         float t = 0.0f;
     } m_melee;
+    // A flier in the air (goanna_air.h): its motion and this frame's output,
+    // the server's air state (serial, manoeuvre, its clock and parameter),
+    // the legs' and wings' joints (each wing's root and the joint past it),
+    // the fly clip's track, and the leg poses read from the clips (tucked,
+    // standing, talons forward).
+    AirMotion m_air;
+    AirOutput m_air_out;
+    struct {
+        int serial = -1;
+        AirManoeuvre manoeuvre = AirManoeuvre::None;
+        float since = 0.0f, param = 0.0f;
+    } m_air_state;
+    bool m_air_found = false;
+    std::vector<std::pair<u32, u32>> m_air_legs;
+    std::vector<std::pair<u32, u32>> m_air_wings;
+    std::optional<u16> m_air_fly_track;
+    float m_air_leg = 0.35f;
+    JointTransforms m_air_tuck, m_air_stand, m_air_talons;
     // Fitted feet: each leg's hip, knee and ankle joints, every joint below
     // each of them, and the foot's lift now (eased, nodes); the body's drop.
     struct FootFit {
@@ -395,6 +425,15 @@ float fittedFootMost();
 // no foothold, and the furthest a planted foot was out of reach, nodes.
 uint64_t plannedSteps();
 uint64_t plannedStepsUnreachable();
+// Fliers (goanna_air.h) since start: loaded models with an air plan, frames
+// posed in the air, frames with the talons forward, and frames whose wings
+// banked the way the turn goes (the left wing lower turning left) against
+// those banked at all.
+int airModelCount();
+uint64_t airFlyingFrames();
+uint64_t airTalonFrames();
+uint64_t airBankFrames();
+uint64_t airBankAgreeing();
 float plannedStepsStretchMost();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
