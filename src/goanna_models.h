@@ -127,6 +127,7 @@ struct GodotModel {
     // bone whose override carries the server's stroke state, for a model
     // whose file declares a stroke plan. Null for most models.
     std::shared_ptr<const StrokeEvaluator> strokes;
+    std::vector<std::shared_ptr<const StrokeEvaluator>> tasks;
     std::string stroke_state;
     ~GodotModel();
 };
@@ -335,6 +336,11 @@ private:
         bool active = false;
         int action = -1;
         int phase = 0;
+        // The state's format (1 a stroke, 2 a looping task), the family it
+        // is evaluated with and whether its clock loops.
+        int format = 0;
+        const StrokeEvaluator *evaluator = nullptr;
+        bool loops = false;
         float told = 0.0f;
         float angle = 0.0f;
         float t = 0.0f;

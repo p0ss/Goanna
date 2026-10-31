@@ -206,14 +206,12 @@ void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
         warningstream << "Goanna: unreadable stroke marks in " << name << std::endl;
         return;
     }
-    const std::string family_name = marks["family"].asString();
-    std::shared_ptr<const StrokeFamily> family;
-    auto known = m_stroke_families.find(family_name);
-    if (known != m_stroke_families.end()) {
-        family = known->second;
-    } else {
-        // The family travels as a glTF with no scene (Luanti serves no
-        // .json media), in its root extras.
+    // A family travels as a glTF with no scene (Luanti serves no .json
+    // media), in its root extras; each is read once.
+    auto load = [&](const std::string &family_name) -> std::shared_ptr<const StrokeFamily> {
+        auto known = m_stroke_families.find(family_name);
+        if (known != m_stroke_families.end())
+            return known->second;
         std::string bytes;
         Json::Value file;
         auto parsed = std::make_shared<StrokeFamily>();
@@ -223,11 +221,14 @@ void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
                 || !parseStrokeFamily(file["extras"]["stroke_family"], *parsed)) {
             warningstream << "Goanna: stroke family " << family_name << " for " << name
                     << " is missing or unreadable" << std::endl;
-            return;
+            return nullptr;
         }
-        family = parsed;
-        m_stroke_families[family_name] = family;
-    }
+        m_stroke_families[family_name] = parsed;
+        return parsed;
+    };
+    std::shared_ptr<const StrokeFamily> family = load(marks["family"].asString());
+    if (!family)
+        return;
     StrokePlan plan;
     if (!parseStrokePlan(marks["plan"], plan)) {
         warningstream << "Goanna: unreadable stroke plan in " << name << std::endl;
@@ -239,6 +240,15 @@ void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
         return;
     }
     extras.stroke_evaluator = std::move(evaluator);
+    // Task families on the same plan, in the order the state indexes.
+    const Json::Value &tasks = marks["tasks"];
+    for (Json::ArrayIndex i = 0; tasks.isArray() && i < tasks.size(); ++i) {
+        const Json::Value &task = tasks[i];
+        std::shared_ptr<const StrokeFamily> task_family =
+                task.isArray() && task.size() == 2 && task[1].isString() ? load(task[1].asString()) : nullptr;
+        auto task_evaluator = task_family ? std::make_shared<StrokeEvaluator>(plan, task_family) : nullptr;
+        extras.task_evaluators.push_back(task_evaluator && task_evaluator->valid() ? task_evaluator : nullptr);
+    }
     extras.stroke_state = marks["state"].asString();
     ++g_stroke_models;
 }
@@ -454,6 +464,7 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
             model->jiggle = buildJiggleRig(*skinned, extras);
             if (extras && extras->stroke_evaluator) {
                 model->strokes = extras->stroke_evaluator;
+                model->tasks = extras->task_evaluators;
                 model->stroke_state = extras->stroke_state;
             }
         }
@@ -656,7 +667,25 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     // 0 arrive only for a frozen angle away from the told one or a stroke
     // cut short.
     auto it = overrides.find(m_model->stroke_state);
-    if (it == overrides.end() || std::lround(it->second.scale.vector.Z) != 1) {
+    const int format = it == overrides.end() ? 0 : (int)std::lround(it->second.scale.vector.Z);
+    // One action at a time on the bone, of any kind; the format says which.
+    const StrokeEvaluator *evaluator = nullptr;
+    bool loops = false;
+    switch (format) {
+    case 1: // a stroke
+        evaluator = m_model->strokes.get();
+        break;
+    case 2: { // a looping task: position Z picks the body's task family
+        const long task = std::lround(it->second.position.vector.Z);
+        if (task >= 0 && task < (long)m_model->tasks.size())
+            evaluator = m_model->tasks[task].get();
+        loops = true;
+        break;
+    }
+    default: // nothing, or a kind this client does not show (the clip plays)
+        break;
+    }
+    if (!evaluator) {
         m_melee = MeleeStroke();
         return;
     }
@@ -668,11 +697,15 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
         m_melee = MeleeStroke();
         return;
     }
-    const bool fresh = !m_melee.active || action != m_melee.action;
+    const bool fresh = !m_melee.active || action != m_melee.action || format != m_melee.format
+            || evaluator != m_melee.evaluator;
     if (fresh || phase != m_melee.phase || std::fabs(told - m_melee.told) > 1e-3f) {
         if (fresh)
             m_melee.angle = told;
         m_melee.active = true;
+        m_melee.format = format;
+        m_melee.evaluator = evaluator;
+        m_melee.loops = loops;
         m_melee.action = action;
         m_melee.phase = phase;
         m_melee.told = told;
@@ -686,7 +719,10 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     const float d = std::remainder(m_melee.told - m_melee.angle, 360.0f);
     const float step = 900.0f * dt;
     m_melee.angle = std::fmod(m_melee.angle + std::clamp(d, -step, step) + 360.0f, 360.0f);
-    if (m_melee.t > m_model->strokes->length())
+    // A task loops until the server ends it; a stroke is over at its length.
+    const float length = evaluator->length();
+    const float t = loops && length > 0.0f ? std::fmod(m_melee.t, length) : m_melee.t;
+    if (t > length)
         return; // over: the game's clip holds its last frame
     // Far off, the game's clip shows; at the edge, the pose fades in or
     // out over it (goanna_stroke_detail.h).
@@ -696,7 +732,7 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     scene::SkinnedMesh *mesh = m_model->skinned;
     ++g_stroke_poses;
     const uint64_t evaluated = m_stroke_lod.evaluations();
-    m_stroke_lod.pose(*m_model->strokes, m_melee.angle, m_melee.t, fresh, m_stroke_pose);
+    m_stroke_lod.pose(*evaluator, m_melee.angle, t, fresh, m_stroke_pose);
     g_stroke_evaluations += m_stroke_lod.evaluations() - evaluated;
     for (const StrokeBonePose &b : m_stroke_pose) {
         auto jn = mesh->getJointNumber(b.bone);
@@ -976,8 +1012,10 @@ void ModelAnimator::planSteps() {
     // otherwise the bind's. The server sends a commit only when the angle
     // it froze differs from the one told, so the stroke's own clock says
     // when it has committed.
-    const bool striking = m_melee.active && m_melee.t <= m_model->strokes->length();
-    in.hold = striking && (m_melee.phase >= 2 || m_melee.t >= m_model->strokes->commit());
+    const StrokeEvaluator *shown = m_melee.evaluator;
+    const bool striking = m_melee.active && shown && (m_melee.loops || m_melee.t <= shown->length());
+    // A task's feet stay planted throughout; a stroke's from its commit.
+    in.hold = striking && (m_melee.loops || m_melee.phase >= 2 || m_melee.t >= shown->commit());
     in.crouch = striking ? m_crouch_request * scale : 0.0f;
     for (const FootFit &f : m_feet) {
         in.hips.push_back(world(toGodotTransform(m_globals[f.hip]).origin));

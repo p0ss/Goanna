@@ -68,6 +68,10 @@ struct ModelExtras {
     // rides on (goanna_strokes.h). ModelCache builds the evaluator from it.
     std::string strokes;
     std::shared_ptr<const StrokeEvaluator> stroke_evaluator;
+    // The body's task families ("tasks": [[kind, family file], ...]) on
+    // the same plan, in order: a task state's position Z indexes them. An
+    // entry is null when its family is missing or unreadable.
+    std::vector<std::shared_ptr<const StrokeEvaluator>> task_evaluators;
     std::string stroke_state;
     bool empty() const { return jiggle.empty() && colliders.empty() && strokes.empty(); }
 };
