@@ -960,18 +960,18 @@ func _draw_plan_runes(rect: Dictionary) -> void:
 		var best: Vector2 = list[0]
 		for c in list:
 			if c.distance_squared_to(mean) < best.distance_squared_to(mean): best = c
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		m.albedo_texture = texture
-		var mesh := PlaneMesh.new()
-		mesh.size = Vector2(0.8, 0.8)
-		mesh.material = m
-		var node := MeshInstance3D.new()
-		node.mesh = mesh
+		# A flat sprite drawn over the map like the "You" caption, so the
+		# terrain beneath never hides it.
+		var node := Sprite3D.new()
+		node.texture = texture
+		node.axis = Vector3.AXIS_Y
+		node.pixel_size = 0.8 / maxf(1.0, float(texture.get_width()))
+		node.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		node.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		node.shaded = false
+		node.no_depth_test = true
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		node.position = Vector3(best.x, level + 30.12, -best.y)
+		node.position = Vector3(best.x, level + 30.15, -best.y)
 		overlay.add_child(node)
 
 ## The Marks toggle: show or hide this player's plan marks in the world.
