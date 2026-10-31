@@ -42,6 +42,7 @@
 #include "goanna_animation.h"
 #include "goanna_jiggle.h"
 #include "goanna_limbs.h"
+#include "goanna_stroke_detail.h"
 
 struct BoneOverride;
 namespace scene {
@@ -204,6 +205,12 @@ public:
     // renderer says where the model stands each frame.
     bool fitsFeet() const { return m_model->strokes != nullptr; }
     void setGround(GroundFrame frame) { m_ground = std::move(frame); }
+    // How much of the stroke and foot fitting to work out from the next
+    // step (goanna_stroke_detail.h), chosen by the renderer from the
+    // distance to the camera; Full until set. strokeDetail() is the tier
+    // the last step used, for the renderer's hysteresis.
+    void setStrokeDetail(StrokeDetail detail) { m_stroke_detail = detail; }
+    StrokeDetail strokeDetail() const { return m_stroke_lod.detail(); }
     // The lift of each fitted foot and the body's drop after the last step,
     // nodes, for tests and status.
     size_t fittedFeet() const { return m_feet.size(); }
@@ -325,11 +332,17 @@ private:
         u32 hip = 0, knee = 0, ankle = 0;
         std::vector<u32> below_hip, below_knee, below_ankle;
         float lift = 0.0f;
+        float want = 0.0f; // the lift the ground last asked for
     };
     std::vector<FootFit> m_feet;
     bool m_feet_found = false;
     float m_body_drop = 0.0f;
     GroundFrame m_ground;
+    // The stroke's and the feet's detail by distance, and the stroke pose
+    // being shown.
+    StrokeDetail m_stroke_detail = StrokeDetail::Full;
+    StrokeLod m_stroke_lod;
+    std::vector<StrokeBonePose> m_stroke_pose;
     JiggleFrame m_jiggle_frame;
     JiggleSolver m_jiggle;
     bool m_posed = false; // m_globals holds a stepped pose
@@ -339,6 +352,12 @@ private:
 // poses animators have evaluated, since start: for status and live tests.
 int strokeModelCount();
 uint64_t strokePoseCount();
+// How many times animators have called a stroke evaluator since start
+// (fewer than stroke poses once bodies are further out), and how many
+// bodies with a stroke plan the renderer put in each tier its last sync.
+uint64_t strokeEvaluationCount();
+int strokeDetailCount(StrokeDetail detail);
+void setStrokeDetailCounts(int full, int reduced, int clip);
 // How many animator steps had a foot lifted or lowered more than 0.05
 // nodes to the ground, and the most any foot was, nodes, since start.
 uint64_t fittedFootFrames();

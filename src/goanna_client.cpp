@@ -323,6 +323,10 @@ Dictionary GoannaClient::status() const {
     d["entities"] = m_entities ? m_entities->count() : 0;
     d["stroke_models"] = strokeModelCount();
     d["stroke_poses"] = (int64_t)strokePoseCount();
+    d["stroke_evaluations"] = (int64_t)strokeEvaluationCount();
+    d["stroke_bodies_full"] = strokeDetailCount(StrokeDetail::Full);
+    d["stroke_bodies_reduced"] = strokeDetailCount(StrokeDetail::Reduced);
+    d["stroke_bodies_clip"] = strokeDetailCount(StrokeDetail::Clip);
     d["feet_fitted_frames"] = (int64_t)fittedFootFrames();
     d["feet_fitted_most"] = fittedFootMost();
     d["media_received"] = (int)s.media_received;

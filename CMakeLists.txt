@@ -108,6 +108,7 @@ add_library(goanna SHARED
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
+    src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
@@ -379,6 +380,15 @@ add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_strokes_test PRIVATE src)
 target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 
+# Melee strokes by distance from the camera: tiers, fades, interpolation
+# against full evaluation, and the cost of a crowd before and after.
+add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL
+    src/goanna_stroke_detail_test.cpp
+    src/goanna_stroke_detail.cpp
+    src/goanna_strokes.cpp)
+target_include_directories(goanna_stroke_detail_test PRIVATE src "${LUANTI_DIR}/irr/include")
+target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -413,6 +423,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_radial_form_test
     goanna_ripples_test
     goanna_schedule_test
+    goanna_stroke_detail_test
     goanna_strokes_test
     goanna_surface_test
     goanna_upright_sprite_test
