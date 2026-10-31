@@ -73,6 +73,7 @@ var houses: RefCounted
 ## workshop picker; it covers the map while shown.
 const DataTable := preload("res://ui/data_table.gd")
 const QUIET := Color(0.62, 0.64, 0.68)
+const SELECT_HINT := "Select a cell to inspect it. The world remains live."
 var table_panel: PanelContainer
 var table: DataTable
 var table_refresh: Button
@@ -334,7 +335,7 @@ func build(host: Node) -> void:
 	view.room_name.max_length = 80
 	view.room_name.custom_minimum_size.y = 44
 	context.add_child(view.room_name)
-	view.inspector = label(context, "Select a cell to inspect it. The world remains live.")
+	view.inspector = label(context, SELECT_HINT)
 	draft_label = label(context, "")
 	return_draft = button(context, "Return to draft level", view.return_to_draft)
 	submit = button(context, "Submit plan", view.submit_draft)
@@ -451,18 +452,21 @@ func reflow() -> void:
 	var top_edge := top.position.y + top.size.y + 8
 	var bottom_edge := -footer_height - 20
 	left.offset_top = top_edge
-	left.offset_bottom = bottom_edge
+	# The rail runs to the window's foot and the footer starts beside it,
+	# so both groups fit at 1280 by 720 without scrolling.
+	left.offset_bottom = -12
 	# As wide as the longest shown label, so none wraps mid-word; at large
 	# text, past a quarter of the window, the rail scrolls sideways.
 	var widest := 0.0
 	for b in family_buttons:
-		b.custom_minimum_size = Vector2(0, maxf(48, 18 * scale * 1.6 + 8))
+		b.custom_minimum_size = Vector2(0, maxf(40, 18 * scale * 1.6 + 8))
 		if b.get_parent() == rail and b.visible: widest = maxf(widest, b.get_combined_minimum_size().x)
 	var wanted := widest + 24.0 + 4.0
 	var room := maxf(136.0, size.x * 0.25)
 	left.offset_right = minf(maxf(136.0, wanted), room) + 12
 	rail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if wanted > room \
 		else ScrollContainer.SCROLL_MODE_DISABLED
+	footer.offset_left = left.offset_right + 8
 	navigation.columns = 3 if scale > 1.3 else 5
 	var nav_height := ((maxf(48, 18 * scale * 1.6 + 8) * 2.0 + 28) if scale > 1.3 else 80.0) + player_location.get_combined_minimum_size().y + 4
 	nav.offset_left = -width - 12
@@ -703,7 +707,10 @@ func refresh_table() -> void:
 	if kind == "workshops":
 		for control in [material_label, view.build_material, requirements, change_workshop, draft_label, submit, discard, return_draft]:
 			control.visible = false
-	if kind in ["workshops", "houses"]:
+	# The map's "select a cell" hint means nothing over a table or the
+	# Houses pages; a server's answer (Act, Drop) still shows.
+	if kind in ["workshops", "houses"] or family == "Houses" \
+			or (kind == "plans" and view.inspector.text == SELECT_HINT):
 		view.inspector.visible = false
 		other_tools.visible = false
 	reflow()

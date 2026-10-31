@@ -462,3 +462,61 @@ since (the View menu is the later fix);
 the rail's labels wrap ("Supplie s") at 100 percent. Device input
 (controller, touch) was exercised only through synthetic events in the
 structural tests.
+
+### Screens, second pass, 1 November 2026
+
+The rest of DorfCraft's "Screens to bring in line" for the overseer
+(`interface-layout.md`; DorfCraft `docs/interface-rules.md`), with the
+maintainer's rulings of 31 October and 1 November 2026.
+
+- **Header and rail.** Select and Map focus are header tools beside the
+  view's name. The rail holds two groups under quiet headings, Plan (Zones,
+  Build, Terrain, Gather, Devices, Defence) and Fortress (People, Supplies,
+  Houses, Plans), 24 px apart. Labels never wrap: the rail is as wide as
+  its longest shown label, up to a quarter of the window, and scrolls
+  sideways past that at large text. Its buttons are 40 px high, the
+  rule's least, and the rail runs to the window's foot with the footer
+  beside it, so both groups fit at 1280 by 720; at 200 percent text it
+  scrolls. Hidden sections are absent, and a
+  heading goes with its last section; locked ones stay greyed with the
+  server's reason, as before.
+- **View menu.** The footer has the status, one View menu and Legend. The
+  menu lists each overlay as a check item and, once the server answers,
+  "Plan marks in the world" (DorfCraft's marks part). The button names
+  what is on ("View: Heat", "View (2)"). A task view lists only its
+  task's overlays with the first on, and shows no menu when it has none.
+  Legend stays its own quiet button: it is help to read, not a setting,
+  and inside the menu it would take a second click to find. It now names
+  the night watch's small pale blue squares, which no legend explained;
+  task views other than Defence leave the militia's stations, rings and
+  watch out (`drawn_zone_marks`).
+- **Plans.** When the server sends a `table` with its `plans` list, Plans
+  covers the map with the table widget, danger and blocked first. The
+  chosen row's detail and its actions (row field `actions`: id, label,
+  `primary`, help) sit in the context panel; the server's primary action
+  takes the one accent, else Show on map does. Choosing a new page marks
+  it read; the Progress verb opens Plans with its plan chosen. An older
+  server keeps the older list.
+- **Houses.** The `houses` message's `table` covers the map: house, head,
+  players, workers, colour (column kind `swatch`: the widget leads the
+  label with a square of the row's `swatch` colour) and access marks
+  shared and locked. The owner's controls, offices and the head's workers
+  open from Offices and workers; the access tools from Mark access; each
+  has Back to houses, and Back does the same.
+- **One task per panel.** While any table covers the map, the map's tool
+  list is not shown beneath its detail. The workshop picker shows no
+  context panel until a row is chosen, then that workshop and Use this
+  workshop only. With a workshop chosen, the panel is that workshop's,
+  with Other Build tools in place of the tool list.
+- **Grouped tools.** The member picker (Crop, Room type, Storage type)
+  now shows for any family's grouped tool, so DorfCraft's Build Shape
+  group (Line, Wall, Box and the rest) can be changed from its first
+  shape.
+
+`tests/overseer_screens.gd` (structural, 57 checks) covers all of this.
+On 1 November 2026, with Godot 4.5.1 headless: overseer 83, overseer_ux
+45, overseer_verbs 26, overseer_runes 24 (one fewer: Select left the
+rail), overseer_houses 55, overseer_tables 33 (the check that the Build
+tools stay beside the picker is replaced by its opposite), data_table 21
+and overseer_screens 57, all passing. The table widget's first column now
+keeps room for 14 characters.

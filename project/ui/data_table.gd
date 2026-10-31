@@ -206,7 +206,7 @@ func _build_columns() -> void:
 		# Enough for a short value at the current text size; past that the
 		# rows scroll sideways rather than clipping every cell to nothing.
 		var size := tree.get_theme_font_size("font_size")
-		var chars := maxi(5 if number else 8, str(c.get("label", "")).length() + 3)
+		var chars := maxi(5 if number else (14 if i == 0 else 8), str(c.get("label", "")).length() + 3)
 		tree.set_column_custom_minimum_width(i, int(size * 0.6 * chars))
 
 ## Clicking a heading sorts by it; clicking it again reverses.

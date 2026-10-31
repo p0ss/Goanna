@@ -67,6 +67,10 @@ func rail(view: Node) -> void:
 	for b in ui.family_buttons: if b.get_meta("family") == "Supplies": supplies = b
 	check(supplies.get_global_rect().end.x <= ui.left.get_global_rect().end.x, "Supplies fits inside the rail")
 	check(ui.rail_scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED, "the rail does not scroll sideways at 100 percent")
+	var plans_b: Button
+	for b in ui.family_buttons: if b.get_meta("family") == "Plans": plans_b = b
+	check(plans_b.get_global_rect().end.y <= ui.left.get_global_rect().end.y - 8 and plans_b.size.y >= 40,
+		"both groups fit the rail at 1280 by 720, with 40 px targets")
 	var defence: Button
 	for b in ui.family_buttons: if b.get_meta("family") == "Defence": defence = b
 	check(defence.modulate.a < 1.0 and defence.tooltip_text == "Raise a militia first.", "a locked section is greyed with how to unlock it")
