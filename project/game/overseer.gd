@@ -129,6 +129,92 @@ void fragment() {
 	ALPHA = ink.a * stripe;
 }
 """
+# Houses (DorfCraft's co-op households, `houses` in the layer): a housed
+# room, zone, lock, station or order is filled with its house's field
+# pattern in the house colour, faint, under the other sheets. The pattern is
+# anchored to world nodes so it runs on across a room's cells, and its edges
+# are smoothed by screen derivative so it stays crisp at every zoom. Ids the
+# client does not know get a plain diagonal hatch. HOUSE_PATTERNS index the
+# shader's `pattern`; 0 is the hatch. The ids are DorfCraft's
+# `R.field_patterns` (mods/kindred/settlement/runes/symbols.lua).
+const HOUSE_PATTERNS := ["", "chequy", "lozengy", "paly", "barry", "bendy", "fretty",
+	"masoned", "gyronny", "diaper", "semy"]
+const HOUSE_LIMIT := 64
+const HOUSE_FILL := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
+uniform vec4 ink : source_color;
+uniform int pattern = 0;
+uniform float base = 0.08;
+uniform float strength = 0.34;
+varying vec2 world;
+void vertex() {
+	// Node (x, z) is drawn at (x, -z); cell edges fall on whole numbers.
+	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz * vec2(1.0, -1.0) + 0.5;
+}
+float aa(float v) { return max(fwidth(v), 1e-4); }
+// 1 on the middle half of each period of v.
+float half_period(float v) { return clamp((0.25 - abs(fract(v) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
+// 1 within w of a whole number of v.
+float line(float v, float w) { return clamp((w - abs(fract(v + 0.5) - 0.5)) / aa(v) + 0.5, 0.0, 1.0); }
+float either(float a, float b) { return a + b - 2.0 * a * b; }
+void fragment() {
+	vec2 p = world;
+	float m;
+	if (pattern == 1) m = either(half_period(p.x), half_period(p.y));
+	else if (pattern == 2) m = either(half_period(p.x + p.y), half_period(p.x - p.y));
+	else if (pattern == 3) m = half_period(p.x);
+	else if (pattern == 4) m = half_period(p.y);
+	else if (pattern == 5) m = half_period((p.x + p.y) * 1.5);
+	else if (pattern == 6) m = max(line((p.x + p.y) * 1.5, 0.09), line((p.x - p.y) * 1.5, 0.09));
+	else if (pattern == 7) {
+		float row = floor(p.y * 2.0);
+		m = max(line(p.y * 2.0, 0.08), line(p.x + 0.5 * mod(row, 2.0), 0.05));
+	} else if (pattern == 8) {
+		vec2 c = fract(p) - 0.5;
+		m = mod(floor(atan(c.y, c.x) / 0.785398 + 8.0), 2.0);
+	} else if (pattern == 9) {
+		vec2 q = vec2(p.x + p.y, p.x - p.y) * 1.5;
+		vec2 d = fract(q) - 0.5;
+		m = max(max(line(q.x, 0.05), line(q.y, 0.05)),
+			clamp((0.14 - length(d)) / aa(q.x) + 0.5, 0.0, 1.0));
+	} else if (pattern == 10) {
+		vec2 q = p * 2.0;
+		float kept = 1.0 - mod(floor(q.x) + floor(q.y), 2.0);
+		m = kept * clamp((0.2 - length(fract(q) - 0.5)) / aa(q.x) + 0.5, 0.0, 1.0);
+	} else m = line((p.x - p.y) * 3.0, 0.1);
+	ALBEDO = ink.rgb;
+	ALPHA = ink.a * mix(base, strength, m);
+}
+"""
+# Access marks: shared is a ring in the house colour; locked adds a solid
+# corner, so the two read apart at a glance even in the same colour.
+const ACCESS_MARK := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled;
+uniform vec4 ink : source_color;
+uniform bool locked = false;
+void fragment() {
+	vec2 c = abs(UV - 0.5);
+	float edge = max(c.x, c.y);
+	float w = max(fwidth(edge), 1e-4);
+	float inner = locked ? 0.34 : 0.39;
+	float ring = clamp((edge - inner) / w + 0.5, 0.0, 1.0) * clamp((0.48 - edge) / w + 0.5, 0.0, 1.0);
+	float mark = ring;
+	vec3 colour = ink.rgb;
+	if (locked) {
+		float corner = UV.x + UV.y;
+		float cw = max(fwidth(corner), 1e-4);
+		float solid = clamp((0.8 - corner) / cw + 0.5, 0.0, 1.0);
+		float rim = solid - clamp((0.7 - corner) / cw + 0.5, 0.0, 1.0);
+		mark = max(ring, solid);
+		colour = mix(ink.rgb, vec3(0.04), rim * 0.8);
+	}
+	ALBEDO = colour;
+	ALPHA = ink.a * mark;
+}
+"""
+const ACCESS_UNKNOWN_HOUSE := Color(0.92, 0.92, 0.88)
 const WATCH := Color(0.55, 0.65, 1.0, 0.85)
 # The seasons' field (the layer's `climate` overlay), by level 1 to 15 of
 # the server's bands. Heat runs from deep blue through a faint middle, where
@@ -140,10 +226,12 @@ const HEAT_RAMP := [[1, Color(0.15, 0.25, 0.85, 0.5)], [6, Color(0.55, 0.8, 1.0,
 const WET_RAMP := [[1, Color(0.85, 0.6, 0.3, 0.5)], [4, Color(0.95, 0.85, 0.55, 0.34)],
 	[7, Color(0.9, 0.92, 0.9, 0.12)], [9, Color(0.4, 0.8, 0.6, 0.3)],
 	[11, Color(0.2, 0.6, 0.95, 0.4)], [15, Color(0.1, 0.2, 0.8, 0.55)]]
-var shown_overlays := {"rooms": false, "miasma": false, "traffic": false, "heat": false, "wet": false}
+var shown_overlays := {"rooms": false, "miasma": false, "traffic": false, "heat": false, "wet": false, "access": false}
 # Officers' pages to this planner, by id, as the server last sent them.
 var pages: Dictionary = {}
 var overlay_sheets: Node3D
+var house_shader: Shader
+var access_shader: Shader
 
 func _ready() -> void:
 	layer = 150
@@ -1023,6 +1111,14 @@ func _draw_overlays() -> void:
 			for c in by_level[lv]:
 				positions.append(Vector3(c.x, level + 30.03, -c.y))
 			_planes(overlay_sheets, positions, _colour(climate_colour(kind, lv)), step, step)
+	# Housed plans, under every other sheet and outline.
+	var houses := house_table(snapshot)
+	var fills := house_cells(snapshot)
+	for id in fills:
+		var positions: Array = []
+		for c in fills[id]:
+			positions.append(Vector3(c.x, level + 30.04, -c.y))
+		_planes(overlay_sheets, positions, _house_material(houses[id]), 1.0, 1.0)
 	var groups: Array = []
 	if shown_overlays.rooms:
 		var rooms := room_cells(snapshot)
@@ -1070,6 +1166,35 @@ func _draw_overlays() -> void:
 		for c in group[1]:
 			positions.append(Vector3(c.x, level + 30.08, -c.y))
 		_planes(overlay_sheets, positions, _colour(group[0]), group[2], group[2])
+	if shown_overlays.access:
+		var access := access_marks(snapshot)
+		for state in ["shared", "locked"]:
+			for id in access[state]:
+				var positions: Array = []
+				for c in access[state][id]:
+					positions.append(Vector3(c.x, level + 30.09, -c.y))
+				var ink: Color = houses[id].colour if houses.has(id) else ACCESS_UNKNOWN_HOUSE
+				_planes(overlay_sheets, positions, _access_material(ink, state == "locked"), 1.0, 1.0)
+
+func _house_material(house: Dictionary) -> ShaderMaterial:
+	if house_shader == null:
+		house_shader = Shader.new()
+		house_shader.code = HOUSE_FILL
+	var material := ShaderMaterial.new()
+	material.shader = house_shader
+	material.set_shader_parameter("ink", house.colour)
+	material.set_shader_parameter("pattern", house_pattern(house.pattern))
+	return material
+
+func _access_material(ink: Color, locked: bool) -> ShaderMaterial:
+	if access_shader == null:
+		access_shader = Shader.new()
+		access_shader.code = ACCESS_MARK
+	var material := ShaderMaterial.new()
+	material.shader = access_shader
+	material.set_shader_parameter("ink", Color(ink, 0.95))
+	material.set_shader_parameter("locked", locked)
+	return material
 
 static func _known_cell(layer: Dictionary, x: int, z: int) -> bool:
 	var r: Variant = layer.get("rect")
@@ -1235,6 +1360,108 @@ static func _overlay_list(layer: Dictionary, kind: String) -> Array:
 		return []
 	return overlays[kind].slice(0, OVERLAY_LIMIT)
 
+# A house id as a string key: JSON gives numbers as floats, and a Lua table
+# of ids 1 to n arrives as an array.
+static func house_id(v: Variant) -> String:
+	if v is String: return v.left(64)
+	if _number(v): return str(int(v))
+	return ""
+
+## The layer's houses by id: {surname, head, colour, pattern, owner}. An
+## older server sends none; a malformed record is skipped. `owner` (the
+## fortress owner's own house, drawn as unhoused) is read if the server
+## marks it.
+static func house_table(layer: Dictionary) -> Dictionary:
+	var out := {}
+	var raw: Variant = layer.get("houses")
+	var pairs: Array = []
+	if raw is Dictionary:
+		for k in raw: pairs.append([k, raw[k]])
+	elif raw is Array:
+		for i in raw.size(): pairs.append([i + 1, raw[i]])
+	for pair in pairs.slice(0, HOUSE_LIMIT):
+		var id := house_id(pair[0])
+		var h: Variant = pair[1]
+		if id.is_empty() or not h is Dictionary: continue
+		var hex: Variant = h.get("colour")
+		if not hex is String or hex.length() != 7 or not hex.begins_with("#") or not hex.substr(1).is_valid_hex_number():
+			continue
+		out[id] = {"surname": str(h.get("surname", "")).left(64).replace("\n", " "),
+			"head": str(h.get("head", "")).left(64).replace("\n", " "),
+			"colour": Color.html(hex), "pattern": str(h.get("pattern", "")).left(32),
+			"owner": h.get("owner", false) == true}
+	return out
+
+## The shader index of a field pattern id; 0, the diagonal hatch, for any
+## id this client does not know.
+static func house_pattern(name: String) -> int:
+	return maxi(HOUSE_PATTERNS.find(name), 0) if not name.is_empty() else 0
+
+## "House Surname" for an entry's `house`, or "" when it has none.
+static func house_name(houses: Dictionary, v: Variant) -> String:
+	var id := house_id(v)
+	if id.is_empty() or not houses.has(id): return ""
+	var surname: String = houses[id].surname
+	return "House " + surname if not surname.is_empty() else "A house"
+
+static func _house_suffix(houses: Dictionary, entry: Variant) -> String:
+	if not entry is Dictionary: return ""
+	var name := house_name(houses, entry.get("house"))
+	return " (%s)" % name if not name.is_empty() else ""
+
+static func _cell_of(e: Variant) -> Variant:
+	if not e is Dictionary: return null
+	if _pos(e.get("pos")): return e.pos
+	if _number(e.get("x")) and _number(e.get("z")): return e
+	return null
+
+## Known cells on this level of every housed room, zone, lock, station and
+## order, by house id. The owner's house and unhoused entries are left out,
+## so they look as they did before houses.
+static func house_cells(layer: Dictionary) -> Dictionary:
+	var houses := house_table(layer)
+	var sets := {}
+	if houses.is_empty() or not layer.get("rect") is Dictionary: return {}
+	var add := func(entry: Variant, cells: Array) -> void:
+		var id := house_id(entry.get("house"))
+		if id.is_empty() or not houses.has(id) or houses[id].owner: return
+		if not sets.has(id): sets[id] = {}
+		for c in cells: sets[id][c] = true
+	for kind in ["rooms", "zones"]:
+		for e in _overlay_list(layer, kind):
+			if e is Dictionary and e.has("house"): add.call(e, _rectangle_cells(layer, [e]))
+	for kind in ["locks", "stations"]:
+		for e in _overlay_list(layer, kind):
+			var p: Variant = _cell_of(e)
+			if p != null and e.has("house") and _known_cell(layer, int(p.x), int(p.z)):
+				add.call(e, [Vector2i(int(p.x), int(p.z))])
+	var orders: Variant = layer.get("orders")
+	if orders is Array:
+		for e in orders.slice(0, 4096):
+			if not e is Dictionary or not e.has("house") or not _pos(e.get("pos")): continue
+			if int(e.pos.y) == int(layer.get("y", -32000)) and _known_cell(layer, int(e.pos.x), int(e.pos.z)):
+				add.call(e, [Vector2i(int(e.pos.x), int(e.pos.z))])
+	var out := {}
+	for id in sets: out[id] = sets[id].keys()
+	return out
+
+## Access marks on known cells of this level: {"shared": {house id: cells},
+## "locked": {...}}. A mark naming no known house keys as "".
+static func access_marks(layer: Dictionary) -> Dictionary:
+	var out := {"shared": {}, "locked": {}}
+	var houses := house_table(layer)
+	for e in _overlay_list(layer, "access"):
+		var p: Variant = _cell_of(e)
+		if p == null or not e.get("state") in ["shared", "locked"]: continue
+		if p.has("y") and int(p.y) != int(layer.get("y", -32000)): continue
+		if not _known_cell(layer, int(p.x), int(p.z)): continue
+		var id := house_id(e.get("house"))
+		if not houses.has(id): id = ""
+		var by: Dictionary = out[e.state]
+		if not by.has(id): by[id] = []
+		by[id].append(Vector2i(int(p.x), int(p.z)))
+	return out
+
 # Cells of each room on this level, by tier; -1 for not yet surveyed.
 static func room_cells(layer: Dictionary) -> Dictionary:
 	var out := {}
@@ -1357,13 +1584,14 @@ static func miasma_cells(layer: Dictionary) -> Dictionary:
 # What the overlays say about one cell, for Inspect.
 static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 	var notes := ""
+	var houses := house_table(layer)
 	for e in _overlay_list(layer, "rooms"):
 		if not e is Dictionary or not e.get("rect") is Dictionary:
 			continue
 		var b: Dictionary = e.rect
 		if pos.x < b.get("x0", 0) or pos.x > b.get("x1", -1) or pos.z < b.get("z0", 0) or pos.z > b.get("z1", -1):
 			continue
-		var name := "%s \"%s\"" % [str(e.get("title", "Room")), str(e.get("name", ""))]
+		var name := "%s \"%s\"%s" % [str(e.get("title", "Room")), str(e.get("name", "")), _house_suffix(houses, e)]
 		if e.get("surveyed", false) == true:
 			notes += "\n%s: %s, %s points, as of day %s" % [name, str(e.get("tier_name", "")),
 				str(e.get("points", 0)), str(e.get("day", "?"))]
@@ -1415,19 +1643,30 @@ static func overlay_notes(layer: Dictionary, pos: Dictionary) -> String:
 	if _known_cell(layer, int(pos.x), int(pos.z)):
 		for entry in _overlay_list(layer, "zones"):
 			if _inside_rectangle(entry, pos):
-				notes += "\nForbidden area: workers take no work here"
+				notes += "\nForbidden area%s: workers take no work here" % _house_suffix(houses, entry)
 				break
 		for entry in _overlay_list(layer, "locks"):
 			if entry is Dictionary and entry.get("x") == pos.x and entry.get("z") == pos.z:
-				notes += "\nLocked door"
+				notes += "\nLocked door" + _house_suffix(houses, entry)
 				break
+		for entry in _overlay_list(layer, "access"):
+			var p: Variant = _cell_of(entry)
+			if p == null or int(p.x) != int(pos.x) or int(p.z) != int(pos.z): continue
+			if p.has("y") and int(p.y) != int(pos.get("y", p.y)): continue
+			var who := house_name(houses, entry.get("house"))
+			if who.is_empty(): who = "its house"
+			if entry.get("state") == "locked":
+				notes += "\nLocked: only %s may use it" % who
+			elif entry.get("state") == "shared":
+				notes += "\nShared by %s: others may use it, not dig it" % who
+			break
 	notes += guard_notes(layer, pos)
 	for e in _overlay_list(layer, "watch"):
 		if e is Dictionary and e.get("kind") == "door" and e.get("x") == pos.x and e.get("z") == pos.z:
 			notes += "\nOuter door: watched by soldiers at night"
 	for e in _overlay_list(layer, "stations"):
 		if e is Dictionary and e.get("x") == pos.x and e.get("z") == pos.z:
-			notes += "\nStation: %s" % ("all soldiers" if str(e.get("squad", "*")) == "*" else str(e.get("squad")))
+			notes += "\nStation: %s%s" % ["all soldiers" if str(e.get("squad", "*")) == "*" else str(e.get("squad")), _house_suffix(houses, e)]
 	return notes
 
 func _cell(screen: Vector2) -> Dictionary:
@@ -1478,7 +1717,8 @@ func select_cell(pos: Dictionary) -> void:
 					break
 		for order_entry in snapshot.get("orders", []):
 			if order_entry.get("pos") == pos:
-				inspector.text += "\n%s: %s %s" % [order_entry.get("kind", "Order"), order_entry.get("state", ""), order_entry.get("reason", "")]
+				inspector.text += "\n%s%s: %s %s" % [order_entry.get("kind", "Order"), _house_suffix(house_table(snapshot), order_entry),
+					order_entry.get("state", ""), order_entry.get("reason", "")]
 		inspector.text += overlay_notes(snapshot, pos)
 	elif first_corner == null:
 		first_corner = pos.duplicate()

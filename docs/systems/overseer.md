@@ -123,6 +123,26 @@ read as unknown, without a failure hatch or a claim of coverage. Hatches
 stay inside known cells, including at unexplored edges. The Devices and
 Defence tool families come from the server's tool list like the others.
 
+Houses are DorfCraft's co-op households (its `docs/tasks/coop-fortress.md`).
+A layer may carry `houses`, `{[id] = {surname, head, colour = "#rrggbb",
+pattern}}`, and `house = id` on rooms, zones, locks, stations and orders.
+A housed entry's known cells get a faint fill of the house's field pattern
+in the house colour, under every other sheet and outline, always shown like
+the designations. The pattern is drawn by a shader in world node
+coordinates, so it runs on across a room, and its edges are smoothed by
+screen derivative, so it stays crisp from close zoom to the widest view.
+It knows DorfCraft's `R.field_patterns` (diaper, semy, chequy, lozengy,
+paly, barry, bendy, fretty, masoned, gyronny); any other id gets a plain
+diagonal hatch. Unhoused entries, entries naming a house the layer does not
+list, and a house marked `owner = true` look as they did before houses.
+The Access toggle draws the `access` overlay, `{pos, state, house}`: a
+shared cell is a ring in the house colour, a locked one a thicker ring with
+a solid corner, so the two read apart even in one colour; a mark naming no
+listed house is off-white. Inspect and Plans add "(House Surname)" after
+the room, zone, lock, station, order or author, and Inspect says what a
+shared or locked mark allows. An older server sends none of this, and the
+view is unchanged.
+
 Officers' pages arrive in the hello and as `page` messages. The newest
 unseen danger page is a red line in the header that locates it and marks
 it seen; the Plans button counts unseen pages. Plans lists pages first,
@@ -148,6 +168,12 @@ terrain light field. Sun and moon directions and energies also follow the
 ordinary scene; changing the time changes their actual cast shadows.
 
 ## Tests
+
+`res://tests/overseer_houses.gd` checks house parsing, fills, access marks
+and the house in Inspect and Plans the same way, headless.
+`res://tests/overseer_houses_render.tscn` renders every pattern and both
+access marks from a synthetic layer with no server, through
+`tools/goanna-headless fixture ... --software`; frames go to `$GOANNA_OUT`.
 
 These use Godot 4.5.1 with its headless dummy renderer, and do not take GPU
 time:

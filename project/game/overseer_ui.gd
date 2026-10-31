@@ -259,14 +259,15 @@ func build(host: Node) -> void:
 	for pair in [["Rooms", "rooms", "Show room quality by tier"], ["Miasma", "miasma", "Show smell from seen carrion"],
 			["Traffic", "traffic", "Show where workers go, where they are and their recent trails"],
 			["Heat", "heat", "Show how hot or cold the fortress has found each place"],
-			["Wetness", "wet", "Show how wet or dry the fortress has found each place"]]:
+			["Wetness", "wet", "Show how wet or dry the fortress has found each place"],
+			["Access", "access", "Show what each house has shared or locked"]]:
 		var toggle := button(footer_row, pair[0], view.toggle_overlay.bind(pair[1]))
 		toggle.toggle_mode = true
 		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
 	var legend := button(footer_row, "Legend", func() -> void:
-		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. The world remains live."
+		view.inspector.text = "Black: unexplored. Grey: unavailable. Muted: remembered. Blue-white haze: known space below. Rooms: grey unsurveyed, then bare, furnished, decorated, adorned. Miasma: green, darker where stronger. Traffic: orange, redder where busier; workers cyan. Heat: blue where cold, faint where comfortable, orange to red where hot. Wetness: tan where dry, faint where comfortable, green to deep blue where wet. Red: forbidden area, dark red: locked door, blue: militia station and patrol posts, pale blue: protected area designation, without guaranteed guard coverage. Amber diagonal lines: partial patrol access. Red crosshatch: sampled patrol posts unreachable. Purple outline: a plan proposed for you. Faint patterned fill: a house's plan, room or designation, in the house colour and the fortress's field pattern. Access: a ring in the house colour where it is shared, a ring with a solid corner where it is locked. The world remains live."
 	)
 	legend.autowrap_mode = TextServer.AUTOWRAP_OFF
 	legend.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -538,6 +539,11 @@ func refresh() -> void:
 	if is_plans: view.build_material.hide()
 	if is_plans and not plans.get_selected_items().is_empty(): select_plan(plans.get_selected_items()[0])
 
+## An entry's author, with its house when the server names one the layer
+## knows ("alice (House Brightvein)").
+func by_house(entry: Dictionary, fallback: String) -> String:
+	return str(entry.get("by", fallback)) + view._house_suffix(view.house_table(view.snapshot), entry)
+
 ## Takes the server's answer to a "plans" request.
 func update_plans(value: Array) -> void:
 	if records == value: return
@@ -545,11 +551,11 @@ func update_plans(value: Array) -> void:
 	plans.clear()
 	for entry in records:
 		if entry.get("state") == "Proposed":
-			plans.add_item("Proposed  %s  for %s" % [entry.get("title", entry.kind), entry.get("by", "")])
+			plans.add_item("Proposed  %s  for %s" % [entry.get("title", entry.kind), by_house(entry, "")])
 			continue
 		if entry.get("kind") == "page":
 			var times := " x%d" % int(entry.total) if int(entry.get("total", 1)) > 1 else ""
-			plans.add_item("%s  %s  %s%s" % [entry.get("title", "Note"), entry.get("by", ""), entry.state, times])
+			plans.add_item("%s  %s  %s%s" % [entry.get("title", "Note"), by_house(entry, ""), entry.state, times])
 			continue
 		plans.add_item("%s  %s  %s (%s/%s)" % [entry.id, entry.get("title", entry.kind), entry.state, entry.done, entry.total])
 		if entry.id == selected_id: plans.select(plans.item_count - 1)
@@ -565,11 +571,11 @@ func select_plan(index: int) -> void:
 	selected_id = str(entry.id)
 	var is_page: bool = entry.get("kind") == "page"
 	if is_page:
-		plan_detail.text = "%s from %s\n%s" % [entry.get("title", "Note"), entry.get("by", ""), str(entry.get("reason", ""))]
+		plan_detail.text = "%s from %s\n%s" % [entry.get("title", "Note"), by_house(entry, ""), str(entry.get("reason", ""))]
 		if entry.get("state") == "New":
 			view.mark_page_seen(str(entry.id).trim_prefix("page:"))
 	else:
-		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, entry.get("by", "Fortress"), str(entry.get("reason", ""))]
+		plan_detail.text = "%s | %s\nIssued by %s\n%s" % [entry.get("title", entry.kind), entry.state, by_house(entry, "Fortress"), str(entry.get("reason", ""))]
 	locate.disabled = not entry.get("pos") is Dictionary
 	cancel.disabled = not entry.get("can_cancel", false)
 	act.visible = family == "Plans" and entry.get("can_act", false)
