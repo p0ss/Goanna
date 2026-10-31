@@ -83,6 +83,7 @@ return function(http)
 		reward_max = setting("goanna_director_reward_max", 12),
 		reward_deny = csv_set(setting("goanna_director_reward_deny", "")),
 		structures = setting("goanna_director_structures", false),
+		move_players = setting("goanna_director_move_players", false),
 		build_nodes_per_hour = setting("goanna_director_build_nodes_per_hour", 4000),
 		structure_max_volume = setting("goanna_director_structure_max_volume", 32768),
 		build_rate = setting("goanna_director_build_rate", 4),

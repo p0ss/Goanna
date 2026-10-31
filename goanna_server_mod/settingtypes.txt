@@ -238,6 +238,12 @@ goanna_director_build_nodes_per_hour (Director build nodes per hour) int 4000 0 
 goanna_director_structure_max_volume (Director largest structure) int 32768 1 262144
 goanna_director_build_rate (Director build rate) float 4 0.5 20
 
+#    Moving players: whether the director may move a player to a point or
+#    beside another player, to help with a problem such as being stuck. The
+#    player is told, with the reason, and undo moves them back. Never a
+#    player who opted out. Players are told on joining when this is on.
+goanna_director_move_players (Director may move players) bool false
+
 #    Where players can read more about this server's director, named in the
 #    notice on joining. Optional.
 goanna_director_info (Director information) string

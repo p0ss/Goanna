@@ -599,6 +599,15 @@ TOOLS = [
                     "fact forgotten, an untaken reward taken back, a building taken down. "
                     "Speech cannot be unsaid.",
      "inputSchema": schema({"id": S, "reason": REASON}, ["id"])},
+    {"name": "director_move_player",
+     "description": "Move a player to help with a problem: stuck in a wall, lost, fallen "
+                    "where they cannot climb out. to is a point [x, y, z] (they land on the "
+                    "ground at that column) or another player's name (they land beside "
+                    "them). Only if this world allows it (see director_status, "
+                    "move_players). The player is told and shown your reason. Never a "
+                    "player who opted out. Undo moves them back.",
+     "inputSchema": schema({"player": S, "to": {"anyOf": [POINT, S]}, "reason": REASON},
+                           ["player", "to", "reason"])},
     {"name": "director_stop",
      "description": "Stop the director: every creature it placed is removed, every queued "
                     "intent cancelled, and everything refused until the operator types "
@@ -723,6 +732,7 @@ ACTS = {
     "director_speak": ("speak", {"as": "as", "to": "to", "text": "text"}, {}),
     "director_remember": ("remember", {k: k for k in ["npc", "player", "fact",
                                                        "disposition"]}, {}),
+    "director_move_player": ("move_player", {"player": "player", "to": "to"}, {}),
     "director_undo": ("undo", {"id": "id"}, {}),
     "director_stop": ("stop", {}, {}),
 }
@@ -770,6 +780,7 @@ def brief(director):
             "enchantments": adapters.get("items", "none") != "none",
             "structures": bool(b.get("structures")),
             "game_structures": adapters.get("structures", "none") != "none",
+            "move_players": bool(caps.get("move_players")),
         },
         "left": {"encounter_points": b.get("points_left"),
                  "reward_points": b.get("reward_points_left"),

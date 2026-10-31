@@ -239,6 +239,7 @@ def make_world():
         "enable_mod_channels = true",
         "secure.http_mods = goanna_server_mod",
         "goanna_director = true",
+        "goanna_director_move_players = true",
         "goanna_director_join_grace = 0",
         "goanna_director_points_per_hour = 15",
         "goanna_director_relax = 10",
@@ -381,6 +382,32 @@ def main(argv):
         check(summary.get("pos") and "gear" in summary and "encounter_ceiling" in summary,
               "director_player gives position, gear and a ceiling", summary)
         bare = summary.get("encounter_ceiling")
+
+        # Moving a player, to help with a problem (goanna_director_move_players).
+        check("move you" in (notice or ""), "the notice says the director may move players")
+        def xyz(p):
+            return [p["x"], p["y"], p["z"]] if isinstance(p, dict) else list(p)
+        start = xyz(summary["pos"])
+        r = mcp.call("director_move_player", player="alice",
+                     to=[start[0] + 6, start[1], start[2]], reason="test: stuck in a hedge")
+        check(r.get("status") == "completed", "director_move_player moves alice", r)
+        moved = wait_chat(CONTROL["alice"], "moved you", 10)
+        check(moved is not None and "stuck in a hedge" in moved,
+              "alice is told she was moved, with the reason", moved)
+        time.sleep(1.5)
+        now = xyz(mcp.call("director_player", player="alice")["pos"])
+        check(abs(now[0] - (start[0] + 6)) < 3 and abs(now[2] - start[2]) < 3,
+              "alice stands where she was moved to, or beside it", {"start": start, "now": now})
+        again = mcp.call("director_move_player", player="alice", to=start,
+                         reason="test: twice at once")
+        check(again.get("status") == "refused" and again.get("reason") == "too_soon",
+              "a second move straight away is refused", again)
+        back = mcp.call("director_undo", id=r.get("id"), reason="test: put her back")
+        check(back.get("status") == "undone", "undo of a move", back)
+        time.sleep(1.5)
+        now = xyz(mcp.call("director_player", player="alice")["pos"])
+        check(abs(now[0] - start[0]) < 1.5 and abs(now[2] - start[2]) < 1.5,
+              "undo moves alice back", {"start": start, "now": now})
         note("bare handed:", json.dumps(summary.get("gear")), "ceiling", bare,
              "phase", json.dumps(summary.get("pacing")))
 
@@ -653,6 +680,15 @@ def main(argv):
                      reason="test: an encounter for an opted out player")
         check(r.get("status") == "refused" and r.get("reason") == "opted_out",
               "an encounter near an opted out player is refused", r)
+        r = mcp.call("director_move_player", player="bob", to="alice",
+                     reason="test: move an opted out player")
+        check(r.get("status") == "refused" and r.get("reason") == "opted_out",
+              "an opted out player is never moved", r)
+        time.sleep(5.5)
+        r = mcp.call("director_move_player", player="alice", to="bob",
+                     reason="test: move beside an opted out player")
+        check(r.get("status") == "refused" and r.get("reason") == "opted_out",
+              "nor is anyone moved to them", r)
         r = mcp.call("director_remember", npc="Grimbold", player="bob", fact="met bob",
                      reason="test: memory of an opted out player")
         check(r.get("status") == "refused" and r.get("reason") == "opted_out",

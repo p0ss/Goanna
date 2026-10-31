@@ -35,7 +35,9 @@ return function(D)
 		local line = "This server runs a director: a language model acting as game master " ..
 			"(scope gm). It may stage encounters near you and speak as characters; " ..
 			"its speech is always marked as a character or as narration. It sees " .. sees ..
-			", and " .. chat .. ", never private messages. Type /director for details" ..
+			", and " .. chat .. ", never private messages." ..
+			(D.cfg.move_players and " It may move you to help with a problem, and says why." or "") ..
+			" Type /director for details" ..
 			(optout and ". You have opted out: it will leave you alone (/director optin to undo)."
 				or ", or /director optout to be left alone.") .. more
 		return core.colorize(NOTICE, "[director] ") .. line

@@ -657,6 +657,95 @@ return function(D)
 		return {facts = 16, model_lines = D.cfg.memory_lines, model_chars = D.cfg.memory_chars}
 	end
 
+	-- Move a player, to help with a problem: stuck in a wall, lost, fallen
+	-- somewhere they cannot leave. Off unless the operator turns it on
+	-- (goanna_director_move_players). The player is told and the reason
+	-- shown; undo moves them back. Never a player who opted out, nor to one.
+	local MOVE_COOLDOWN_S = 5
+	local last_moved = {}
+
+	local function move_to(player, pos)
+		player:set_pos(pos)
+		player:add_velocity(vector.multiply(player:get_velocity(), -1))
+	end
+
+	local function move_player(msg)
+		local args = msg.args
+		if not D.cfg.move_players then
+			return refuse(msg, "move_players_off")
+		end
+		local name = player_name(args.player)
+		if not name then
+			return refuse(msg, "schema", {detail = "player is required"})
+		end
+		local player = core.get_player_by_name(name)
+		if not player then
+			return refuse(msg, "player_offline", {player = name})
+		end
+		if D.opted_out(name) then
+			return refuse(msg, "opted_out", {player = name})
+		end
+		if player:get_hp() <= 0 or player:get_attach() then
+			return refuse(msg, "player_busy", {player = name})
+		end
+		local now = D.now()
+		if last_moved[name] and now - last_moved[name] < MOVE_COOLDOWN_S then
+			return refuse(msg, "too_soon", {player = name, wait_s = MOVE_COOLDOWN_S})
+		end
+		local to
+		if type(args.to) == "table" and #args.to == 3 then
+			local x, y, z = tonumber(args.to[1]), tonumber(args.to[2]), tonumber(args.to[3])
+			if not (x and y and z) then
+				return refuse(msg, "schema", {detail = "to must be [x, y, z]"})
+			end
+			if not core.get_node_or_nil({x = math.floor(x + 0.5), y = math.floor(y + 0.5),
+					z = math.floor(z + 0.5)}) then
+				return refuse(msg, "not_loaded", {to = args.to})
+			end
+			-- The column asked for, else the nearest clear one within two
+			-- nodes: a point on a trunk or a wall still finds its spot.
+			for r = 0, 2 do
+				for dx = -r, r do
+					for dz = -r, r do
+						if not to and math.max(math.abs(dx), math.abs(dz)) == r then
+							to = ground_at(x + dx, z + dz, y, 2)
+						end
+					end
+				end
+			end
+		elseif type(args.to) == "string" then
+			local other_name = player_name(args.to)
+			local other = core.get_player_by_name(other_name)
+			if not other then
+				return refuse(msg, "player_offline", {player = other_name})
+			end
+			if D.opted_out(other_name) then
+				return refuse(msg, "opted_out", {player = other_name})
+			end
+			local op = other:get_pos()
+			for _, d in ipairs({{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {0, 0}}) do
+				to = ground_at(op.x + d[1], op.z + d[2], op.y, 2)
+				if to then break end
+			end
+		else
+			return refuse(msg, "schema", {detail = "to is [x, y, z] or a player's name"})
+		end
+		if not to then
+			return refuse(msg, "no_ground", {to = args.to})
+		end
+		to = {x = to.x, y = to.y - 0.5, z = to.z}
+		local from = vector.round(player:get_pos())
+		move_to(player, to)
+		last_moved[name] = now
+		local why = logic.clean_text(msg.reason or "") or ""
+		core.chat_send_player(name, core.colorize("#a9c4ff", "[director] ") ..
+			"The game master moved you to " .. core.pos_to_string(vector.round(to)) ..
+			(why ~= "" and (": " .. why) or "."))
+		D.undo[msg.req] = {type = "move", player = name, from = from}
+		return result(msg, "completed", {player = name, from = from, to = to},
+			{effects = {from = from, to = to}, players = {name}})
+	end
+
 	local function remember(msg)
 		local args, now = msg.args, D.now()
 		local name = player_name(args.player)
@@ -771,6 +860,15 @@ return function(D)
 			for k, v in pairs(D.undo_structure(u)) do
 				fields[k] = v
 			end
+		elseif u.type == "move" then
+			local player = core.get_player_by_name(u.player)
+			if not player then
+				return refuse(msg, "player_offline", {player = u.player})
+			end
+			move_to(player, u.from)
+			core.chat_send_player(u.player, core.colorize("#a9c4ff", "[director] ") ..
+				"The game master moved you back to " .. core.pos_to_string(u.from) .. ".")
+			fields.player, fields.to = u.player, u.from
 		elseif u.type == "reward" then
 			for k, v in pairs(D.undo_reward(u)) do
 				fields[k] = v
@@ -840,6 +938,7 @@ return function(D)
 		end,
 		speak = speak,
 		remember = remember,
+		move_player = move_player,
 		grant_reward = function(msg)
 			return D.grant_reward_intent(msg, result, refuse)
 		end,

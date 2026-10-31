@@ -22,3 +22,12 @@ Changes on main since 0.16.0-alpha.
 Not changed: a wrong password still costs the world's loading time before
 the server's answer arrives, because the password is checked only once
 the game scene has started connecting.
+
+## Director
+
+- **The director can move a stuck player**, when the operator sets
+  `goanna_director_move_players = true`: to a point (landing on clear
+  ground at or within two nodes of it) or beside another player, with the
+  reason told to the player, at most once every five seconds, and never a
+  player who opted out or to one. Undo moves them back. The join notice
+  says when this is on. MCP tool: `director_move_player`.
