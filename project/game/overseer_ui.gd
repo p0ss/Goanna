@@ -315,6 +315,7 @@ func build(host: Node) -> void:
 		toggle.autowrap_mode = TextServer.AUTOWRAP_OFF
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.tooltip_text = pair[2]
+		toggle.set_meta("overlay", pair[1])
 	marks_toggle = button(footer_row, "Marks", func() -> void: view.set_world_marks(marks_toggle.button_pressed))
 	marks_toggle.toggle_mode = true
 	marks_toggle.set_pressed_no_signal(true)
@@ -629,6 +630,28 @@ func refresh_zone_property() -> void:
 		zone_options.set_item_tooltip(index, str(t.get("reason", t.get("help", ""))))
 		if str(t.id) == view.tool: zone_options.select(index)
 
+## A view opened from a task tool (DorfCraft's overseer/task_tools.lua):
+## the server has already left out other sections and tools; this opens
+## on the task's section once, and offers only the task's overlays,
+## switched on.
+var applied_scope = null
+
+func apply_scope(scope: Dictionary) -> void:
+	if scope.is_empty() or scope == applied_scope: return
+	applied_scope = scope
+	var wanted: Array = scope.get("overlays") if scope.get("overlays") is Array else []
+	for kind in view.shown_overlays: view.shown_overlays[kind] = kind in wanted
+	for child in footer.get_child(0).get_children():
+		if child is Button and child.has_meta("overlay"):
+			var shown: bool = child.get_meta("overlay") in wanted
+			child.visible = shown
+			(child as Button).set_pressed_no_signal(shown)
+	var section := str(scope.get("section", ""))
+	if not section.is_empty() and str(section_states.get(section, {}).get("state", "shown")) == "shown":
+		family = section
+		view.tool = "inspect"
+	view._draw_overlays()
+
 ## Takes the tools and limits the server granted, from its hello or a pong.
 func set_marks_shown(shown: bool) -> void:
 	if marks_toggle == null: return
@@ -646,7 +669,9 @@ func update_capabilities(value: Dictionary) -> void:
 			var section := str(b.get_meta("family"))
 			set_icon(b, null, false, section_runes.get(section, section_runes.get("House") if section == "Houses" else null))
 	apply_sections(value.get("sections"))
-	header.text = "%s | Overseer | Live\n%s" % [str(value.get("fortress", "Fortress")), str(value.get("summary", "Server planning permissions"))]
+	var scope: Dictionary = value.get("scope") if value.get("scope") is Dictionary else {}
+	apply_scope(scope)
+	header.text = "%s | %s | Live\n%s" % [str(value.get("fortress", "Fortress")), str(scope.get("title", "Overseer")), str(value.get("summary", "Server planning permissions"))]
 	if value.get("tools") is Array: view.tools = value.tools
 	refresh_tools()
 	refresh()
