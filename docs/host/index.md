@@ -7,12 +7,13 @@ the person running the server.
 
 ## From Goanna's menu
 
-Start Game can host the world it starts. Hosting starts a normal Luanti
-server and can expose a name, description, password, port, player limit and
-public-list announcement. There is no built in server and no private
-protocol: Goanna finds Luanti on the machine, launches an ordinary server on
-it and joins over the network like any other client. How it finds Luanti is
-in [installing Goanna](../play/install.md#which-luanti-start-game-uses).
+A world started from the menu can be hosted: New world's last step, Hosting, or
+Change options on a world in Your worlds. Hosting starts a normal Luanti server
+and can expose a name, description, password, port, player limit and public-list
+announcement. There is no built in server and no private protocol: Goanna finds
+Luanti on the machine, launches an ordinary server on it and joins over the
+network like any other client. How it finds Luanti is in [installing
+Goanna](../play/install.md#which-luanti-your-worlds-use).
 
 ## Running a server yourself
 

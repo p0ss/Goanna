@@ -1,0 +1,134 @@
+{
+  "content": {
+    "accents": [
+      "Install a game"
+    ]
+  },
+  "content-200": {
+    "accents": [
+      "Install a game"
+    ]
+  },
+  "join": {
+    "accents": [
+      "Connect"
+    ]
+  },
+  "join-200": {
+    "accents": [
+      "Connect"
+    ]
+  },
+  "local-players": {
+    "accents": [
+      "Save and back"
+    ]
+  },
+  "local-players-200": {
+    "accents": [
+      "Save and back"
+    ]
+  },
+  "main": {
+    "accents": [
+      "Continue: Barrelreach, Kindred Holdfast (preview)"
+    ]
+  },
+  "main-200": {
+    "accents": [
+      "Continue: Barrelreach, Kindred Holdfast (preview)"
+    ]
+  },
+  "main-no-last": {
+    "accents": [
+      "New world"
+    ]
+  },
+  "main-no-last-200": {
+    "accents": [
+      "New world"
+    ]
+  },
+  "new-1-game": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-1-game-200": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-2-name": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-2-name-200": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-3-options": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-3-options-200": {
+    "accents": [
+      "Next"
+    ]
+  },
+  "new-4-hosting": {
+    "accents": [
+      "Create"
+    ]
+  },
+  "new-4-hosting-200": {
+    "accents": [
+      "Create"
+    ]
+  },
+  "public-servers": {
+    "accents": [
+      "Use this server"
+    ]
+  },
+  "public-servers-200": {
+    "accents": [
+      "Use this server"
+    ]
+  },
+  "settings": {
+    "accents": []
+  },
+  "settings-200": {
+    "accents": []
+  },
+  "settings-advanced": {
+    "accents": []
+  },
+  "settings-advanced-200": {
+    "accents": []
+  },
+  "world-options": {
+    "accents": [
+      "Play"
+    ]
+  },
+  "world-options-200": {
+    "accents": [
+      "Play"
+    ]
+  },
+  "worlds": {
+    "accents": [
+      "Play"
+    ]
+  },
+  "worlds-200": {
+    "accents": [
+      "Play"
+    ]
+  }
+}

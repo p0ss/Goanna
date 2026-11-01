@@ -39,12 +39,12 @@ model  <-- MCP -->  goanna-director-mcp  <-- files in the world folder -->  Luan
 ## 1. Turn the director on
 
 **A world started from Goanna's menu** already has it: Goanna installs the
-server mod and sets `goanna_director = true`. Start the world once. Goanna
-then writes `<world>/goanna_director/connect.txt`, holding the exact
-commands for step 2 with this machine's paths filled in, and `/director`
-in game tells the operator where it is. The World page of Start Game has
-the same command ready to copy: Copy Claude Code command, or Copy MCP
-settings for another MCP app.
+server mod and sets `goanna_director = true`. Start the world once. Goanna then
+writes `<world>/goanna_director/connect.txt`, holding the exact commands for
+step 2 with this machine's paths filled in, and `/director` in game tells the
+operator where it is. The Options step of New world, and a world's Change
+options, have the same command ready to copy: Copy Claude Code command, or Copy
+MCP settings for another MCP app.
 
 Goanna runs no director service of its own. The join notice tells players
 that a language model is acting as game master, and a service with no

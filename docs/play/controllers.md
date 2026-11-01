@@ -88,7 +88,7 @@ controller plays.
 
 ## Typing and prompts
 
-A text box, such as Join Game's address, starts taking typing as soon as it
+A text box, such as Join a game's address, starts taking typing as soon as it
 has the focus, however it got it. On a Steam Deck, move to the box with the
 D-pad and press Steam and X for the on-screen keyboard. Before, a box
 reached by the D-pad had the focus but ignored typing, and A did not start

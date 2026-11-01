@@ -3,8 +3,16 @@
 Settings opens from the main menu and from the pause menu in a game. Most
 options take effect at once.
 
+In the main menu, the Settings front page holds the graphics profile, view
+and far draw distance, procedural grass, shader weather, sound volume, the
+main mouse and controller switches, and accessibility (interface scale, read
+aloud, interface style). **Advanced graphics** holds the shader pack and
+every individual render switch, folded by group; Controls, Appearance, Sound
+and speech, Display and Updates each hold the whole of that tab. The pause
+menu keeps its tabs.
+
 What a setting does is behind the (i) beside its name, as is what a menu
-screen, the graphics profile and a few of Start Game's and Join Game's
+screen, the graphics profile and a few of New world's and Join a game's
 pickers are for. Point at the (i) to read it, click or tap it to keep it
 open, and click or tap again to close it. With a keyboard or a controller
 the text opens by itself while the focus is on that setting, and Read
@@ -91,10 +99,10 @@ works is in [procedural grass](../systems/procedural-grass.md).
 
 ## Shader packs
 
-Settings, Shader packs runs an Iris or OptiFine shader pack, the kind made
-for Minecraft, in place of Goanna's own look. Start Game has a Shader packs
-tab beside Mods, with the same picker and pack options. Join Game keeps a
-compact Shaders picker under Materials. All three save the same choice.
+Settings, Shader packs in game (Advanced graphics in the main menu) runs an
+Iris or OptiFine shader pack, the kind made for Minecraft, in place of
+Goanna's own look. Join a game keeps a compact Shaders picker under
+Materials and shaders. All of them save the same choice.
 Only part of what packs do is supported so far, so most packs look
 different from their screenshots and some will not load at all; what each
 popular pack does is in [shader pack status](../develop/shaderpack-status.md).
@@ -109,7 +117,7 @@ zip is replaced. Look again lists the folder afresh after adding a pack.
 
 The picker offers None (Goanna's own look) and every pack in the folder
 by name. Each picker offers Open folder, Look again and a compact last-join
-status, with its full text in a tooltip. In Settings and Start Game, Pack
+status, with its full text in a tooltip. In Settings, Pack
 options lists the selected pack's switches and lists of values, under the
 pack's own headings and names, as Iris shows them; Pack defaults forgets
 every change made to that pack. Options that are numbers written into the

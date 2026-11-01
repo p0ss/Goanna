@@ -2,20 +2,34 @@
 
 ## Starting a game
 
-Start Game lets you select an existing world or create one. New worlds can
-choose the installed game's default generator or one of several Terrain
-Diffusion worlds. Each is a whole 62 km world at a metre a node; they differ
-in where they are, not in how detailed they are, and the picker shows a map
-and a size for each. The one you choose downloads once, is verified against
-its published hash, and is kept for later worlds; choosing a second world
-does not discard the first. Generated data belongs to each world and is not
-overwritten when the shared cache changes.
+The main screen's first button is **Continue**, named with the world you
+played last and its game ("Continue: Barrelreach, Kindred Holdfast"). It
+starts that world again with the same game and settings. With no world
+played yet, the first button is **New world** instead.
+
+**Your worlds** lists every world as a table of world, game and last
+played, newest first; search above it filters the rows. Choosing a row shows
+its game, mods, play mode and hosting beside it, with **Play** in the
+footer, **Change options** to change play mode, mods, materials or hosting
+before playing, and **Delete world**, which asks first and moves the world
+to `.goanna-trash` rather than deleting it.
+
+**New world** takes four steps, each with a default, so Next, Next, Next and
+Create makes a world: the game; the name and an optional seed (empty means a new
+map each time); options (the world generator, materials, creative mode, damage
+and mods); and hosting, which is off unless you tick Open to LAN. The world
+generator can be the game's default or one of several Terrain Diffusion worlds.
+Each is a whole 62 km world at a metre a node; they differ in where they are,
+not in how detailed they are, and the picker shows a map and a size for each.
+The one you choose downloads once, is verified against its published hash, and
+is kept for later worlds; choosing a second world does not discard the first.
+Generated data belongs to each world and is not overwritten when the shared
+cache changes.
 
 Do not select Terrain Diffusion for an existing populated conventional world.
 The launcher rejects that combination because old mapblocks would remain and
 produce two overlapping landscapes.
 
-The same screen controls creative mode, damage, mods and optional hosting.
 PBR companion maps are independently versioned assets rather than part of the
 Goanna executable download. Install a bundle once and Goanna composes its
 terrain, billboard and creature tranches under
@@ -24,7 +38,8 @@ can also select a conventional installed texture pack such as Craft and Ruin,
 or Standard to disable PBR.
 
 When joining a remote server, choose **PBR: server materials**, an installed
-game profile, or **Standard, no PBR** on the Join Game screen.
+game profile, or **Standard, no PBR** under Materials and shaders on the Join
+a game screen.
 Remote selection is client-side and supplies only normal and material
 companions, so a server's Iron, Stone or other style textures stay visible.
 Hosting starts a normal Luanti server and can expose a name, description,

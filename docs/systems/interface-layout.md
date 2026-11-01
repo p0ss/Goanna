@@ -73,6 +73,42 @@ An id with no title is a server bug: show "Unnamed" and log it, rather than
 the id. An action's glyph comes from the server's `icon` and means the same
 everywhere (`overseer.md`, Noun-first selection).
 
+## Menus
+
+Goanna's own menu (`project/menu/menu.gd`), before a game starts, follows
+the same rules, with these of its own (maintainer, 1 November 2026):
+
+- **The main screen's primary action is Continue**, named with the last
+  world played and its game ("Continue: Barrelreach, Kindred Holdfast"). It
+  starts that world with the same game and settings. With no last world,
+  New world is the primary. No game is featured: Goanna stays game
+  neutral.
+- **The main screen is a short list.** Continue, Your worlds, New world,
+  Join a game and Settings, then a quieter row (flat buttons in quiet text)
+  for Content, Local players, About and Quit. The updater's offer stays
+  above them.
+- **A form with many choices is steps, each with a default,** so pressing
+  Next until Create does something sensible. New world is game, name and
+  seed, options, hosting; hosting is off by default. Next is the accent on
+  every step but the last, where Create is.
+- **What most players change is on the first page; the rest is one quiet
+  button further in.** Settings' front page has the graphics profile, the
+  main sliders and switches and accessibility; shader packs and individual
+  render switches are on Advanced graphics. Nothing is removed to get
+  there.
+- **The common way in comes first, the wide one behind a button.** Join a
+  game lists this network and recent servers first; the public list is a
+  table behind Browse public servers, and a typed address is folded.
+- **The footer holds Back on the left and the accent on the right,** so the
+  primary action is in reach at any text size, even when the body scrolls.
+- **Settings has no accent.** It saves as each control changes, so there
+  is nothing to confirm.
+
+`tests/menu_layout.gd` checks these, with one accent and 40 px targets on
+every screen, against a made up Luanti folder (`tests/menu_fixture.gd`).
+`tests/menu_screens_render.tscn` captures every screen; the captures and
+the checklist answers for them are in `docs/perf/menu-layout-2026-11-01/`.
+
 ## Checking a screen
 
 Before calling a screen done, take a headless capture at 1280 by 720 and at

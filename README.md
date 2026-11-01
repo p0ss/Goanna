@@ -64,7 +64,9 @@ cmake --build build
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
 
-The menu provides Start Game, Join Game, Content, Settings and About. See
+The menu's first button continues the world you played last; the others
+are Your worlds, New world, Join a game, Settings, Content, Local players and
+About. See
 [the player guide](docs/play/index.md) for controls, requirements, Terrain
 Diffusion downloads and current limitations. See
 [the developer guide](docs/develop/index.md) to build, test or extend Goanna.

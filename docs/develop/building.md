@@ -197,7 +197,8 @@ Goanna talks to a Luanti server, always. It has no built in server and is
 not going to grow one, because the whole point is that it is a client for
 the ordinary ecosystem.
 
-"Start Game" in the menu is that principle applied rather than an
+A world of your own in the menu (Continue, Your worlds, New world) is that
+principle applied rather than an
 exception to it. Goanna finds Luanti on your machine, launches an ordinary
 unmodified server on localhost, and joins it over the ordinary protocol,
 exactly as if you had started the server yourself in another terminal. It
@@ -222,40 +223,51 @@ Flatpak, is in [hosting a world](../host/index.md#running-a-server-yourself).
 
 ### Point Goanna at it
 
-Run the project and the main menu (`project/menu/menu.gd`) opens. Its
-buttons are Start Game, Join Game, Local players, Content, Settings, About
-and Quit. To join a server that is already running:
+Run the project and the main menu (`project/menu/menu.gd`) opens. Its one
+primary button is Continue, the last world started (New world when there is
+none); then Your worlds, New world, Join a game and Settings, and a quieter
+row of Content, Local players, About and Quit. To join a server that is
+already running:
 
-1. Press **Join Game**. The top of the screen lists the public servers from
-   `https://servers.luanti.org/list`, busiest first, with Refresh list below
-   it. Picking a row fills in the address and port; double clicking it joins
-   at once. Without a network the list says so and the fields still work.
-2. Fill in **Server address** (`127.0.0.1` when empty), **Port** (`30000`
-   when empty), **Player name** (1 to 20 letters, digits, `_` or `-`) and
+1. Press **Join a game**. The servers found by **Scan local network** and
+   the servers joined before come first; choosing one fills in the address,
+   and the line above Connect says where Connect will go.
+2. Fill in **Player name** (1 to 20 letters, digits, `_` or `-`) and
    **Password**. On a server that allows registration, a new name is
-   registered with that password.
-3. Choose **Graphics**: PBR with the server's own materials (the default,
-   which also uses Goanna's installed materials for the server's game when
-   that game is known), Standard with no PBR, an installed Minetest Game or
-   Mineclonia material pack, or one of the texture packs in the Luanti data
-   directory.
+   registered with that password. **Type an address** opens **Server
+   address** (`127.0.0.1` when empty) and **Port** (`30000` when empty).
+3. **Materials and shaders**, folded, holds the material choice: PBR with
+   the server's own materials (the default, which also uses Goanna's
+   installed materials for the server's game when that game is known),
+   Standard with no PBR, an installed Minetest Game or Mineclonia material
+   pack, or one of the texture packs in the Luanti data directory; and the
+   shader pack.
 4. Press **Connect**, or Enter in any of the fields.
 
-The menu remembers the address, port, player name and graphics choice in
-Godot's user data directory (`user://goanna.cfg`, which on Linux is
-`~/.local/share/godot/app_userdata/Goanna/goanna.cfg`), and never the
-password. Start Game, the local server described above, has its own screen
-with World, Mods and Hosting tabs. Local players sets up experimental split
-screen, whose first player is the one named on Start Game or Join Game.
+**Browse public servers**, in the footer, opens the list from
+`https://servers.luanti.org/list` as a table of server, game, players and
+ping, busiest first, with search and Refresh list. Use this server (or a
+double click) goes back to Join a game with its address filled in. Without
+a network the table says so and Join a game still works.
 
-Open to LAN, on the World tab, binds the server to every address rather
-than loopback, on the Hosting tab's port (30000 unless changed), gives
-joining players only `interact` and `shout`, and shows the host the
-addresses friends can type; the host is told again in chat once in the
-world. Friends find it with Join Game, Scan local network, which tries
-ports 30000 to 30005 only. A game published as a modpack on another game
-(Kindred Holdfast on Mineclonia) appears in the Game list as itself once
-installed; choosing it starts the base game with the modpack enabled.
+The menu remembers the address, port, player name, graphics choice and the
+last eight servers joined in Godot's user data directory
+(`user://goanna.cfg`, which on Linux is
+`~/.local/share/godot/app_userdata/Goanna/goanna.cfg`), and never the
+password. Your worlds is a table of the local worlds, newest first, with
+Play; New world is four steps (game, name and seed, options, hosting).
+Local players sets up experimental split screen, whose first player is the
+one named on Join a game.
+
+Open to LAN, on New world's Hosting step or a world's Change options, binds
+the server to every address rather than loopback, on the hosting port
+(30000 unless changed), gives joining players only `interact` and `shout`,
+and shows the host the addresses friends can type; the host is told again
+in chat once in the world. Friends find it with Join a game, Scan local
+network, which tries ports 30000 to 30005 only. A game published as a
+modpack on another game (Kindred Holdfast on Mineclonia) appears in New
+world's game list as itself once installed; choosing it starts the base
+game with the modpack enabled.
 
 The server's output (stdout and stderr) is written to
 `goanna_singleplayer.log` by a shell outside any sandbox, in the release's
@@ -267,7 +279,7 @@ stopped at once. A failed start shows the log path as a link.
 Two development aids drive these paths headless:
 `GOANNA_LOCAL_TEST_LAN=<port>` ticks Open to LAN for a `GOANNA_LOCAL_TEST`
 start, and `GOANNA_JOIN_SCAN=<host>:<port>` with `GOANNA_JOIN_SCAN_NAME`
-opens Join Game, scans, picks that server from the results and connects.
+opens Join a game, scans, picks that server from the results and connects.
 `GOANNA_LOCAL_TEST_GAME_MASTER=1` presses Copy Claude Code command first
 and prints what it copied.
 
@@ -285,7 +297,7 @@ The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or
 `GOANNA_NAME` (or one of the test modes, listed in `SKIP_VARS` at the top of
 `menu.gd`) and Goanna connects straight away; set `GOANNA_MENU=1` to get the
-menu anyway. Join Game then takes its port from `GOANNA_PORT` when that is
+menu anyway. Join a game then takes its port from `GOANNA_PORT` when that is
 set, and the rest from `goanna.cfg`. The variables are read in
 `project/game/main.gd`:
 
@@ -368,7 +380,8 @@ features.
 | `GOANNA_SHADERPACK_RAW=1` | With a pack: hand it Godot's linear HDR colour and keep Godot's tonemap, instead of the Minecraft style gamma space bridge. |
 | `GOANNA_SHADERPACK_DUMP=<directory>` | With a pack: write each program's translated Vulkan GLSL there, for reading compile errors. |
 | `GOANNA_VISUAL_TEST=lighting_walk` | With `GOANNA_SHOT`, request a named deterministic fixture, capture its fixed camera path and write the capture metadata. Requires `goanna_visual_test_mod` in a dedicated singlenode world. |
-| `GOANNA_MENU_SHOT=<file.png>` | Render the main menu once, save it, quit. `GOANNA_MENU_SCREEN` picks the screen (`new`, `join`, `settings`, `settings-tab-<Tab>`, `content`, `about`, `luanti`, `setup` and others in `menu.gd`), `GOANNA_MENU_SCALE=2` lays it out at 200 percent, `GOANNA_MENU_SCROLL=<pixels>` scrolls its scrolling bodies, and `GOANNA_MENU_INFO=1` opens every (i) on it. |
+| `GOANNA_MENU_SHOT=<file.png>` | Render the main menu once, save it, quit. `GOANNA_MENU_SCREEN` picks the screen (`worlds`, `world` for the last world's options, `new` or `new-2` to `new-4` for a step of New world, `join`, `public`, `settings`, `settings-advanced`, `settings-tab-<Tab>`, `content`, `local-players`, `about`, `luanti`, `setup` and others in `menu.gd`), `GOANNA_MENU_SCALE=2` lays it out at 200 percent, `GOANNA_MENU_SCROLL=<pixels>` scrolls its scrolling bodies, and `GOANNA_MENU_INFO=1` opens every (i) on it. |
+| `GOANNA_SERVER_LIST_FILE=<file.json>` | Read the public server list from this file, in the format `servers.luanti.org/list` sends, instead of fetching it: for captures and tests without the network. |
 | `GOANNA_MENU_BACKDROP=<file.png>` | Put this picture behind the main menu instead of the village still, so a screenshot can show the menu's panel over another scene. |
 | `GOANNA_NO_SHOWCASE=1` | Disable the normal menu's real-world Mineclonia `treetree` backdrop. The default view uses `(25.3, 2.0, -115.8)`, dawn lighting and a bounded 18-mapblock stream. |
 | `GOANNA_UI_SHOT=<directory>` | Save the HUD, inventory, chat and pause menu at fixed times. |

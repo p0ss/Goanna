@@ -13,10 +13,10 @@ A real-controller play session and broader visual review remain outstanding.
 
 ## Setting it up
 
-Choose **Local players** in the main menu, add the players, assign controls
-and save. Then use **Start Game** or **Join Game** as usual. Player 1 uses
-the name and password from the launch screen. Other players have separate
-names and, when needed, server passwords. Names and control assignments are
+Choose **Local players** in the main menu, add the players, assign controls and
+save. Then play a world of your own or use **Join a game** as usual. Player 1
+uses the name and password from Join a game. Other players have separate names
+and, when needed, server passwords. Names and control assignments are
 remembered; passwords are held only in memory.
 
 One player can own the keyboard and mouse. Each other player owns a

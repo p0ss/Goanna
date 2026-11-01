@@ -8,23 +8,24 @@ more lighting and distant terrain than the vanilla client, so performance
 depends on GPU, CPU, view distance, shader settings and the server's streaming
 limits. See [system requirements](requirements.md) for measured guidance.
 
-Luanti is required only for Start Game. Goanna launches the Luanti server
-locally and connects through the normal protocol. Join Game can connect to a
-remote server without a local Luanti installation.
+Luanti is required only for worlds on your own computer (Continue, Your
+worlds and New world). Goanna launches the Luanti server locally and
+connects through the normal protocol. Join a game can connect to a remote
+server without a local Luanti installation.
 
-### Which Luanti Start Game uses
+### Which Luanti your worlds use
 
 Goanna looks for Luanti where each kind of package puts it: distribution
-packages (Debian and Ubuntu keep their games under
-`/usr/share/games/minetest`), Flatpak (user and system installations), Snap,
-AppImages in the usual folders, and on Windows the unpacked zip or the
-self-extracting build. When it finds more than one, it uses the one you chose,
-or else the first that has a game. **Change** on the Start Game screen lists
-everything it found, with each install's games and data folder.
+packages (Debian and Ubuntu keep their games under `/usr/share/games/minetest`),
+Flatpak (user and system installations), Snap, AppImages in the usual folders,
+and on Windows the unpacked zip or the self-extracting build. When it finds more
+than one, it uses the one you chose, or else the first that has a game.
+**Change**, on Content or the first step of New world, lists everything it
+found, with each install's games and data folder.
 
 ### Get ready to play
 
-If Goanna finds no Luanti, or the one it found has no games, Start Game
+If Goanna finds no Luanti, or the one it found has no games, New world
 offers **Get ready to play**: one button that gets both, with no password
 and no package manager.
 
@@ -40,19 +41,20 @@ and no package manager.
   Downloads come from pinned Goanna mirrors on GitHub, with SHA-256 checks,
   and do not need ContentDB. Existing games are kept. Luanti's own Content
   tab can update upstream games or add others later.
-- **Kindred Holdfast preview.** Installs the four Kindred packages together
-  as a separate modpack on Mineclonia. Start Game selects Mineclonia and
-  enables the modpack for a fresh world. This is a development preview;
-  saved worlds may not migrate between previews. Separately installed
+- **Kindred Holdfast preview.** Installs the four Kindred packages together as a
+  separate modpack on Mineclonia. New world then offers Kindred Holdfast as a
+  game of its own, which runs Mineclonia with the modpack. This is a development
+  preview; saved worlds may not migrate between previews. Separately installed
   Kindred packages must be moved aside before installing it.
 
-It then opens Start Game with a new world ready. Checked from nothing to a
-running world in clean Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 and Arch
-containers (`tools/test/test-fresh-install.sh`), and through the menu on Bazzite
-with a GPU. The server needs glibc 2.35 or newer, so Ubuntu 22.04, Debian 12
-or anything later. macOS has no Goanna release yet, so it is not covered.
+It then opens New world at its second step, with the game chosen. Checked,
+before the menu's 1 November 2026 layout, from nothing to a running world in
+clean Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 and Arch containers
+(`tools/test/test-fresh-install.sh`), and through the menu on Bazzite with a
+GPU. The server needs glibc 2.35 or newer, so Ubuntu 22.04, Debian 12 or
+anything later. macOS has no Goanna release yet, so it is not covered.
 
-**Choose Luanti myself**, or **Change** on the Start Game screen, opens the
+**Choose Luanti myself**, or **Change** on Content or New world, opens the
 list of what Goanna found instead, with these options:
 
 - **Locate Luanti** takes the folder Luanti was unpacked into, its `bin`

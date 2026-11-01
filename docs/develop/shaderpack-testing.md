@@ -146,10 +146,10 @@ Several packs have since run this way; see
 
 ## The Shader pack setting
 
-Players choose a pack in Settings, Shader packs
-(`project/ui/shader_pack_row.gd`, built by both the main menu and the
-in-game panel), or on Start Game's Shader packs tab beside Mods
-(`build_tab`). Join Game keeps a compact Shaders row (`build_join_picker`).
+Players choose a pack in Settings, Shader packs in game, or Settings,
+Advanced graphics in the main menu (`project/ui/shader_pack_row.gd`, built
+by both). Join a game keeps a compact Shaders row under Materials and
+shaders (`build_join_picker`).
 All list the packs in `user://shaderpacks` and write the same setting.
 `project/game/shader_packs.gd` does the rest:
 
