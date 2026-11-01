@@ -910,10 +910,14 @@ func _show_content() -> void:
 	if inst.is_empty():
 		_show_luanti("No Luanti install was found, so there is no content to show.")
 		return
-	_new_screen("Content", "Installed content for the chosen Luanti. Install a game here, or use Luanti for the full content catalogue.", true)
+	# The table fills the screen; at large text the whole screen scrolls
+	# instead, with room for a few rows.
+	var narrow := PanelFit.size_for(get_viewport().get_visible_rect().size, true).y < 520.0
+	_new_screen("Content", "Installed content for the chosen Luanti. Install a game here, or use Luanti for the full content catalogue.", not narrow)
 	_luanti_row(inst)
 	var data_dir := str(inst["data_dir"])
 	content_table = DataTable.new()
+	content_table.custom_minimum_size.y = 260 if narrow else 0
 	screen.add_child(content_table)
 	content_table.set_table(_content_table(data_dir))
 	_quiet(screen, "Luanti's data folder: " + data_dir)

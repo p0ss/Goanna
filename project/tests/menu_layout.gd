@@ -251,6 +251,18 @@ func _run() -> void:
 	var sc: ScrollContainer = menu._compact_scroll
 	check(sc != null and sc.size.y < menu.screen.get_combined_minimum_size().y,
 		"at 200 percent the main screen scrolls rather than running off the window")
+	# Every screen's accent stays inside the window at 200 percent: the
+	# body scrolls, the footer does not run off the bottom.
+	for show in [menu._show_worlds, menu._show_new_game, menu._show_join,
+			menu._show_public_servers, menu._show_content, menu._show_local_players]:
+		show.call()
+		await _settle()
+		await _settle()
+		var height: float = menu.get_viewport().get_visible_rect().size.y
+		for b in _accents():
+			var bottom: float = (b as Control).get_global_rect().end.y
+			check(bottom <= height + 0.5, "at 200 percent, %s on %s is inside the window (%.0f of %.0f)"
+				% [b.text, menu._screen_title, bottom, height])
 	root.content_scale_factor = 1.0
 
 	menu.free()
