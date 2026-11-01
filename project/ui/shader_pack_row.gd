@@ -5,8 +5,8 @@
 ## "shaderpack" kind of their shared SETTINGS table: a picker of None and
 ## the packs in the shader pack folder, the folder's path with a button to
 ## open it, how the pack did at the last join, and the selected pack's
-## options. build_tab puts it beside Mods on Start Game; build_join_picker
-## is a compact version for Join Game. Everything is saved to goanna.cfg
+## options; the menu shows it on Settings, Advanced graphics. build_join_picker
+## is a compact version for Join a game. Everything is saved to goanna.cfg
 ## through game/shader_packs.gd and applies at the next join, when main.gd
 ## loads the pack; nothing here touches a running world. Static only.
 extends RefCounted
@@ -21,8 +21,8 @@ const NONE_LABEL := "None (Goanna's own look)"
 const FOLDER_HINT := "Put a pack's zip, as downloaded, or its folder in the shader pack folder, then press Look again."
 ## The short introduction shared by the full pack tabs.
 const DESCRIPTION := "Choose Goanna's own look or an Iris or OptiFine shader pack. Pack support is incomplete. Changes apply the next time you join a world."
-## The (i) beside Shaders on Join Game.
-const JOIN_INFO := "Choose how the world looks. Add packs and change their options in Settings, Shader packs. Changes apply when you join."
+## The (i) beside Shaders on Join a game.
+const JOIN_INFO := "Choose how the world looks. Add packs and change their options in Settings, Advanced graphics. Changes apply when you join."
 
 ## Fills `row` (from PanelFit.row) under the setting's name. `description`
 ## is the SETTINGS entry's text.
@@ -65,21 +65,7 @@ static func build(row: VBoxContainer, description: String) -> OptionButton:
 		_build_options(options, name, note))
 	return picker
 
-## The full picker and pack options on a tab beside the world's Mods tab.
-static func build_tab(tabs: TabContainer) -> OptionButton:
-	var scroll := ScrollContainer.new()
-	scroll.name = "Shader packs"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	tabs.add_child(scroll)
-	var pad := PanelFit.page_padding()
-	scroll.add_child(pad)
-	var page := VBoxContainer.new()
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_child(page)
-	var shell := PanelFit.row(page, "Shader pack")
-	return build(shell[0], DESCRIPTION)
-
-## The compact Join Game form under Materials: the picker, the folder's
+## The compact Join a game form under Materials: the picker, the folder's
 ## two buttons and the last join's line,
 ## with no pack options. Saved to the same setting as the Settings row, at
 ## once, so the join that follows loads it. With `beside` (the line holding

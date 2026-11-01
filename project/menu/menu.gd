@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
 ## Goanna's main menu, and the project's main scene (menu/menu.tscn, named by
-## run/main_scene in project.godot). Start Game launches an ordinary Luanti
-## server in the background (net/local_server.gd) and joins it; Join Game
-## joins a remote server. Both hand off to game/main.tscn, or to
-## game/local_play.tscn for split screen, through _go_to_game and the GOANNA_*
-## environment variables main.gd reads. There is no GoannaClient here.
+## run/main_scene in project.godot). Continue, Your worlds and New world
+## launch an ordinary Luanti server in the background (net/local_server.gd)
+## and join it; Join a game joins a remote server. Both hand off to
+## game/main.tscn, or to game/local_play.tscn for split screen, through
+## _go_to_game and the GOANNA_* environment variables main.gd reads. There is
+## no GoannaClient here.
+#
+# The screens follow docs/systems/interface-layout.md, "Menus": one accent
+# button per screen (Continue on the main screen, maintainer 2026-11-01),
+# lists as tables (ui/data_table.gd), New world as steps with defaults, and
+# the rarely changed settings one page further in.
 #
 # The menu steps aside when the environment already says where to go
 # (GOANNA_HOST/GOANNA_NAME or a test mode, SKIP_VARS); GOANNA_MENU=1 forces
@@ -28,6 +34,16 @@ const LocalServer := preload("res://net/local_server.gd")
 const AssetUpdater := preload("res://update/asset_updater.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 const PanelFit := preload("res://ui/panel_fit.gd")
+const InfoIcon := preload("res://ui/info_icon.gd")
+const DataTable := preload("res://ui/data_table.gd")
+# interface-layout.md: four text levels, 8 and 24 px spacing, 40 px targets.
+const TITLE_SIZE := 26
+const HEADING_SIZE := 19
+const QUIET_SIZE := 14
+const QUIET := Color(1, 1, 1, 0.6)
+const NEAR := 8
+const FAR := 24
+const TARGET := 40.0
 const SKIP_VARS := ["GOANNA_LOCAL_PLAY", "GOANNA_HOST", "GOANNA_NAME", "GOANNA_SHOT", "GOANNA_SMOKE",
 	"GOANNA_WALKTEST", "GOANNA_TOGGLETEST", "GOANNA_ANIMPROBE", "GOANNA_MOBTEST",
 	"GOANNA_USETEST", "GOANNA_MINETEST", "GOANNA_DIGDOWNTEST", "GOANNA_MANTLETEST"]
@@ -46,6 +62,8 @@ var name_edit: LineEdit
 var pass_edit: LineEdit
 var connect_button: Button
 var join_pbr_option: OptionButton
+# The shader pack picker on Join a game (ui/shader_pack_row.gd): the same
+# saved setting as Settings, Advanced graphics, Shader pack.
 var join_shader_option: OptionButton
 # new game
 var game_option: OptionButton
@@ -61,9 +79,6 @@ var _world_edit_label: Label
 var creative_check: CheckBox
 var damage_check: CheckBox
 var pbr_option: OptionButton
-# The shader pack pickers on Start Game and Join Game (ui/shader_pack_row.gd):
-# the same saved setting as Settings, Graphics, Shader pack.
-var shader_option: OptionButton
 var host_check: CheckBox
 var hosting_box: VBoxContainer
 var server_name_edit: LineEdit
@@ -73,7 +88,6 @@ var server_port_edit: LineEdit
 var announce_check: CheckBox
 var max_players_spin: SpinBox
 var mod_checks := {}
-var delete_button: Button
 var _local_data_dir := ""
 var _local_join_password := ""
 var start_button: Button
@@ -165,7 +179,7 @@ func _ready() -> void:
 	add_to_group(GlassStyle.GROUP)
 	_build_frame()
 	_show_main()
-	# Back from a failed or dropped join: Join Game again, with the reason,
+	# Back from a failed or dropped join: Join a game again, with the reason,
 	# rather than the main menu (2026-10-31).
 	if OS.get_environment("GOANNA_MENU") != "" and OS.get_environment("GOANNA_MENU_RETURN") == "join":
 		var reason := OS.get_environment("GOANNA_MENU_REASON")
@@ -177,12 +191,12 @@ func _ready() -> void:
 			_join_reason_shown = true
 			if reason.to_lower().contains("password"):
 				pass_edit.grab_focus()
-	# Join Game stops the showcase (_show_join); do not start it behind it.
-	if showcase_launch and _screen_title != "Join Game":
+	# Join a game stops the showcase (_show_join); do not start it behind it.
+	if showcase_launch and _screen_title != JOIN_TITLE:
 		_start_showcase()
 		return
 	if OS.get_environment("GOANNA_JOIN_SCAN") != "":
-		# Development aid: "host:port" opens Join Game, presses Scan local
+		# Development aid: "host:port" opens Join a game, presses Scan local
 		# network, picks that server from what the scan found and connects
 		# as GOANNA_JOIN_SCAN_NAME, as a friend joining a LAN world would.
 		var want := OS.get_environment("GOANNA_JOIN_SCAN")
@@ -236,7 +250,7 @@ func _ready() -> void:
 					game_option.select(i)
 					break
 			world_edit.text = wanted_world
-		# Exercise the real Start Game texture-pack handoff. Previously the
+		# Exercise the real New world texture-pack handoff. Previously the
 		# local launch harness could only test Bundled/Standard: selecting an
 		# existing world above deliberately restores that world's old boolean
 		# PBR flag and overwrites every installed-pack selection. Accept the same
@@ -268,34 +282,37 @@ func _ready() -> void:
 			get_tree().root.content_scale_factor = scale
 			await get_tree().process_frame
 		var want := OS.get_environment("GOANNA_MENU_SCREEN")
-		if want == "new":
+		if want == "new" or want.begins_with("new-"):
+			# new-2 to new-4: that step of New world, with its defaults.
 			_show_new_game()
+			if want.begins_with("new-"):
+				_go_step(int(want.trim_prefix("new-")) - 1)
+		elif want == "worlds":
+			_show_worlds()
+		elif want == "world":
+			# The last world's options, as Continue opens them, unstarted.
+			var last := _last_world()
+			if not last.is_empty():
+				_open_world(str(last["name"]), false)
 		elif want == "join":
 			_show_join()
+		elif want == "public":
+			_show_public_servers()
 		elif want == "content":
 			_show_content()
 		elif want == "settings":
 			_show_settings()
 		elif want == "settings-advanced":
-			# Two groups open, scrolled to the groups, for a screenshot.
+			# Advanced graphics with the Shadows group open.
 			menu_groups_open = {"Shadows": true}
-			_show_settings()
-			await get_tree().process_frame
-			await get_tree().process_frame
-			var g := _find_tabs(screen)
-			if g != null and g.get_child(0) is ScrollContainer:
-				(g.get_child(0) as ScrollContainer).scroll_vertical = 420
+			_show_settings_page("Advanced")
 		elif want.begins_with("settings-tab-"):
-			# settings-tab-Controls and the like: that tab, for a screenshot.
-			_show_settings()
-			await get_tree().process_frame
-			var tabs := _find_tabs(screen)
-			if tabs != null:
-				for i in tabs.get_tab_count():
-					if tabs.get_tab_title(i) == want.trim_prefix("settings-tab-"):
-						tabs.current_tab = i
+			# settings-tab-Controls and the like: that page, for a screenshot.
+			_show_settings_page(want.trim_prefix("settings-tab-"))
+		elif want == "local-players":
+			_show_local_players()
 		elif want == "join-scan":
-			# Join Game after Scan local network has finished.
+			# Join a game after Scan local network has finished.
 			_show_join()
 			_scan_lan()
 			while lan_scan.running:
@@ -346,7 +363,7 @@ func _ready() -> void:
 				if (sc as ScrollContainer).is_visible_in_tree():
 					(sc as ScrollContainer).scroll_vertical = int(scroll_to)
 			await RenderingServer.frame_post_draw
-		if want == "join":
+		if want == "public" and OS.get_environment("GOANNA_SERVER_LIST_FILE") == "":
 			# The public list is a network round trip; shooting the screen
 			# before it lands photographs the "Fetching ..." placeholder.
 			await get_tree().create_timer(6.0).timeout
@@ -357,6 +374,8 @@ func _ready() -> void:
 # --- frame shared by all screens ---------------------------------------------
 
 var _panel_box: VBoxContainer
+# The main screen's scroll, sized to its buttons by _fit_panel.
+var _compact_scroll: ScrollContainer
 var _screen_title := ""
 # The (i) beside the screen's title, when it has an explanation.
 var screen_info: Button
@@ -446,10 +465,36 @@ func _build_frame() -> void:
 func _fit_panel() -> void:
 	if _panel_box == null or not is_instance_valid(_panel_box):
 		return
-	var size := PanelFit.size_for(get_viewport().get_visible_rect().size, _wide)
+	var window := get_viewport().get_visible_rect().size
+	var size := PanelFit.size_for(window, _wide)
 	var inner := 48.0   # the margin above, both sides
 	_panel_box.custom_minimum_size = Vector2(maxf(size.x - inner, 240.0),
 			maxf(size.y - inner, 0.0) if _wide else 0.0)
+	if not _wide and is_instance_valid(_compact_scroll) and is_instance_valid(screen):
+		# The compact screen's scroll is its content's height, or what the
+		# window leaves once the title and footer are placed.
+		var room := window.y - 2.0 * PanelFit.outer_margin(window) - inner
+		for c in _panel_box.get_children():
+			if c != _compact_scroll and c is Control and (c as Control).visible:
+				room -= (c as Control).get_combined_minimum_size().y + 12.0
+		_compact_scroll.custom_minimum_size.y = clampf(
+				screen.get_combined_minimum_size().y, 0.0, maxf(room, 80.0))
+
+## Every control a player presses or types in is at least TARGET high, so
+## controller focus and touch both work (interface-layout.md, Hierarchy).
+## The (i) icons are left at their own size: each also opens when its
+## control takes focus. Run after a screen is built.
+func _fit_targets(root: Node = null) -> void:
+	if root == null:
+		root = _panel_box
+	if root == null or not is_instance_valid(root):
+		return
+	for c in root.find_children("*", "Control", true, false):
+		if c is InfoIcon:
+			continue
+		if c is BaseButton or c is LineEdit or c is SpinBox:
+			var ctl := c as Control
+			ctl.custom_minimum_size.y = maxf(ctl.custom_minimum_size.y, TARGET)
 
 ## The interface style changed (Settings, Appearance): rebuild the frame in the
 ## new style and come back to the settings screen, where the change was made.
@@ -520,12 +565,20 @@ func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	_screen_title = title
 	_wide = title != ""
 	screen_info = null
+	_compact_scroll = null
 	for c in _panel_box.get_children():
+		# Hidden at once, freed at the end of the frame: the button that
+		# opened this screen may still be in its own pressed signal.
+		if c is CanvasItem:
+			(c as CanvasItem).visible = false
 		c.queue_free()
-	var t := Label.new()
-	t.text = "Goanna"
-	t.add_theme_font_size_override("font_size", 30)
-	_panel_box.add_child(t)
+	if title == "":
+		# The main screen names the program; every other screen names
+		# itself, in the same title size (four text levels only).
+		var t := Label.new()
+		t.text = "Goanna"
+		t.add_theme_font_size_override("font_size", TITLE_SIZE)
+		_panel_box.add_child(t)
 	if title != "":
 		# The title, and what the screen is for behind an (i) beside it
 		# (ui/info_icon.gd) rather than as a paragraph above every screen.
@@ -536,26 +589,34 @@ func _new_screen(title: String, subtitle: String, fill := false) -> void:
 		head.add_child(line)
 		var h := Label.new()
 		h.text = title
-		h.add_theme_font_size_override("font_size", 18)
-		GlassStyle.tint_text(h, Color(1, 1, 1, 0.85))
+		h.add_theme_font_size_override("font_size", TITLE_SIZE)
 		line.add_child(h)
 		_panel_box.add_child(head)
 		if subtitle != "":
 			var about := PanelFit.info(head, line, subtitle, head, -1, 0.6)
-			about.label.add_theme_font_size_override("font_size", 15)
+			about.label.add_theme_font_size_override("font_size", QUIET_SIZE)
 			screen_info = about
 	elif subtitle != "":
 		# The main menu's one line, which says what Goanna is.
 		var s := Label.new()
 		s.text = subtitle
-		GlassStyle.tint_text(s, Color(1, 1, 1, 0.6))
+		GlassStyle.tint_text(s, QUIET)
 		s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_panel_box.add_child(s)
 	screen = VBoxContainer.new()
-	screen.add_theme_constant_override("separation", 8)
+	screen.add_theme_constant_override("separation", NEAR)
 	screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not _wide:
-		_panel_box.add_child(screen)
+		# The main screen is as tall as its buttons, and scrolls when the
+		# window (or 200 percent text) leaves less room than that.
+		_compact_scroll = ScrollContainer.new()
+		_compact_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		_compact_scroll.add_child(screen)
+		_panel_box.add_child(_compact_scroll)
+		# A flow row's height is known only once it has a width, after the
+		# first layout, so fit again whenever the content's size settles.
+		screen.minimum_size_changed.connect(func() -> void: _fit_panel.call_deferred())
+		screen.resized.connect(func() -> void: _fit_panel.call_deferred())
 	elif fill:
 		screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_panel_box.add_child(screen)
@@ -586,9 +647,11 @@ func _new_screen(title: String, subtitle: String, fill := false) -> void:
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel_box.add_child(status_label)
 	_footer = VBoxContainer.new()
-	_footer.add_theme_constant_override("separation", 8)
+	_footer.add_theme_constant_override("separation", NEAR)
 	_panel_box.add_child(_footer)
 	_fit_panel()
+	_fit_targets.call_deferred()
+	_fit_panel.call_deferred()
 	if narrator != null:
 		narrator.screen_root = _panel_box
 		var heard := ["Goanna", title if title != "" else "Main menu"]
@@ -610,13 +673,100 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # Back, in the footer, where it stays in reach.
 func _footer_back(cb: Callable = _show_main) -> void:
-	_footer.add_child(_button("Back", cb))
+	_footer_row([_button("Back", cb)])
 
 func _button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
+	b.custom_minimum_size.y = TARGET
 	b.pressed.connect(cb)
 	return b
+
+## The screen's one primary action, in the accent fill. Every other button
+## is quiet glass. Marked with the "accent" meta so tests can count them.
+func _accent(b: Button) -> Button:
+	b.set_meta("accent", true)
+	var fill := GlassStyle.ACCENT_FILL
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var box := StyleBoxFlat.new()
+		box.bg_color = fill.lightened(0.12) if state == "hover" else (
+				fill.darkened(0.15) if state.contains("pressed") else fill)
+		if state == "disabled":
+			box.bg_color = Color(fill, 0.35)
+		box.set_corner_radius_all(int(GlassStyle.RADIUS_SMALL))
+		box.content_margin_left = 16
+		box.content_margin_right = 16
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+		b.add_theme_stylebox_override(state, box)
+	b.add_theme_color_override("font_color", Color.WHITE)
+	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.55))
+	return b
+
+## A quieter button than the rest, for the main screen's last row: no pane,
+## quiet text, the same 40 px target.
+func _quieter(b: Button) -> Button:
+	b.flat = true
+	b.add_theme_color_override("font_color", GlassStyle.TEXT_DIM)
+	return b
+
+## A section heading on a page (the second of the four text levels).
+func _heading(parent: Control, text: String) -> Label:
+	var h := Label.new()
+	h.text = text
+	h.add_theme_font_size_override("font_size", HEADING_SIZE)
+	if parent.get_child_count() > 0:
+		var gap := Control.new()
+		gap.custom_minimum_size = Vector2(0, FAR - NEAR)
+		parent.add_child(gap)
+	parent.add_child(h)
+	return h
+
+## A line of quiet text (the fourth text level).
+func _quiet(parent: Control, text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", QUIET_SIZE)
+	GlassStyle.tint_text(l, QUIET)
+	parent.add_child(l)
+	return l
+
+## A folded group: a 40 px header that opens the body under it. `open`
+## remembers which are open, by title, across rebuilds of the screen.
+func _fold(parent: Control, title: String, open: Dictionary) -> VBoxContainer:
+	var header := Button.new()
+	header.toggle_mode = true
+	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	header.custom_minimum_size.y = TARGET
+	header.button_pressed = bool(open.get(title, false))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", NEAR)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.visible = header.button_pressed
+	header.text = ("\u25BE  " if header.button_pressed else "\u25B8  ") + title
+	header.toggled.connect(func(on: bool) -> void:
+		open[title] = on
+		body.visible = on
+		header.text = ("\u25BE  " if on else "\u25B8  ") + title
+		_fit_targets(body))
+	parent.add_child(header)
+	parent.add_child(body)
+	return body
+
+## A footer row: quiet buttons on the left, the accent last on the right.
+func _footer_row(quiet: Array, primary: Button = null) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", NEAR)
+	for b in quiet:
+		row.add_child(b)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	if primary != null:
+		row.add_child(primary)
+	_footer.add_child(row)
+	return row
 
 func _fail(msg: String, log_path := "") -> void:
 	status_label.text = msg
@@ -663,15 +813,87 @@ func _show_main() -> void:
 		GlassStyle.tint_text(why, Color(1, 0.7, 0.6))
 		why.text = updater.message
 		screen.add_child(why)
-	screen.add_child(_button("Start Game", _show_new_game))
-	screen.add_child(_button("Join Game", _show_join))
-	screen.add_child(_button("Local players", _show_local_players))
-	screen.add_child(_button("Content", _show_content))
+	# One accent: Continue the last world played, named with its game, or
+	# New world when there is none (maintainer, 2026-11-01). No game is
+	# featured: Continue is whatever this player played last.
+	var last := _last_world()
+	var worlds: Array = _known_worlds()
+	if not last.is_empty():
+		var go := _accent(_button("Continue: %s, %s" % [str(last["name"]), str(last["game"])],
+				_continue_last_world))
+		go.name = "Continue"
+		go.tooltip_text = "Start %s again with the same game and settings." % str(last["name"])
+		screen.add_child(go)
+	else:
+		var first := _accent(_button("New world", _show_new_game))
+		first.name = "NewWorld"
+		screen.add_child(first)
+	if not worlds.is_empty():
+		screen.add_child(_button("Your worlds", _show_worlds))
+	if not last.is_empty():
+		screen.add_child(_button("New world", _show_new_game))
+	screen.add_child(_button("Join a game", _show_join))
 	screen.add_child(_button("Settings", _show_settings))
-	screen.add_child(_button("About", _show_about))
-	screen.add_child(_button("Quit", func() -> void: get_tree().quit()))
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, FAR - NEAR)
+	screen.add_child(gap)
+	var more := HFlowContainer.new()
+	more.add_theme_constant_override("h_separation", NEAR)
+	more.add_theme_constant_override("v_separation", NEAR)
+	screen.add_child(more)
+	more.add_child(_quieter(_button("Content", _show_content)))
+	more.add_child(_quieter(_button("Local players", _show_local_players)))
+	more.add_child(_quieter(_button("About", _show_about)))
+	more.add_child(_quieter(_button("Quit", func() -> void: get_tree().quit())))
 	if updater != null and updater.state == "idle":
 		updater.check.call_deferred()
+
+# The worlds of the Luanti in use, or [] when there is none. Read, never
+# created: the main screen must not start an install.
+func _known_worlds() -> Array:
+	var env := LocalServer.detect()
+	if env.is_empty():
+		return []
+	return LocalServer.list_worlds(str(env["data_dir"]))
+
+## The world Continue starts: the one last started, if it still exists in
+## the Luanti in use. {name, game (its title), gameid} or {}.
+func _last_world() -> Dictionary:
+	var cfg := ConfigFile.new()
+	if cfg.load(CFG_PATH) != OK:
+		return {}
+	var name := str(cfg.get_value("local", "world", ""))
+	if name == "":
+		return {}
+	var env := LocalServer.detect()
+	if env.is_empty():
+		return {}
+	var data_dir := str(env["data_dir"])
+	for entry in LocalServer.list_worlds(data_dir):
+		if str(entry["name"]) == name:
+			return {"name": name, "game": _world_game_title(data_dir, name)}
+	return {}
+
+## A world's game as the player knows it: a game published as a modpack
+## (Kindred Holdfast on Mineclonia) by its own title, else the game's.
+func _world_game_title(data_dir: String, world: String) -> String:
+	var options := LocalServer.world_options(data_dir, world)
+	var gid := str(options.get("gameid", ""))
+	var mods: Array = options.get("mods", [])
+	for entry in LocalServer.INSTALLABLE_GAMES:
+		if str(entry.get("kind", "game")) != "modpack" or str(entry.get("requires", "")) != gid:
+			continue
+		var marker := str((entry.get("members", [entry["id"]]) as Array)[0])
+		if mods.has(marker) or mods.has(str(entry["id"])):
+			return str(entry["title"])
+	return LocalServer.game_title(data_dir, gid) if gid != "" else "Unknown game"
+
+func _continue_last_world() -> void:
+	var last := _last_world()
+	if last.is_empty():
+		_show_main()
+		return
+	_open_world(str(last["name"]), true)
 
 func _on_update_state() -> void:
 	if _screen_title == "":
@@ -681,57 +903,66 @@ func _on_update_state() -> void:
 
 # --- content -----------------------------------------------------------------
 
-# Installed content and pinned downloads for the chosen Luanti.
+# Installed content for the chosen Luanti: one table of games, mods and
+# texture packs, with the worlds that use each, filtered by kind.
 func _show_content() -> void:
 	var inst := LocalServer.detect()
 	if inst.is_empty():
 		_show_luanti("No Luanti install was found, so there is no content to show.")
 		return
-	_new_screen("Content", "Installed content for the chosen Luanti. Install a game here, or use Luanti for the full content catalogue.")
+	_new_screen("Content", "Installed content for the chosen Luanti. Install a game here, or use Luanti for the full content catalogue.", true)
 	_luanti_row(inst)
-	screen.add_child(_button("Install a game ...", _show_setup))
 	var data_dir := str(inst["data_dir"])
-	var game_names: Array = []
+	content_table = DataTable.new()
+	screen.add_child(content_table)
+	content_table.set_table(_content_table(data_dir))
+	_quiet(screen, "Luanti's data folder: " + data_dir)
+	_footer_row([_button("Back", _show_main)], _accent(_button("Install a game", _show_setup)))
+
+var content_table: VBoxContainer
+
+## The Content table's shape: a row per game, mod and texture pack, with
+## the worlds using each. Texture packs are chosen per session, not per
+## world, so their Used by is empty and the note says why.
+func _content_table(data_dir: String) -> Dictionary:
+	var worlds: Array = LocalServer.list_worlds(data_dir)
+	var options := {}
+	for w in worlds:
+		options[str(w["name"])] = LocalServer.world_options(data_dir, str(w["name"]))
+	var rows: Array = []
 	for g in LocalServer.list_games(data_dir):
-		var title := LocalServer.game_title(data_dir, str(g))
-		game_names.append(title if title == str(g) else "%s (%s)" % [title, g])
-	var sections := [
-		["Games", game_names],
-		["Mods", LocalServer.list_mods(data_dir)],
-		["Texture packs", LocalServer.list_texture_packs(data_dir)],
-	]
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 320)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	screen.add_child(scroll)
-	var box := VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 4)
-	scroll.add_child(box)
-	for sec in sections:
-		var head := Label.new()
-		head.text = "%s (%d)" % [sec[0], (sec[1] as Array).size()]
-		head.add_theme_font_size_override("font_size", 16)
-		box.add_child(head)
-		if (sec[1] as Array).is_empty():
-			var none := Label.new()
-			none.text = "    none"
-			GlassStyle.tint_text(none, Color(1, 1, 1, 0.5))
-			box.add_child(none)
-			continue
-		for item in sec[1]:
-			var l := Label.new()
-			l.text = "    " + str(item)
-			GlassStyle.tint_text(l, Color(1, 1, 1, 0.8))
-			box.add_child(l)
-	status_label.text = data_dir
-	_footer_back()
+		var users: Array = []
+		for w in options:
+			if str(options[w].get("gameid", "")) == str(g):
+				users.append(w)
+		rows.append({"id": "game:" + str(g), "kind": "Game",
+			"cells": {"kind": "Game", "name": LocalServer.game_title(data_dir, str(g)),
+				"used": ", ".join(PackedStringArray(users))}})
+	for m in LocalServer.list_mods(data_dir):
+		var users: Array = []
+		for w in options:
+			if (options[w].get("mods", []) as Array).has(str(m)):
+				users.append(w)
+		rows.append({"id": "mod:" + str(m), "kind": "Mod",
+			"cells": {"kind": "Mod", "name": str(m), "used": ", ".join(PackedStringArray(users))}})
+	for t in LocalServer.list_texture_packs(data_dir):
+		rows.append({"id": "pack:" + str(t), "kind": "Texture pack",
+			"cells": {"kind": "Texture pack", "name": str(t), "used": ""}})
+	return {"title": "", "columns": [
+			{"id": "name", "label": "Name"},
+			{"id": "kind", "label": "Kind"},
+			{"id": "used", "label": "Used by"}],
+		"rows": rows, "sort": {"column": "kind"},
+		"filters": [{"id": "kind", "label": "Kind", "options": ["Game", "Mod", "Texture pack"]}],
+		"empty": {"why": "Nothing is installed in this Luanti yet",
+			"what": "Choose Install a game to add one."},
+		"note": "Used by lists the worlds that load each game or mod. Texture packs are chosen when you play, not per world."}
 
 # --- Luanti ------------------------------------------------------------------
 
-# Goanna is not a standalone game: Start Game runs Luanti's own server and
+# Goanna is not a standalone game: a local world runs Luanti's own server and
 # joins it. This screen is where the player says which Luanti that is, points
-# at one the scan missed, or installs one. Start Game and Content open it by
+# at one the scan missed, or installs one. New world and Content open it by
 # themselves when there is nothing to run, instead of stopping at an error.
 #
 # Get ready to play installs pinned games into the chosen Luanti's data
@@ -746,12 +977,12 @@ var _luanti_install_scope := ""
 
 func _show_luanti(reason := "", rescan := false) -> void:
 	_stop_showcase()
-	_new_screen("Luanti", "Start Game runs Luanti's own server and joins it, so it needs Luanti installed. Join Game does not.")
+	_new_screen("Luanti", "Your worlds and New world run Luanti's own server and join it, so they need Luanti installed. Join a game does not.")
 	var all: Array = LocalServer.installs(rescan)
 	var chosen := LocalServer.detect()
 	if str(chosen.get("kind", "")) == "custom":
 		var note := Label.new()
-		note.text = "GOANNA_SERVER_CMD is set, so Start Game runs that and the choice below is not used."
+		note.text = "GOANNA_SERVER_CMD is set, so your worlds run that and the choice below is not used."
 		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		screen.add_child(note)
 	if all.is_empty():
@@ -821,7 +1052,7 @@ func _show_luanti(reason := "", rescan := false) -> void:
 	elif (chosen["games"] as Array).is_empty():
 		_fail("%s has no games. Open Luanti, install a game from its Content tab, then Rescan." % _install_name(chosen))
 	else:
-		status_label.text = "Start Game uses %s." % _install_name(chosen)
+		status_label.text = "Your worlds use %s." % _install_name(chosen)
 
 func _install_name(inst: Dictionary) -> String:
 	var version := str(inst.get("version", ""))
@@ -848,8 +1079,9 @@ func _install_detail(inst: Dictionary) -> String:
 	return "\n".join(lines)
 
 # One line naming the Luanti in use, and the way to change it.
-func _luanti_row(inst: Dictionary) -> void:
+func _luanti_row(inst: Dictionary, parent: Control = null) -> void:
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", NEAR)
 	var label := Label.new()
 	label.text = "Using " + _install_title(inst)
 	GlassStyle.tint_text(label, Color(1, 1, 1, 0.7))
@@ -857,7 +1089,7 @@ func _luanti_row(inst: Dictionary) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(label)
 	row.add_child(_button("Change", _show_luanti))
-	screen.add_child(row)
+	(parent if parent != null else screen).add_child(row)
 
 func _locate_luanti() -> void:
 	var dialog := FileDialog.new()
@@ -1048,7 +1280,7 @@ func _on_luanti_downloaded(result: int, code: int, _headers: PackedStringArray,
 # have to meet Luanti's content tab, a package manager or a password prompt:
 # a Luanti server (one already installed, else the server the Linux release
 # carries, else the official Windows build, else Flathub), then a game
-# (a pinned upstream game, or Mineclonia with Kindred), then Start Game.
+# (a pinned upstream game, or Mineclonia with Kindred), then New world.
 const SETUP_TITLE := "Get ready to play"
 var _setup_running := false
 var game_http: HTTPRequest
@@ -1102,11 +1334,11 @@ func _show_setup(reason := "") -> void:
 	what.text = "\n".join(steps)
 	screen.add_child(what)
 	if str(plan["server"]) == "none":
-		what.text = "Goanna cannot install Luanti on this computer by itself. Install Luanti from its download page, then come back and press Start Game."
-		screen.add_child(_button("Open the download page",
-			func() -> void: OS.shell_open(LocalServer.DOWNLOAD_PAGE)))
+		what.text = "Goanna cannot install Luanti on this computer by itself. Install Luanti from its download page, then come back and choose New world."
+		screen.add_child(_accent(_button("Open the download page",
+			func() -> void: OS.shell_open(LocalServer.DOWNLOAD_PAGE))))
 	else:
-		var go := _button("Set it up", _run_setup)
+		var go := _accent(_button("Set it up", _run_setup))
 		go.custom_minimum_size = Vector2(240, 44)
 		screen.add_child(go)
 	screen.add_child(_button("Choose Luanti myself", func() -> void: _show_luanti()))
@@ -1164,7 +1396,7 @@ func _setup_game() -> void:
 				var members := LocalServer.mod_members(mods_dir.path_join(str(installed)))
 				for name in ["kindred", "kindred_creatures", "kindred_cultures", "kindred_world"]:
 					if members.has(name):
-						_setup_failed("Kindred packages are already installed separately. Enable those under Start Game > Mods, or move them out of Luanti's mods folder before installing this preview.")
+						_setup_failed("Kindred packages are already installed separately. Enable those under New world, Options, Mods, or move them out of Luanti's mods folder before installing this preview.")
 						return
 	if selected.get("requires", "") == "mineclonia":
 		_setup_queue.append(LocalServer.STARTER_GAME)
@@ -1256,6 +1488,8 @@ func _setup_done() -> void:
 			(mod_checks["kindred_holdfast"] as CheckBox).button_pressed = true
 		world_edit.text = "kindred_preview"
 		status_label.text = "Kindred Holdfast preview is ready. Choose a new world name before starting."
+	# The game was the choice just made; go on to naming the world.
+	_go_step(1)
 
 
 func _setup_failed(reason: String) -> void:
@@ -1275,50 +1509,94 @@ const ShaderPackRow := preload("res://ui/shader_pack_row.gd")
 var menu_groups_open := {}   # which Graphics groups are open, kept across reopens
 const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
 
+# Settings front page: the graphics profile, the few settings most players
+# change, and accessibility. Everything else is one quiet page further in:
+# Advanced graphics holds the shader pack and every individual render
+# switch; the other pages hold their whole tab. Nothing is dropped: every
+# row of GameUI.SETTINGS is on one of the pages.
+const SETTINGS_FRONT := {
+	"Sound": ["volume", "muted"],
+	"Controls": ["mouse_sensitivity", "invert_mouse", "pad_enabled"],
+	"Accessibility": ["gui_scale", "read_aloud", "interface_style"],
+}
+# The pages behind the front page: GameUI's tab and the button's label.
+const SETTINGS_PAGES := [["Advanced", "Advanced graphics"], ["Controls", "Controls"],
+	["Appearance", "Appearance"], ["Audio", "Sound and speech"], ["Display", "Display"],
+	["Updates", "Updates"]]
+
 func _show_settings() -> void:
-	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.", true)
-	var tabs := TabContainer.new()
-	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	screen.add_child(tabs)
+	_new_screen("Settings", "Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately.")
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
-	var pages := {}
-	var new_page := func(name: String) -> VBoxContainer:
-		var scroll := ScrollContainer.new()
-		scroll.name = name
-		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		var pad := PanelFit.page_padding()
-		var box := VBoxContainer.new()
-		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		box.add_theme_constant_override("separation", 14)
-		pad.add_child(box)
-		scroll.add_child(pad)
-		tabs.add_child(scroll)
-		return box
-	# The same shape as the in-game panel (ui/game_ui.gd): one Graphics tab
-	# holding a profile and the few settings worth an opinion, with the rest
-	# in groups that open one at a time; other tabs grouped under headings.
-	# The two screens claim to be the same settings, so they had better be
-	# arranged the same way.
-	pages["Graphics"] = new_page.call("Graphics")
-	_menu_graphics_page(pages["Graphics"], cfg)
-	var last_group := {}
+	var page := screen
+	PanelFit.heading(page, "Graphics")
+	_menu_graphics_page(page, cfg, false)
+	var advanced := _button("Advanced graphics: shader pack and render switches",
+			func() -> void: _show_settings_page("Advanced"))
+	advanced.name = "PageAdvanced"
+	advanced.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	page.add_child(advanced)
+	var rows := {}
 	for row in GameUI.SETTINGS:
-		var tab := PanelFit.tab_of(row)
-		if not GameUI.PLAIN_TABS.has(tab):
+		rows[str(row[1])] = row
+	for section in SETTINGS_FRONT:
+		PanelFit.heading(page, section)
+		for key in SETTINGS_FRONT[section]:
+			if rows.has(key):
+				_settings_row(page, rows[key], cfg)
+	PanelFit.heading(page, "More settings")
+	var more := HFlowContainer.new()
+	more.add_theme_constant_override("h_separation", NEAR)
+	more.add_theme_constant_override("v_separation", NEAR)
+	page.add_child(more)
+	for p in SETTINGS_PAGES:
+		var tab: String = p[0]
+		if tab == "Advanced":
 			continue
-		if not pages.has(tab):
-			pages[tab] = new_page.call(tab)
-		var group := PanelFit.group_of(row)
-		if group != "" and last_group.get(tab, "") != group:
-			last_group[tab] = group
-			PanelFit.heading(pages[tab], group)
-		_settings_row(pages[tab], row, cfg)
+		var b := _button(str(p[1]), func() -> void: _show_settings_page(tab))
+		b.name = "Page" + tab
+		more.add_child(b)
 	_footer_back()
+
+## One page behind Settings: Advanced (the shader pack and the grouped
+## render switches) or one of GameUI's plain tabs, whole.
+func _show_settings_page(tab: String) -> void:
+	var title := tab
+	for p in SETTINGS_PAGES:
+		if str(p[0]) == tab:
+			title = str(p[1])
+	_new_screen(title, "Applied when you next join a world.")
+	_settings_page = tab
+	var cfg := ConfigFile.new()
+	cfg.load(CFG_PATH)
+	if tab == "Advanced":
+		for row in GameUI.SETTINGS:
+			if PanelFit.tab_of(row) == "Shader packs":
+				_settings_row(screen, row, cfg)
+		PanelFit.heading(screen, "Render switches")
+		_menu_graphics_page(screen, cfg, true)
+	else:
+		var last_group := ""
+		for row in GameUI.SETTINGS:
+			if PanelFit.tab_of(row) != tab:
+				continue
+			var group := PanelFit.group_of(row)
+			if group != "" and group != last_group:
+				last_group = group
+				PanelFit.heading(screen, group)
+			_settings_row(screen, row, cfg)
+	_footer_back(_show_settings)
+
+var _settings_page := ""
 
 # The menu has no client to ask, so everything here reads and writes
 # goanna.cfg directly and takes effect on the next connect.
-func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
+# The front page gets the profile and the ungrouped Graphics rows; the
+# Advanced page (`groups`) gets every grouped row, folded by group.
+func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile, groups_only: bool) -> void:
+	if groups_only:
+		_menu_graphics_groups(box, cfg)
+		return
 	# The profile's name, its picker, and what the profile is about behind
 	# an (i) beside the name.
 	var profile := VBoxContainer.new()
@@ -1359,6 +1637,11 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 		cfg.save(CFG_PATH)
 		_show_settings())
 	show_current.call()
+	for row in GameUI.SETTINGS:
+		if PanelFit.tab_of(row) == "Graphics" and PanelFit.group_of(row) == "":
+			_settings_row(box, row, cfg)
+
+func _menu_graphics_groups(box: VBoxContainer, cfg: ConfigFile) -> void:
 	var groups := {}
 	var order: Array = []
 	for row in GameUI.SETTINGS:
@@ -1366,7 +1649,6 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 			continue
 		var group := PanelFit.group_of(row)
 		if group == "":
-			_settings_row(box, row, cfg)
 			continue
 		if not groups.has(group):
 			groups[group] = []
@@ -1379,15 +1661,6 @@ func _menu_graphics_page(box: VBoxContainer, cfg: ConfigFile) -> void:
 		var body := PanelFit.accordion(box, group, (groups[group] as Array).size(), menu_groups_open)
 		for row in groups[group]:
 			_settings_row(body, row, cfg)
-
-func _find_tabs(node: Node) -> TabContainer:
-	for c in node.get_children():
-		if c is TabContainer:
-			return c
-		var found := _find_tabs(c)
-		if found != null:
-			return found
-	return null
 
 func _settings_row(box: VBoxContainer, row: Array, cfg: ConfigFile) -> void:
 	var key := str(row[1])
@@ -1626,53 +1899,260 @@ Licence: LGPL-2.1-or-later, matching the Luanti client code it carries. godot-cp
 			screen.add_child(said)
 	_footer_back()
 
-# --- new local game ----------------------------------------------------------
+# --- your worlds ---------------------------------------------------------------
 
-func _show_new_game() -> void:
-	mod_checks.clear()
+# Where Back goes from New world's first step, or from a world's options.
+var _world_back: Callable
+# New world's pages (WORLD_STEPS), one shown at a time; [] on an existing
+# world's options, where the options and hosting pages show together.
+var _world_steps: Array = []
+var _world_step := 0
+var _step_label: Label
+var next_button: Button
+var seed_edit: LineEdit
+var _game_buttons: Array = []
+var worlds_table: VBoxContainer
+var play_button: Button
+var _world_detail: VBoxContainer
+var _world_folds := {}
+# The accent's word on the world form: Create on New world, Play on an
+# existing world. A terrain download puts "Download and" before it.
+var _start_word := "Create"
+
+const WORLD_STEPS := ["Choose a game", "Name and seed", "Options", "Hosting"]
+const MONTHS := ["January", "February", "March", "April", "May", "June", "July",
+	"August", "September", "October", "November", "December"]
+
+## Your worlds: a table of the worlds on this computer (world, game, last
+## played), newest first, and the chosen one's detail beside it with Play.
+func _show_worlds(chosen := "") -> void:
 	_stop_showcase()
-	_new_screen("Start Game", "Choose a world, its game and map generator, or host it for other players.", true)
 	var env := LocalServer.detect()
 	if env.is_empty() or (env["games"] as Array).is_empty():
 		_show_setup()
 		return
-	var games: Array = env["games"]
-	_luanti_row(env)
-	_local_data_dir = env["data_dir"]
-	var tabs := TabContainer.new()
-	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	screen.add_child(tabs)
-	var world_scroll := ScrollContainer.new()
-	world_scroll.name = "World"
-	world_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	tabs.add_child(world_scroll)
-	var world_page := VBoxContainer.new()
-	world_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	world_page.add_theme_constant_override("separation", 8)
-	var world_pad := PanelFit.page_padding()
-	world_pad.add_child(world_page)
-	world_scroll.add_child(world_pad)
+	_local_data_dir = str(env["data_dir"])
+	# The detail beside the table when there is room; under it, with the
+	# whole screen scrolling, at large text.
+	var narrow := PanelFit.size_for(get_viewport().get_visible_rect().size, true).x < 760.0
+	_new_screen("Your worlds", "The worlds on this computer, most recently played first. Choose one to see its game and settings, then Play.", not narrow)
+	var split: BoxContainer = VBoxContainer.new() if narrow else HBoxContainer.new()
+	split.add_theme_constant_override("separation", FAR)
+	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	screen.add_child(split)
+	worlds_table = DataTable.new()
+	worlds_table.custom_minimum_size = Vector2(0, 240 if narrow else 0)
+	split.add_child(worlds_table)
+	var side := ScrollContainer.new() if not narrow else null
+	_world_detail = VBoxContainer.new()
+	_world_detail.add_theme_constant_override("separation", NEAR)
+	if side != null:
+		side.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		side.custom_minimum_size.x = 280.0
+		_world_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		side.add_child(_world_detail)
+		split.add_child(side)
+	else:
+		split.add_child(_world_detail)
+	# Play is in the footer, where it is in reach at any text size, and
+	# acts on the chosen row.
+	play_button = _accent(_button("Play", func() -> void:
+		var id := str(worlds_table.selected_id)
+		if id != "":
+			_world_back = _show_worlds.bind(id)
+			_open_world(id, true)))
+	play_button.name = "Play"
+	play_button.disabled = true
+	play_button.tooltip_text = "Choose a world first."
+	worlds_table.set_table(_worlds_table())
+	worlds_table.row_chosen.connect(_show_world_detail)
+	worlds_table.row_activated.connect(func(r: Dictionary) -> void:
+		_world_back = _show_worlds.bind(str(r["id"]))
+		_open_world(str(r["id"]), true))
+	_footer_row([_button("Back", _show_main),
+		_button("New world", func() -> void: _show_new_game(_show_worlds))], play_button)
+	var want := chosen if chosen != "" else str(_last_world().get("name", ""))
+	worlds_table.choose_id(want)
+	if worlds_table.selected_id == "":
+		worlds_table.choose_index(0)
+
+func _worlds_table() -> Dictionary:
+	var rows: Array = []
+	var now := int(Time.get_unix_time_from_system())
+	for entry in LocalServer.list_worlds(_local_data_dir):
+		var name := str(entry["name"])
+		var t := _world_played(name)
+		rows.append({"id": name, "keys": {"played": t}, "cells": {"world": name,
+			"game": _world_game_title(_local_data_dir, name),
+			"played": when_text(t, now) if t > 0 else "Never"}})
+	return {"title": "", "columns": [
+			{"id": "world", "label": "World", "wide": true},
+			{"id": "game", "label": "Game"},
+			{"id": "played", "label": "Last played"}],
+		"rows": rows, "sort": {"column": "played", "order": "desc"},
+		"empty": {"why": "No worlds yet", "what": "Choose New world to make one."}}
+
+## When a world was last played: the newest of the files its server writes
+## as it runs (world.mt is rewritten at every start).
+func _world_played(name: String) -> int:
+	var dir := _local_data_dir.path_join("worlds").path_join(name)
+	var newest := 0
+	for f in ["world.mt", "env_meta.txt", "map_meta.txt", "map.sqlite", "players.sqlite"]:
+		var path := dir.path_join(f)
+		if FileAccess.file_exists(path):
+			newest = maxi(newest, int(FileAccess.get_modified_time(path)))
+	return newest
+
+## "Today, 14:05", "Yesterday, 09:30", "3 days ago" or "1 November 2026", in
+## the computer's own time zone.
+static func when_text(t: int, now: int) -> String:
+	var bias := int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	var d := Time.get_datetime_dict_from_unix_time(t + bias)
+	var days := floori((now + bias) / 86400.0) - floori((t + bias) / 86400.0)
+	if days <= 0:
+		return "Today, %02d:%02d" % [int(d.hour), int(d.minute)]
+	if days == 1:
+		return "Yesterday, %02d:%02d" % [int(d.hour), int(d.minute)]
+	if days < 7:
+		return "%d days ago" % days
+	return "%d %s %d" % [int(d.day), MONTHS[int(d.month) - 1], int(d.year)]
+
+## The chosen world's detail: its game, mods, play mode and hosting, with
+## Change options and Delete, both quiet, under it. Play is the footer's
+## accent.
+func _show_world_detail(r: Dictionary) -> void:
+	if not is_instance_valid(_world_detail):
+		return
+	for c in _world_detail.get_children():
+		c.visible = false
+		c.queue_free()
+	if is_instance_valid(play_button):
+		play_button.disabled = r.is_empty()
+		play_button.tooltip_text = "" if not r.is_empty() else "Choose a world first."
+	if r.is_empty():
+		return
+	var name := str(r["id"])
+	var options := LocalServer.world_options(_local_data_dir, name)
+	var title := Label.new()
+	title.text = name
+	title.add_theme_font_size_override("font_size", HEADING_SIZE)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_world_detail.add_child(title)
+	var cfg := ConfigFile.new()
+	cfg.load(CFG_PATH)
+	# A modpack whose members are all on shows as the pack, not its parts.
+	var mods: Array = (options.get("mods", []) as Array).duplicate()
+	for m in mods.duplicate():
+		for member in LocalServer.mod_members(_local_data_dir.path_join("mods").path_join(str(m))):
+			if str(member) != str(m):
+				mods.erase(member)
+	var hosting := "Only on this computer"
+	if bool(cfg.get_value("local_host", "enabled", false)):
+		hosting = "Open to LAN on port %s, as last time" % str(cfg.get_value("local_host", "port", "30000"))
+	var facts := [
+		["Game", _world_game_title(_local_data_dir, name)],
+		["Mods", ", ".join(PackedStringArray(mods)) if not mods.is_empty() else "None besides the game's own"],
+		["Play", "%s, damage %s" % ["Creative" if bool(options.get("creative", false)) else "Survival",
+			"on" if bool(options.get("damage", true)) else "off"]],
+		["Map", "Terrain Diffusion" if bool(options.get("terrain_diffusion", false)) else "Game default generator"],
+		["Hosting", hosting],
+		["Last played", str(r.get("cells", {}).get("played", ""))],
+	]
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 8)
-	world_page.add_child(grid)
-	var wlabel := Label.new()
-	wlabel.text = "World"
-	grid.add_child(wlabel)
+	grid.add_theme_constant_override("v_separation", 4)
+	_world_detail.add_child(grid)
+	for fact in facts:
+		var k := _quiet(grid, str(fact[0]))
+		k.autowrap_mode = TextServer.AUTOWRAP_OFF
+		var v := Label.new()
+		v.text = str(fact[1])
+		v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.custom_minimum_size.x = 120
+		grid.add_child(v)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = FAR - NEAR
+	_world_detail.add_child(gap)
+	_world_detail.add_child(_button("Change options", func() -> void:
+		_world_back = _show_worlds.bind(name)
+		_open_world(name, false)))
+	var gap2 := Control.new()
+	gap2.custom_minimum_size.y = FAR - NEAR
+	_world_detail.add_child(gap2)
+	# Delete stays quiet and apart from Play, with its confirmation.
+	_world_detail.add_child(_button("Delete world", func() -> void: _confirm_delete(name)))
+	_fit_targets(_world_detail)
+
+## An existing world's options screen, and Play from it at once when
+## `start` (Continue, and Play in Your worlds).
+func _open_world(name: String, start: bool) -> void:
+	if not _world_back.is_valid():
+		_world_back = _show_main
+	_show_world_form(name)
+	if start and is_instance_valid(start_button) and start_button.is_inside_tree():
+		_on_start_local()
+
+## New world, as steps: game, name and seed, options, hosting.
+func _show_new_game(back: Callable = Callable()) -> void:
+	_world_back = back if back.is_valid() else _show_main
+	_show_world_form("")
+
+# The world form. Every control Start used to show is built here, whether
+# New world's steps or an existing world's options show it, so
+# _on_start_local reads one set of controls either way. world_option, the
+# old world picker, stays as the hidden record of which world this is.
+func _show_world_form(existing: String) -> void:
+	mod_checks.clear()
+	_game_buttons.clear()
+	_world_steps = []
+	_stop_showcase()
+	var env := LocalServer.detect()
+	if env.is_empty() or (env["games"] as Array).is_empty():
+		_show_setup()
+		return
+	var is_new := existing == ""
+	if is_new:
+		_new_screen("New world", "Four steps, each with a default, so Next, Next, Next and Create makes a world. Its game and map are fixed once it is made.")
+		_start_word = "Create"
+	else:
+		_new_screen(existing, "This world's options. Its game and map were fixed when it was made; play mode, mods, materials and hosting can change.")
+		_start_word = "Play"
+	var games: Array = env["games"]
+	_local_data_dir = env["data_dir"]
+	_step_label = _quiet(screen, "" if is_new else "%s. %s." % [
+		_world_game_title(str(env["data_dir"]), existing),
+		"Terrain Diffusion map" if bool(LocalServer.world_options(str(env["data_dir"]), existing).get("terrain_diffusion", false))
+			else "The game's own map generator"])
 	world_option = OptionButton.new()
+	world_option.visible = false
 	world_option.add_item("Create new world ...")
 	world_option.set_item_metadata(0, {})
 	for entry in LocalServer.list_worlds(_local_data_dir):
 		world_option.add_item(str(entry["name"]))
 		world_option.set_item_metadata(world_option.item_count - 1, entry)
-	grid.add_child(world_option)
-	world_edit = _labelled_edit(grid, "New world name", "my_world")
-	_world_edit_label = grid.get_child(world_edit.get_index() - 1) as Label
-	var glabel := Label.new()
-	glabel.text = "Game"
-	grid.add_child(glabel)
+	screen.add_child(world_option)
+	var pages: Array = []
+	for i in WORLD_STEPS.size():
+		var page := VBoxContainer.new()
+		page.add_theme_constant_override("separation", NEAR)
+		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		screen.add_child(page)
+		pages.append(page)
+		if not is_new and i == 3:
+			# The options and hosting pages stand together here, a group apart.
+			var apart := Control.new()
+			apart.custom_minimum_size.y = FAR - 2 * NEAR
+			page.add_child(apart)
+		if is_new or i >= 2:
+			_heading(page, WORLD_STEPS[i])
+
+	# Step 1: the game, as a list of choices rather than a dropdown.
+	var game_page: VBoxContainer = pages[0]
 	game_option = OptionButton.new()
+	game_option.visible = false
 	for g in games:
 		# Shown by title, because the directory name is the game id and the two
 		# can differ (VoxeLibre lives in mineclone2). The metadata stays the id,
@@ -1682,9 +2162,49 @@ func _show_new_game() -> void:
 	for pack in _modpack_games(games):
 		game_option.add_item(str(pack["title"]))
 		game_option.set_item_metadata(game_option.item_count - 1, str(pack["meta"]))
-	grid.add_child(game_option)
-	var gen_line := _grid_label(grid, "World generator")
+	game_page.add_child(game_option)
+	var choices := ButtonGroup.new()
+	for i in game_option.item_count:
+		# Radio buttons: which one is chosen shows plainly, and none of
+		# them looks like the screen's accent.
+		var pick := CheckBox.new()
+		pick.button_group = choices
+		pick.text = game_option.get_item_text(i)
+		pick.custom_minimum_size.y = TARGET
+		pick.set_meta("game_index", i)
+		pick.pressed.connect(func() -> void:
+			game_option.select(i)
+			game_option.item_selected.emit(i))
+		game_page.add_child(pick)
+		_game_buttons.append(pick)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = FAR - NEAR
+	game_page.add_child(gap)
+	_luanti_row(env, game_page)
+	game_page.add_child(_button("Install another game", _show_setup))
+
+	# Step 2: the name, and a seed for the map.
+	var name_page: VBoxContainer = pages[1]
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", NEAR)
+	name_page.add_child(grid)
+	world_edit = _labelled_edit(grid, "World name", "my_world")
+	_world_edit_label = grid.get_child(world_edit.get_index() - 1) as Label
+	seed_edit = _labelled_edit(grid, "Seed", "Random",
+		"Leave empty for a new map each time. The same seed and game make the same land, so a friend can share one. Terrain Diffusion worlds ignore it.")
+
+	# Step 3: options, each with a default.
+	var world_page: VBoxContainer = pages[2]
+	var ogrid := GridContainer.new()
+	ogrid.columns = 2
+	ogrid.add_theme_constant_override("h_separation", 12)
+	ogrid.add_theme_constant_override("v_separation", NEAR)
+	world_page.add_child(ogrid)
+	var gen_line := _grid_label(ogrid, "World generator")
 	generator_option = OptionButton.new()
+	generator_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	generator_option.add_item("Game default")
 	generator_option.set_item_metadata(0, "default")
 	# One entry per catalogued world. Each is a whole 62 km world at a metre a
@@ -1696,44 +2216,12 @@ func _show_new_game() -> void:
 	generator_option.add_item("Terrain Diffusion, generate new (setup required)")
 	generator_option.set_item_metadata(generator_option.item_count - 1, "terrain_generate")
 	generator_option.set_item_disabled(generator_option.item_count - 1, true)
-	grid.add_child(generator_option)
+	ogrid.add_child(generator_option)
 	_level(gen_line, generator_option)
 	generator_info = PanelFit.info(generator_option, gen_line, TERRAIN_SUPPORT, world_page)
-	terrain_preview = TextureRect.new()
-	terrain_preview.custom_minimum_size = Vector2(288, 288)
-	terrain_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	terrain_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	terrain_preview.visible = false
-	world_page.add_child(terrain_preview)
-	terrain_download_label = Label.new()
-	terrain_download_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	GlassStyle.tint_text(terrain_download_label, Color(1, 1, 1, 0.6))
-	world_page.add_child(terrain_download_label)
-	creative_check = CheckBox.new()
-	creative_check.text = "Creative mode"
-	world_page.add_child(creative_check)
-	damage_check = CheckBox.new()
-	damage_check.text = "Enable damage"
-	damage_check.button_pressed = true
-	world_page.add_child(damage_check)
-	# On the first page, where it is seen: the choice used to sit on the
-	# Hosting tab, and in the 2026-10-31 co-op playtest everyone typed
-	# addresses instead.
-	host_check = CheckBox.new()
-	host_check.text = "Open to LAN: friends on this network can join"
-	world_page.add_child(host_check)
-	lan_hint = Label.new()
-	lan_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	GlassStyle.tint_text(lan_hint, Color(1, 1, 1, 0.6))
-	world_page.add_child(lan_hint)
-	_add_game_master_row(world_page)
-	var pbr_line := HBoxContainer.new()
-	pbr_line.add_theme_constant_override("separation", 10)
-	var pbr_label := Label.new()
-	pbr_label.text = "Materials"
-	pbr_line.add_child(pbr_label)
-	world_page.add_child(pbr_line)
+	var pbr_line := _grid_label(ogrid, "Materials")
 	pbr_option = OptionButton.new()
+	pbr_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pbr_option.add_item("PBR materials (recommended)")
 	pbr_option.set_item_metadata(0, {"id": "bundled", "path": "", "pbr": true})
 	var local_packs_dir := _local_data_dir.path_join("textures")
@@ -1745,54 +2233,48 @@ func _show_new_game() -> void:
 	pbr_option.add_item("Standard, no PBR")
 	pbr_option.set_item_metadata(pbr_option.item_count - 1,
 			{"id": "standard", "path": "", "pbr": false})
-	world_page.add_child(pbr_option)
-	PanelFit.info(pbr_option, pbr_line, "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set.", world_page)
-	shader_option = ShaderPackRow.build_tab(tabs)
-
-	var mods_scroll := ScrollContainer.new()
-	mods_scroll.name = "Mods"
-	mods_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	tabs.add_child(mods_scroll)
-	var mods_page := VBoxContainer.new()
-	mods_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mods_page.add_theme_constant_override("separation", 5)
-	var mods_pad := PanelFit.page_padding()
-	mods_pad.add_child(mods_page)
-	mods_scroll.add_child(mods_pad)
+	ogrid.add_child(pbr_option)
+	_level(pbr_line, pbr_option)
+	PanelFit.info(pbr_option, pbr_line, "Installed packs layer over the bundled game materials, filling uncovered textures from the bundled set. Shader packs are under Settings, Advanced graphics.", world_page)
+	terrain_preview = TextureRect.new()
+	terrain_preview.custom_minimum_size = Vector2(288, 288)
+	terrain_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	terrain_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	terrain_preview.visible = false
+	world_page.add_child(terrain_preview)
+	terrain_download_label = _quiet(world_page, "")
+	creative_check = CheckBox.new()
+	creative_check.text = "Creative mode"
+	world_page.add_child(creative_check)
+	damage_check = CheckBox.new()
+	damage_check.text = "Enable damage"
+	damage_check.button_pressed = true
+	world_page.add_child(damage_check)
 	var mods := LocalServer.list_mods(_local_data_dir)
+	var mods_page := _fold(world_page, "Mods (%d installed)" % mods.size(), _world_folds)
 	if mods.is_empty():
-		var none := Label.new()
-		none.text = "No separately installed mods were found. Game-bundled mods are managed by the game."
-		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mods_page.add_child(none)
+		_quiet(mods_page, "No separately installed mods were found. Game-bundled mods are managed by the game.")
 	else:
 		for mod in mods:
 			var check := CheckBox.new()
 			check.text = str(mod)
 			mods_page.add_child(check)
 			mod_checks[str(mod)] = check
+	_add_game_master_row(world_page)
 
-	var host_scroll := ScrollContainer.new()
-	host_scroll.name = "Hosting"
-	host_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	tabs.add_child(host_scroll)
-	var host_page := VBoxContainer.new()
-	host_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	host_page.add_theme_constant_override("separation", 8)
-	var host_pad := PanelFit.page_padding()
-	host_pad.add_child(host_page)
-	host_scroll.add_child(host_pad)
-	var host_note := Label.new()
-	host_note.text = "These apply when Open to LAN is ticked on the World page."
-	host_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	host_page.add_child(host_note)
+	# Step 4: hosting, off unless asked for.
+	var host_page: VBoxContainer = pages[3]
+	host_check = CheckBox.new()
+	host_check.text = "Open to LAN: friends on this network can join"
+	host_page.add_child(host_check)
+	lan_hint = _quiet(host_page, "")
 	hosting_box = VBoxContainer.new()
-	hosting_box.add_theme_constant_override("separation", 8)
+	hosting_box.add_theme_constant_override("separation", NEAR)
 	host_page.add_child(hosting_box)
 	var host_grid := GridContainer.new()
 	host_grid.columns = 2
 	host_grid.add_theme_constant_override("h_separation", 12)
-	host_grid.add_theme_constant_override("v_separation", 8)
+	host_grid.add_theme_constant_override("v_separation", NEAR)
 	hosting_box.add_child(host_grid)
 	server_name_edit = _labelled_edit(host_grid, "Server name", "My Goanna server")
 	server_description_edit = _labelled_edit(host_grid, "Description", "")
@@ -1818,12 +2300,13 @@ func _show_new_game() -> void:
 	hosting_box.visible = false
 	host_check.toggled.connect(func(on: bool) -> void:
 		hosting_box.visible = on
-		_refresh_lan_hint())
+		_refresh_lan_hint()
+		_fit_targets(hosting_box))
 	server_port_edit.text_changed.connect(func(_t: String) -> void: _refresh_lan_hint())
 
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)
-	world_edit.text = str(cfg.get_value("local", "world", "my_world"))
+	world_edit.text = existing if not is_new else _free_world_name()
 	var last_game := str(cfg.get_value("local", "game", ""))
 	var remembered_graphics := str(cfg.get_value("local", "graphics",
 			"bundled" if bool(cfg.get_value("local", "pbr_materials", true)) else "standard"))
@@ -1835,11 +2318,14 @@ func _show_new_game() -> void:
 	for i in game_option.item_count:
 		if str(game_option.get_item_metadata(i)) == last_game:
 			game_option.select(i)
+	world_option.select(0)
 	for i in world_option.item_count:
-		if world_option.get_item_text(i) == world_edit.text:
+		if not is_new and world_option.get_item_text(i) == existing:
 			world_option.select(i)
 			break
-	host_check.button_pressed = bool(cfg.get_value("local_host", "enabled", false))
+	# Hosting is off on a new world (maintainer, 2026-11-01); an existing
+	# world opens as it was last started.
+	host_check.button_pressed = false if is_new else bool(cfg.get_value("local_host", "enabled", false))
 	hosting_box.visible = host_check.button_pressed
 	server_name_edit.text = str(cfg.get_value("local_host", "name", "My Goanna server"))
 	server_description_edit.text = str(cfg.get_value("local_host", "description", ""))
@@ -1848,26 +2334,101 @@ func _show_new_game() -> void:
 	max_players_spin.value = int(cfg.get_value("local_host", "max_players", 8))
 	_refresh_lan_hint()
 	world_option.item_selected.connect(_on_world_selected)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	_footer.add_child(row)
-	# Delete sits at the far end, with the whole row between it and Start.
-	# The two were adjacent, so the button that destroys a world was one
-	# slip away from the button that opens it, and both are pressed from
-	# the same screen in the same frame of mind.
-	delete_button = _button("Delete world", _confirm_delete_world)
-	row.add_child(delete_button)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	row.add_child(_button("Back", _show_main))
-	start_button = _button("Start", _on_start_local)
-	row.add_child(start_button)
+	game_option.item_selected.connect(func(_i: int) -> void: _sync_game_buttons())
+	start_button = _accent(_button(_start_word, _on_start_local))
+	start_button.name = "Start"
+	if is_new:
+		next_button = _accent(_button("Next", _on_next))
+		next_button.name = "Next"
+		var row := _footer_row([_button("Back", _on_step_back)], next_button)
+		row.add_child(start_button)
+		_world_steps = pages
+		world_edit.text_submitted.connect(func(_t): _on_next())
+		seed_edit.text_submitted.connect(func(_t): _on_next())
+	else:
+		next_button = null
+		(pages[0] as Control).visible = false
+		(pages[1] as Control).visible = false
+		_footer_row([_button("Back", func() -> void: _world_back.call())], start_button)
 	generator_option.item_selected.connect(func(_index: int) -> void:
 		_refresh_terrain_download_state())
 	_on_world_selected(world_option.selected)
 	_refresh_terrain_download_state()
-	world_edit.text_submitted.connect(func(_t): _on_start_local())
+	if is_new:
+		_go_step(0)
+
+## A name no world has yet: "New world", else "New world 2" and so on.
+func _free_world_name() -> String:
+	var base := "New world"
+	var worlds := _local_data_dir.path_join("worlds")
+	var name := base
+	var n := 2
+	while DirAccess.dir_exists_absolute(worlds.path_join(name)):
+		name = "%s %d" % [base, n]
+		n += 1
+	return name
+
+func _sync_game_buttons() -> void:
+	for b in _game_buttons:
+		if not is_instance_valid(b):
+			continue
+		(b as Button).set_pressed_no_signal(int(b.get_meta("game_index")) == game_option.selected)
+		(b as Button).disabled = game_option.disabled
+
+## Shows step `i` of New world, with Next as the accent, or Create on the
+## last step.
+func _go_step(i: int) -> void:
+	if _world_steps.is_empty():
+		return
+	var had_focus := get_viewport().gui_get_focus_owner() != null
+	_world_step = clampi(i, 0, _world_steps.size() - 1)
+	for k in _world_steps.size():
+		(_world_steps[k] as Control).visible = k == _world_step
+	var last := _world_step == _world_steps.size() - 1
+	if is_instance_valid(next_button):
+		next_button.visible = not last
+	start_button.visible = last
+	_step_label.text = "Step %d of %d" % [_world_step + 1, _world_steps.size()]
+	_sync_game_buttons()
+	if narrator != null:
+		narrator.announce("%s. %s" % [_step_label.text, WORLD_STEPS[_world_step]])
+	if had_focus:
+		GameUI.focus_first(_world_steps[_world_step])
+	_fit_targets()
+
+func _on_next() -> void:
+	if _world_steps.is_empty():
+		_on_start_local()
+		return
+	if _world_step == 1:
+		var err := _world_name_error(world_edit.text.strip_edges(), {})
+		if err != "":
+			_fail(err)
+			return
+	status_label.text = ""
+	if _world_step >= _world_steps.size() - 1:
+		_on_start_local()
+		return
+	_go_step(_world_step + 1)
+
+func _on_step_back() -> void:
+	if not _world_steps.is_empty() and _world_step > 0:
+		_go_step(_world_step - 1)
+	else:
+		_world_back.call()
+
+## Why `world` cannot be a new world's name, or "". `existing` is the world
+## picker's entry: {} for a new world.
+func _world_name_error(world: String, existing: Dictionary) -> String:
+	if world == "":
+		return "Enter a name for the new world."
+	var allowed := RegEx.new()
+	allowed.compile("^[A-Za-z0-9_ -]{1,40}$")
+	if allowed.search(world) == null:
+		return "World names are 1 to 40 characters: letters, digits, spaces, _ and -."
+	if existing.is_empty() and DirAccess.dir_exists_absolute(_local_data_dir.path_join("worlds").path_join(world)):
+		return "A world named '%s' already exists. Choose it from Your worlds, or choose another name; it will not be overwritten." % world
+	return ""
 
 # The AI game master: how the host attaches a language model app to the
 # world, copied ready to paste. Goanna starts no director service itself:
@@ -1944,7 +2505,7 @@ func _lan_notice(port: int) -> String:
 	var addresses := LocalServer.lan_addresses()
 	if addresses.is_empty():
 		return "Open to LAN on port %d, but this computer has no local network address." % port
-	var text := "Open to LAN: friends choose Join Game, then Scan local network, or type %s port %d." % [
+	var text := "Open to LAN: friends choose Join a game, then Scan local network, or type %s port %d." % [
 		" or ".join(addresses), port]
 	if port < 30000 or port > 30005:
 		text += " Scan looks only at ports 30000 to 30005, so on port %d they must type it." % port
@@ -1956,7 +2517,7 @@ func _refresh_lan_hint() -> void:
 	lan_hint.visible = host_check.button_pressed
 	var ptext := server_port_edit.text.strip_edges() if is_instance_valid(server_port_edit) else "30000"
 	var port := int(ptext) if ptext.is_valid_int() else 30000
-	lan_hint.text = _lan_notice(port) + " If they cannot find it, allow UDP port %d through this computer's firewall. Name, password and port are on the Hosting tab." % port
+	lan_hint.text = _lan_notice(port) + " If they cannot find it, allow UDP port %d through this computer's firewall." % port
 
 func _on_world_selected(index: int) -> void:
 	var entry: Dictionary = world_option.get_item_metadata(index)
@@ -1967,8 +2528,6 @@ func _on_world_selected(index: int) -> void:
 	# below it a column, so Game sat beside World generator's picker.
 	if is_instance_valid(_world_edit_label):
 		_world_edit_label.visible = is_new
-	if delete_button:
-		delete_button.visible = not is_new
 	game_option.disabled = not is_new
 	generator_option.disabled = not is_new
 	if is_new:
@@ -2043,12 +2602,12 @@ func _refresh_terrain_download_state() -> void:
 	if LocalServer.terrain_cached(id):
 		terrain_download_label.text = "%s is downloaded and ready." % str(world.get("label", id))
 		if is_instance_valid(start_button):
-			start_button.text = "Start"
+			start_button.text = _start_word
 	else:
 		terrain_download_label.text = "One-time download: %.1f MB. It is kept for later worlds." % (
 				int(world.get("bytes", 0)) / 1000000.0)
 		if is_instance_valid(start_button):
-			start_button.text = "Download & Start"
+			start_button.text = "Download and " + _start_word.to_lower()
 
 func _start_terrain_download() -> void:
 	if terrain_http != null:
@@ -2116,7 +2675,7 @@ func _on_terrain_download_completed(result: int, code: int,
 
 # Before a world starts with the recommended materials: install the newest
 # version of every material bundle for its game that the catalogue offers,
-# then start it. Pressing Start Game again while this runs starts with what
+# then start it. Pressing Create or Play again while this runs starts with what
 # is installed. A failed or slow catalogue starts with what is installed
 # too; the updater gives up on the catalogue after 15 seconds.
 func _fetch_latest_materials(game: String) -> void:
@@ -2156,14 +2715,14 @@ func _material_progress_text() -> String:
 		var bg: Dictionary = _background_materials.progress() \
 			if is_instance_valid(_background_materials) else {}
 		if not bg.is_empty() and int(bg.get("size", -1)) > 0:
-			return "Updating materials: %.0f / %.0f MB. Start Game again to play with the installed ones." % [
+			return "Updating materials: %.0f / %.0f MB. Press it again to play with the installed ones." % [
 				int(bg.bytes) / 1000000.0, int(bg.size) / 1000000.0]
 		return "Checking for the latest materials ..."
 	var p: Dictionary = _material_check.progress()
 	if p.is_empty():
 		return "Checking for the latest materials ..."
 	if int(p.get("size", -1)) > 0:
-		return "Downloading the latest materials: %.0f / %.0f MB. Start Game again to play with the installed ones." % [
+		return "Downloading the latest materials: %.0f / %.0f MB. Press it again to play with the installed ones." % [
 			int(p.bytes) / 1000000.0, int(p.size) / 1000000.0]
 	return "Downloading the latest materials ..."
 
@@ -2202,21 +2761,21 @@ func _extract_terrain_world(archive_path: String, id: String) -> String:
 		return "Could not install the downloaded terrain cache."
 	return ""
 
-func _confirm_delete_world() -> void:
-	var entry: Dictionary = world_option.get_item_metadata(world_option.selected)
-	if entry.is_empty():
-		return
+## Delete, from Your worlds: asks first, then moves the world aside.
+func _confirm_delete(name: String) -> void:
 	var dialog := ConfirmationDialog.new()
 	dialog.title = "Delete world"
-	dialog.dialog_text = "Move '%s' out of the world list? It will be kept in .goanna-trash for recovery." % entry["name"]
+	dialog.dialog_text = "Move '%s' out of the world list? It will be kept in .goanna-trash for recovery." % name
 	dialog.ok_button_text = "Delete"
+	for b in [dialog.get_ok_button(), dialog.get_cancel_button()]:
+		b.custom_minimum_size = Vector2(96, TARGET)
 	dialog.confirmed.connect(func() -> void:
-		var err := LocalServer.delete_world_recoverably(_local_data_dir, str(entry["name"]))
+		var err := LocalServer.delete_world_recoverably(_local_data_dir, name)
 		if err != "":
 			_fail(err)
 		else:
-			status_label.text = "World moved to .goanna-trash."
-			_show_new_game())
+			_show_worlds()
+			status_label.text = "World moved to .goanna-trash.")
 	add_child(dialog)
 	dialog.popup_centered()
 
@@ -2234,20 +2793,15 @@ func _on_start_local() -> void:
 	# A world belongs to the game that made it. Loading it under another
 	# game leaves every stored node unknown (a world of pink "unknown
 	# node" blocks), so continue an existing world with its own game.
-	if world == "":
-		_fail("Enter a name for the new world.")
-		return
-	var allowed := RegEx.new()
-	allowed.compile("^[A-Za-z0-9_ -]{1,40}$")
-	if allowed.search(world) == null:
-		_fail("World names are 1 to 40 characters: letters, digits, spaces, _ and -.")
-		return
-	if existing.is_empty() and DirAccess.dir_exists_absolute(_local_data_dir.path_join("worlds").path_join(world)):
-		_fail("A world directory named '%s' already exists. Select it from the world list or choose a new name; it will not be overwritten." % world)
+	var name_error := _world_name_error(world, existing)
+	if name_error != "":
+		_go_step(1)
+		_fail(name_error)
 		return
 	if host_check.button_pressed:
 		var ptext := server_port_edit.text.strip_edges()
 		if not ptext.is_valid_int() or int(ptext) < 1 or int(ptext) > 65535:
+			_go_step(3)
 			_fail("Hosting port must be between 1 and 65535.")
 			return
 	if existing.is_empty() and terrain_world_id != "" and not LocalServer.terrain_cached(terrain_world_id):
@@ -2297,6 +2851,9 @@ func _on_start_local() -> void:
 		"server_description": server_description_edit.text.strip_edges(),
 		"password": server_password_edit.text, "announce": public_announce,
 		"max_users": maxi(int(max_players_spin.value), local_roster.size())}
+	# A seed only means anything to a world being made.
+	if existing.is_empty() and is_instance_valid(seed_edit) and seed_edit.text.strip_edges() != "":
+		launch["seed"] = seed_edit.text.strip_edges()
 	if host_check.button_pressed:
 		launch["port"] = int(server_port_edit.text)
 	# The player's Far draw distance setting travels to the server as the
@@ -2456,27 +3013,61 @@ func _local_player_name() -> String:
 
 # --- join a server -----------------------------------------------------------
 
+const JOIN_TITLE := "Join a game"
+# Which folds on Join a game are open, kept while the menu is open.
+var _join_folds := {}
+# An address chosen on another screen (Browse public servers), filled in
+# when Join a game is built again.
+var _pending_join := {}
+var recent_tree: Tree
+# The address Connect will use, said in a line above the footer.
+var join_target: Label
+
+# Join a game: the games near you first (this network, servers joined
+# before), then who you are, then Connect. The public list and a typed
+# address are quiet ways in, not the first thing on the screen.
 func _show_join() -> void:
 	_stop_showcase()
-	_new_screen("Join Game", "")
+	_new_screen(JOIN_TITLE, "Join a world a friend is hosting on this network, a server you joined before, or a public server.")
+	_heading(screen, "On this network")
 	_build_lan_list()
-	_build_server_list()
+	_heading(screen, "Recent servers")
+	_build_recent_list()
+	_heading(screen, "You")
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.add_theme_constant_override("v_separation", NEAR)
 	screen.add_child(grid)
-	host_edit = _labelled_edit(grid, "Server address", "127.0.0.1")
-	port_edit = _labelled_edit(grid, "Port", "30000")
 	name_edit = _labelled_edit(grid, "Player name", "")
 	pass_edit = _labelled_edit(grid, "Password", "",
 		"On a server that allows registration, a new name is registered with this password.")
 	pass_edit.secret = true
+	var gap := Control.new()
+	gap.custom_minimum_size.y = FAR - NEAR
+	screen.add_child(gap)
+	var address := _fold(screen, "Type an address", _join_folds)
+	var agrid := GridContainer.new()
+	agrid.columns = 2
+	agrid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	agrid.add_theme_constant_override("h_separation", 12)
+	agrid.add_theme_constant_override("v_separation", NEAR)
+	address.add_child(agrid)
+	host_edit = _labelled_edit(agrid, "Server address", "127.0.0.1")
+	port_edit = _labelled_edit(agrid, "Port", "30000")
+	var look := _fold(screen, "Materials and shaders", _join_folds)
+	var lgrid := GridContainer.new()
+	lgrid.columns = 2
+	lgrid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lgrid.add_theme_constant_override("h_separation", 12)
+	lgrid.add_theme_constant_override("v_separation", NEAR)
+	look.add_child(lgrid)
 	var pbr_label := Label.new()
 	pbr_label.text = "Materials"
-	grid.add_child(pbr_label)
+	lgrid.add_child(pbr_label)
 	join_pbr_option = OptionButton.new()
+	join_pbr_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	join_pbr_option.add_item("PBR: server materials (recommended)")
 	join_pbr_option.set_item_metadata(0, {"id": "server", "path": "", "pbr": true})
 	join_pbr_option.add_item("Standard, no PBR")
@@ -2496,9 +3087,9 @@ func _show_join() -> void:
 		join_pbr_option.add_item("PBR: " + str(pack_name))
 		join_pbr_option.set_item_metadata(join_pbr_option.item_count - 1,
 			{"id": "pack:" + pack_path, "path": pack_path, "pbr": true})
-	grid.add_child(join_pbr_option)
-	var shader_line := _grid_label(grid, "Shaders")
-	join_shader_option = ShaderPackRow.build_join_picker(grid, shader_line)
+	lgrid.add_child(join_pbr_option)
+	var shader_line := _grid_label(lgrid, "Shaders")
+	join_shader_option = ShaderPackRow.build_join_picker(lgrid, shader_line)
 	_level(shader_line, join_shader_option.get_parent() as Control)
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) == OK:
@@ -2513,16 +3104,84 @@ func _show_join() -> void:
 				break
 	if OS.get_environment("GOANNA_PORT") != "":
 		port_edit.text = OS.get_environment("GOANNA_PORT")
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_END
-	row.add_theme_constant_override("separation", 8)
-	_footer.add_child(row)
-	row.add_child(_button("Back", _show_main))
-	connect_button = _button("Connect", _on_connect)
-	row.add_child(connect_button)
+	join_target = _quiet(_footer, "")
+	connect_button = _accent(_button("Connect", _on_connect))
+	connect_button.name = "Connect"
+	_footer_row([_button("Back", _show_main),
+		_button("Browse public servers", _show_public_servers)], connect_button)
 	for e in [host_edit, port_edit, name_edit, pass_edit]:
 		e.text_submitted.connect(func(_t): _on_connect())
+	for e in [host_edit, port_edit]:
+		e.text_changed.connect(func(_t: String) -> void: _show_join_target())
+	if not _pending_join.is_empty():
+		host_edit.text = str(_pending_join.get("address", ""))
+		port_edit.text = str(_pending_join.get("port", 30000))
+		status_label.text = str(_pending_join.get("said", ""))
+		GlassStyle.tint_text(status_label, QUIET)
+		_pending_join = {}
+	_show_join_target()
 	name_edit.grab_focus()
+
+## The line above Connect saying where it will go, so an address filled in
+## by a list (or remembered) is never hidden in a folded field.
+func _show_join_target() -> void:
+	if not is_instance_valid(join_target):
+		return
+	var host := host_edit.text.strip_edges()
+	var port := port_edit.text.strip_edges()
+	join_target.text = "Connect goes to %s port %s." % [host if host != "" else "127.0.0.1",
+		port if port != "" else "30000"]
+
+const RECENT_MAX := 8
+
+# Servers joined before, newest first, from goanna.cfg. An older goanna.cfg
+# has only the last address, which counts as one.
+func _recent_servers() -> Array:
+	var cfg := ConfigFile.new()
+	if cfg.load(CFG_PATH) != OK:
+		return []
+	var recent: Array = cfg.get_value("server", "recent", [])
+	if recent.is_empty() and str(cfg.get_value("server", "host", "")) != "":
+		recent = [{"address": str(cfg.get_value("server", "host", "")),
+			"port": int(str(cfg.get_value("server", "port", "30000"))) if str(cfg.get_value("server", "port", "")).is_valid_int() else 30000,
+			"name": ""}]
+	return recent
+
+func _remember_recent(cfg: ConfigFile, address: String, port: int, label: String) -> void:
+	var recent: Array = cfg.get_value("server", "recent", [])
+	var kept: Array = []
+	var old_name := ""
+	for e in recent:
+		if typeof(e) == TYPE_DICTIONARY and (str(e.get("address", "")) != address or int(e.get("port", 0)) != port):
+			kept.append(e)
+		elif typeof(e) == TYPE_DICTIONARY:
+			old_name = str(e.get("name", ""))
+	kept.push_front({"address": address, "port": port, "name": label if label != "" else old_name})
+	cfg.set_value("server", "recent", kept.slice(0, RECENT_MAX))
+
+func _build_recent_list() -> void:
+	var recent := _recent_servers()
+	if recent.is_empty():
+		_quiet(screen, "Servers you join are listed here, so the next time is one press.")
+		recent_tree = null
+		return
+	recent_tree = Tree.new()
+	recent_tree.columns = 1
+	recent_tree.hide_root = true
+	recent_tree.custom_minimum_size = Vector2(0, mini(recent.size(), 4) * 36 + 16)
+	recent_tree.focus_mode = Control.FOCUS_ALL
+	recent_tree.item_selected.connect(func() -> void: _on_list_picked(recent_tree))
+	recent_tree.item_activated.connect(func() -> void:
+		_on_list_picked(recent_tree)
+		_on_connect())
+	screen.add_child(recent_tree)
+	var root := recent_tree.create_item()
+	for e in recent:
+		var it := recent_tree.create_item(root)
+		var where := "%s port %d" % [str(e.get("address", "")), int(e.get("port", 30000))]
+		var label := str(e.get("name", ""))
+		it.set_text(0, where if label == "" else "%s, %s" % [label, where])
+		it.set_metadata(0, {"address": str(e.get("address", "")), "port": int(e.get("port", 30000))})
 
 # --- servers on this network ------------------------------------------------
 
@@ -2536,14 +3195,12 @@ var lan_scan: Node
 var lan_button: Button
 
 func _build_lan_list() -> void:
-	var head := Label.new()
-	head.text = "On this network"
-	screen.add_child(head)
 	lan_tree = Tree.new()
 	lan_tree.custom_minimum_size = Vector2(0, 96)
 	lan_tree.columns = 1
 	lan_tree.hide_root = true
 	lan_tree.item_selected.connect(_on_lan_picked)
+	lan_tree.focus_mode = Control.FOCUS_ALL
 	lan_tree.item_activated.connect(func() -> void:
 		_on_lan_picked()
 		_on_connect())
@@ -2568,7 +3225,7 @@ func _scan_lan() -> void:
 	var nets: Array = LanScan.local_prefixes()
 	if not lan_scan.start():
 		var it := lan_tree.create_item(root)
-		it.set_text(0, "No local network was found to scan. Type the host's address below.")
+		it.set_text(0, "No local network was found to scan. Open Type an address below instead.")
 		return
 	lan_button.disabled = true
 	var it := lan_tree.create_item(root)
@@ -2599,7 +3256,13 @@ func _on_lan_finished(count: int) -> void:
 		it.set_text(0, "No Luanti servers answered on ports 30000 to 30005. Check the host is running and its firewall allows UDP 30000.")
 
 func _on_lan_picked() -> void:
-	var it := lan_tree.get_selected()
+	_on_list_picked(lan_tree)
+
+# A row of the network or recent list fills the address Connect uses.
+func _on_list_picked(tree: Tree) -> void:
+	if not is_instance_valid(tree):
+		return
+	var it := tree.get_selected()
 	if it == null:
 		return
 	var e = it.get_metadata(0)
@@ -2607,6 +3270,7 @@ func _on_lan_picked() -> void:
 		return
 	host_edit.text = str(e.address)
 	port_edit.text = str(e.port)
+	_show_join_target()
 
 # --- public server list ------------------------------------------------------
 
@@ -2614,121 +3278,150 @@ func _on_lan_picked() -> void:
 # defaults to https://servers.luanti.org (luanti/src/defaultsettings.cpp). This
 # is the only request Goanna makes to anything other than the server the player
 # chose, and it asks for nothing a vanilla client does not ask for. It is also
-# entirely optional: the address fields below work with the list absent, which
-# is what happens with no network.
+# entirely optional: Join a game works with the list absent, which is what
+# happens with no network. It is fetched only when Browse public servers is
+# pressed.
 const SERVER_LIST_URL := "https://servers.luanti.org/list"
 
-var server_tree: Tree
+var server_table: VBoxContainer
 var server_http: HTTPRequest
 # Why the last join ended, on the status line until the player acts: the
 # list's server count must not replace it when the list arrives.
 var _join_reason_shown := false
 var _server_rows: Array = []
+var _server_chosen := {}
+var use_server_button: Button
 
-func _build_server_list() -> void:
-	var head := Label.new()
-	head.text = "Public servers"
-	screen.add_child(head)
-	server_tree = Tree.new()
-	server_tree.custom_minimum_size = Vector2(0, 240)
-	server_tree.columns = 4
-	server_tree.column_titles_visible = true
-	server_tree.set_column_title(0, "Server")
-	server_tree.set_column_title(1, "Players")
-	server_tree.set_column_title(2, "Version")
-	server_tree.set_column_title(3, "Address")
-	server_tree.set_column_expand(1, false)
-	server_tree.set_column_expand(2, false)
-	server_tree.set_column_custom_minimum_width(1, 70)
-	server_tree.set_column_custom_minimum_width(2, 80)
-	server_tree.hide_root = true
-	server_tree.item_selected.connect(_on_server_picked)
-	server_tree.item_activated.connect(func() -> void:
-		_on_server_picked()
-		_on_connect())
-	screen.add_child(server_tree)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	screen.add_child(row)
-	row.add_child(_button("Refresh list", _fetch_server_list))
+## Browse public servers: the public list as a table (name, game, players,
+## ping) with search. Use this server fills Join a game's address.
+func _show_public_servers() -> void:
+	_new_screen("Public servers", "The public Luanti server list, the one Luanti's own client shows. A large server sends a great deal of media before it lets anyone in.", true)
+	server_table = DataTable.new()
+	screen.add_child(server_table)
+	server_table.host_tools.add_child(_button("Refresh list", _fetch_server_list))
+	server_table.row_chosen.connect(_on_server_picked)
+	server_table.row_activated.connect(func(r: Dictionary) -> void:
+		_on_server_picked(r)
+		_use_public_server())
+	use_server_button = _accent(_button("Use this server", _use_public_server))
+	use_server_button.name = "UseServer"
+	use_server_button.disabled = true
+	use_server_button.tooltip_text = "Choose a server in the list first."
+	_footer_row([_button("Back", _show_join)], use_server_button)
+	_server_chosen = {}
+	_set_server_rows([], "Fetching the server list", "It comes from " + SERVER_LIST_URL + ".")
 	_fetch_server_list()
 
 func _fetch_server_list() -> void:
+	# Development aid: GOANNA_SERVER_LIST_FILE=<json> reads a saved list, so
+	# captures and tests show the table without the network.
+	var saved := OS.get_environment("GOANNA_SERVER_LIST_FILE")
+	if saved != "":
+		_on_server_list(0, 200, PackedStringArray(),
+				FileAccess.get_file_as_bytes(saved))
+		return
 	if server_http == null:
 		server_http = HTTPRequest.new()
 		add_child(server_http)
 		server_http.request_completed.connect(_on_server_list)
-	server_tree.clear()
-	var root := server_tree.create_item()
-	var loading := server_tree.create_item(root)
-	loading.set_text(0, "Fetching " + SERVER_LIST_URL + " ...")
 	# Back out and in again before the last fetch answered: ask afresh.
 	server_http.cancel_request()
 	var err := server_http.request(SERVER_LIST_URL)
 	if err != OK:
-		_server_list_message("Could not start the request. The address fields below still work.")
+		_set_server_rows([], "The server list could not be fetched",
+				"Go back and use Type an address, or try Refresh list.")
 
 func _on_server_list(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	# The reply can arrive after the player has left this screen, which frees
-	# the tree it would be written into.
-	if not is_instance_valid(server_tree) or not server_tree.is_inside_tree():
+	# the table it would be written into.
+	if not is_instance_valid(server_table) or not server_table.is_inside_tree():
 		return
 	if code != 200:
-		_server_list_message("Server list unavailable (HTTP %d). The address fields below still work." % code)
+		_set_server_rows([], "The server list is unavailable (HTTP %d)" % code,
+				"Go back and use Type an address, or try Refresh list.")
 		return
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
 	if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("list"):
-		_server_list_message("Server list could not be read. The address fields below still work.")
+		_set_server_rows([], "The server list could not be read",
+				"Go back and use Type an address, or try Refresh list.")
 		return
 	_server_rows = parsed["list"]
-	# Busiest first, which is the order that makes the list useful: a server
-	# with nobody on it is rarely what someone opening this screen wants.
-	_server_rows.sort_custom(func(a, b) -> bool:
-		return int(a.get("clients", 0)) > int(b.get("clients", 0)))
-	server_tree.clear()
-	var root := server_tree.create_item()
-	var shown := 0
+	var rows: Array = []
+	var seen := {}
 	for e in _server_rows:
 		if typeof(e) != TYPE_DICTIONARY or not e.has("address"):
 			continue
-		var it := server_tree.create_item(root)
-		it.set_text(0, str(e.get("name", e.get("address", "?"))))
-		it.set_text(1, "%d/%d" % [int(e.get("clients", 0)), int(e.get("clients_max", 0))])
-		it.set_text(2, str(e.get("version", "")))
-		it.set_text(3, "%s:%d" % [str(e.get("address", "")), int(e.get("port", 30000))])
-		it.set_metadata(0, e)
-		shown += 1
-	if _join_reason_shown:
-		return
-	status_label.text = "%d servers. Pick one to fill the fields below, or double click to join." % shown
-	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
+		var id := "%s:%d" % [str(e.get("address", "")), int(e.get("port", 30000))]
+		if seen.has(id):
+			continue
+		seen[id] = true
+		var ping := float(e.get("ping", -1.0))
+		var cells := {"name": str(e.get("name", e.get("address", ""))),
+			"game": _public_game_title(str(e.get("gameid", ""))),
+			"players": "%d/%d" % [int(e.get("clients", 0)), int(e.get("clients_max", 0))]}
+		if ping >= 0.0:
+			cells["ping"] = int(round(ping * 1000.0))
+		rows.append({"id": id, "server": e, "cells": cells,
+			"keys": {"players": int(e.get("clients", 0))},
+			"detail": [str(e.get("description", ""))]})
+	_set_server_rows(rows, "No servers are listed", "Try Refresh list in a minute.")
+	if not _join_reason_shown:
+		status_label.text = "%d servers. Choose one, then Use this server." % rows.size()
+		GlassStyle.tint_text(status_label, QUIET)
 
-func _server_list_message(msg: String) -> void:
-	if not is_instance_valid(server_tree):
-		return
-	server_tree.clear()
-	var root := server_tree.create_item()
-	var it := server_tree.create_item(root)
-	it.set_text(0, msg)
+# A game's title for the public list, which sends only the game's id: the
+# installed game's own title, else a game Goanna knows, else the id as sent.
+func _public_game_title(gameid: String) -> String:
+	if gameid == "":
+		return ""
+	var data_dir := LocalServer.data_dir_or_empty()
+	if data_dir != "" and LocalServer.list_games(data_dir).has(gameid):
+		return LocalServer.game_title(data_dir, gameid)
+	for entry in LocalServer.INSTALLABLE_GAMES:
+		if str(entry["id"]) == gameid:
+			return str(entry["title"])
+	return gameid
 
-func _on_server_picked() -> void:
-	var it := server_tree.get_selected()
-	if it == null:
+func _set_server_rows(rows: Array, why: String, what: String) -> void:
+	if not is_instance_valid(server_table):
 		return
-	var e = it.get_metadata(0)
-	if typeof(e) != TYPE_DICTIONARY:
-		return
+	# Busiest first, which is the order that makes the list useful: a server
+	# with nobody on it is rarely what someone opening this screen wants.
+	server_table.set_table({"title": "", "columns": [
+			{"id": "name", "label": "Server", "wide": true},
+			{"id": "game", "label": "Game"},
+			{"id": "players", "label": "Players", "kind": "number"},
+			{"id": "ping", "label": "Ping, ms", "kind": "number"}],
+		"rows": rows, "sort": {"column": "players", "order": "desc"},
+		"empty": {"why": why, "what": what}})
+	_fit_targets(server_table)
+
+func _on_server_picked(r: Dictionary) -> void:
+	_server_chosen = r
+	if is_instance_valid(use_server_button):
+		use_server_button.disabled = r.is_empty()
+	var e: Dictionary = r.get("server", {})
 	_join_reason_shown = false
-	host_edit.text = str(e.get("address", ""))
-	port_edit.text = str(int(e.get("port", 30000)))
+	var about := str(e.get("description", "")).strip_edges()
+	status_label.text = str(e.get("name", "")) + (": " + about if about != "" else "")
+	GlassStyle.tint_text(status_label, QUIET)
+
+## Back to Join a game with the chosen server's address filled in.
+func _use_public_server() -> void:
+	var e: Dictionary = _server_chosen.get("server", {})
+	if e.is_empty():
+		return
+	var address := str(e.get("address", ""))
+	var port := int(e.get("port", 30000))
 	# The public list says which game a server runs, which a direct address
 	# does not; kept so the first join there can already use its materials.
 	if str(e.get("gameid", "")) != "":
-		AssetUpdater.remember_game("%s:%s" % [host_edit.text, port_edit.text], str(e.gameid))
+		AssetUpdater.remember_game("%s:%d" % [address, port], str(e.gameid))
 	# Said plainly rather than left to be discovered at the loading screen: a
 	# large public server sends a great deal of media before it lets anyone in.
-	status_label.text = "%s. Joining a large server can take a while at the media step." % str(e.get("name", ""))
-	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.6))
+	_pending_join = {"address": address, "port": port, "name": str(e.get("name", "")),
+		"said": "%s. Joining a large server can take a while at the media step." % str(e.get("name", ""))}
+	_show_join()
 
 func _on_connect() -> void:
 	# Not a world this client opened, so no Open to LAN notice in its chat.
@@ -2756,6 +3449,7 @@ func _on_connect() -> void:
 	cfg.set_value("server", "host", host)
 	cfg.set_value("server", "port", port_text)
 	cfg.set_value("player", "name", pname)
+	_remember_recent(cfg, host, int(port_text), _recent_label(host, int(port_text)))
 	var graphics: Dictionary = join_pbr_option.get_item_metadata(join_pbr_option.selected)
 	var graphics_id := str(graphics.get("id", "server"))
 	var texture_path := str(graphics.get("path", ""))
@@ -2788,6 +3482,14 @@ func _on_connect() -> void:
 	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
 	status_label.text = "Connecting to %s:%s as %s" % [host, port_text, pname]
 	_go_to_game()
+
+# A name for a recent server: the public list's name for it, if it came
+# from there this time the menu was open.
+func _recent_label(host: String, port: int) -> String:
+	for e in _server_rows:
+		if typeof(e) == TYPE_DICTIONARY and str(e.get("address", "")) == host and int(e.get("port", 30000)) == port:
+			return str(e.get("name", ""))
+	return ""
 
 # --- helpers -----------------------------------------------------------------
 
@@ -2901,10 +3603,10 @@ func _go_to_game() -> void:
 		server = null
 		get_tree().change_scene_to_file.call_deferred("res://game/main.tscn")
 
-# Local player slots are configured once, then used by Start Game or Join Game.
+# Local player slots are configured once, then used by a local world or Join a game.
 # Each extra player authenticates normally, including on remote servers.
 func _show_local_players() -> void:
-	_new_screen("Local players", "Experimental splitscreen. Player 1 uses the name and password on Start Game or Join Game.")
+	_new_screen("Local players", "Experimental splitscreen. Player 1 uses the name and password on Join a game, or your own name on a local world.")
 	var roster := local_roster.duplicate(true)
 	if roster.is_empty():
 		roster.append({"name": _local_player_name(), "device": -1})
@@ -2924,7 +3626,7 @@ func _show_local_players() -> void:
 		var player_name := LineEdit.new()
 		player_name.text = str(roster[i].get("name", "player_%d" % (i + 1)))
 		player_name.editable = i != 0
-		player_name.custom_minimum_size.x = 150
+		player_name.custom_minimum_size.x = 160
 		row.add_child(player_name)
 		var device := OptionButton.new()
 		device.add_item("Press Start to join")
@@ -2941,6 +3643,7 @@ func _show_local_players() -> void:
 		var password := LineEdit.new()
 		password.secret = true
 		password.placeholder_text = "Server password"
+		password.custom_minimum_size.x = 180
 		password.text = str(roster[i].get("password", ""))
 		password.editable = i != 0
 		row.add_child(password)
@@ -2972,7 +3675,7 @@ func _show_local_players() -> void:
 			local_roster = collect.call()
 			local_roster.pop_back()
 			_show_local_players()))
-	screen.add_child(_button("Save and back", func() -> void:
+	_footer_row([_button("Back", _show_main)], _accent(_button("Save and back", func() -> void:
 		var result: Array = collect.call()
 		var error := LocalLaunch.validate(result)
 		if error != "":
@@ -2987,4 +3690,4 @@ func _show_local_players() -> void:
 		cfg.set_value("local_play", "layout", local_layout)
 		cfg.set_value("local_play", "graphics_profile", local_graphics_profile)
 		cfg.save(CFG_PATH)
-		_show_main()))
+		_show_main())))

@@ -145,16 +145,19 @@ func _menu() -> void:
 	var texts := _visible_texts(menu)
 	check(not texts.has("Applied when you next join a world. The pause menu has the same settings, and changes there take effect immediately."),
 			"rather than a paragraph")
-	check(_icons(menu.screen).size() > 20, "every setting has an (i) (%d)" % _icons(menu.screen).size())
+	check(_icons(menu.screen).size() >= 12, "every setting on the front page has an (i) (%d)" % _icons(menu.screen).size())
 	var described := false
 	for t in texts:
 		described = described or str(t).begins_with("How much world to ask the server for")
 	check(not described, "and no setting's description is on screen")
 	check(texts.has(menu.NOT_RECORDED), "but a value not recorded yet still says so")
+	menu._show_settings_page("Controls")
+	await process_frame
+	check(_icons(menu.screen).size() >= 13, "and on a page behind it (%d)" % _icons(menu.screen).size())
 	menu._show_join()
 	await process_frame
 	check(not str(menu.status_label.text).contains("registered with this password"),
-			"Join Game's status line no longer explains registration")
+			"Join a game's status line no longer explains registration")
 	var pass_icon: InfoIcon = null
 	for icon in _icons(menu.screen):
 		if (icon as InfoIcon).owner_control == menu.pass_edit:
@@ -169,10 +172,10 @@ func _menu() -> void:
 	if menu.generator_info != null and is_instance_valid(menu.generator_info):
 		check(not menu.generator_info.revealed()
 				and str(menu.generator_info.label.text).begins_with("Terrain Diffusion uses"),
-				"Start Game's biome note is behind World generator's (i)")
+				"New world's biome note is behind World generator's (i)")
 		check(not _visible_texts(menu).has(menu.TERRAIN_SUPPORT), "not on screen")
 	else:
-		print("  skip Start Game: no Luanti install with a game here")
+		print("  skip New world: no Luanti install with a game here")
 	menu.free()
 	await process_frame
 

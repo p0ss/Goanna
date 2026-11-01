@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-## The shader pack tab and Join Game picker in the menu
-## (ui/shader_pack_row.gd): it lists the packs in a
-## scratch user://shaderpacks, writes the same saved setting as Settings,
-## Shader packs, the Settings picker shows what it wrote and the
-## other way round, a join loads it, and the last join's line shows. Also
-## that Start Game and Settings expose a dedicated Shader packs tab.
+## The shader pack picker on Join a game and on Settings, Advanced graphics
+## (ui/shader_pack_row.gd): it lists the packs in a scratch
+## user://shaderpacks, writes the same saved setting from both, each shows
+## what the other wrote, a join loads it, and the last join's line shows.
+## Also that New world no longer carries a shader pack tab of its own.
 ## Headless, no server or GPU. It writes user://goanna.cfg and
 ## user://shaderpacks, so it refuses to run without a scratch XDG_DATA_HOME:
 ## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/menu_shader_pack.gd
@@ -83,11 +82,12 @@ func _run() -> void:
 	root.add_child(menu)
 	await process_frame
 
-	print("join game")
+	print("join a game")
+	menu._join_folds["Materials and shaders"] = true
 	menu._show_join()
 	await process_frame
 	var join: OptionButton = menu.join_shader_option
-	check(join != null and join.is_visible_in_tree(), "Join Game has a Shaders picker")
+	check(join != null and join.is_visible_in_tree(), "Join a game has a Shaders picker, under Materials and shaders")
 	check(_items(join) == [ShaderPackRow.NONE_LABEL, "Alpha", "Beta"],
 			"it lists None and the two packs, not the folder without shaders/ (got %s)" % str(_items(join)))
 	check(join.selected == 0, "nothing saved selects None")
@@ -103,50 +103,33 @@ func _run() -> void:
 	print("settings")
 	menu._show_settings()
 	await process_frame
-	var settings_tabs: TabContainer = menu._find_tabs(menu.screen)
-	for i in settings_tabs.get_tab_count():
-		if settings_tabs.get_tab_title(i) == "Shader packs":
-			settings_tabs.current_tab = i
+	check(_settings_picker(menu.screen) == null, "the Settings front page has no shader pack picker")
+	menu._show_settings_page("Advanced")
 	await process_frame
 	var settings_picker := _settings_picker(menu.screen)
-	check(settings_picker != null, "Settings has the shader pack picker")
+	check(settings_picker != null, "Settings, Advanced graphics has the shader pack picker")
 	if settings_picker != null:
-		check(settings_picker.is_visible_in_tree(), "on its own Shader packs tab")
+		check(settings_picker.is_visible_in_tree(), "and it is in view")
 		check(settings_picker.get_item_text(settings_picker.selected) == "Beta",
-				"and shows what Join Game chose")
+				"and shows what Join a game chose")
 		check(_select(settings_picker, "Alpha"), "Alpha can be chosen in Settings")
 	check(ShaderPacks.chosen() == "Alpha", "Settings writes the same setting")
 
-	print("start game and the join")
+	print("new world and the join")
 	ShaderPacks.save_status("Alpha", "Not loaded: no programs (*.fsh) in Alpha")
 	menu._show_join()
 	await process_frame
 	join = menu.join_shader_option
-	check(join.get_item_text(join.selected) == "Alpha", "Join Game shows what Settings chose")
+	check(join.get_item_text(join.selected) == "Alpha", "Join a game shows what Settings chose")
 	check(_status_text(join) == "Last join: Not loaded: no programs (*.fsh) in Alpha",
 			"and the last join's line for it, so a failed pack is visible (got %s)" % _status_text(join))
 	menu._show_new_game()
 	await process_frame
-	if menu.shader_option != null and is_instance_valid(menu.shader_option) \
-			and menu.shader_option.is_inside_tree():
-		var start_tabs: TabContainer = menu._find_tabs(menu.screen)
-		var shader_tab := -1
-		var mods_tab := -1
-		for i in start_tabs.get_tab_count():
-			if start_tabs.get_tab_title(i) == "Shader packs": shader_tab = i
-			if start_tabs.get_tab_title(i) == "Mods": mods_tab = i
-		check(shader_tab >= 0 and mods_tab >= 0, "Start Game has sibling Shader packs and Mods tabs")
-		if shader_tab >= 0: start_tabs.current_tab = shader_tab
-		await process_frame
-		var start: OptionButton = menu.shader_option
-		check(start.is_visible_in_tree(), "the picker is visible on the Shader packs tab")
-		check(start.get_item_text(start.selected) == "Alpha", "Start Game shows the same choice")
-		check(_select(start, ShaderPackRow.NONE_LABEL), "None can be chosen on Start Game")
-		check(ShaderPacks.chosen() == "", "None saves no pack")
-		_select(start, "Alpha")
+	if menu._screen_title == "New world":
+		check(_settings_picker(menu.screen) == null,
+				"New world has no shader pack picker: it is a setting, not a world option")
 	else:
-		print("  skip Start Game: no Luanti install with a game here")
-		ShaderPacks.set_chosen("Alpha")
+		print("  skip New world: no Luanti install with a game here")
 	var j := ShaderPacks.prepare_join()
 	check(str(j.get("path", "")) == ProjectSettings.globalize_path(ShaderPacks.DIR).path_join("Alpha"),
 			"the join that follows loads the chosen pack (got %s)" % str(j))

@@ -29,6 +29,9 @@ func _initialize() -> void:
 
 func buttons(node: Node, text: String) -> Array:
 	var found: Array = []
+	# A screen just replaced is still in the tree until the frame ends.
+	if node.is_queued_for_deletion():
+		return found
 	if node is Button and node.text == text:
 		found.append(node)
 	for child in node.get_children():
@@ -44,7 +47,7 @@ func _run() -> void:
 		{"name": "two", "device": -2, "password": "not-persisted"}]
 	menu._show_local_players()
 	await process_frame
-	var save := buttons(menu.screen, "Save and back")
+	var save := buttons(menu._panel_box, "Save and back")
 	check(save.size() == 1, "Local setup exposes its save action")
 	if not save.is_empty():
 		save[0].pressed.emit()
@@ -68,7 +71,7 @@ func _run() -> void:
 				picker.item_selected.emit(i)
 				found_lowest = true
 	check(found_lowest, "Local setup offers Lowest")
-	buttons(menu.screen, "Save and back")[0].pressed.emit()
+	buttons(menu._panel_box, "Save and back")[0].pressed.emit()
 	cfg.load("user://goanna.cfg")
 	check(cfg.get_value("local_play", "graphics_profile", "") == "lowest", "Lowest selection persists")
 	var starting := StartingServer.new()
@@ -79,9 +82,10 @@ func _run() -> void:
 	menu.server_deadline = menu._now() - 1.0
 	menu._process(0.0)
 	check(starting.stopped and menu.server == null, "A startup timeout stops the owned server")
-	check(menu.status_label.text.contains(starting.log_path), "The timeout retains the server log path")
+	check(menu._footer.find_children("*", "LinkButton", true, false).any(func(l) -> bool:
+		return str(l.text).contains(starting.log_path)), "The timeout retains the server log path")
 	check(menu.status_label.text.contains("five minutes"), "The timeout explains how long it waited")
-	check(buttons(menu._footer, "Open server log").size() == 1, "Startup errors offer the actual server log")
+	check(buttons(menu._footer, "Open logs folder").size() == 1, "Startup errors offer the actual server log")
 	var cause := preload("res://net/local_server.gd").startup_error(
 		"2026 ERROR[Main]: ModError: Failed to load example\n2026 ERROR[Main]: init.lua:12: missing dependency")
 	check(cause.contains("init.lua:12") and cause.contains("ModError"), "Startup errors retain their Lua cause")

@@ -1531,11 +1531,11 @@ func start(gameid_: String, worldname: String, player_name: String = "player",
 		"terrain_world": terrain_world_id})
 
 ## Start a server on a world, creating it under the data directory if new.
-## `options` is what the menu's Start Game screen gathers: gameid, world,
-## player_name, terrain_world, creative, damage, pbr_materials, mods, and the
+## `options` is what the menu's world form gathers: gameid, world,
+## player_name, terrain_world, creative, damage, pbr_materials, mods, the
 ## hosting keys (host, port, server_name, server_description, password,
-## announce, max_users) and far_distance. Writes world.mt, a server config
-## beside the world and the worldmods, picks a free port, and launches the
+## announce, max_users), far_distance and seed (a new world's map seed).
+## Writes world.mt, a server config beside the world and the worldmods, picks a free port, and launches the
 ## server with a fresh log for poll_ready to watch. Returns "" on success, or
 ## an error message for the player.
 func start_config(options: Dictionary) -> String:
@@ -1551,10 +1551,10 @@ func start_config(options: Dictionary) -> String:
 	var pbr_materials := bool(options.get("pbr_materials", true))
 	var env := detect()
 	if env.is_empty():
-		return "No Luanti install found. Choose, locate or install one from Start Game, or set GOANNA_SERVER_CMD."
+		return "No Luanti install found. Choose, locate or install one from Content, Change, or set GOANNA_SERVER_CMD."
 	var needs := game_needs_newer(env, gameid)
 	if needs != "":
-		return "%s needs Luanti %s or newer, and the Luanti in use is %s. Update Luanti, or choose a newer one from Start Game." % [gameid, needs, str(env["version"])]
+		return "%s needs Luanti %s or newer, and the Luanti in use is %s. Update Luanti, or choose a newer one from Content, Change." % [gameid, needs, str(env["version"])]
 	_argv = env["argv"]
 	_data_dir = env["data_dir"]
 	world_path = _data_dir.path_join("worlds").path_join(worldname)
@@ -1615,6 +1615,11 @@ func start_config(options: Dictionary) -> String:
 		cf.store_string("server_name = %s\n" % _conf_value(options.get("server_name", worldname)))
 		cf.store_string("server_description = %s\n" % _conf_value(options.get("server_description", "")))
 		cf.store_string("max_users = %d\n" % int(options.get("max_users", 8)))
+		# New world's Seed: Luanti takes fixed_map_seed only when it makes a
+		# world's map, so it is written only before map_meta.txt exists.
+		var seed := str(options.get("seed", "")).strip_edges()
+		if seed != "" and not FileAccess.file_exists(world_path.path_join("map_meta.txt")):
+			cf.store_string("fixed_map_seed = %s\n" % _conf_value(seed))
 		cf.store_string("server_announce = %s\n" % ("true" if bool(options.get("announce", false)) else "false"))
 		var server_password := _conf_value(options.get("password", ""))
 		if server_password != "":
