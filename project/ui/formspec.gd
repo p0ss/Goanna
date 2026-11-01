@@ -3491,6 +3491,9 @@ static func _select_table_row(t: Tree, row: int) -> void:
 				up.collapsed = false
 				up = up.get_parent()
 			item.select(0)
+			# GUITable scrolls a chosen row into view; the Tree has no
+			# size until it is laid out, so this waits a frame.
+			t.scroll_to_item.call_deferred(item)
 			return
 		item = item.get_next_in_tree()
 
