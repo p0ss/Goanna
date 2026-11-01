@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (C) 2026 the Goanna contributors
 
-// Natural attacks: an animal's bite (later a bear's swipe, a bull's gore)
-// blended by where it aims, as melee strokes are blended by drag angle.
+// Natural attacks: an animal's bite, a bear's swipe, a bull's gore or
+// charge, blended by where it aims, as melee strokes are blended by drag
+// angle.
 //
-// A body's model carries the attack's clips, one per aim height (a wolf:
+// A body's model carries each attack's clips, one per aim height (a wolf:
 // natural_bite_low, _mid, _high; natural_lunge_low, ...), all the same
 // length, and the plan in its root extras {"natural": {...}} (DorfCraft's
-// tools/kindred_creatures/animation/natural/bake.py). The server picks a
-// parameter p that puts the jaws at the target's height, sweeps the jaws of
-// the pose blended at p for the contact, and plays the clip nearest p, which
-// is what a stock client shows. Goanna shows the pose the server swept: the
+// tools/kindred_creatures/animation/natural/bake.py). Each attack names its
+// weapon (jaws, claws, horns, tusks: rails between points on bones, which
+// only the server reads). The server picks a parameter p that puts the
+// weapon at the target's height, sweeps the weapon of the pose blended at p
+// for the contact, and plays the clip nearest p, which is what a stock
+// client shows. An attack that travels (a lunge, a charge) moves the body on
+// the server; the client sees it as the entity's own motion. Goanna shows the pose the server swept: the
 // two clips either side of p blended at the playing clip's time.
 //
 // The server's word is format 5 of the action state on the stroke state bone
