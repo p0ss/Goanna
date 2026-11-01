@@ -54,6 +54,17 @@ const char *PLAN = R"({"state": "kindred_stroke", "format": 5, "hip": 0.71875, "
  {"kind": "lunge", "clips": ["natural_lunge_low", "natural_lunge_mid", "natural_lunge_high"], "length": 1.3,
   "commit": 0.3, "active": [0.48, 0.74], "travel": {"from": 0.3, "to": 0.66, "distance": 1.1}}]})";
 
+// A plan with named weapons (bake.py since the bears' swipe): every attack
+// names its weapon, and a body may hold standing and travelling attacks of
+// several kinds. Goanna needs only kind, clips and length of each.
+const char *WEAPON_PLAN = R"({"state": "kindred_stroke", "format": 5, "hip": 1.0, "attacks": [
+ {"kind": "gore", "weapon": "horns", "clips": ["natural_gore_low", "natural_gore_mid", "natural_gore_high"],
+  "length": 1.2, "commit": 0.3, "active": [0.5, 0.7], "profile": "spear", "aim": "body"},
+ {"kind": "charge", "weapon": "horns", "clips": ["natural_charge_low", "natural_charge_high"], "length": 1.6,
+  "commit": 0.4, "active": [0.7, 0.95], "travel": {"from": 0.3, "to": 0.9, "distance": 2.4}, "knockback": 6}],
+ "weapons": {"horns": {"rails": [[{"bone": "horn_left", "point": [-5, 30, -20]},
+  {"bone": "horn_left", "point": [-9, 37, -29]}]], "aim": [{"bone": "horn_left", "point": [-9, 37, -29]}]}}})";
+
 void testPlan() {
     NaturalPlan plan;
     check(parseNaturalPlan(parse(PLAN), plan), "the plan parses");
@@ -61,6 +72,11 @@ void testPlan() {
     check(plan.attacks.size() == 2, "two attacks");
     check(plan.attacks[1].kind == "lunge" && plan.attacks[1].clips.size() == 3, "the lunge's three clips");
     check(nearf(plan.attacks[0].length, 0.9f), "the bite's length");
+    NaturalPlan horned;
+    check(parseNaturalPlan(parse(WEAPON_PLAN), horned), "a plan with named weapons parses");
+    check(horned.attacks.size() == 2 && horned.attacks[0].kind == "gore", "the gore first");
+    check(horned.attacks[1].clips.size() == 2 && nearf(horned.attacks[1].length, 1.6f), "the charge's two clips");
+    check(naturalNearest(2, 0.6f) == 1 && naturalBracket(2, 0.6f).b == 1, "two variants bracket");
     NaturalPlan bad;
     check(!parseNaturalPlan(parse(R"({"attacks": [{"kind": "bite", "clips": []}]})"), bad), "no clips is refused");
     check(!parseNaturalPlan(parse(R"({"attacks": []})"), bad), "no attacks is refused");
