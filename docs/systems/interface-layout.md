@@ -59,6 +59,32 @@ shape (columns, rows, opening sort, filters, empty state, note):
 - Keyboard and controller: arrows move the row, Enter opens it, typing
   goes to the search box.
 
+### Groups
+
+A long list of variants of one thing ("Acacia planks", "Birch planks",
+"Oak planks"; every wood of a door) is one row per thing, opened to its
+variants. The rule, from the maintainer on 1 November 2026: lists "should
+be grouped by table, rather than having all the different variants
+listed".
+
+- The server says which rows are variants of what (a row's `group`) and
+  sends each group's label, kind count, totals, state and detail
+  (DorfCraft's `docs/interface-rules.md`, "Groups"). The client never
+  makes a group up from names.
+- A group row shows its label, how many kinds it holds and its totals.
+  It is greyed only when every variant is.
+- Groups start closed. A click, Enter or the right arrow opens one; the
+  left arrow closes it, from the group or from one of its rows. An opened
+  group stays open across refreshes of the same table.
+- Groups sort by their totals among the plain rows; variants sort the same
+  way within their group.
+- Search matches the variants' text and the group's label, and opens
+  every group it leaves. A group left with one row shows as that row.
+- Choosing a group shows its detail (its variants and where they are);
+  Enter on a group opens or closes it and never acts on it.
+- A table the client builds from server entries (the workshop picker)
+  groups the same way, by a server field (the trade).
+
 ## Unavailable things
 
 Greyed (quiet text colour, no hover lift) with the reason on hover or

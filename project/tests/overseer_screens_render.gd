@@ -46,6 +46,17 @@ func finish(code: int, why := "") -> void:
 	if client != null: client.disconnect_from_server()
 	get_tree().quit(code)
 
+## Chooses the table's first group and opens it; false when it has none.
+func open_first_group() -> bool:
+	for i in view.ui.table.shown_rows.size():
+		var r: Dictionary = view.ui.table.shown_rows[i]
+		if r.get("group_row", false):
+			view.ui.table.choose_index(i)
+			view.ui.table.open_group(str(r.get("id", "")))
+			await pause(0.5)
+			return true
+	return false
+
 func screens(suffix: String) -> void:
 	var ui = view.ui
 	ui.choose_family("Select")
@@ -66,6 +77,9 @@ func screens(suffix: String) -> void:
 	await shot("supplies" + suffix)
 	ui.table.choose_index(0)
 	await shot("supplies-row" + suffix)
+	# A group chosen and opened, where the table has one.
+	if await open_first_group():
+		await shot("supplies-group" + suffix)
 	ui.choose_family("Houses")
 	await wait_for(func() -> bool: return ui.table_kind == "houses", 20)
 	await shot("houses" + suffix)
@@ -78,6 +92,8 @@ func screens(suffix: String) -> void:
 	view.choose_tool("workshop")
 	await wait_for(func() -> bool: return ui.table_kind == "workshops", 10)
 	await shot("workshops" + suffix)
+	if await open_first_group():
+		await shot("workshops-group" + suffix)
 	var ready := 0
 	for i in ui.table.shown_rows.size():
 		if not ui.table.row_locked(ui.table.shown_rows[i]):

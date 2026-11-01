@@ -665,19 +665,58 @@ func workshop_table() -> Dictionary:
 		elif e.get("requirements") is String:
 			lines.append(str(e.requirements))
 		var whole := str(e.get("title", "Unnamed")).split("\n")[0]
+		var trade := str(e.get("trade", whole))
 		rows.append({"id": "w%d" % i, "index": i,
-			"cells": {"workshop": str(e.get("trade", whole)), "station": str(e.get("station", "")),
+			"cells": {"workshop": trade, "station": str(e.get("station", "")),
 				"equipment": "Needed" if missing else "In stock"},
 			"keys": {"equipment": 1 if missing else 0},
 			"state": "locked" if missing else "shown",
-			"reason": str(e.get("reason", "Needs equipment in fortress stock.")), "detail": lines})
+			"reason": str(e.get("reason", "Needs equipment in fortress stock.")), "detail": lines,
+			"group": {"id": trade, "label": trade}})
 	return {"title": "Choose a workshop",
 		"columns": [{"id": "workshop", "label": "Workshop", "kind": "text"},
 			{"id": "station", "label": "Station", "kind": "text"},
 			{"id": "equipment", "label": "Equipment", "kind": "text"}],
+		"grouped": true, "groups": workshop_groups(rows),
 		"sort": {"column": "equipment", "order": "asc"}, "rows": rows,
 		"empty": {"why": "No workshops are offered here.", "what": "Choose another Build tool."},
 		"note": "Workers set a workshop up from fortress stock. Greyed workshops need equipment first."}
+
+## One group per trade with two or more stations (Armoury: the smithing
+## table and the anvils), as the server groups its own tables
+## (DorfCraft docs/interface-rules.md, "Groups"). A trade is ready when any
+## of its stations is; Use this workshop on it takes the first ready one.
+func workshop_groups(rows: Array) -> Array:
+	var by := {}
+	var order: Array = []
+	for r in rows:
+		var trade := str(r.cells.workshop)
+		if not by.has(trade):
+			by[trade] = []
+			order.append(trade)
+		by[trade].append(r)
+	var out: Array = []
+	for trade in order:
+		var list: Array = by[trade]
+		if list.size() < 2: continue
+		var ready := 0
+		var first := -1
+		var ids: Array = []
+		var lines: Array = []
+		for r in list:
+			ids.append(r.id)
+			var locked := str(r.state) == "locked"
+			lines.append("%s: %s" % [str(r.cells.station), "needed" if locked else "in stock"])
+			if not locked:
+				ready += 1
+				if first < 0: first = int(r.index)
+		out.append({"id": "trade:" + trade, "label": trade, "kinds": list.size(), "rows": ids, "count_text": "",
+			"index": first, "cells": {"workshop": trade, "station": "%d stations" % list.size(),
+				"equipment": ("%d in stock" % ready) if ready > 0 else "Needed"},
+			"keys": {"equipment": 0 if ready > 0 else 1},
+			"state": "shown" if ready > 0 else "locked",
+			"reason": "None of its stations is in fortress stock.", "detail": lines})
+	return out
 
 func refresh_table() -> void:
 	var kind := current_table()

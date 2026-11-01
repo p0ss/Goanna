@@ -30,6 +30,82 @@ func supplies() -> Dictionary:
 		"empty": {"why": "Nothing is stored yet.", "what": "Mark a stockpile area under Zones."},
 		"note": "Counts are what workers have seen in stockpiles."}
 
+## Supplies grouped as the server sends it: three planks under one group,
+## two wools under another, cobble alone (DorfCraft overseer/groups.lua).
+func grouped_supplies() -> Dictionary:
+	var row := func(id: String, item: String, count: int, group: String, where := "Yard") -> Dictionary:
+		var r := {"id": id, "cells": {"item": item, "count": count, "where": where}, "kind": "Wood"}
+		if not group.is_empty(): r["group"] = {"id": group, "label": group.capitalize()}
+		return r
+	return {"title": "Grouped supplies", "grouped": true,
+		"columns": [{"id": "item", "label": "Item", "kind": "text", "wide": true},
+			{"id": "count", "label": "Count", "kind": "number", "total": "sum"},
+			{"id": "where", "label": "Where", "kind": "text", "total": "same"}],
+		"sort": {"column": "count", "order": "asc"},
+		"filters": [{"id": "kind", "label": "Kind", "options": ["Wood"]}],
+		"rows": [row.call("a", "Oak Planks", 40, "planks"), row.call("b", "Birch Planks", 12, "planks"),
+			row.call("c", "Acacia Planks", 6, "planks", "Chest"), row.call("d", "Cobblestone", 20, ""),
+			row.call("e", "White Wool", 6, "wool"), row.call("f", "Red Wool", 3, "wool")],
+		"groups": [
+			{"id": "group:planks", "label": "Planks", "kinds": 3, "rows": ["a", "b", "c"], "kind": "Wood",
+				"cells": {"item": "Planks", "count": 58}, "pos": {"x": 1, "y": 0, "z": 1},
+				"detail": ["40 Oak Planks: 40 in Yard."]},
+			{"id": "group:wool", "label": "Wool", "kinds": 2, "rows": ["e", "f"], "kind": "Wood",
+				"cells": {"item": "Wool", "count": 9, "where": "Yard"}, "state": "locked", "reason": "Needs a loom."}]}
+
+func grouped(t) -> void:
+	var chosen: Array = []
+	var activated: Array = []
+	t.row_chosen.connect(func(r: Dictionary) -> void: chosen.append(r))
+	t.row_activated.connect(func(r: Dictionary) -> void: activated.append(r))
+	t.set_table(grouped_supplies())
+	var root_item: TreeItem = t.tree.get_root()
+	check(names(t) == ["Wool", "Cobblestone", "Planks"], "groups sort among plain rows by their totals: %s" % [names(t)])
+	var planks: TreeItem = root_item.get_child(2)
+	check(planks.get_child_count() == 3 and planks.collapsed and planks.get_text(0) == "Planks"
+		and planks.get_suffix(0) == "(3 kinds)" and planks.get_text(1) == "58", "a group row shows its label, kinds and total, closed")
+	check(planks.get_child(0).get_text(0) == "Acacia Planks" and planks.get_child(2).get_text(0) == "Oak Planks",
+		"a group's rows sort the same way beneath it")
+	check(root_item.get_child(0).get_custom_color(0) == DataTable.GREY, "a locked group is greyed")
+	t.choose_index(2)
+	check(chosen[-1].get("group_row", false) and t.selected_row().get("detail", [])[0].begins_with("40 Oak"),
+		"choosing a group gives the group, with its detail")
+	var key := InputEventKey.new()
+	key.pressed = true
+	key.keycode = KEY_RIGHT
+	t._tree_input(key)
+	check(not planks.collapsed and t.open_groups.has("group:planks"), "the right arrow opens the chosen group")
+	t.set_table(grouped_supplies().merged({"note": "Refreshed."}))
+	planks = t.tree.get_root().get_child(2)
+	check(not planks.collapsed, "an opened group stays open across a refresh")
+	planks.get_child(1).select(0)
+	key.keycode = KEY_LEFT
+	t._tree_input(key)
+	planks = t.tree.get_root().get_child(2)
+	check(planks.collapsed and t.selected_row().get("id") == "group:planks", "the left arrow on a row closes its group and chooses it")
+	t._on_activated()
+	check(not planks.collapsed and activated.is_empty(), "Enter opens a group and activates nothing")
+	t._on_activated()
+	check(planks.collapsed, "Enter again closes it")
+	t.search.text = "birch"
+	t._refresh_rows()
+	check(names(t) == ["Birch Planks"] and t.tree.get_root().get_child(0).get_child_count() == 0,
+		"a search leaving one row of a group shows it as its plain row")
+	t.search.text = "planks"
+	t._refresh_rows()
+	planks = t.tree.get_root().get_child(0)
+	check(names(t) == ["Planks"] and not planks.collapsed and planks.get_child_count() == 3,
+		"a search opens the groups it leaves, and the group's own label matches")
+	t.search.text = "wool"
+	t._refresh_rows()
+	check(names(t) == ["Wool"] and t.tree.get_root().get_child(0).get_child_count() == 2, "a search finds a group by its rows")
+	t.search.text = ""
+	t._refresh_rows()
+	t.choose_id("b")
+	check(t.selected_row().get("id") == "b" and not t.tree.get_root().get_child(2).collapsed,
+		"choosing a row in a closed group opens it")
+	t.clear_choice()
+
 func names(t) -> Array:
 	var out := []
 	for r in t.shown_rows: out.append(r.cells.item)
@@ -92,6 +168,7 @@ func run() -> void:
 		"an empty table shows the server's why and what")
 	check(t.sort_column == "count" and t.selected_id == "", "another table starts from its own opening sort")
 	check(t.note.visible and t.note.text.begins_with("Counts"), "the note shows under the table")
+	grouped(t)
 	var bare := {"title": "Bare", "columns": [{"id": "a", "label": "A"}], "rows": [{"id": "x", "cells": {"a": "One"}}]}
 	t.set_table(bare)
 	check(t.filters.get_child_count() == 0 and not t.note.visible and t.shown_rows.size() == 1, "a table without filters, sort or note draws")

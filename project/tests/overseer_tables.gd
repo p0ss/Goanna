@@ -152,5 +152,15 @@ func run() -> void:
 	for child in ui.actions.get_children():
 		if child is Button and child.get_meta("tool", "") == "harvest":
 			check(child.get_theme_color("font_color") == ui.QUIET and child.tooltip_text == "No gathering authority", "an unavailable tool is greyed with its reason")
+	# Stations of one trade group under it (Armoury: a smithing table and
+	# an anvil); Use this workshop on the trade takes its first ready one.
+	var stations := [
+		{"id": "w0", "index": 0, "cells": {"workshop": "Armoury", "station": "Smithing table", "equipment": "Needed"}, "state": "locked"},
+		{"id": "w1", "index": 1, "cells": {"workshop": "Armoury", "station": "Anvil", "equipment": "In stock"}, "state": "shown"},
+		{"id": "w2", "index": 2, "cells": {"workshop": "Brewing", "station": "Still", "equipment": "In stock"}, "state": "shown"}]
+	var groups: Array = ui.workshop_groups(stations)
+	check(groups.size() == 1 and groups[0].label == "Armoury" and groups[0].rows == ["w0", "w1"] and int(groups[0].index) == 1
+		and groups[0].cells.equipment == "1 in stock" and groups[0].state == "shown",
+		"stations of one trade group under it, ready when any is, using the first ready")
 	print("Overseer tables: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)

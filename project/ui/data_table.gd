@@ -16,6 +16,16 @@
 ## emits row_activated. Locked rows are greyed with their reason as the
 ## tooltip and come with locked = true; the host shows the reason and offers
 ## nothing else. Typing while the rows have focus goes to the search box.
+##
+## A grouped table (grouped = true, with the server's groups: id, label,
+## kinds, cells, keys, state, reason, detail, pos and the ids of its rows)
+## draws one row per group with its rows indented beneath, closed until
+## opened by a click, Enter or the right arrow (the left arrow closes it).
+## Groups sort by their own cells and keys among the plain rows, and their
+## rows sort the same way within. A search matches the rows' text and the
+## group's label, and opens every group it leaves. A group with one row
+## left is drawn as that row. A chosen group is emitted as the group, with
+## group_row = true and its rows shown as variants; it is never activated.
 extends VBoxContainer
 
 signal row_chosen(row: Dictionary)
@@ -39,8 +49,12 @@ var sort_column := ""
 var sort_order := "asc"
 var filter_values := {}
 var selected_id := ""
-## Rows in display order after search, filters and sort.
+## Rows in display order after search, filters and sort: plain rows and
+## group entries (group_row, with variants), top level only.
 var shown_rows: Array = []
+## Groups the player opened, by group id, kept across refreshes.
+var open_groups := {}
+var _building := false
 ## Takes a glyph name and returns a Texture2D or null; set by the host.
 var glyph_texture: Callable
 
@@ -94,6 +108,7 @@ func _init() -> void:
 	tree.column_title_clicked.connect(func(column: int, _button: int) -> void: sort_by_index(column))
 	tree.item_selected.connect(_on_selected)
 	tree.item_activated.connect(_on_activated)
+	tree.item_collapsed.connect(_on_collapsed)
 	tree.gui_input.connect(_tree_input)
 	add_child(tree)
 	empty_box = VBoxContainer.new()
@@ -136,6 +151,7 @@ func set_table(value: Dictionary) -> void:
 		filter_values.clear()
 		search.text = ""
 		selected_id = ""
+		open_groups.clear()
 	if _column_index(sort_column) < 0:
 		var cols := columns()
 		sort_column = str(cols[0].get("id", "")) if not cols.is_empty() else ""
@@ -297,54 +313,81 @@ static func _is_number(v: Variant) -> bool:
 	return v is int or v is float
 
 func _matches(row: Dictionary, needle: String) -> bool:
+	return _passes_filters(row) and _has_text(row, needle)
+
+func _passes_filters(row: Dictionary) -> bool:
 	for id in filter_values:
 		var wanted := str(filter_values[id])
 		if not wanted.is_empty() and str(row.get(id, "")) != wanted: return false
+	return true
+
+func _has_text(row: Dictionary, needle: String) -> bool:
 	if needle.is_empty(): return true
+	if not row.get("cells") is Dictionary: return false
 	for c in columns():
 		var v: Variant = row.cells.get(str(c.id))
 		if v != null and str(v).to_lower().contains(needle): return true
 	return false
 
+## The server's groups, by row id, for a grouped table.
+func _groups_by_row() -> Dictionary:
+	var out := {}
+	if shape.get("grouped", false) != true or not shape.get("groups") is Array: return out
+	for g in shape.groups:
+		if not g is Dictionary or not g.get("cells") is Dictionary or not g.get("rows") is Array: continue
+		for id in g.rows: out[str(id)] = g
+	return out
+
 func _refresh_rows() -> void:
 	var needle := search.text.strip_edges().to_lower()
 	shown_rows.clear()
+	var member := _groups_by_row()
+	var kids := {}
+	var order: Array = []
 	for r in rows():
-		if _matches(r, needle): shown_rows.append(r)
-	if not sort_column.is_empty(): shown_rows.sort_custom(_less)
+		var g: Variant = member.get(str(r.get("id", "")))
+		if not _passes_filters(r): continue
+		if not (_has_text(r, needle) or (g != null and _has_text(g, needle))): continue
+		if g == null:
+			shown_rows.append(r)
+			continue
+		var gid := str(g.get("id", ""))
+		if not kids.has(gid):
+			kids[gid] = []
+			order.append(g)
+		kids[gid].append(r)
+	for g in order:
+		var list: Array = kids[str(g.get("id", ""))]
+		if list.size() == 1:
+			shown_rows.append(list[0])
+			continue
+		var entry: Dictionary = g.duplicate()
+		entry["group_row"] = true
+		entry["variants"] = list
+		shown_rows.append(entry)
+	if not sort_column.is_empty():
+		shown_rows.sort_custom(_less)
+		for r in shown_rows:
+			if r.get("group_row", false): r.variants.sort_custom(_less)
+	_building = true
 	tree.clear()
 	var root := tree.create_item()
-	var cols := columns()
 	var chosen: TreeItem = null
 	for r in shown_rows:
-		var item := tree.create_item(root)
-		var locked := str(r.get("state", "shown")) == "locked"
-		for i in cols.size():
-			var c: Dictionary = cols[i]
-			var v: Variant = r.cells.get(str(c.id))
-			item.set_text(i, _cell_text(v))
-			if str(c.get("kind", "text")) == "number": item.set_text_alignment(i, HORIZONTAL_ALIGNMENT_RIGHT)
-			if locked:
-				item.set_custom_color(i, GREY)
-				item.set_tooltip_text(i, str(r.get("reason", "Not available yet.")))
-			else:
-				item.set_custom_color(i, TEXT)
-				item.set_tooltip_text(i, "")
-		if r.get("glyph") is String and glyph_texture.is_valid():
-			var tex: Variant = glyph_texture.call(r.glyph)
-			if tex is Texture2D:
-				item.set_icon(0, tex)
-				item.set_icon_max_width(0, 22)
-				if locked: item.set_icon_modulate(0, Color(1, 1, 1, 0.45))
-		# A swatch column (a house's colour) leads its label with the colour.
-		for i in cols.size():
-			if str(cols[i].get("kind", "")) == "swatch" and r.get("swatch") is String and Color.html_is_valid(r.swatch):
-				item.set_icon(i, swatch(Color.html(r.swatch)))
-		item.set_metadata(0, r)
+		var item := _add_row(root, r)
 		if str(r.get("id", "")) == selected_id and not selected_id.is_empty(): chosen = item
+		if r.get("group_row", false):
+			for v in r.variants:
+				var child := _add_row(item, v)
+				if str(v.get("id", "")) == selected_id and not selected_id.is_empty(): chosen = child
+			# Closed until opened; a search opens every group it leaves.
+			item.collapsed = needle.is_empty() and not open_groups.has(str(r.get("id", "")))
 	if chosen != null:
+		var up := chosen.get_parent()
+		if up != null and up != root: up.collapsed = false
 		chosen.select(0)
 		tree.scroll_to_item(chosen)
+	_building = false
 	var none := shown_rows.is_empty()
 	tree.visible = not none
 	empty_box.visible = none
@@ -356,6 +399,39 @@ func _refresh_rows() -> void:
 		empty_what.visible = not empty_what.text.is_empty()
 		empty_clear.visible = not all_empty
 	view_changed.emit()
+
+## One row's item under parent: its cells, greyed when locked, its glyph
+## and swatch. A group's first cell names it, with how many kinds it holds.
+func _add_row(parent: TreeItem, r: Dictionary) -> TreeItem:
+	var cols := columns()
+	var item := tree.create_item(parent)
+	var locked := str(r.get("state", "shown")) == "locked"
+	for i in cols.size():
+		var c: Dictionary = cols[i]
+		var v: Variant = r.cells.get(str(c.id))
+		item.set_text(i, _cell_text(v))
+		if str(c.get("kind", "text")) == "number": item.set_text_alignment(i, HORIZONTAL_ALIGNMENT_RIGHT)
+		if locked:
+			item.set_custom_color(i, GREY)
+			item.set_tooltip_text(i, str(r.get("reason", "Not available yet.")))
+		else:
+			item.set_custom_color(i, TEXT)
+			item.set_tooltip_text(i, "")
+	if r.get("glyph") is String and glyph_texture.is_valid():
+		var tex: Variant = glyph_texture.call(r.glyph)
+		if tex is Texture2D:
+			item.set_icon(0, tex)
+			item.set_icon_max_width(0, 22)
+			if locked: item.set_icon_modulate(0, Color(1, 1, 1, 0.45))
+	# A swatch column (a house's colour) leads its label with the colour.
+	for i in cols.size():
+		if str(cols[i].get("kind", "")) == "swatch" and r.get("swatch") is String and Color.html_is_valid(r.swatch):
+			item.set_icon(i, swatch(Color.html(r.swatch)))
+	if r.get("group_row", false):
+		var count := str(r.count_text) if r.has("count_text") else "(%d kinds)" % int(r.get("kinds", r.variants.size()))
+		if not count.is_empty(): item.set_suffix(0, count)
+	item.set_metadata(0, r)
+	return item
 
 static var swatches := {}
 ## A small square of one colour, cached.
@@ -373,8 +449,12 @@ func _cell_text(v: Variant) -> String:
 	return str(v)
 
 func selected_row() -> Dictionary:
+	if selected_id.is_empty(): return {}
 	for r in shown_rows:
-		if str(r.get("id", "")) == selected_id and not selected_id.is_empty(): return r
+		if str(r.get("id", "")) == selected_id: return r
+		if r.get("group_row", false):
+			for v in r.variants:
+				if str(v.get("id", "")) == selected_id: return v
 	return {}
 
 func row_locked(r: Dictionary) -> bool:
@@ -392,12 +472,38 @@ func _choose(r: Dictionary) -> void:
 	selected_id = id
 	row_chosen.emit(r)
 
+## Enter or a double click: a group opens or closes; a row is activated.
 func _on_activated() -> void:
 	var item := tree.get_selected()
 	if item == null: return
 	var r: Dictionary = item.get_metadata(0)
 	selected_id = str(r.get("id", ""))
+	if r.get("group_row", false):
+		set_open(item, item.collapsed)
+		return
 	row_activated.emit(r)
+
+## Opens or closes a group's item, remembered across refreshes.
+func set_open(item: TreeItem, open: bool) -> void:
+	if item == null or item.get_child_count() == 0: return
+	item.collapsed = not open
+	_on_collapsed(item)
+
+func _on_collapsed(item: TreeItem) -> void:
+	if _building: return
+	var r: Variant = item.get_metadata(0)
+	if not r is Dictionary or not r.get("group_row", false): return
+	var id := str(r.get("id", ""))
+	if item.collapsed: open_groups.erase(id)
+	else: open_groups[id] = true
+
+## Opens or closes the group with this id, if it is shown.
+func open_group(id: String, open := true) -> void:
+	var root := tree.get_root()
+	if root == null: return
+	for item in root.get_children():
+		var r: Variant = item.get_metadata(0)
+		if r is Dictionary and str(r.get("id", "")) == id: set_open(item, open)
 
 ## Chooses a row by position in the current order, as the arrows do.
 func choose_index(index: int) -> void:
@@ -410,12 +516,23 @@ func choose_index(index: int) -> void:
 	tree.scroll_to_item(item)
 	_choose(item.get_metadata(0))
 
-## Chooses the row with this id, if it is shown.
+## Chooses the row with this id, if it is shown; a row in a group opens it.
 func choose_id(id: String) -> void:
 	for i in shown_rows.size():
 		if str(shown_rows[i].get("id", "")) == id:
 			choose_index(i)
 			return
+	var root := tree.get_root()
+	if root == null: return
+	for parent in root.get_children():
+		for item in parent.get_children():
+			var r: Dictionary = item.get_metadata(0)
+			if str(r.get("id", "")) == id:
+				set_open(parent, true)
+				item.select(0)
+				tree.scroll_to_item(item)
+				_choose(r)
+				return
 
 func clear_choice() -> void:
 	selected_id = ""
@@ -430,9 +547,36 @@ func focus_rows() -> void:
 		search.grab_focus()
 
 func _tree_input(event: InputEvent) -> void:
+	# A click on a group's row opens it (its arrow toggles it as usual).
+	if event is InputEventMouseButton and event.pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		var at := tree.get_item_at_position((event as InputEventMouseButton).position)
+		if at != null and at.get_child_count() > 0 and at.collapsed:
+			var r: Variant = at.get_metadata(0)
+			if r is Dictionary and r.get("group_row", false):
+				set_open.call_deferred(at, true)
+		return
 	if not event is InputEventKey or not event.pressed: return
 	var key := event as InputEventKey
 	if key.ctrl_pressed or key.alt_pressed or key.meta_pressed: return
+	# Right opens the chosen group; left closes it, or goes up from a row
+	# in a group to the group and closes it.
+	var selected := tree.get_selected()
+	if selected != null and key.keycode in [KEY_RIGHT, KEY_LEFT]:
+		var parent := selected.get_parent()
+		var in_group := parent != null and parent != tree.get_root()
+		if key.keycode == KEY_RIGHT and selected.get_child_count() > 0:
+			set_open(selected, true)
+			tree.accept_event()
+			return
+		if key.keycode == KEY_LEFT and (selected.get_child_count() > 0 or in_group):
+			var group := selected if selected.get_child_count() > 0 else parent
+			set_open(group, false)
+			if group != selected:
+				group.select(0)
+				tree.scroll_to_item(group)
+				_choose(group.get_metadata(0))
+			tree.accept_event()
+			return
 	if key.unicode >= 32 and key.unicode != 127:
 		search.grab_focus()
 		search.insert_text_at_caret(char(key.unicode))
