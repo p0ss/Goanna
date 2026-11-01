@@ -106,6 +106,7 @@ add_library(goanna SHARED
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
     src/goanna_air.cpp
+    src/goanna_natural.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
@@ -403,6 +404,13 @@ add_executable(goanna_climb_test EXCLUDE_FROM_ALL
     src/goanna_climb_test.cpp
     src/goanna_climb.cpp)
 target_include_directories(goanna_climb_test PRIVATE src)
+# Natural attacks: the plan, the clip bracket and the blended pose.
+add_executable(goanna_natural_test EXCLUDE_FROM_ALL
+    src/goanna_natural_test.cpp
+    src/goanna_natural.cpp
+    src/goanna_animation.cpp)
+target_include_directories(goanna_natural_test PRIVATE src)
+target_link_libraries(goanna_natural_test PRIVATE jsoncpp luanti_core)
 # Melee strokes by distance from the camera: tiers, fades, interpolation
 # against full evaluation, and the cost of a crowd before and after.
 add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL
@@ -421,6 +429,7 @@ target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
     goanna_air_test
+    goanna_natural_test
     goanna_attachment_test
     goanna_jiggle_test
     goanna_animation_test

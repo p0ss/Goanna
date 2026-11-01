@@ -93,6 +93,11 @@ bool parseModelExtras(const std::string &name, const std::string &bytes, ModelEx
         writer["indentation"] = "";
         out.air = Json::writeString(writer, file_extras["air"]);
     }
+    if (file_extras.isObject() && file_extras["natural"].isObject()) {
+        Json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        out.natural = Json::writeString(writer, file_extras["natural"]);
+    }
     if (file_extras.isObject() && file_extras["strokes"].isObject()) {
         Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
