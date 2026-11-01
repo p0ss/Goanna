@@ -166,6 +166,7 @@ class ClientTests(unittest.TestCase):
         fake.control_port = 12345
         fake.player_port = 12346
         fake.token = 'test-token'
+        fake.env = {'GOANNA_PACK': '/packs/mineclonia/textures'}
         fake.start.return_value = {'state': 'ready'}
         return fake
 
@@ -261,7 +262,16 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(metadata['shared_test']['generation'], self.lease['generation'])
         self.assertFalse(metadata['shared_test']['climate']['enabled'])
         self.assertEqual(shot['climate'], metadata['shared_test']['climate'])
+        self.assertEqual(metadata['shared_test']['pack'], '/packs/mineclonia/textures')
+        self.assertTrue(metadata['shared_test']['pbr'])
         fake.stop.assert_called_once()
+
+    def test_borrowed_clients_draw_the_authored_pack(self):
+        lease = dict(self.lease, host='127.0.0.1', port=30000)
+        client = self.client.BorrowedClient(lease, 0, 'gpu', self.work, {})
+        self.assertTrue(client.env['GOANNA_PACK'].endswith('pbr_packs/mineclonia/textures'))
+        self.assertEqual(client.env['GOANNA_PACK_SET'], '1')
+        self.assertEqual(client.env['GOANNA_NO_PBR'], '')
 
     def test_lost_host_stops_render_subprocess_even_when_checkpoint_raises(self):
         from unittest.mock import MagicMock

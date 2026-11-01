@@ -34,9 +34,10 @@ attempts and cancellation, and stops dispatch after unresolved cleanup or
 a limiter refusal. The adapter waits for memory and launch headroom before
 starting a server; the machine-wide limiter remains authoritative.
 
-The `player` mode uses Godot's dummy renderer and a private user-data
-directory. `software` uses the existing launcher with lavapipe. `gpu` uses
-the existing launcher and its GPU lock. Rendered jobs enter through
+Every mode draws the authored pack with PBR on, and each capture's
+sidecar records the pack. The `player` mode uses Godot's dummy renderer
+and a private user-data directory. `software` uses the existing launcher
+with lavapipe. `gpu` uses the existing launcher and its GPU lock. Rendered jobs enter through
 `goanna-render shared` internally. That worker borrows the host and scene;
 it never creates a world or stops the server. It yields on foreign GPU
 activity, cleans its scene and puts its job back in the common queue after

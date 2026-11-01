@@ -65,6 +65,16 @@ in `std::locale` teardown as soon as the client joins a server. Offline
 scripts and forms survive it, so the fault hides until a connect. Use an
 official Godot build.
 
+#### Which materials
+
+A client started by `tools/goanna-headless start`, the MCP server or the
+shared test service draws the authored pack, the checkout's
+`pbr_packs/mineclonia/textures`, with PBR on, as the render service does.
+Without it a client draws the server's art with relief guessed from its
+brightness, which looks like the old lumpy pack; shared captures were
+drawn that way until 2026-11-02. Name another with `GOANNA_PACK`, or none
+with `GOANNA_PACK=` and `GOANNA_PACK_SET=1`.
+
 #### The desktop
 
 - Test clients run in headless gamescope through `tools/goanna-headless`

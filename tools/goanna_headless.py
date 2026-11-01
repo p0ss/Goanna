@@ -272,6 +272,16 @@ def resolve_project(path):
     raise LaunchError("%s is neither a Goanna checkout nor its project directory" % p)
 
 
+def authored_pack(project, game="mineclonia"):
+    """The authored LabPBR set for game, pbr_packs/<game>/textures in the
+    project's own checkout, or "" when it has none (an unpacked release).
+    Test clients default to it: without it they draw the server's art with
+    relief guessed from brightness, which reads as the old lumpy pack."""
+    project = resolve_project(project)
+    pack = project.parent / "pbr_packs" / str(game) / "textures"
+    return str(pack) if pack.is_dir() else ""
+
+
 def is_nix_godot(path):
     """True for a Godot built by nixpkgs. That build exports its own
     libstdc++ internals, so a GDExtension built with another GCC aborts with
@@ -684,6 +694,13 @@ def start_goanna(project, control_port=None, host="127.0.0.1", port=30000, name=
     if software:
         child_env.update({"VK_DRIVER_FILES": LAVAPIPE_ICD, "VK_ICD_FILENAMES": LAVAPIPE_ICD})
     child_env.update({str(k): str(v) for k, v in (env or {}).items()})
+    # The authored pack unless the caller or its shell names one (an empty
+    # GOANNA_PACK with GOANNA_PACK_SET=1 is an explicit none).
+    if "GOANNA_PACK" not in child_env and "GOANNA_PACK" not in os.environ \
+            and not exported:
+        pack = authored_pack(project)
+        if pack:
+            child_env.update({"GOANNA_PACK": pack, "GOANNA_PACK_SET": "1"})
     rec.update(project=str(project), control_port=control_port, server="%s:%d" % (host, int(port)),
                name=str(name), env=child_env, meta=meta or {},
                argv=[godot, "--display-driver", "x11", "--resolution",

@@ -127,7 +127,9 @@ class BorrowedClient:
                     'GOANNA_HOST': lease['host'], 'GOANNA_PORT': str(lease['port']),
                     'GOANNA_NAME': lease['players'][index], 'GOANNA_PASS': '',
                     'GOANNA_NO_POINTER_CAPTURE': '1',
-                    'GOANNA_PBR_SET': '1', 'GOANNA_NO_PBR': '1',
+                    # Materials as a player sees them: the authored pack, PBR on.
+                    'GOANNA_PACK': gh.authored_pack(self.project, lease.get('game', 'mineclonia')),
+                    'GOANNA_PACK_SET': '1', 'GOANNA_PBR_SET': '1', 'GOANNA_NO_PBR': '',
                     'XDG_DATA_HOME': str(self.work / 'xdg')}
 
     def start(self, cancelled):
@@ -299,7 +301,8 @@ def run(payload, lease, work, cancelled, render_entry=False):
                     sidecar = destination.with_suffix('.json')
                     metadata = json.loads(sidecar.read_text())
                     metadata['shared_test'] = {'id': lease['id'],
-                                               'generation': lease['generation'], 'climate': climate}
+                                               'generation': lease['generation'], 'climate': climate,
+                                               'pack': client.env['GOANNA_PACK'], 'pbr': True}
                     sidecar.write_text(json.dumps(metadata, indent=2) + '\n')
             else:
                 if command not in ('hello', 'observe', 'wait', 'action_status'):
