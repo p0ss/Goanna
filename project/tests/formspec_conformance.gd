@@ -147,6 +147,7 @@ func _run() -> void:
 	_test_button_styles()
 	_test_style_sound_font_model()
 	_test_table()
+	_test_table_tree()
 	_test_list_look()
 	_test_hypertext()
 	_test_nothing_skipped()
@@ -1321,6 +1322,35 @@ func _test_table() -> void:
 	_equal(Formspec._table_row(tree), 2, "the table's selected row is the second")
 	_check(not form.collect_fields().has("rows"), "a table is sent only with its own event")
 	_discard(form)
+
+
+# A tree column folds rows under the one before them at a lower depth:
+# closed unless opendepth says otherwise, and a chosen row inside a closed
+# group opens it, as GUITable::setSelected does. DorfCraft's grouped tables
+# (Supplies, the workshop picker) draw their groups this way.
+func _test_table_tree() -> void:
+	var rows := "#9FB8CC,0,Item,Count,#FFFFFF,0,Planks (3 kinds),58,#FFFFFF,1,Oak Planks,40,"
+	rows += "#FFFFFF,1,Birch Planks,12,#FFFFFF,0,Cobblestone,20"
+	var closed := _new_form("formspec_version[6]size[10,8]tablecolumns[color,span=3;tree;text;text]"
+		+ "table[0,0;9,5;rows;" + rows + ";0]")
+	var tree: Tree = closed.fields["rows"]
+	_equal(tree.columns, 2, "the tree column is not a visible column")
+	var group := tree.get_root().get_child(1)
+	_equal(group.get_text(0), "Planks (3 kinds)", "a group row heads its rows")
+	_equal(group.get_child_count(), 2, "rows at depth 1 hang under the group")
+	_check(group.collapsed and not tree.hide_folding, "a tree is closed by default and offers folding")
+	_equal(tree.get_root().get_child(2).get_text(0), "Cobblestone", "a later depth 0 row is back at the top")
+	_discard(closed)
+	var open := _new_form("formspec_version[6]size[10,8]tableoptions[opendepth=1]"
+		+ "tablecolumns[color,span=3;tree;text;text]table[0,0;9,5;rows;" + rows + ";0]")
+	_check(not (open.fields["rows"] as Tree).get_root().get_child(1).collapsed, "opendepth opens the groups")
+	_discard(open)
+	var chosen := _new_form("formspec_version[6]size[10,8]tablecolumns[color,span=3;tree;text;text]"
+		+ "table[0,0;9,5;rows;" + rows + ";4]")
+	var t2: Tree = chosen.fields["rows"]
+	_check(not t2.get_root().get_child(1).collapsed, "a chosen row inside a closed group opens it")
+	_equal(Formspec._table_row(t2), 4, "the chosen row keeps its index in the full list")
+	_discard(chosen)
 
 
 # Every element upstream registers now builds something. This is the guard

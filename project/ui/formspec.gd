@@ -3399,7 +3399,8 @@ func _table(parts: PackedStringArray) -> void:
 		item.set_meta("row", rows)
 		depth_items[depth + 1] = item
 		if has_tree:
-			item.collapsed = depth + 1 >= opendepth
+			# Open where the row's depth is under opendepth (GUITable::setTable).
+			item.collapsed = depth >= opendepth
 		for ci in visible.size():
 			if ci >= vals.size():
 				break
@@ -3484,6 +3485,11 @@ static func _select_table_row(t: Tree, row: int) -> void:
 	var item := t.get_root()
 	while item != null:
 		if int(item.get_meta("row", 0)) == row:
+			# GUITable::setSelected opens a chosen row's closed parents.
+			var up := item.get_parent()
+			while up != null and up != t.get_root():
+				up.collapsed = false
+				up = up.get_parent()
 			item.select(0)
 			return
 		item = item.get_next_in_tree()
