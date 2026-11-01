@@ -64,13 +64,17 @@ def shared_control(command, args):
     if command == 'call':
         method, values = args.get('method'), args.get('args', [])
         if set(args) - {'method', 'args'}:
-            raise ValueError('shared climate calls accept method and args only')
+            raise ValueError('shared calls accept method and args only')
         if method == 'set_climate_enabled':
             if not isinstance(values, list) or len(values) != 1 or type(values[0]) is not bool:
                 raise ValueError('set_climate_enabled requires one boolean')
         elif method == 'climate_stats':
             if values != []:
                 raise ValueError('climate_stats takes no arguments')
+        elif method == 'entity_animation':
+            if (not isinstance(values, list) or len(values) != 1 or
+                    type(values[0]) is not int or not 0 < values[0] <= 65535):
+                raise ValueError('entity_animation requires one object id')
         else:
             raise ValueError('client method is not shared-safe: %s' % method)
     elif command == 'wait':
@@ -276,7 +280,14 @@ def run(payload, lease, work, cancelled, render_entry=False):
                 if not render_entry:
                     raise ValueError('dummy renderer cannot take screenshots')
                 destination = work / ('frame-%02d-%03d.png' % (payload.get('attempt', 1), len(results)))
-                args = {'path': str(destination)}
+                if set(args) - {'settle', 'warm', 'hide_ui'}:
+                    raise ValueError('shared shots accept settle, warm and hide_ui only')
+                for flag in ('settle', 'hide_ui'):
+                    if flag in args and type(args[flag]) is not bool:
+                        raise ValueError('shot %s must be a boolean' % flag)
+                if 'warm' in args and (type(args['warm']) is not int or not 0 <= args['warm'] <= 60):
+                    raise ValueError('shot warm must be 0 to 60 frames')
+                args['path'] = str(destination)
             if channel == 'control':
                 # Shared jobs cannot send server-global chat commands or
                 # arbitrary code. Fixture changes belong in a bounded probe.
