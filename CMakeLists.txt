@@ -77,6 +77,7 @@ add_library(goanna SHARED
     src/goanna_flame.cpp
     src/goanna_session.cpp
     src/goanna_mesher.cpp
+    src/goanna_branch_rods.cpp
     src/goanna_radial_form.cpp
     src/goanna_mesh_pool.cpp
     src/goanna_light.cpp
@@ -358,6 +359,12 @@ add_executable(goanna_allfaces_test EXCLUDE_FROM_ALL src/goanna_allfaces_test.cp
 target_include_directories(goanna_allfaces_test PRIVATE src)
 target_link_libraries(goanna_allfaces_test PRIVATE goanna luanti_core godot::cpp)
 
+# Tree branches drawn as round rods from their arms, as bare geometry and
+# through the transplanted mesh generator.
+add_executable(goanna_branch_rods_test EXCLUDE_FROM_ALL src/goanna_branch_rods_test.cpp)
+target_include_directories(goanna_branch_rods_test PRIVATE src)
+target_link_libraries(goanna_branch_rods_test PRIVATE goanna luanti_core godot::cpp)
+
 # Objects hung on a parent's bone, sized as upstream's scene graph sizes
 # them; loads DorfCraft's drape model where that checkout is.
 add_executable(goanna_attachment_test EXCLUDE_FROM_ALL src/goanna_attachment_test.cpp)
@@ -388,6 +395,7 @@ target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
     goanna_attachment_test
+    goanna_branch_rods_test
     goanna_jiggle_test
     goanna_animation_test
     goanna_array_route_test

@@ -43,6 +43,8 @@
 // GOANNA_PERSISTENT_CRACK, on a stored (not currently being dug) carve's own
 // outer faces, so a worked block still reads as worked once the dig that made
 // it that way is over.
+// drawNodeboxNode draws a tree branch whose arms are in its node metadata
+// as round rods from those arms (goanna_branch_rods.h) instead of its boxes.
 // Otherwise verbatim.
 
 #include <cmath>
@@ -60,6 +62,7 @@
 #include "mesh.h"
 #include "client/meshgen/collector.h"
 #include "goanna_luanti_client.h"
+#include "goanna_branch_rods.h"
 #include "goanna_mesh_flags.h"
 #include "goanna_radial_form.h"
 
@@ -2338,6 +2341,59 @@ void MapblockMeshGenerator::drawNodeboxNode()
 				drawAutoLightedCuboid(box, face_tiles, 6, txc,
 						static_cast<u8>(63 ^ (1 << quad.face)));
 			}
+			return;
+		}
+	}
+
+	// Goanna: a branch (item group kindred_branch, its width in sixteenths)
+	// whose arms the server keeps in node metadata is drawn as round rods
+	// from those arms instead of its baked boxes; see goanna_branch_rods.h.
+	// An arm's far end is capped unless the neighbour it points at has the
+	// matching arm back, or it ends on the face of a solid node.
+	if (goanna::g_goanna_branch_block) {
+		const int width = itemgroup_get(cur_node.f->groups, goanna::kBranchGroup);
+		const uint32_t arms = width > 0
+				? goanna::g_goanna_branch_block->find(cur_node.p.X, cur_node.p.Y, cur_node.p.Z)
+				: 0;
+		if (arms) {
+			uint32_t capped = 0;
+			for (int i = 0; i < goanna::kBranchArmCount; ++i) {
+				if (!(arms & (1u << i)))
+					continue;
+				const goanna::BranchOffset o = goanna::branchArmOffset(i);
+				const v3s16 np = cur_node.p + v3s16(o.x, o.y, o.z);
+				if (goanna::g_goanna_branch_block->find(np.X, np.Y, np.Z)
+						& (1u << goanna::branchArmOpposite(i)))
+					continue;
+				if (std::abs(o.x) + std::abs(o.y) + std::abs(o.z) == 1 &&
+						nodedef->get(data->m_vmanip.getNodeNoEx(blockpos_nodes + np))
+								.drawtype == NDT_NORMAL)
+					continue;
+				capped |= 1u << i;
+			}
+			const goanna::RodMesh rods = goanna::branchRodMesh(arms, width / 32.0f, capped);
+			std::vector<video::S3DVertex> vertices;
+			vertices.reserve(rods.vertices.size());
+			const bool is_light_source = cur_node.f->light_source != 0;
+			for (const goanna::RodVertex &rv : rods.vertices) {
+				video::S3DVertex v;
+				v.Pos = v3f(rv.pos[0], rv.pos[1], rv.pos[2]) * BS;
+				v.Normal = v3f(rv.normal[0], rv.normal[1], rv.normal[2]);
+				v.TCoords = v2f(rv.uv[0], rv.uv[1]);
+				if (data->m_smooth_lighting) {
+					v.Color = blendLightColor(v.Pos, v.Normal);
+				} else {
+					v.Color = cur_node.lcolor;
+					if (!is_light_source)
+						applyFacesShading(v.Color, v.Normal);
+				}
+				v.Pos += cur_node.origin;
+				vertices.push_back(v);
+			}
+			TileSpec tile;
+			useTile(&tile, 2);
+			collector->append(tile, vertices.data(), vertices.size(),
+					rods.indices.data(), rods.indices.size());
 			return;
 		}
 	}

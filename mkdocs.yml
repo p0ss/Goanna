@@ -139,6 +139,7 @@ nav:
           - Forest previews: systems/forest-previews.md
           - Mesh attributes: systems/mesh-attributes.md
           - Animated node tiles: systems/node-animation.md
+          - Branch rods: systems/branch-rods.md
       - Materials and surfaces:
           - Materials: systems/materials.md
           - Lava: systems/lava-material.md

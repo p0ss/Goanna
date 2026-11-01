@@ -18,6 +18,8 @@ code disagree, the code is right.
 - [Mesh attributes](mesh-attributes.md): the vertex data every terrain mesh
   carries, near and far.
 - [Animated node tiles](node-animation.md): how animated textures advance.
+- [Branch rods](branch-rods.md): tree branches drawn round from the arms
+  a server keeps in their node metadata.
 
 ## Materials and surfaces
 
