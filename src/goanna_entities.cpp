@@ -21,6 +21,8 @@
 #include <godot_cpp/classes/geometry_instance3d.hpp>
 
 #include <godot_cpp/classes/box_mesh.hpp>
+#include <godot_cpp/classes/camera3d.hpp>
+#include <godot_cpp/classes/viewport.hpp>
 #include <godot_cpp/classes/capsule_mesh.hpp>
 #include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
@@ -1826,6 +1828,12 @@ bool EntityRenderer::overseerVisible(GoannaSession &session, GoannaActiveObject 
 void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camera_pos) {
     stepModelPreviews(dt);
     auto &objects = session.objects();
+    // The camera camera_pos is from, for whether a body with a stroke plan
+    // is on screen (its stroke detail), and how many bodies are in each
+    // tier this sync.
+    Camera3D *camera = m_root->is_inside_tree() && m_root->get_viewport() ? m_root->get_viewport()->get_camera_3d()
+                                                                          : nullptr;
+    int stroke_tiers[3] = {};
     // remove gone
     for (auto it = m_nodes.begin(); it != m_nodes.end();) {
         if (objects.find(it->first) == objects.end()) {
@@ -2209,6 +2217,20 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
             en.animator->setJiggleFrame(std::move(jf));
         }
+        // How much of a stroke plan's stroke and foot fitting to work out,
+        // by distance from the camera and whether on screen, measured a
+        // node above the model's root (goanna_stroke_detail.h). Your own
+        // body is always in full.
+        if (en.animator && en.animator->fitsFeet()) {
+            StrokeDetail detail = StrokeDetail::Full;
+            if (!is_self && en.visual && en.visual->is_inside_tree()) {
+                const Vector3 at = en.visual->get_global_transform().origin + Vector3(0, 1, 0);
+                const bool on_screen = !camera || camera->is_position_in_frustum(at);
+                detail = chooseStrokeDetail(camera_pos.distance_to(at), on_screen, en.animator->strokeDetail());
+            }
+            en.animator->setStrokeDetail(detail);
+            ++stroke_tiers[(int)detail];
+        }
         // Feet on the ground for a model that fits them (a stroke plan,
         // goanna_models.h): where it stands, and the walkable surface under
         // a point from the map's collision boxes.
@@ -2239,6 +2261,11 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                         }
                     }
                     return best;
+                };
+                gf.climbable = [map, ndef](float x, float y, float z) {
+                    const MapNode n = map->getNode(v3s16((s16)std::floor(x + 0.5f), (s16)std::floor(y + 0.5f),
+                            (s16)std::floor(z + 0.5f)));
+                    return n.getContent() != CONTENT_IGNORE && ndef->get(n).climbable;
                 };
             }
             en.animator->setGround(std::move(gf));
@@ -2324,6 +2351,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
         }
     }
+    setStrokeDetailCounts(stroke_tiers[0], stroke_tiers[1], stroke_tiers[2]);
 }
 
 } // namespace goanna

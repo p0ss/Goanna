@@ -88,10 +88,26 @@ bool parseModelExtras(const std::string &name, const std::string &bytes, ModelEx
     if (!reader->parse(json.data(), json.data() + json.size(), &root, &errors) || !root.isObject())
         return false;
     const Json::Value &file_extras = root["extras"];
+    if (file_extras.isObject() && file_extras["air"].isObject()) {
+        Json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        out.air = Json::writeString(writer, file_extras["air"]);
+    }
+    if (file_extras.isObject() && file_extras["natural"].isObject()) {
+        Json::StreamWriterBuilder writer;
+        writer["indentation"] = "";
+        out.natural = Json::writeString(writer, file_extras["natural"]);
+    }
     if (file_extras.isObject() && file_extras["strokes"].isObject()) {
         Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
         out.strokes = Json::writeString(writer, file_extras["strokes"]);
+    }
+    if (file_extras.isObject() && file_extras["steps"].isObject()) {
+        out.steps = true;
+        for (const Json::Value &c : file_extras["steps"]["clips"])
+            if (c.isString())
+                out.step_clips.push_back(c.asString());
     }
     const Json::Value &nodes = root["nodes"];
     if (!nodes.isArray())

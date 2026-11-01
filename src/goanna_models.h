@@ -39,9 +39,12 @@
 #include <IAnimatedMesh.h>
 #include <SkinnedMesh.h>
 
+#include "goanna_air.h"
 #include "goanna_animation.h"
 #include "goanna_jiggle.h"
 #include "goanna_limbs.h"
+#include "goanna_natural.h"
+#include "goanna_stroke_detail.h"
 
 struct BoneOverride;
 namespace scene {
@@ -52,6 +55,9 @@ class IMeshLoader;
 namespace goanna {
 
 struct StrokeFamily;
+class StepPlanner;
+class ClimbPlanner;
+struct StepInput;
 
 // Bytes of a media file by name; false if unknown.
 using MediaGetter = std::function<bool(const std::string &name, std::string &out)>;
@@ -86,6 +92,8 @@ private:
     // A model's stroke evaluator, from its extras and the family file they
     // name (each family read once).
     void buildStrokes(const std::string &name, ModelExtras &extras);
+    void buildAir(const std::string &name, ModelExtras &extras);
+    void buildNatural(const std::string &name, ModelExtras &extras);
     ModelLoader m_loader;
     MediaGetter m_media;
     std::map<std::string, scene::IAnimatedMesh *> m_cache;
@@ -118,6 +126,12 @@ struct GodotModel {
     std::vector<LimbBend> limbs;
     int bone_count = 0;
     bool animated = false;
+    // Animated models only: a flier's air plan (goanna_air.h). Null for
+    // most models.
+    std::shared_ptr<const AirPlan> air;
+    // Animated models only: an animal's natural attacks (goanna_natural.h).
+    // Null for most models.
+    std::shared_ptr<const NaturalPlan> natural;
     // Animated models only: the jiggle bones and collider capsules
     // (goanna_jiggle.h). Empty for most models.
     JiggleRig jiggle;
@@ -125,7 +139,15 @@ struct GodotModel {
     // bone whose override carries the server's stroke state, for a model
     // whose file declares a stroke plan. Null for most models.
     std::shared_ptr<const StrokeEvaluator> strokes;
+    // The weapon families by state index (ModelExtras::stroke_families);
+    // the first is `strokes`.
+    std::vector<std::shared_ptr<const StrokeEvaluator>> stroke_families;
+    std::vector<std::shared_ptr<const StrokeEvaluator>> tasks;
     std::string stroke_state;
+    // Animated models only: planned steps without strokes, while one of
+    // these clips plays (ModelExtras::steps). False for most models.
+    bool steps = false;
+    std::vector<std::string> step_clips;
     ~GodotModel();
 };
 
@@ -142,6 +164,9 @@ struct GroundFrame {
     bool grounded = true;
     godot::Transform3D mesh_to_world;
     std::function<std::optional<float>(float x, float z, float top, float bottom)> floor;
+    // Whether the node at a point (Luanti world nodes) is climbable (a
+    // ladder or vine), for the climb planner (goanna_climb.h).
+    std::function<bool(float x, float y, float z)> climbable;
 };
 
 // Per-instance animation state for a skinned GodotModel: what Irrlicht's
@@ -202,13 +227,30 @@ public:
     // ground under them: each foot is lifted or lowered to the surface under
     // it, the body lowered for the lower foot, the leg bent to suit. The
     // renderer says where the model stands each frame.
-    bool fitsFeet() const { return m_model->strokes != nullptr; }
+    // A flier (an air plan) takes the same frame for the floor under it.
+    bool fitsFeet() const { return m_model->strokes != nullptr || m_model->steps || m_model->air != nullptr; }
     void setGround(GroundFrame frame) { m_ground = std::move(frame); }
+    // How much of the stroke and foot fitting to work out from the next
+    // step (goanna_stroke_detail.h), chosen by the renderer from the
+    // distance to the camera; Full until set. strokeDetail() is the tier
+    // the last step used, for the renderer's hysteresis.
+    void setStrokeDetail(StrokeDetail detail) { m_stroke_detail = detail; }
+    StrokeDetail strokeDetail() const { return m_stroke_lod.detail(); }
     // The lift of each fitted foot and the body's drop after the last step,
     // nodes, for tests and status.
     size_t fittedFeet() const { return m_feet.size(); }
     float footLift(size_t i) const { return i < m_feet.size() ? m_feet[i].lift : 0.0f; }
     float bodyDrop() const { return m_body_drop; }
+    // Bodies whose legs are all two-bone chains (hip, knee, ankle and at
+    // most a toe) plan their steps instead (goanna_steps.h): planted feet
+    // stay fixed in the world and re-plant, the clip's leg motion is
+    // replaced, and the legs own the pelvis. Null until the first planned
+    // step and for bodies it cannot plan for.
+    const StepPlanner *steps() const { return m_steps.get(); }
+    // A planned body with two arms and two legs also climbs ladders and
+    // mantles onto ledges (goanna_climb.h): its hands and feet on what it
+    // climbs. Null until the first planned step and for other bodies.
+    const ClimbPlanner *climb() const { return m_climb.get(); }
     // The landing crouch now, 0 to 1, and how far the body is lowered for
     // it, mesh units; the lean forward and the bank left now, degrees.
     float landing() const { return m_land_amt; }
@@ -254,6 +296,24 @@ private:
     void findFeet();
     void fitFeet(float dt);
     void applyFeet();
+    // Planned steps: the pelvis taken from the clip and the stroke (a
+    // bounded twist and crouch kept as requests, the chest keeping the
+    // pose's look), then once a step the plan, and the legs solved to it.
+    void ownPelvis(JointTransforms &locals);
+    // A flier (GodotModel::air): before the tracks advance, this frame's air
+    // motion from where the body is and the server's air state, and the fly
+    // clip's beat; after the overrides, the legs and wings posed from it.
+    void stepAir(float dt, scene::AnimSpec &anim, const std::map<std::string, BoneOverride> &overrides);
+    // An animal's natural attack (GodotModel::natural): while one of the
+    // attack's clips plays and the server's state names it, the clip's pose
+    // replaced by the two clips either side of the state's parameter,
+    // blended (goanna_natural.h). Before the bone overrides, as a clip.
+    void poseNatural(const scene::AnimSpec &anim, JointTransforms &locals,
+            const std::map<std::string, BoneOverride> &overrides);
+    void poseAir(JointTransforms &locals);
+    void checkAirBank();
+    void planSteps();
+    void applySteps();
     void updateMotion(float dt);
     LimbAngles motionAngles(size_t limb) const;
     void measureLimbs(float dt, const std::vector<core::matrix4> &skin,
@@ -315,6 +375,11 @@ private:
         bool active = false;
         int action = -1;
         int phase = 0;
+        // The state's format (1 a stroke, 2 a looping task), the family it
+        // is evaluated with and whether its clock loops.
+        int format = 0;
+        const StrokeEvaluator *evaluator = nullptr;
+        bool loops = false;
         float told = 0.0f;
         float angle = 0.0f;
         float t = 0.0f;
@@ -325,24 +390,137 @@ private:
         u32 hip = 0, knee = 0, ankle = 0;
         std::vector<u32> below_hip, below_knee, below_ankle;
         float lift = 0.0f;
+        // For planned steps, Godot mesh space: each joint's bind local, the
+        // ankle at rest, the leg's length, its gait group.
+        godot::Transform3D bind_hip, bind_knee, bind_ankle, rest_ankle;
+        float length = 0.0f;
+        int group = 0;
+        // A four-legged body: the walk's group, the girdle the leg hangs
+        // from (0 the pelvis, 1 the chest), its parent joint, and whether
+        // its middle joint bends backwards (a kit fore leg's).
+        int slow_group = -1, girdle = 0;
+        u32 parent = 0;
+        bool knee_back = false;
+        float want = 0.0f; // the lift the ground last asked for
     };
     std::vector<FootFit> m_feet;
     bool m_feet_found = false;
+    // Planned steps (goanna_steps.h): whether this body can be planned, its
+    // pelvis and the joints that keep the pose's look against it, the
+    // pelvis's bind local, the crouch the pose asked for (mesh units), the
+    // step's dt until planned, and the scale the planner was made for.
+    bool m_plans_steps = false;
+    bool m_planning = false; // planned this step: m_plans_steps and not far off
+    u32 m_pelvis = 0;
+    std::vector<u32> m_look_joints;
+    godot::Transform3D m_bind_pelvis;
+    float m_crouch_request = 0.0f, m_plan_dt = 0.0f, m_steps_scale = 0.0f;
+    // A four-legged body: its fore legs hang from the chest. And for a
+    // model planned without strokes, the clips it is planned in (track
+    // numbers): any other clip leaves its legs to the clip.
+    bool m_chest_girdle = false;
+    std::vector<u16> m_step_tracks;
+    std::shared_ptr<StepPlanner> m_steps;
+    // Climbing (goanna_climb.h): each arm's shoulder, elbow and hand joints
+    // and everything below each, its length (mesh units) and side; the
+    // planner; the root's last height and its vertical speed, eased.
+    struct ArmFit {
+        u32 shoulder = 0, elbow = 0, hand = 0;
+        std::vector<u32> below_shoulder, below_elbow;
+        float length = 0.0f;
+        int side = 1;
+    };
+    std::vector<ArmFit> m_arms;
+    std::shared_ptr<ClimbPlanner> m_climb;
+    float m_climb_last_y = 0.0f, m_climb_vy = 0.0f;
+    bool m_climb_have = false;
+    void findArms(const std::vector<std::vector<u32>> &children);
+    void planClimb(StepInput &in);
+    void applyClimb();
     float m_body_drop = 0.0f;
     GroundFrame m_ground;
+    // The stroke's and the feet's detail by distance, and the stroke pose
+    // being shown.
+    StrokeDetail m_stroke_detail = StrokeDetail::Full;
+    StrokeLod m_stroke_lod;
+    std::vector<StrokeBonePose> m_stroke_pose;
     JiggleFrame m_jiggle_frame;
     JiggleSolver m_jiggle;
     bool m_posed = false; // m_globals holds a stepped pose
+    // A flier in the air (goanna_air.h): its motion and this frame's output,
+    // the server's air state (serial, manoeuvre, its clock and parameter),
+    // the legs' and wings' joints (each wing's root and the joint past it),
+    // the fly clip's track, and the leg poses read from the clips (tucked,
+    // standing, talons forward).
+    AirMotion m_air;
+    AirOutput m_air_out;
+    struct {
+        int serial = -1;
+        AirManoeuvre manoeuvre = AirManoeuvre::None;
+        float since = 0.0f, param = 0.0f;
+    } m_air_state;
+    bool m_air_found = false;
+    // The natural attacks' clips as track numbers, by attack then clip
+    // (empty until first needed; a missing clip has none).
+    std::vector<std::vector<std::optional<u16>>> m_natural_tracks;
+    bool m_natural_found = false;
+    std::vector<std::pair<u32, u32>> m_air_legs;
+    std::vector<std::pair<u32, u32>> m_air_wings;
+    std::optional<u16> m_air_fly_track;
+    float m_air_leg = 0.35f;
+    JointTransforms m_air_tuck, m_air_stand, m_air_talons;
+    // The fly track set to the flight's beat this step, and the rate to put
+    // back (stepAir to poseAir).
+    scene::TrackAnimSpec *m_air_fly_spec = nullptr;
+    float m_air_fly_fps = 0.0f;
 };
 
 // How many loaded models carry a stroke evaluator, and how many stroke
 // poses animators have evaluated, since start: for status and live tests.
 int strokeModelCount();
 uint64_t strokePoseCount();
+// How many times animators have called a stroke evaluator since start
+// (fewer than stroke poses once bodies are further out), and how many
+// bodies with a stroke plan the renderer put in each tier its last sync.
+uint64_t strokeEvaluationCount();
+int strokeDetailCount(StrokeDetail detail);
+void setStrokeDetailCounts(int full, int reduced, int clip);
 // How many animator steps had a foot lifted or lowered more than 0.05
 // nodes to the ground, and the most any foot was, nodes, since start.
 uint64_t fittedFootFrames();
 float fittedFootMost();
+// Planned steps (goanna_steps.h) since start: feet landed, landings with
+// no foothold, and the furthest a planted foot was out of reach, nodes.
+uint64_t plannedSteps();
+uint64_t plannedStepsUnreachable();
+float plannedStepsStretchMost();
+// Four-legged bodies: steps taken walking (one leg at a time) and trotting
+// (diagonal pairs), and the most the chest's girdle has stood above or
+// below the pelvis's, nodes.
+uint64_t plannedStepsWalking();
+uint64_t plannedStepsTrotting();
+float plannedGirdlePitchMost();
+
+// Fliers (goanna_air.h) since start: loaded models with an air plan, frames
+// posed in the air, frames with the talons forward, and frames whose wings
+// banked the way the turn goes (the left wing lower turning left) against
+// those banked at all.
+int airModelCount();
+uint64_t airFlyingFrames();
+uint64_t airTalonFrames();
+uint64_t airBankFrames();
+uint64_t airBankAgreeing();
+// How many loaded models carry natural attacks, and how many frames a body
+// has shown a natural attack blended from the server's state.
+int naturalModelCount();
+uint64_t naturalBlendFrames();
+
+// Climbs started (ladders and mantles), mantles that landed, and hand and
+// foot moves, by every climbing body since start (goanna_climb.h).
+uint64_t climbLadders();
+uint64_t climbMantles();
+uint64_t climbMantlesLanded();
+uint64_t climbMoves();
 
 // Irrlicht matrix (row vectors, left-handed) to a Godot transform, z mirrored.
 godot::Transform3D toGodotTransform(const core::matrix4 &m);

@@ -106,9 +106,14 @@ add_library(goanna SHARED
     src/goanna_icon_raster.cpp
     src/goanna_item_icons.cpp
     src/goanna_ripples.cpp
+    src/goanna_air.cpp
+    src/goanna_natural.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
     src/goanna_strokes.cpp
+    src/goanna_steps.cpp
+    src/goanna_climb.cpp
+    src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
     src/iris/iris_pack.cpp
@@ -386,6 +391,42 @@ add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_strokes_test PRIVATE src)
 target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 
+# Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
+add_executable(goanna_air_test EXCLUDE_FROM_ALL
+    src/goanna_air_test.cpp
+    src/goanna_air.cpp)
+target_include_directories(goanna_air_test PRIVATE src)
+target_link_libraries(goanna_air_test PRIVATE jsoncpp)
+
+# Planned steps over DorfCraft's stance fixture terrain (a floor and a half
+# slab). Links only jsoncpp, for the stroke family's pelvis drop.
+add_executable(goanna_steps_test EXCLUDE_FROM_ALL
+    src/goanna_steps_test.cpp
+    src/goanna_steps.cpp)
+target_include_directories(goanna_steps_test PRIVATE src)
+target_link_libraries(goanna_steps_test PRIVATE jsoncpp)
+# Planned climbs: ladders, mantles onto a ledge, a failed mantle and a
+# stroke during a climb, with no Godot runtime.
+add_executable(goanna_climb_test EXCLUDE_FROM_ALL
+    src/goanna_climb_test.cpp
+    src/goanna_climb.cpp)
+target_include_directories(goanna_climb_test PRIVATE src)
+# Natural attacks: the plan, the clip bracket and the blended pose.
+add_executable(goanna_natural_test EXCLUDE_FROM_ALL
+    src/goanna_natural_test.cpp
+    src/goanna_natural.cpp
+    src/goanna_animation.cpp)
+target_include_directories(goanna_natural_test PRIVATE src)
+target_link_libraries(goanna_natural_test PRIVATE jsoncpp luanti_core)
+# Melee strokes by distance from the camera: tiers, fades, interpolation
+# against full evaluation, and the cost of a crowd before and after.
+add_executable(goanna_stroke_detail_test EXCLUDE_FROM_ALL
+    src/goanna_stroke_detail_test.cpp
+    src/goanna_stroke_detail.cpp
+    src/goanna_strokes.cpp)
+target_include_directories(goanna_stroke_detail_test PRIVATE src "${LUANTI_DIR}/irr/include")
+target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
+
 # Every native test, built and then run by `cmake --build build --target
 # check`. The tests are EXCLUDE_FROM_ALL, so the default build never touches
 # them, and on 2026-09-19 a run of ./build/<test> executed binaries from 16
@@ -394,6 +435,8 @@ target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 # what is stale, rather than a person remembering to rebuild by name.
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
+    goanna_air_test
+    goanna_natural_test
     goanna_attachment_test
     goanna_branch_rods_test
     goanna_jiggle_test
@@ -408,6 +451,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_light_test
     goanna_light_hue_test
     goanna_climate_test
+    goanna_climb_test
     goanna_limbs_test
     goanna_lod_storage_test
     goanna_lod_test
@@ -421,6 +465,8 @@ set(GOANNA_NATIVE_TESTS
     goanna_radial_form_test
     goanna_ripples_test
     goanna_schedule_test
+    goanna_steps_test
+    goanna_stroke_detail_test
     goanna_strokes_test
     goanna_surface_test
     goanna_upright_sprite_test

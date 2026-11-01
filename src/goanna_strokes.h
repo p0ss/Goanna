@@ -61,6 +61,20 @@ struct StrokeFamily {
     std::vector<Stroke> strokes; // sorted by angle
 };
 
+// The server's action state rides on one bone override (the plan's
+// "state"): its scale Z is the action's format plus 8 times the stroke
+// family's index. Format 1 is a stroke, 2 a looping task, 3 a climb, 4 a
+// flier in the air; the family (a weapon's strokes: 0 the one-handed
+// sword, then the plan's "families" in order) applies to strokes only, so
+// a sword stroke is Z 1 as before families existed. DorfCraft's
+// strike.lua (M.stroke_format, M.decode_format) is the other side.
+constexpr int STROKE_FAMILY_STEP = 8;
+struct StrokeFormat {
+    int format = 0; // 0 none or unknown
+    int family = 0;
+};
+StrokeFormat decodeStrokeFormat(float z);
+
 // False if the JSON does not parse or lacks a field the evaluator needs.
 // The object is a glTF's root extras "stroke_family", or the same as text.
 bool parseStrokeFamily(const Json::Value &json, StrokeFamily &out);
@@ -116,6 +130,8 @@ public:
     bool valid() const { return valid_; }
     // The family's stroke length (timing.length), seconds; 0 without one.
     float length() const { return family_ ? float(family_->length) : 0.0f; }
+    // When the stroke commits (timing.commit), seconds; 0 without one.
+    float commit() const { return family_ ? float(family_->commit) : 0.0f; }
 
     // The pose at drag angle (degrees) and stroke time t (seconds), legs
     // planted: one entry for each bone the evaluator moves, in plan order.
