@@ -43,6 +43,7 @@
 #include "goanna_animation.h"
 #include "goanna_jiggle.h"
 #include "goanna_limbs.h"
+#include "goanna_natural.h"
 #include "goanna_stroke_detail.h"
 
 struct BoneOverride;
@@ -92,6 +93,7 @@ private:
     // name (each family read once).
     void buildStrokes(const std::string &name, ModelExtras &extras);
     void buildAir(const std::string &name, ModelExtras &extras);
+    void buildNatural(const std::string &name, ModelExtras &extras);
     ModelLoader m_loader;
     MediaGetter m_media;
     std::map<std::string, scene::IAnimatedMesh *> m_cache;
@@ -127,6 +129,9 @@ struct GodotModel {
     // Animated models only: a flier's air plan (goanna_air.h). Null for
     // most models.
     std::shared_ptr<const AirPlan> air;
+    // Animated models only: an animal's natural attacks (goanna_natural.h).
+    // Null for most models.
+    std::shared_ptr<const NaturalPlan> natural;
     // Animated models only: the jiggle bones and collider capsules
     // (goanna_jiggle.h). Empty for most models.
     JiggleRig jiggle;
@@ -299,6 +304,12 @@ private:
     // motion from where the body is and the server's air state, and the fly
     // clip's beat; after the overrides, the legs and wings posed from it.
     void stepAir(float dt, scene::AnimSpec &anim, const std::map<std::string, BoneOverride> &overrides);
+    // An animal's natural attack (GodotModel::natural): while one of the
+    // attack's clips plays and the server's state names it, the clip's pose
+    // replaced by the two clips either side of the state's parameter,
+    // blended (goanna_natural.h). Before the bone overrides, as a clip.
+    void poseNatural(const scene::AnimSpec &anim, JointTransforms &locals,
+            const std::map<std::string, BoneOverride> &overrides);
     void poseAir(JointTransforms &locals);
     void checkAirBank();
     void planSteps();
@@ -449,6 +460,10 @@ private:
         float since = 0.0f, param = 0.0f;
     } m_air_state;
     bool m_air_found = false;
+    // The natural attacks' clips as track numbers, by attack then clip
+    // (empty until first needed; a missing clip has none).
+    std::vector<std::vector<std::optional<u16>>> m_natural_tracks;
+    bool m_natural_found = false;
     std::vector<std::pair<u32, u32>> m_air_legs;
     std::vector<std::pair<u32, u32>> m_air_wings;
     std::optional<u16> m_air_fly_track;
@@ -495,6 +510,10 @@ uint64_t airFlyingFrames();
 uint64_t airTalonFrames();
 uint64_t airBankFrames();
 uint64_t airBankAgreeing();
+// How many loaded models carry natural attacks, and how many frames a body
+// has shown a natural attack blended from the server's state.
+int naturalModelCount();
+uint64_t naturalBlendFrames();
 
 // Climbs started (ladders and mantles), mantles that landed, and hand and
 // foot moves, by every climbing body since start (goanna_climb.h).

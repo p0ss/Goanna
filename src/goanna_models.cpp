@@ -294,11 +294,13 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         return nullptr;
     // The loader drops node extras; read them for the jiggle marks.
     ModelExtras extras;
-    if (parseModelExtras(name, bytes, extras) && (!extras.empty() || !extras.air.empty())) {
+    if (parseModelExtras(name, bytes, extras) && (!extras.empty() || !extras.air.empty() || !extras.natural.empty())) {
         if (!extras.strokes.empty())
             buildStrokes(name, extras);
         if (!extras.air.empty())
             buildAir(name, extras);
+        if (!extras.natural.empty())
+            buildNatural(name, extras);
         m_extras[name] = std::move(extras);
     } else {
         m_extras.erase(name);
@@ -489,6 +491,8 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
             model->jiggle = buildJiggleRig(*skinned, extras);
             if (extras && extras->air_plan)
                 model->air = extras->air_plan;
+            if (extras && extras->natural_plan)
+                model->natural = extras->natural_plan;
             if (extras && extras->stroke_evaluator) {
                 model->strokes = extras->stroke_evaluator;
                 model->stroke_families = extras->stroke_families;
@@ -801,6 +805,8 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
 
 namespace {
 int g_air_models = 0;
+int g_natural_models = 0;
+uint64_t g_natural_frames = 0;
 uint64_t g_air_flying = 0, g_air_talons = 0, g_air_bank = 0, g_air_bank_agreeing = 0;
 
 // The server's action state on a body's state bone (goanna_strokes.h,
@@ -815,11 +821,71 @@ const BoneOverride *actionState(const std::map<std::string, BoneOverride> &overr
 }
 } // namespace
 
+// ---- natural attacks ---------------------------------------------------------
+
+void ModelAnimator::poseNatural(const scene::AnimSpec &anim, JointTransforms &locals,
+        const std::map<std::string, BoneOverride> &overrides) {
+    const NaturalPlan &plan = *m_model->natural;
+    const BoneOverride *state = actionState(overrides, plan.state, NATURAL_STATE_FORMAT);
+    if (!state)
+        return;
+    scene::SkinnedMesh *mesh = m_model->skinned;
+    if (!m_natural_found) {
+        m_natural_found = true;
+        for (const NaturalPlan::Attack &a : plan.attacks) {
+            std::vector<std::optional<u16>> tracks;
+            for (const std::string &clip : a.clips)
+                tracks.push_back(mesh->getTrackNumber(clip));
+            m_natural_tracks.push_back(std::move(tracks));
+        }
+    }
+    const long index = std::lround(state->position.vector.Z);
+    if (index < 0 || index >= (long)m_natural_tracks.size())
+        return;
+    const auto &tracks = m_natural_tracks[(size_t)index];
+    // The attack's clip the server played (the nearest to its parameter);
+    // none playing, the attack is over or was cut short.
+    const scene::TrackAnimSpec *playing = nullptr;
+    for (const auto &[track, spec] : anim.tracks) {
+        for (const auto &t : tracks)
+            if (t && *t == track)
+                playing = &spec;
+    }
+    if (!playing)
+        return;
+    const NaturalBlend blend = naturalBracket((int)tracks.size(), state->position.vector.X);
+    const auto &a = tracks[(size_t)blend.a], &b = tracks[(size_t)blend.b];
+    if (!a || !b)
+        return;
+    const float amount = playing->blend_duration > 0.0f
+            ? std::min(1.0f, playing->blend_progress / playing->blend_duration)
+            : 1.0f;
+    blendNaturalPose(*mesh, *playing, *a, *b, blend.weight, amount, locals);
+    ++g_natural_frames;
+}
+
+int naturalModelCount() { return g_natural_models; }
+uint64_t naturalBlendFrames() { return g_natural_frames; }
 int airModelCount() { return g_air_models; }
 uint64_t airFlyingFrames() { return g_air_flying; }
 uint64_t airTalonFrames() { return g_air_talons; }
 uint64_t airBankFrames() { return g_air_bank; }
 uint64_t airBankAgreeing() { return g_air_bank_agreeing; }
+
+void ModelCache::buildNatural(const std::string &name, ModelExtras &extras) {
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value marks;
+    std::string errors;
+    auto plan = std::make_shared<NaturalPlan>();
+    if (!reader->parse(extras.natural.data(), extras.natural.data() + extras.natural.size(), &marks, &errors)
+            || !parseNaturalPlan(marks, *plan)) {
+        warningstream << "Goanna: unreadable natural attack plan in " << name << std::endl;
+        return;
+    }
+    extras.natural_plan = std::move(plan);
+    ++g_natural_models;
+}
 
 void ModelCache::buildAir(const std::string &name, ModelExtras &extras) {
     Json::CharReaderBuilder builder;
@@ -1700,6 +1766,10 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     }
     const auto &joints = mesh->getAllJoints();
     JointTransforms locals = animateTracks(*mesh, anim, m_old_transforms);
+    // A natural attack's blend replaces the clip's pose before anything is
+    // laid over it, and is what the next frame blends from.
+    if (m_model->natural)
+        poseNatural(anim, locals, overrides);
     // The arm also inherits the baked punch's torso twist. Hold its ancestor
     // chain as well as its subtree, leaving the legs/other arm animated.
     if (m_freeze_arm && m_rot_override_joint) {

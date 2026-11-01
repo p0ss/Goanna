@@ -326,6 +326,8 @@ Dictionary GoannaClient::status() const {
     d["air_talon_frames"] = (int64_t)airTalonFrames();
     d["air_bank_frames"] = (int64_t)airBankFrames();
     d["air_bank_agreeing"] = (int64_t)airBankAgreeing();
+    d["natural_models"] = naturalModelCount();
+    d["natural_frames"] = (int64_t)naturalBlendFrames();
     d["stroke_models"] = strokeModelCount();
     d["stroke_poses"] = (int64_t)strokePoseCount();
     d["stroke_evaluations"] = (int64_t)strokeEvaluationCount();
