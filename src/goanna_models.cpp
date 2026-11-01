@@ -250,7 +250,19 @@ void ModelCache::buildStrokes(const std::string &name, ModelExtras &extras) {
         warningstream << "Goanna: " << name << " lacks the bones its stroke plan needs" << std::endl;
         return;
     }
-    extras.stroke_evaluator = std::move(evaluator);
+    extras.stroke_evaluator = evaluator;
+    // Weapon families on the same plan, in the order the state indexes;
+    // the first is the sword (the plan's "family"), already built.
+    extras.stroke_families.push_back(evaluator);
+    const Json::Value &families = marks["families"];
+    for (Json::ArrayIndex i = 1; families.isArray() && i < families.size(); ++i) {
+        const Json::Value &entry = families[i];
+        std::shared_ptr<const StrokeFamily> weapon_family =
+                entry.isArray() && entry.size() >= 2 && entry[1].isString() ? load(entry[1].asString()) : nullptr;
+        auto weapon_evaluator = weapon_family ? std::make_shared<StrokeEvaluator>(plan, weapon_family) : nullptr;
+        extras.stroke_families.push_back(
+                weapon_evaluator && weapon_evaluator->valid() ? weapon_evaluator : nullptr);
+    }
     // Task families on the same plan, in the order the state indexes.
     const Json::Value &tasks = marks["tasks"];
     for (Json::ArrayIndex i = 0; tasks.isArray() && i < tasks.size(); ++i) {
@@ -479,6 +491,7 @@ std::shared_ptr<GodotModel> buildGodotModel(scene::IAnimatedMesh *mesh, const Mo
                 model->air = extras->air_plan;
             if (extras && extras->stroke_evaluator) {
                 model->strokes = extras->stroke_evaluator;
+                model->stroke_families = extras->stroke_families;
                 model->tasks = extras->task_evaluators;
                 model->stroke_state = extras->stroke_state;
             }
@@ -680,19 +693,26 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
         const std::map<std::string, BoneOverride> &overrides) {
     // The state: position (told angle in degrees, stroke time when sent,
     // target height), scale (action serial, phase: 0 none, 1 preparing,
-    // 2 committed, format). Each set resends every override the object
+    // 2 committed, format plus 8 times the stroke's weapon family:
+    // decodeStrokeFormat). Each set resends every override the object
     // holds, so the server sends only what this cannot work out: a stroke
     // ends unprompted at its length, commits by its clock, and phase 2 or
     // 0 arrive only for a frozen angle away from the told one or a stroke
     // cut short.
     auto it = overrides.find(m_model->stroke_state);
-    const int format = it == overrides.end() ? 0 : (int)std::lround(it->second.scale.vector.Z);
+    const StrokeFormat decoded =
+            it == overrides.end() ? StrokeFormat() : decodeStrokeFormat(it->second.scale.vector.Z);
+    const int format = decoded.format;
     // One action at a time on the bone, of any kind; the format says which.
     const StrokeEvaluator *evaluator = nullptr;
     bool loops = false;
     switch (format) {
-    case 1: // a stroke
-        evaluator = m_model->strokes.get();
+    case 1: // a stroke, of the weapon family the state names; a family
+            // this body lacks shows the clip
+        if (decoded.family == 0)
+            evaluator = m_model->strokes.get();
+        else if (decoded.family < (int)m_model->stroke_families.size())
+            evaluator = m_model->stroke_families[decoded.family].get();
         break;
     case 2: { // a looping task: position Z picks the body's task family
         const long task = std::lround(it->second.position.vector.Z);

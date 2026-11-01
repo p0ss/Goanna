@@ -24,6 +24,12 @@ The glTF's root `extras` carries `strokes`:
 - `plan`: the body as the evaluator needs it: units per node, each bone's
   name, parent, translation and bind position (parents first), and the
   boxes the blade and elbows keep clear of.
+- `families` (optional): the body's weapon families, `[[name, family
+  media, clip prefix], ...]` in the order the state indexes them. The
+  first is the one-handed sword, the same file as `family`. Without the
+  list the body has the sword alone. Each family carries its own timing
+  and weapon (`weapon.hilt`, `weapon.tip`, in the weapon bone's frame),
+  so a spear's strokes and a sword's are evaluated on the same plan.
 
 A family is a set of authored whole-body strokes, one per drag angle,
 stored relative to the body: the grip as a fraction of arm reach from the
@@ -39,8 +45,11 @@ strokes/evaluate.lua`, which the server runs for its hit tests.
 ## The state
 
 The state bone's override: position = (drag angle in degrees, stroke time
-in seconds when sent, target height); scale = (action serial, phase, 1).
-Phase 0 is no stroke, 1 preparing (the angle is where the drag is heading)
+in seconds when sent, target height); scale = (action serial, phase,
+format). The format is 1 for a stroke plus 8 times its weapon family's
+index (`decodeStrokeFormat`): a sword stroke is 1, the second family's 9.
+A family the body does not have shows the game's clip. Phase 0 is no
+stroke, 1 preparing (the angle is where the drag is heading)
 and 2 committed (the server's frozen angle). Luanti resends every override
 an object holds whenever any one changes, so Goanna restarts its own
 stroke clock only when the serial, phase or angle actually change, not on

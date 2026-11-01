@@ -180,6 +180,16 @@ bool parseJson(const std::string &text, Json::Value &root) {
 
 } // namespace
 
+StrokeFormat decodeStrokeFormat(float z) {
+    const long v = std::lround(z);
+    StrokeFormat out;
+    if (v <= 0)
+        return out;
+    out.format = int(v % STROKE_FAMILY_STEP);
+    out.family = int(v / STROKE_FAMILY_STEP);
+    return out;
+}
+
 bool parseStrokeFamily(const std::string &json, StrokeFamily &out) {
     Json::Value root;
     return parseJson(json, root) && parseStrokeFamily(root, out);

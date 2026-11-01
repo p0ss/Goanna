@@ -134,6 +134,9 @@ struct GodotModel {
     // bone whose override carries the server's stroke state, for a model
     // whose file declares a stroke plan. Null for most models.
     std::shared_ptr<const StrokeEvaluator> strokes;
+    // The weapon families by state index (ModelExtras::stroke_families);
+    // the first is `strokes`.
+    std::vector<std::shared_ptr<const StrokeEvaluator>> stroke_families;
     std::vector<std::shared_ptr<const StrokeEvaluator>> tasks;
     std::string stroke_state;
     // Animated models only: planned steps without strokes, while one of

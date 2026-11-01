@@ -15,7 +15,10 @@
 //   1e-3 nodes and each rotation within 0.05 degrees, compared as
 //   quaternions so Euler aliasing cannot hide or invent a difference;
 // - a plan missing a role bone, or with no family, is invalid and
-//   evaluates to nothing.
+//   evaluates to nothing;
+// - the state's scale Z reads back as format and weapon family (a sword
+//   stroke 1, family 1's 9, a task 2), and a family with its own weapon
+//   (a longer tip, an edge) parses with that weapon.
 
 #include <algorithm>
 #include <array>
@@ -187,6 +190,31 @@ int main(int argc, char **argv) {
     expect(std::fabs(family->length - 1.85) < 1e-9, "family length should be 1.85 s");
     StrokeFamily empty;
     expect(!parseStrokeFamily(std::string("{}"), empty), "an empty object parsed as a family");
+
+    // The state's format and weapon family (DorfCraft's strike.lua).
+    expect(decodeStrokeFormat(1.0f).format == 1 && decodeStrokeFormat(1.0f).family == 0, "z 1 is a sword stroke");
+    expect(decodeStrokeFormat(9.0f).format == 1 && decodeStrokeFormat(9.0f).family == 1,
+            "z 9 is a stroke of family 1");
+    expect(decodeStrokeFormat(17.0f).family == 2, "z 17 is family 2");
+    expect(decodeStrokeFormat(2.0f).format == 2 && decodeStrokeFormat(2.0f).family == 0, "z 2 is a task");
+    expect(decodeStrokeFormat(4.0f).format == 4, "z 4 is a flier");
+    expect(decodeStrokeFormat(0.0f).format == 0, "z 0 is nothing");
+    // A weapon family: the same strokes with its own weapon.
+    {
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+        std::string errors;
+        expect(reader->parse(text.data(), text.data() + text.size(), &root, &errors), "family JSON parses");
+        root["weapon"]["tip"][1] = 17;
+        root["weapon"]["edge"]["from"] = Json::Value(Json::arrayValue);
+        for (double v : {0.0, 12.0, 0.0})
+            root["weapon"]["edge"]["from"].append(v);
+        StrokeFamily axe;
+        expect(parseStrokeFamily(root, axe), "a family with its own weapon parses");
+        expect(std::fabs(axe.tip[1] - 17) < 1e-9 && std::fabs(axe.hilt[1] - family->hilt[1]) < 1e-9,
+                "the family's own weapon is read");
+    }
 
     checkBody(dir + "/reference.json", family);
     checkBody(dir + "/tentacle_arms.json", family);

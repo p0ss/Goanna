@@ -73,6 +73,12 @@ struct ModelExtras {
     // rides on (goanna_strokes.h). ModelCache builds the evaluator from it.
     std::string strokes;
     std::shared_ptr<const StrokeEvaluator> stroke_evaluator;
+    // The body's weapon families ("families": [[name, family file, clip
+    // prefix], ...]) on the same plan, by the index a stroke state carries
+    // (goanna_strokes.h, decodeStrokeFormat); the first is the sword, the
+    // same as stroke_evaluator. Without the list, the sword alone. An entry
+    // is null when its family is missing or unreadable.
+    std::vector<std::shared_ptr<const StrokeEvaluator>> stroke_families;
     // The body's task families ("tasks": [[kind, family file], ...]) on
     // the same plan, in order: a task state's position Z indexes them. An
     // entry is null when its family is missing or unreadable.
