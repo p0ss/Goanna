@@ -268,6 +268,18 @@ Two development aids drive these paths headless:
 `GOANNA_LOCAL_TEST_LAN=<port>` ticks Open to LAN for a `GOANNA_LOCAL_TEST`
 start, and `GOANNA_JOIN_SCAN=<host>:<port>` with `GOANNA_JOIN_SCAN_NAME`
 opens Join Game, scans, picks that server from the results and connects.
+`GOANNA_LOCAL_TEST_GAME_MASTER=1` presses Copy Claude Code command first
+and prints what it copied.
+
+A local server ends with the Goanna that started it. On Linux and macOS
+the shell it starts through leaves a detached watchdog that checks Goanna
+once a second; when Goanna has gone, however it went (quit, crash,
+SIGTERM, SIGKILL), the watchdog sends SIGTERM to the server's deepest
+processes, so Luanti saves and shuts down, and SIGKILL to whatever is left
+30 seconds later. That was run on Linux with the Flathub Luanti and the
+bundled server; macOS takes the same path untried. On Windows nothing yet
+does this: a server whose Goanna
+crashed or was killed keeps running until it is stopped by hand.
 
 The menu steps aside when the details are already in the environment, which
 is what scripts and the automated runs below use. Set `GOANNA_HOST` or

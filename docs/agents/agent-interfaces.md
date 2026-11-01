@@ -54,6 +54,17 @@ whether a client touches the GPU:
 
 The rest of this document says which one it means.
 
+#### Which Godot
+
+The launcher takes `GODOT_BIN` when it is set, then `godot` or `godot4` on
+`PATH`, then a `Godot_v4*_linux.x86_64` beside the checkout. A Godot built
+by nixpkgs (its path resolves into `/nix/store/`) is skipped unless
+`GODOT_BIN` names it: that build exports its own libstdc++ internals, and a
+Goanna extension built with another GCC aborts with `free(): invalid size`
+in `std::locale` teardown as soon as the client joins a server. Offline
+scripts and forms survive it, so the fault hides until a connect. Use an
+official Godot build.
+
 #### The desktop
 
 - Test clients run in headless gamescope through `tools/goanna-headless`

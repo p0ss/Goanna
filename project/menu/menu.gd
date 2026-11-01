@@ -226,6 +226,11 @@ func _ready() -> void:
 			world_option.select(existing_index)
 			_on_world_selected(existing_index)
 		else:
+			# Create new world, first: the remembered last world is
+			# preselected, and Start would otherwise start that one with
+			# the new name ignored (it started a playtest world, 2026-10-31).
+			world_option.select(0)
+			_on_world_selected(0)
 			for i in game_option.item_count:
 				if game_option.get_item_text(i) == gw[0]:
 					game_option.select(i)
@@ -249,6 +254,10 @@ func _ready() -> void:
 				if str(md.get("id", "")) == test_graphics:
 					pbr_option.select(i)
 					break
+		# GOANNA_LOCAL_TEST_GAME_MASTER=1 presses Copy Claude Code command,
+		# which prints what it copied.
+		if OS.get_environment("GOANNA_LOCAL_TEST_GAME_MASTER") != "":
+			_copy_game_master("claude")
 		_on_start_local()
 		return
 	if OS.get_environment("GOANNA_MENU_SHOT") != "":
@@ -1717,6 +1726,7 @@ func _show_new_game() -> void:
 	lan_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	GlassStyle.tint_text(lan_hint, Color(1, 1, 1, 0.6))
 	world_page.add_child(lan_hint)
+	_add_game_master_row(world_page)
 	var pbr_line := HBoxContainer.new()
 	pbr_line.add_theme_constant_override("separation", 10)
 	var pbr_label := Label.new()
@@ -1858,6 +1868,51 @@ func _show_new_game() -> void:
 	_on_world_selected(world_option.selected)
 	_refresh_terrain_download_state()
 	world_edit.text_submitted.connect(func(_t): _on_start_local())
+
+# The AI game master: how the host attaches a language model app to the
+# world, copied ready to paste. Goanna starts no director service itself:
+# the join notice tells players a language model is acting as game master,
+# so the service runs only when a model app starts it, and lives as long as
+# that app (LocalServer.director_attach, 2026-10-31). Hidden when this copy
+# has no director folder.
+func _add_game_master_row(page: VBoxContainer) -> void:
+	if LocalServer.director_tool("goanna-director-mcp") == "":
+		return
+	var note := Label.new()
+	note.text = "AI game master: off until you connect a language model app, such as Claude Code, to this world. Goanna runs none itself. Players are told when one connects and can opt out."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	GlassStyle.tint_text(note, Color(1, 1, 1, 0.6))
+	page.add_child(note)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var claude := _button("Copy Claude Code command", func(): _copy_game_master("claude"))
+	claude.tooltip_text = "Run the copied command once in a terminal, then start Claude Code: it runs the game master for this world while it is open."
+	row.add_child(claude)
+	var json := _button("Copy MCP settings", func(): _copy_game_master("json"))
+	json.tooltip_text = "For another MCP app: paste into its server settings."
+	row.add_child(json)
+	page.add_child(row)
+
+# The world the Start button would start, as a folder, or "" before it has
+# a name.
+func _chosen_world_path() -> String:
+	var existing: Dictionary = world_option.get_item_metadata(world_option.selected) \
+		if is_instance_valid(world_option) and world_option.selected >= 0 else {}
+	var world := str(existing.get("name", "")) if not existing.is_empty() \
+		else (world_edit.text.strip_edges() if is_instance_valid(world_edit) else "")
+	return "" if world == "" else _local_data_dir.path_join("worlds").path_join(world)
+
+func _copy_game_master(kind: String) -> void:
+	var world := _chosen_world_path()
+	if world == "":
+		_fail("Name or choose the world first: the game master is connected to one world.")
+		return
+	var text := str(LocalServer.director_attach(world).get(kind, ""))
+	DisplayServer.clipboard_set(text)
+	print("menu: game master %s copied: %s" % [kind, text])
+	GlassStyle.tint_text(status_label, Color(1, 1, 1, 0.7))
+	status_label.text = "Copied. " + ("Run it once in a terminal, then start Claude Code; ask it to be the game master once you are in the world." \
+		if kind == "claude" else "Paste it into your MCP app's server settings.")
 
 # Games published as a modpack on another game (Kindred Holdfast on
 # Mineclonia), offered in the Game list when installed and their game is

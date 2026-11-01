@@ -58,6 +58,30 @@ func run() -> void:
 			check(child.icon == null and not child.text.is_empty(),
 				"older server retains text without a stale rune: " + child.text)
 	check(client.sent.filter(func(message: Dictionary) -> bool: return message.get("t") == "order").is_empty(), "drawing runes sends no work orders")
+	# One rune per plan on the map, from the tool list (world marks, 31
+	# October 2026): two dig cells and a farm plot of three cells give two.
+	view.tools = [{"id": "dig", "rune": "pick"}, {"id": "farm:wheat", "rune": "wheat"},
+		{"id": "room:bedroom", "rune": "door"}]
+	check(view.plan_rune("dig") == "pick" and view.plan_rune("farm") == "wheat"
+		and view.plan_rune("bedroom") == "door" and view.plan_rune("nothing") == null,
+		"a plan's kind finds its tool's rune by id, prefix or room kind")
+	view.level = 0
+	view.snapshot = {"orders": [
+		{"id": "o1", "kind": "dig", "pos": {"x": 1, "y": 0, "z": 1}, "state": "accepted"},
+		{"id": "o1", "kind": "dig", "pos": {"x": 2, "y": 0, "z": 1}, "state": "accepted"},
+		{"id": "farm:a", "kind": "farm", "pos": {"x": 5, "y": 0, "z": 5}, "state": "accepted"},
+		{"id": "farm:a", "kind": "farm", "pos": {"x": 6, "y": 0, "z": 5}, "state": "accepted"},
+		{"id": "farm:a", "kind": "farm", "pos": {"x": 7, "y": 0, "z": 5}, "state": "accepted"},
+		{"id": "o2", "kind": "dig", "pos": {"x": 9, "y": 0, "z": 9}, "state": "done"}]}
+	var before_runes := view.overlay.get_child_count()
+	view._draw_plan_runes({"x0": 0, "x1": 15, "z0": 0, "z1": 15})
+	var runes := view.overlay.get_children().slice(before_runes)
+	check(runes.size() == 2, "one rune per open plan, none for a finished one: %d" % runes.size())
+	check(runes.size() == 2 and runes[1].position.x == 6.0,
+		"the rune sits on the plan's middle cell")
+	view.set_world_marks(false)
+	check(client.sent.any(func(m: Dictionary) -> bool: return m.get("t") == "marks" and m.get("shown") == false),
+		"the Marks toggle tells the server")
 	tool.free()
 	view._close(); view.queue_free(); main.queue_free()
 	await process_frame

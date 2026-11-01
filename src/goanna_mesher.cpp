@@ -8,20 +8,60 @@
 
 #include "goanna_mesher.h"
 
+#include "goanna_branch_rods.h"
 #include "goanna_radial_form.h"
 
 #include "goanna_luanti_client.h"
 #include "goanna_session.h"
 #include "goanna_textures.h"
+#include "itemgroup.h"
 #include "nodedef.h"
+#include "nodemetadata.h"
 #include "client/node_visuals.h"
 #include "mapblock.h"
 #include "client/mapblock_mesh.h"
 
 namespace goanna {
 
+namespace {
+
+// The arms of every branch in this block and one node around it (a rod's cap
+// depends on its neighbour's arms), from the node metadata the map holds.
+// Map lock held. See goanna_branch_rods.h for the contract.
+void gatherBranches(GoannaSession &session, const v3s16 bp, BranchSnapshot &out) {
+    out.arms.clear();
+    const NodeDefManager *ndef = session.nodeDefs();
+    const v3s16 corner = bp * MAP_BLOCKSIZE;
+    for (s16 z = -1; z <= 1; ++z)
+        for (s16 y = -1; y <= 1; ++y)
+            for (s16 x = -1; x <= 1; ++x) {
+                MapBlock *b = session.getBlock(bp + v3s16(x, y, z));
+                if (!b || b->m_node_metadata.size() == 0)
+                    continue;
+                const v3s16 offset = (bp + v3s16(x, y, z)) * MAP_BLOCKSIZE - corner;
+                for (const auto &entry : b->m_node_metadata) {
+                    const v3s16 rel = entry.first;
+                    const v3s16 at = offset + rel;
+                    if (at.X < -1 || at.Y < -1 || at.Z < -1 || at.X > MAP_BLOCKSIZE ||
+                            at.Y > MAP_BLOCKSIZE || at.Z > MAP_BLOCKSIZE)
+                        continue;
+                    const NodeMetadata *meta = entry.second;
+                    if (!meta)
+                        continue;
+                    const uint32_t arms = parseBranchArms(meta->getString(kBranchArmsField));
+                    if (!arms)
+                        continue;
+                    if (itemgroup_get(ndef->get(b->getNodeNoCheck(rel)).groups, kBranchGroup) <= 0)
+                        continue;
+                    out.set(at.X, at.Y, at.Z, arms);
+                }
+            }
+}
+
+} // namespace
+
 bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
-        bool &has_crack) {
+        bool &has_crack, BranchSnapshot &branches) {
     has_crack = false;
     if (!block)
         return false;
@@ -34,6 +74,7 @@ bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
                 if (b)
                     b->copyTo(data.m_vmanip);
             }
+    gatherBranches(session, bp, branches);
     data.m_generate_minimap = false;
     // Off, and it has to stay off until the vertex light path is revived.
     // content_mapblock.cpp does implement smooth lighting fully, per vertex
@@ -64,7 +105,8 @@ bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &data,
     return true;
 }
 
-std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data) {
+std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data,
+        const BranchSnapshot &branches) {
     // The carves the server has told us about for this block, snapshotted so
     // content_mapblock can read them without touching the shared store: this
     // runs on a mesh worker and several of them are live at once.
@@ -72,8 +114,12 @@ std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData 
     const v3s16 corner = data.m_blockpos * MAP_BLOCKSIZE;
     session.carves().snapshot(corner.X, corner.Y, corner.Z, carves);
     goanna::g_goanna_carve_block = carves.entries.empty() ? nullptr : &carves;
+    goanna::g_goanna_branch_block = branches.arms.empty() ? nullptr : &branches;
     struct Clear {
-        ~Clear() { goanna::g_goanna_carve_block = nullptr; }
+        ~Clear() {
+            goanna::g_goanna_carve_block = nullptr;
+            goanna::g_goanna_branch_block = nullptr;
+        }
     } clear_on_exit;
     return std::make_unique<MapBlockMesh>(session.meshClient(), &data);
 }
@@ -84,9 +130,10 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
     MeshGrid grid{1};
     MeshMakeData data(session.nodeDefs(), MAP_BLOCKSIZE, grid);
     bool has_crack = false;
-    if (!gatherMeshData(session, block, data, has_crack))
+    BranchSnapshot branches;
+    if (!gatherMeshData(session, block, data, has_crack, branches))
         return nullptr;
-    auto mesh = meshGathered(session, data);
+    auto mesh = meshGathered(session, data, branches);
     // Stamp the crack level into the crack materials' MaterialTypeParam
     // (MapBlockMesh::animate's crack pass); the Godot side reads it back and
     // composites the crack frame over the base texture through the DSL.

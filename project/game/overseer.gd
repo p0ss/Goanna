@@ -599,8 +599,13 @@ func _receive(msg: Dictionary) -> void:
 			for page in msg.pages.slice(0, 64): _take_page(page)
 		ui.refresh_pages()
 		session_ready = true
+		# World marks (DorfCraft's marks part): ask whether this player's
+		# plan marks are shown. A server without it never answers.
+		_send({"t": "marks"})
 		_move_camera()
 		_request_view()
+	elif type == "marks" and msg.get("shown") is bool:
+		ui.set_marks_shown(msg.shown)
 	elif type == "layer" and session_ready:
 		if msg.get("palette") == null: msg.palette = []
 		if msg.get("orders") == null: msg.orders = []
@@ -627,9 +632,9 @@ func _receive(msg: Dictionary) -> void:
 	elif type == "affordances":
 		_receive_affordances(msg)
 	elif type == "plans" and msg.get("plans") is Array:
-		ui.update_plans(msg.plans)
+		ui.update_plans(msg.plans, msg.get("table"))
 	elif type == "houses" and session_ready:
-		ui.houses.update(msg)
+		ui.update_houses(msg)
 	elif type == "page" and session_ready and msg.get("page") is Dictionary:
 		if msg.get("what") == "done": pages.erase(str(msg.page.get("id", "")))
 		else: _take_page(msg.page)
@@ -681,12 +686,16 @@ func _update_materials(value: Variant) -> void:
 		for entry in available:
 			if str(entry.name) == selected_name: found = true
 		if not found:
-			available.append({"name": selected_name, "title": "Unavailable: " + selected_name, "kind": wanted, "missing": true})
+			# Never the id: the title it had, or a plain note.
+			var gone := "No longer in stock"
+			for entry in build_materials:
+				if str(entry.name) == selected_name: gone = "No longer in stock: " + str(entry.get("title", "")).split("\n")[0]
+			available.append({"name": selected_name, "title": gone, "kind": wanted, "missing": true, "reason": gone + "."})
 	build_materials = available
 	build_material.clear()
 	var matched := false
 	for entry in build_materials:
-		build_material.add_item(str(entry.title).split("\n")[0] + (" (unavailable)" if entry.get("missing", false) else ""))
+		build_material.add_item(str(entry.title).split("\n")[0])
 		build_material.set_item_tooltip(build_material.item_count - 1, str(entry.title) + "\n" + str(entry.get("reason", "")) + "\n" + str(entry.get("requirements", "")))
 		if str(entry.name) == selected_name:
 			build_material.select(build_material.item_count - 1)
@@ -911,6 +920,67 @@ func change_level(step: int) -> void:
 	_move_camera()
 	_request_view()
 	refresh_draft()
+
+## The rune of a plan's tool (the tool list's `rune`), by the order kinds
+## the layer reports: a tool id ("dig"), its prefix ("farm" of
+## "farm:wheat") or a room kind ("bedroom" of "room:bedroom").
+func plan_rune(kind: String) -> Variant:
+	var by_prefix: Variant = null
+	for t in tools:
+		if not t is Dictionary or not t.get("rune") is String:
+			continue
+		var id := str(t.get("id", ""))
+		if id == kind:
+			return t.rune
+		var parts := id.split(":", true, 1)
+		if parts.size() == 2 and (parts[0] == kind or parts[1] == kind) and by_prefix == null:
+			by_prefix = t.rune
+	return by_prefix
+
+## One rune per plan on this level, on the plan's cell nearest its middle,
+## so many plans stay readable (maintainer, 31 October 2026: shaded
+## outlines and one rune, not a rune on every cell).
+func _draw_plan_runes(rect: Dictionary) -> void:
+	var cells := {}
+	for order in snapshot.get("orders", []):
+		if not order is Dictionary or not _pos(order.get("pos")) or str(order.get("state", "")) == "done":
+			continue
+		var p: Dictionary = order.pos
+		if int(p.y) != level or p.x < rect.x0 or p.x > rect.x1 or p.z < rect.z0 or p.z > rect.z1:
+			continue
+		var key := "%s|%s" % [str(order.get("id", "")), str(order.get("kind", ""))]
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(Vector2(float(p.x), float(p.z)))
+	for key in cells:
+		var rune: Variant = plan_rune(str(key).split("|", true, 1)[1])
+		var texture: Texture2D = ui.rune_for(rune) if rune != null else null
+		if texture == null:
+			continue
+		var list: Array = cells[key]
+		var mean := Vector2.ZERO
+		for c in list: mean += c
+		mean /= list.size()
+		var best: Vector2 = list[0]
+		for c in list:
+			if c.distance_squared_to(mean) < best.distance_squared_to(mean): best = c
+		# A flat sprite drawn over the map like the "You" caption, so the
+		# terrain beneath never hides it.
+		var node := Sprite3D.new()
+		node.texture = texture
+		node.axis = Vector3.AXIS_Y
+		node.pixel_size = 0.8 / maxf(1.0, float(texture.get_width()))
+		node.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		node.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		node.shaded = false
+		node.no_depth_test = true
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.position = Vector3(best.x, level + 30.15, -best.y)
+		overlay.add_child(node)
+
+## The Marks toggle: show or hide this player's plan marks in the world.
+func set_world_marks(shown: bool) -> void:
+	_send({"t": "marks", "shown": shown})
 
 func _planes(parent: Node3D, positions: Array, material: Material, width := 0.98, depth := 0.98) -> void:
 	if positions.is_empty():
@@ -1161,6 +1231,7 @@ func _draw_layer() -> void:
 			vertical.append(p - Vector3(0.45, 0, 0))
 		_planes(overlay, horizontal, _colour(colour), 0.94, 0.06)
 		_planes(overlay, vertical, _colour(colour), 0.06, 0.94)
+	_draw_plan_runes(rect)
 	_draw_player_marker()
 	_draw_overlays()
 
@@ -1239,7 +1310,7 @@ func _draw_overlays() -> void:
 		for band in busy:
 			groups.append([TRAFFIC_BANDS[band], busy[band]])
 	# Designations are plans, always shown like order marks.
-	var marks := zone_cells(snapshot)
+	var marks := drawn_zone_marks(snapshot)
 	groups.append([PROTECTED, marks.area])
 	groups.append([FORBIDDEN, marks.forbid])
 	groups.append([STATION_RING, marks.ring])
@@ -1376,6 +1447,16 @@ static func worker_marks(layer: Dictionary) -> Dictionary:
 				if _number(trail[i]) and _number(trail[i + 1]) and _known_cell(layer, int(trail[i]), int(trail[i + 1])):
 					out.trail.append(Vector2i(int(trail[i]), int(trail[i + 1])))
 	return out
+
+## The zone marks this view draws: a task view other than Defence
+## (DorfCraft task_tools.lua) leaves out the militia's stations, their
+## rings and the watch, which belong to defence.
+func drawn_zone_marks(layer: Dictionary) -> Dictionary:
+	var marks := zone_cells(layer)
+	var scope: Variant = ui.applied_scope if ui != null else null
+	if scope is Dictionary and str(scope.get("section", "")) != "Defence":
+		marks.ring = []; marks.post = []; marks.watch = []
+	return marks
 
 # Forbidden areas, locked doors and militia stations with their rings,
 # on known cells.
@@ -2161,6 +2242,7 @@ func go_back() -> void:
 		inspector.text = "Submission pending. Use Leave to exit; submitted work may continue."
 	elif first_corner != null: discard_draft()
 	elif not selection.is_empty(): clear_selection()
+	elif ui.close_choice(): pass
 	elif tool != "inspect": choose_tool("inspect")
 	elif ui.family != "Select": ui.choose_family("Select")
 	else: leave()
@@ -2211,7 +2293,8 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
 			if ui.submit.visible: ui.submit.grab_focus()
 			elif ui.verb_strip.visible and ui.first_verb() != null: ui.first_verb().grab_focus()
-			else: ui.rail.get_child(0).grab_focus()
+			elif ui.table_panel.visible: ui.table.focus_rows()
+			else: ui.first_section().grab_focus()
 		elif ui.map_focused():
 			if cursor.is_empty(): cursor = {"x": roundi(centre.x), "y": level, "z": roundi(centre.y)}
 			cursor.y = level
@@ -2246,9 +2329,9 @@ func _input(event: InputEvent) -> void:
 			else: show_cursor()
 		elif event.keycode >= KEY_1 and event.keycode <= KEY_6 and ui.verb_strip.visible:
 			ui.press_verb(event.keycode - KEY_1)
-		elif event.keycode == KEY_PAGEUP:
+		elif event.keycode == KEY_PAGEUP and not ui.table_panel.visible:
 			change_level(1)
-		elif event.keycode == KEY_PAGEDOWN:
+		elif event.keycode == KEY_PAGEDOWN and not ui.table_panel.visible:
 			change_level(-1)
 		else:
 			return

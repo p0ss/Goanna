@@ -149,6 +149,28 @@ func run() -> void:
 	for i in 5: await process_frame
 	check(view.ui.footer.get_global_rect().end.y <= 720, "large-text footer stays inside viewport")
 	check(view.ui.panel.get_global_rect().position.y >= view.ui.top.get_global_rect().end.y, "large-text panel clears header")
-	view._close();main.queue_free()
+	view._close()
+	# A view opened from a task tool (DorfCraft task_tools.lua): the server
+	# hides other sections; Goanna opens on the task's and offers only its
+	# overlays, switched on.
+	var scoped := Overseer.new(); scoped.main = main; scoped.client = client; main.add_child(scoped)
+	scoped._open()
+	var caps := {"tools":[tools[0], {"id":"chop", "title":"Fell trees", "family":"Gather"}],
+		"fortress":"Hold", "summary":"Lay out farms and gather",
+		"sections":[{"id":"select","label":"Select","state":"shown"},{"id":"terrain","label":"Terrain","state":"hidden"},
+			{"id":"gather","label":"Gather","state":"shown"},{"id":"plans","label":"Plans","state":"shown"}],
+		"scope":{"task":"farming","title":"Farming","section":"Gather","overlays":["heat","wet"]}}
+	scoped._receive({"v":1,"t":"hello","claim":{"min":{"x":-32,"y":-32,"z":-32},"max":{"x":32,"y":32,"z":32}},
+		"y":0,"body":{"x":0,"y":0,"z":0},"tools":caps.tools,"capabilities":caps})
+	check(scoped.ui.family == "Gather", "a task view opens on its section")
+	check(scoped.ui.header.text.begins_with("Hold | Farming | Live"), "the header names the task")
+	var offered: Array = scoped.ui.offered_overlays()
+	check(offered == ["heat", "wet"] and scoped.shown_overlays.heat and not scoped.shown_overlays.wet
+		and not scoped.shown_overlays.traffic, "only the task's overlays are offered, the first switched on")
+	var rail_shown := []
+	for child in scoped.ui.rail.get_children():
+		if child is Button and child.has_meta("family") and child.visible: rail_shown.append(child.get_meta("family"))
+	check(not "Terrain" in rail_shown and "Gather" in rail_shown, "the rail leaves out other sections")
+	scoped._close();main.queue_free()
 	print("Overseer UX: %d checks, %d failures" % [checks,failures])
 	quit(1 if failures else 0)

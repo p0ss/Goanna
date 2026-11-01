@@ -329,6 +329,7 @@ struct NearBlockJob : goanna::MeshJob {
     goanna::GoannaSession *session = nullptr;
     v3s16 bp;
     std::unique_ptr<MeshMakeData> data;
+    goanna::BranchSnapshot branches;
     bool no_vertex_light = false;
     // Outputs, read by poll_blocks once this has come back.
     std::unique_ptr<MapBlockMesh> mesh;
@@ -338,7 +339,7 @@ struct NearBlockJob : goanna::MeshJob {
     void run() override {
         if (!session || !data)
             return;
-        mesh = goanna::meshGathered(*session, *data);
+        mesh = goanna::meshGathered(*session, *data, branches);
         if (!mesh || no_vertex_light)
             return;
         // Sample every vertex of every buffer now, keyed the way the
@@ -754,7 +755,7 @@ bool GoannaClient::nearSubmit(v3s16 bp, MapBlock *block) {
     MeshGrid grid{1};
     job->data = std::make_unique<MeshMakeData>(m_session->nodeDefs(), MAP_BLOCKSIZE, grid);
     bool has_crack = false;
-    if (!goanna::gatherMeshData(*m_session, block, *job->data, has_crack))
+    if (!goanna::gatherMeshData(*m_session, block, *job->data, has_crack, job->branches))
         return false;
     // The block being dug re-meshes on every crack step and has its crack
     // level stamped from the interaction state (meshBlock), so it is meshed

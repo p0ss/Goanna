@@ -166,13 +166,26 @@ def build_fingerprint():
 
 
 def godot_binary():
+    # A nixpkgs Godot on PATH crashes once a client joins a server (see
+    # is_nix_godot in tools/goanna_headless.py), so it comes last unless
+    # GODOT_BIN names it.
+    nix_fallback = None
     for cand in (os.environ.get("GODOT_BIN"), "godot", "godot4",
                  str(REPO.parent / "Godot_v4.5.1-stable_linux.x86_64")):
         if not cand:
             continue
         found = shutil.which(cand) or (cand if os.access(cand, os.X_OK) else None)
-        if found:
-            return found
+        if not found:
+            continue
+        if (cand != os.environ.get("GODOT_BIN")
+                and os.path.realpath(found).startswith("/nix/store/")):
+            nix_fallback = nix_fallback or found
+            continue
+        return found
+    if nix_fallback:
+        print("goanna-bench: warning: only the nixpkgs Godot was found; it "
+              "crashes on joining a server. Set GODOT_BIN.", file=sys.stderr)
+        return nix_fallback
     raise BenchError("no Godot binary found; set GODOT_BIN")
 
 

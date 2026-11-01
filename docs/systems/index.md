@@ -18,6 +18,8 @@ code disagree, the code is right.
 - [Mesh attributes](mesh-attributes.md): the vertex data every terrain mesh
   carries, near and far.
 - [Animated node tiles](node-animation.md): how animated textures advance.
+- [Branch rods](branch-rods.md): tree branches drawn round from the arms
+  a server keeps in their node metadata.
 
 ## Materials and surfaces
 
@@ -60,6 +62,8 @@ code disagree, the code is right.
   an angle and a time, posed by Goanna from a plan the model declares.
 - [Interface style](interface-style.md): the dark glass style and game
   theme for menus and server forms.
+- [Interface layout](interface-layout.md): regions, hierarchy and the
+  shared table for full-screen game views.
 - [Local multiplayer architecture](local-multiplayer.md): splitscreen
   ownership, input and rendering.
 - [Overseer camera](overseer.md): the orthographic planning view DorfCraft

@@ -15,6 +15,7 @@
 
 #include <memory>
 
+#include "goanna_branch_rods.h"
 #include "irrlichttypes_bloated.h"
 #include "client/mapblock_mesh.h"
 
@@ -47,8 +48,16 @@ std::unique_ptr<MapBlockMesh> meshBlock(GoannaSession &session, MapBlock *block)
 // with the live dig crack in it is still meshed inline, as gatherMeshData
 // reports it: it re-meshes on every crack step, and meshBlock stamps the
 // crack level from the interaction state, which is the main thread's.
-bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &out, bool &has_crack);
-std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data);
+//
+// gatherMeshData also copies out the arms of the branches in and around the
+// block from their node metadata (goanna_branch_rods.h), which meshGathered
+// hands to content_mapblock; node metadata changes re-mesh their block
+// (GoannaSession::takeCarveMetadata), so the copy is never older than the
+// mesh it feeds.
+bool gatherMeshData(GoannaSession &session, MapBlock *block, MeshMakeData &out, bool &has_crack,
+        BranchSnapshot &branches);
+std::unique_ptr<MapBlockMesh> meshGathered(GoannaSession &session, MeshMakeData &data,
+        const BranchSnapshot &branches);
 
 // Far blocks are not meshed here: goanna_lod.h derives a coarse chain per
 // block and meshes whole regions of them per tier.

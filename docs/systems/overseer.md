@@ -91,6 +91,18 @@ sequence and have a newer revision. Missing, empty, out-of-claim and stale
 layers stay dark grey. Closing restores the original camera mask, UI visibility
 and pointer capture.
 
+Each open plan on the viewed level carries its tool's rune once, on the
+plan's cell nearest its middle, above the coloured state outlines. The
+rune comes from the tool list's `rune`, matched by the order's kind: a
+tool id, a tool prefix (`farm` of `farm:wheat`) or a room kind. Done
+cells draw none.
+
+The footer's Marks toggle appears when the server answers `{t = "marks"}`
+(DorfCraft's world marks): it shows or hides the player's planned work in
+the world, which the server draws as shaded outlines with the same rune
+for every client. The choice is kept on the server, for vanilla clients
+too (`/marks on|off`).
+
 The footer's Rooms and Miasma toggles draw the layer's overlays as
 translucent sheets just under the order marks. Rooms are grey until the
 server says every cell is known, then tinted by tier (bare, furnished,
@@ -301,10 +313,11 @@ catalogue, including unavailable stations and their server-supplied
 requirements. Missing materials prevent submission.
 
 People and Supplies request a separate `overview` report on entry or
-Refresh. People lists assignment, observed activity and observation age;
-Supplies shows the embark manifest with the server's provenance note. It
-is not a live stock count. Null or absent lists retain the explanatory
-note. These pages do not infer worker positions or inventory totals.
+Refresh. When the server sends `tables` (DorfCraft's table shape,
+`docs/interface-rules.md`), each is drawn by the shared table widget,
+`ui/data_table.gd`, covering the map; see "Tables" below. A server that
+sends only the older `people` and `supplies` lists keeps the older side
+panel text. The client never infers worker positions or stock totals.
 
 The player has an outlined cyan and white marker labelled You. Find you
 returns to the player's position and level; navigation shows when that
@@ -390,3 +403,149 @@ terrain snapshot, then restored speed, jump and gravity to one on leaving.
 This checks the protocol and server restoration, not Wayland pointer capture
 or rendered acceptance. Pointer capture now happens after the isolated
 viewport is removed during exit.
+
+### Tables
+
+`ui/data_table.gd` is the one table widget for every list a game sends
+(`interface-layout.md`, "Tables"). It draws the server's table shape:
+a title, a search box filtering every text cell as you type, the
+server's filters as dropdowns, a Tree whose headings sort (again to
+reverse; the sorted heading shows its direction), right aligned numbers,
+the row's rune leading it, and the note below. A locked row is greyed
+with its reason as the tooltip. With no rows it shows the server's `why`
+and `what`; when a search or filter empties it, "No rows match." and one
+Clear search and filters button. Typing on the rows goes to the search
+box; Down from the search box returns to the rows; arrows move the row
+and Enter activates it. A refresh of the same table keeps the player's
+sort, search and chosen row. Two row fields beyond DorfCraft's shape:
+`keys` (what a column sorts by) and `detail` (lines for the detail).
+
+The overseer uses it for People, Supplies and the workshop picker. The
+table covers the map; the map's navigation box and overlay toggles step
+aside (the toggles shown come back as they were, so a task view's scoped
+overlays survive), and the context panel shows only for a chosen row:
+its other columns, its detail lines, a locked row's reason, and one
+accent action, Show on map for a row with a place (back to Select,
+centred, with the cursor on it) or Use this workshop. Back clears the
+chosen row before leaving. Page Up and Page Down scroll the table
+rather than change level, and the right shoulder button focuses the
+rows.
+
+Set up workshop opens the picker in place of the old dropdown, ready
+workshops first. A greyed workshop cannot be chosen. After choosing,
+the context panel names the workshop and its requirements once, with
+Change workshop. Unavailable tools and verbs elsewhere are now greyed
+rather than labelled "(unavailable)", and a vanished draft material
+shows its title, never its id.
+
+`tests/data_table.gd` (21 checks) and `tests/overseer_tables.gd` (34
+checks) are structural, under Godot 4.5.1 `--headless`. With them, on 1
+November 2026: overseer 83, overseer_ux 45, overseer_verbs 26,
+overseer_runes 25, overseer_houses 55, all passing.
+
+`tests/overseer_tables_render.tscn` captures the three screens from a
+live server at the window size and at 200 percent text. DorfCraft's
+`mods/kindred/settlement/overseer/tests/tables_live/run.py` starts the
+server, founds a real fortress (seven founders, 25 kinds of supply) and
+runs it through `tools/goanna-headless fixture --software`. Frames and
+the checklist answers are in DorfCraft's
+`reviews/kindred/settlement/overseer/tables/`. It needs the official
+Godot 4.5.1 build (`GODOT_BIN`): the nixpkgs build aborted with
+`free(): invalid size` as soon as the scene's client connected.
+
+What does not work: at 200 percent text in a 1280 by 720 window only two
+or three columns show at once (the rest scroll sideways); before this
+change the footer's status wrapped a letter at a time at 200 percent and
+covered the window; the status now stays one line, but the map screens'
+footer, still nine toggles in a row, was not captured at 200 percent
+since (the View menu is the later fix);
+the rail's labels wrap ("Supplie s") at 100 percent. Device input
+(controller, touch) was exercised only through synthetic events in the
+structural tests.
+
+### Screens, second pass, 1 November 2026
+
+The rest of DorfCraft's "Screens to bring in line" for the overseer
+(`interface-layout.md`; DorfCraft `docs/interface-rules.md`), with the
+maintainer's rulings of 31 October and 1 November 2026.
+
+- **Header and rail.** Select and Map focus are header tools beside the
+  view's name. The rail holds two groups under quiet headings, Plan (Zones,
+  Build, Terrain, Gather, Devices, Defence) and Fortress (People, Supplies,
+  Houses, Plans), 24 px apart. Labels never wrap: the rail is as wide as
+  its longest shown label, up to a quarter of the window, and scrolls
+  sideways past that at large text. Its buttons are 40 px high, the
+  rule's least, and the rail runs to the window's foot with the footer
+  beside it, so both groups fit at 1280 by 720; at 200 percent text it
+  scrolls. Hidden sections are absent, and a
+  heading goes with its last section; locked ones stay greyed with the
+  server's reason, as before.
+- **View menu.** The footer has the status, one View menu and Legend. The
+  menu lists each overlay as a check item and, once the server answers,
+  "Plan marks in the world" (DorfCraft's marks part). The button names
+  what is on ("View: Heat", "View (2)"). A task view lists only its
+  task's overlays with the first on, and shows no menu when it has none.
+  Legend stays its own quiet button: it is help to read, not a setting,
+  and inside the menu it would take a second click to find. It now names
+  the night watch's small pale blue squares, which no legend explained;
+  task views other than Defence leave the militia's stations, rings and
+  watch out (`drawn_zone_marks`).
+- **Plans.** When the server sends a `table` with its `plans` list, Plans
+  covers the map with the table widget, danger and blocked first. The
+  chosen row's detail and its actions (row field `actions`: id, label,
+  `primary`, help) sit in the context panel; the server's primary action
+  takes the one accent, else Show on map does. Choosing a new page marks
+  it read; the Progress verb opens Plans with its plan chosen. An older
+  server keeps the older list.
+- **Houses.** The `houses` message's `table` covers the map: house, head,
+  players, workers, colour (column kind `swatch`: the widget leads the
+  label with a square of the row's `swatch` colour) and access marks
+  shared and locked. The owner's controls, offices and the head's workers
+  open from Offices and workers; the access tools from Mark access; each
+  has Back to houses, and Back does the same.
+- **One task per panel.** While any table covers the map, the map's tool
+  list is not shown beneath its detail. The workshop picker shows no
+  context panel until a row is chosen, then that workshop and Use this
+  workshop only. With a workshop chosen, the panel is that workshop's,
+  with Other Build tools in place of the tool list.
+- **Grouped tools.** The member picker (Crop, Room type, Storage type)
+  now shows for any family's grouped tool, so DorfCraft's Build Shape
+  group (Line, Wall, Box and the rest) can be changed from its first
+  shape.
+
+`tests/overseer_screens.gd` (structural, 57 checks) covers all of this.
+On 1 November 2026, with Godot 4.5.1 headless: overseer 83, overseer_ux
+45, overseer_verbs 26, overseer_runes 24 (one fewer: Select left the
+rail), overseer_houses 55, overseer_tables 33 (the check that the Build
+tools stay beside the picker is replaced by its opposite), data_table 21
+and overseer_screens 57, all passing. The table widget's first column now
+keeps room for 14 characters.
+
+### Screens, third pass, 1 November 2026
+
+- **Wide columns.** A column the server marks `wide` (DorfCraft sends it
+  for Plans' title, Supplies' item, People's name and Houses' house) takes
+  the width the others leave; the others stop expanding and are fitted to
+  their longest cell, up to 20 characters (`FIT`, at about half an em a
+  character), plus room for a rune or swatch; the wide column keeps at
+  least 24 (`WIDE_MIN`) before the rows scroll sideways. A table without
+  one lays out as before.
+- **Fewer columns.** DorfCraft now sends Plans with Where holding the
+  level ("12 east, level 10"), Houses with one Access column ("1 shared,
+  2 locked") and no Players column while each house has one player, and
+  Supplies with Days left, opening shortest first. No Goanna change was
+  needed for those beyond the wide column.
+- `tests/overseer_screens_render.tscn` also captures Supplies and a chosen
+  Supplies row, and waits 40 seconds, not 8, for the session before
+  sending `/overseer` again: on a loaded machine the second command closed
+  the session it had just opened ("used") and the capture crashed on the
+  freed panel.
+- `tests/formspec_capture_render.tscn` draws server formspecs saved as
+  files through the formspec renderer in dark glass, one PNG each, over a
+  flat backdrop. DorfCraft's third screens pass uses it for the workshop
+  ledger's pages: a live client's shots through `goanna-headless shot`
+  came back stale (the loading screen, the Godot splash) under load. It
+  changes nothing in the renderer.
+
+`tests/data_table.gd` gains a check that a wide column expands and the
+others do not (22 checks).

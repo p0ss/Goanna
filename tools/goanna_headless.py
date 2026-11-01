@@ -272,12 +272,30 @@ def resolve_project(path):
     raise LaunchError("%s is neither a Goanna checkout nor its project directory" % p)
 
 
+def is_nix_godot(path):
+    """True for a Godot built by nixpkgs. That build exports its own
+    libstdc++ internals, so a GDExtension built with another GCC aborts with
+    `free(): invalid size` in std::locale teardown as soon as it joins a
+    server. Offline runs survive it, which hides the fault until a connect."""
+    return os.path.realpath(path).startswith("/nix/store/")
+
+
 def find_godot(project=None):
-    for cand in (os.environ.get("GODOT_BIN"), "godot", "godot4"):
-        if cand:
-            found = shutil.which(cand) or (cand if os.access(cand, os.X_OK) else None)
-            if found:
-                return found
+    # An explicit GODOT_BIN is always obeyed, Nix build or not.
+    explicit = os.environ.get("GODOT_BIN")
+    if explicit:
+        found = shutil.which(explicit) or (explicit if os.access(explicit, os.X_OK) else None)
+        if found:
+            return found
+    nix_fallback = None
+    for cand in ("godot", "godot4"):
+        found = shutil.which(cand)
+        if not found:
+            continue
+        if is_nix_godot(found):
+            nix_fallback = nix_fallback or found
+            continue
+        return found
     # The binary usually sits beside the checkout. A worktree is further down,
     # under .claude/worktrees, so look in every ancestor.
     starts = [pathlib.Path(project)] if project else []
@@ -287,6 +305,11 @@ def find_godot(project=None):
             for hit in sorted(parent.glob("Godot_v4*_linux.x86_64"), reverse=True):
                 if os.access(hit, os.X_OK):
                     return str(hit)
+    if nix_fallback:
+        print("goanna-headless: warning: only the nixpkgs Godot (%s) was found; "
+              "it crashes on joining a server. Set GODOT_BIN to an official "
+              "Godot build." % nix_fallback, file=sys.stderr)
+        return nix_fallback
     raise LaunchError("no Godot binary found; set GODOT_BIN")
 
 

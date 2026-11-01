@@ -285,9 +285,12 @@ class Service:
         lease, result, state = None, {}, 'failed'
         deadline = time.monotonic() + payload['timeout']
 
+        # A job is admitted with 16 GB free, but a running one is cancelled
+        # only below 8 GB: a client building its media takes several GB, so
+        # cancelling at the admission line killed jobs admitted near it.
         def cancelled():
             return (self.stop.is_set() or self.queue.get(ident)['cancelled']
-                    or time.monotonic() > deadline or memory_available() < 16 * 1024**3)
+                    or time.monotonic() > deadline or memory_available() < 8 * 1024**3)
 
         try:
             lease = self.adapter.prepare(payload, work, cancelled)
