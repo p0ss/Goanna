@@ -156,7 +156,7 @@ float goanna_dfg_y(float roughness, float nv) {
 	return max(ab.x + ab.y, 1e-3);
 }
 
-// Godot's light_compute, term for term; see the header.
+// Godot's light_compute, term for term but for rim; see the header.
 void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenuation,
 		vec3 surface_albedo, float roughness, float metallic, float specular,
 		float specular_amount, vec3 backlight, vec2 rim,
@@ -165,10 +165,15 @@ void goanna_direct_light(vec3 n, vec3 l, vec3 v, vec3 light_color, float attenua
 	spec = vec3(0.0);
 	float ndotl = min(dot(n, l), 1.0);
 	float cndotv = max(dot(n, v), 1e-4);
-	// Godot applies rim ahead of attenuation, so a shadowed rim still glows.
+	// Godot applies rim ahead of attenuation, so a shadowed rim still glows:
+	// every lamp in range and the sun through a roof lit the grazing edge of
+	// wool, carpet and bedding in a dark room, and they shone white
+	// (DorfCraft playtest, 2 November 2026). Here the rim takes the
+	// attenuation, distance and shadow, as the diffuse term does.
 	if (rim.x > 0.0) {
 		float rim_light = pow(max(1e-4, 1.0 - cndotv), max(0.0, (1.0 - roughness) * 16.0));
-		diffuse += rim_light * rim.x * mix(vec3(1.0), surface_albedo, rim.y) * light_color;
+		diffuse += rim_light * rim.x * mix(vec3(1.0), surface_albedo, rim.y) * light_color
+				* attenuation;
 	}
 	float cndotl = max(ndotl, 0.0);
 	vec3 h = normalize(v + l);
