@@ -61,8 +61,13 @@ git clone --recurse-submodules --shallow-submodules \
 cd goanna
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build
+/path/to/Godot_v4.5.1-stable_linux.x86_64 --headless --import --path project
 /path/to/Godot_v4.5.1-stable_linux.x86_64 --path project
 ```
+
+The `--import` line is needed once per fresh clone. It imports the assets
+and registers the Goanna extension; without it the game stops with
+`Could not find type "GoannaClient"`.
 
 The menu's first button continues the world you played last; the others
 are Your worlds, New world, Join a game, Settings, Content, Local players and

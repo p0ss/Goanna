@@ -120,24 +120,27 @@ off Godot's debug checks.
 
 A freshly built library is not enough. Godot only writes
 `project/.godot/extension_list.cfg`, which is what actually loads a
-GDExtension at run time, during an **editor** filesystem scan. That
-directory is gitignored, so a fresh clone never has one, and a plain run
-will fail with `Could not find type "GoannaClient"` and then hang.
+GDExtension at run time, during an editor filesystem scan, and the same
+scan imports the textures and writes the `class_name` cache. That directory
+is gitignored, so a fresh clone has none of it, and a plain run fails with
+`Could not find type "GoannaClient"` and a cascade of parse errors. Players
+with an unusual GPU tend to suspect their graphics; it is this.
 
 Do this once, after the first build:
 
 ```sh
-/path/to/Godot_v4.5.1-stable_linux.x86_64 --headless --editor --quit --path project
+/path/to/Godot_v4.5.1-stable_linux.x86_64 --headless --import --path project
 ```
 
+`--import` runs the editor's scan and import, then quits. It needs no GPU.
 Opening `project/` in the graphical editor once has the same effect.
+Writing `extension_list.cfg` by hand is not a shortcut: the extension then
+loads, but every imported asset, the menu background first, fails to load.
 
-**Known issue:** with the extension loaded, the editor segfaults on
-shutdown (signal 11). The `extension_list.cfg` file is written before the
-crash, so the step above still does its job and you can carry on. A plain
-run, without `--editor`, exits cleanly. The cause is most likely static
-destructor ordering in `luanti_core` when Godot unloads the library, and it
-is not yet fixed.
+Older notes said the editor segfaults on shutdown with the extension loaded.
+That no longer reproduces: on 2026-11-04 both `--import` and
+`--editor --quit` exited 0 on a fresh worktree with Godot 4.5.1 official
+and left `project/project.godot` unchanged.
 
 **Check your diff afterwards.** Opening the project in the editor, including
 with `--headless --import`, rewrites `project/project.godot`. It adds a
@@ -536,12 +539,9 @@ miss on a minimal container image.
 
 **Godot starts, reports `Could not find type "GoannaClient"`, then hangs.**
 Almost always this is the missing `project/.godot/extension_list.cfg`, not a
-missing library. Run the one time editor step above. If the file exists,
+missing library. Run the one time import step above. If the file exists,
 check that `project/bin/libgoanna.linux.template_debug.x86_64.so` is there
 and that Godot is 4.5 or newer.
-
-**The editor crashes when you close it.** Known, see the note above. It
-happens on extension unload and does not affect a plain run.
 
 **Undefined symbol errors when loading the extension.** The link uses
 `--no-undefined`, so this should be caught at build time rather than load
