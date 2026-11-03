@@ -281,5 +281,43 @@ func _run() -> void:
 	narrator._input(key)
 	check(not narrator.enabled and voice.said.back().text == "Read aloud off"
 		and ui.saved.get("read_aloud", -1.0) == 0.0, "Ctrl+B turns it off, says so and saves it")
+	# Character dialogue uses the real formspec parser and shared voice while
+	# general Read aloud is off. Buttons are not part of character speech.
+	narrator.set_process(false)
+	ui.chat_lines.clear()
+	client.hud = {"elements": []}
+	var dialogue := "Keep seed for the next sowing. ".repeat(20) + "The winter stores depend on it."
+	ui.form.show_formspec("formspec_version[4]size[11,6]label[0.5,0.5;Ingrid, farmer]"
+		+ "hypertext[0.5,1;10,3;goanna_dialogue;" + dialogue + "]"
+		+ "button[0.5,5;3,0.7;yes;I will help]", "kindred:adventure_talk", Vector2(1200,900))
+	ui.window = ui.form
+	await process_frame
+	said = run_for(0.1)
+	check(said == ["Ingrid, farmer. " + dialogue], "dialogue speaks fully without Read aloud or button captions: %s" % [said])
+	check(run_for(0.1).is_empty(), "unchanged dialogue is not repeated")
+	ui.form.show_formspec("formspec_version[4]size[11,6]label[0.5,0.5;Ingrid, farmer]"
+		+ "hypertext[0.5,1;10,3;goanna_dialogue;" + dialogue + "]",
+		"kindred:adventure_talk", Vector2(1200,900))
+	await process_frame
+	check(run_for(0.1).is_empty(), "redrawing the same dialogue does not repeat it")
+	narrator.enabled = true
+	said = run_for(0.1)
+	check(not said.any(func(t: String) -> bool: return t.contains(dialogue)), "screen reader does not duplicate spoken dialogue")
+	narrator.enabled = false
+	narrator.read_dialogue = false
+	run_for(0.1)
+	ui.form.show_formspec("formspec_version[4]size[11,6]hypertext[0.5,1;10,3;goanna_dialogue;A new line.]",
+		"kindred:adventure_talk", Vector2(1200,900))
+	await process_frame
+	check(run_for(0.1).is_empty(), "Spoken dialogue can be disabled separately")
+	narrator.read_dialogue = true
+	check(run_for(0.1) == ["A new line."], "turning dialogue back on reads the current line")
+	ui.window = null
+	run_for(0.1)
+	ui.window = ui.form
+	check(run_for(0.1) == ["A new line."], "returning to a conversation can repeat it")
+	ui.window = null
+	run_for(0.1)
+
 	print("narrator: %d checks, %s" % [checks, "PASS" if failures == 0 else "FAIL (%d)" % failures])
 	quit(0 if failures == 0 else 1)

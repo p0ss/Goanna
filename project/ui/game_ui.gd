@@ -993,6 +993,7 @@ const SETTINGS := [
 	["Display", "damage_flash", "toggle", "Damage flash", "Flash the screen red when you take damage."],
 	["Audio", "volume", "slider", "Volume", "Overall sound level.", 0.0, 1.0, 0.05],
 	["Audio", "muted", "toggle", "Mute", "Silence all sound."],
+	["Audio", "read_dialogue", "toggle", "Spoken dialogue", "Speak character dialogue marked by the game through the system voice. This is separate from Read aloud and uses the speech voice, rate and volume below."],
 	["Audio", "read_aloud", "toggle", "Read aloud", "Speak chat, on screen text, what you point at, what you hold and the menus as they open, through the system's voice. Ctrl+B turns it on and off anywhere. On Linux this needs speech-dispatcher and a voice such as espeak-ng."],
 	["Audio", "speech_rate", "slider", "Speech rate", "How fast read aloud speaks. 1 is the voice's normal rate.", 0.5, 4.0, 0.25],
 	["Audio", "speech_volume", "slider", "Speech volume", "How loud read aloud speaks.", 0.0, 1.0, 0.05],
@@ -1023,7 +1024,7 @@ const LOCAL_KEYS := ["procedural_grass", "mouse_sensitivity", "invert_mouse", "v
 	"pad_enabled", "pad_look_speed", "pad_invert_y", "pad_deadzone",
 	"gui_scale", "max_fps", "vsync", "fullscreen", "damage_flash", "show_fps", "show_position", "terrain_occlusion", "volume", "muted",
 	"read_aloud", "speech_rate", "speech_volume", "voice_typing", "read_chat", "read_hud", "read_pointed",
-	"read_held", "read_health", "read_menus",
+	"read_held", "read_health", "read_menus", "read_dialogue",
 	"light_sun", "light_ambient", "light_sdfgi", "light_sdfgi_cell", "light_pool", "light_ssao",
 	"light_white", "light_exposure", "light_fill", "light_shafts", "atmosphere_quality", "cloud_quality", "cloud_style", "cloud_layer_count", "grass_density", "grass_draw_distance", "grass_interaction_distance", "grass_interactors", "grass_antialiasing",
 	"light_ssil", "screen_space_detail", "shadow_detail", "material_updates", "update_check",
@@ -1117,7 +1118,7 @@ func _apply_local(key: String, value: float, on: bool) -> void:
 			if narrator != null and narrator.enabled != on and not (narrator.launched_on() and not on):
 				narrator.set_enabled(on)
 		"speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed", "read_held", \
-				"read_health", "read_menus":
+				"read_health", "read_menus", "read_dialogue":
 			if narrator != null:
 				var prop: String = narrator.SETTING_PROPERTIES[key]
 				narrator.set(prop, value if key.begins_with("speech_") else on)
@@ -1150,7 +1151,7 @@ func _local_value(key: String) -> float:
 		"read_aloud": return 1.0 if (narrator != null and narrator.enabled) else 0.0
 		"voice_typing": return 1.0 if (voice_input == null or voice_input.enabled) else 0.0
 		"speech_rate", "speech_volume", "read_chat", "read_hud", "read_pointed", "read_held", \
-				"read_health", "read_menus":
+				"read_health", "read_menus", "read_dialogue":
 			if narrator == null:
 				return 1.0
 			return float(narrator.get(narrator.SETTING_PROPERTIES[key]))

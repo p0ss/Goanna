@@ -52,12 +52,19 @@ var read_pointed := true
 var read_held := true
 var read_health := true
 var read_menus := true
+# Games opt into character speech with visible goanna_dialogue hypertext.
+# It shares the system voice, independently of accessibility narration.
+var read_dialogue := true
+var _dialogue_key := ""
+var _dialogue_owned := false
+var _dialogue_visible := false
 
 const SETTINGS_CFG := "user://goanna.cfg"
 # Settings key -> property, for the keys read aloud owns.
 const SETTING_PROPERTIES := {"speech_rate": "rate", "speech_volume": "speech_volume",
 	"read_chat": "read_chat", "read_hud": "read_hud", "read_pointed": "read_pointed",
-	"read_held": "read_held", "read_health": "read_health", "read_menus": "read_menus"}
+	"read_held": "read_held", "read_health": "read_health", "read_menus": "read_menus",
+	"read_dialogue": "read_dialogue"}
 # The voice provider: anything with speak(text, interrupt) and available().
 var voice: Object
 
@@ -209,8 +216,12 @@ func set_enabled(on: bool) -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	_dialogue()
 	if not enabled:
-		_waiting.clear()
+		if _dialogue_owned:
+			_pump()
+		else:
+			_waiting.clear()
 		return
 	_pump()
 	if ui == null:
@@ -319,6 +330,37 @@ func _health() -> void:
 		_hp_since = _clock
 		say("Health %d" % hp)
 
+# Character dialogue is visible, read-only hypertext in an ordinary form.
+# No mod channel, hidden payload or model is needed. Read only the marked
+# body and its visible speaker heading, not buttons or a shortened summary.
+func _dialogue() -> void:
+	_dialogue_visible = false
+	if read_dialogue and ui != null and ui.window != null and ui.window == ui.form:
+		var body = ui.form.named_controls.get("goanna_dialogue")
+		if body is RichTextLabel and ui.form.shown_rect(body).has_area():
+			var text := FormspecScript.strip_enriched(body.get_parsed_text()).strip_edges()
+			if text != "":
+				_dialogue_visible = true
+				var speaker := ""
+				for c in _visible_controls(ui.form):
+					if c != body and (c is Label or c is RichTextLabel) and not (c.get_parent() is BaseButton):
+						var heading: String = c.text if c is Label else c.get_parsed_text()
+						speaker = FormspecScript.strip_enriched(heading).strip_edges()
+						if speaker != "":
+							break
+				var key := String(ui.form.formname) + ":" + speaker + ":" + text
+				if key != _dialogue_key:
+					_dialogue_key = key
+					_dialogue_owned = true
+					say((speaker + ". " if speaker != "" else "") + text.left(8192), true)
+				return
+	if _dialogue_key != "":
+		_dialogue_key = ""
+		_waiting.clear()
+		if _dialogue_owned and voice != null and voice.has_method("stop"):
+			voice.stop()
+	_dialogue_owned = false
+
 # --- windows -------------------------------------------------------------------
 
 func _window() -> void:
@@ -335,7 +377,7 @@ func _window() -> void:
 			var summary := _summary(w)
 			_last_summary = _digits.sub(summary, "", true)
 			_form_root = ui.form.root.get_instance_id() if w == ui.form and ui.form.root != null else 0
-			if read_menus:
+			if read_menus and not _dialogue_visible:
 				say(summary, true)
 			_focus_queues = true
 	elif w != null and w == ui.form and ui.form.root != null \
@@ -347,7 +389,7 @@ func _window() -> void:
 		var gist := _digits.sub(summary, "", true)
 		if gist != _last_summary:
 			_last_summary = gist
-			if read_menus:
+			if read_menus and not _dialogue_visible:
 				say(summary)
 	if w != null:
 		_focus_in(w)
