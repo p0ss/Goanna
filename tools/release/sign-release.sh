@@ -16,6 +16,9 @@
 # default ~/.config/goanna-release/update-signing.pem. Keep it out of the
 # repository and backed up: without it no release can update clients, and
 # replacing it means every player downloads one release by hand.
+# GOANNA_PLATFORMS lists the platforms the release carries, default
+# "linux windows". A Linux only release sets it to "linux"; clients on a
+# platform the manifest leaves out are simply not offered the update.
 set -euo pipefail
 case "${1:-}" in -h | --help)
     # Usage is the header comment above.
@@ -34,11 +37,13 @@ if ! cmp -s <(openssl pkey -in "$key" -pubout) project/update_key.pub.pem; then
 	echo "$key does not match project/update_key.pub.pem" >&2
 	exit 1
 fi
-python3 - "$tag" "$repo" <<'PY'
+python3 - "$tag" "$repo" "${GOANNA_PLATFORMS:-linux windows}" <<'PY'
 import hashlib, json, os, sys
-tag, repo = sys.argv[1], sys.argv[2]
+tag, repo, platforms = sys.argv[1], sys.argv[2], sys.argv[3].split()
+if not platforms:
+    sys.exit("GOANNA_PLATFORMS names no platform")
 assets = {}
-for platform in ("linux", "windows"):
+for platform in platforms:
     name = "Goanna-%s-%s-x86_64.zip" % (tag, platform)
     path = os.path.join("dist", name)
     if not os.path.exists(path):
