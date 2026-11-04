@@ -44,6 +44,11 @@ using OldJointTransforms = std::vector<std::optional<core::Transform>>;
 JointTransforms animateTracks(const scene::SkinnedMesh &mesh, const scene::AnimSpec &anim,
         const OldJointTransforms &old_transforms);
 
+// Whether every playing track permits standing foot placement. Rest clips
+// must keep their authored pelvis and legs even on a body with strokes.
+bool animationAllowsSteps(const scene::SkinnedMesh &mesh, const scene::AnimSpec &anim,
+        const std::vector<u16> &step_tracks, bool stroke_body);
+
 // AnimatedMeshSceneNode::copyOldTransforms: records transforms as the pose to
 // blend from next frame.
 void keepOldTransforms(const JointTransforms &transforms, OldJointTransforms &old_transforms);

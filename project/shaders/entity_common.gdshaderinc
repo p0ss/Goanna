@@ -136,6 +136,9 @@ varying vec4 v_face_rect;
 // sky fill shaped by the normal, the cloud shadow, and no warm block fill
 // near the lamps, which light it for real. 0 is every other entity.
 instance uniform float wall_plate = 0.0;
+// Cube furniture takes the same lighting balance, using node_light rather
+// than a wall plate's per-vertex light. No depth bias on freestanding cubes.
+instance uniform float node_surface = 0.0;
 // How far toward the eye the plate moves, as a share of its distance: it
 // never moves on screen, and at a node from the eye it is a millimetre.
 uniform float wall_plate_bias : hint_range(0.0, 0.01) = 0.001;
@@ -477,7 +480,7 @@ void fragment() {
 			BACKLIGHT = ALBEDO * sss * sss_strength;
 		}
 	}
-	bool wall = wall_plate > 0.5;
+	bool wall = wall_plate > 0.5 || node_surface > 0.5;
 	if (wall) {
 		// The wall's own light, as nodes_array.gdshader writes it, so the
 		// plate is lit as the face it lies on: occlusion and sky visibility

@@ -1745,15 +1745,10 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
             findFeet();
         // Far off (goanna_stroke_detail.h) a planned body shows the clip's
         // legs; its planner is dropped, to plant afresh when it comes back.
-        // So does a body planned without strokes playing a clip that is
-        // not one of its planned clips (sleeping, dying, grazing).
-        bool planned_clip = m_model->strokes != nullptr;
-        if (!planned_clip) {
-            planned_clip = true;
-            for (const auto &track : anim.tracks)
-                if (std::find(m_step_tracks.begin(), m_step_tracks.end(), track.first) == m_step_tracks.end())
-                    planned_clip = false;
-        }
+        // Rest clips keep their authored pelvis and legs, including on
+        // bodies with strokes. Other bodies plan only their declared clips.
+        const bool planned_clip = animationAllowsSteps(*mesh, anim, m_step_tracks,
+                m_model->strokes != nullptr);
         m_planning = m_plans_steps && planned_clip && m_stroke_lod.detail() != StrokeDetail::Clip;
         if (m_planning)
             m_plan_dt = dt;

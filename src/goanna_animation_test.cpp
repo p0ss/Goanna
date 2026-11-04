@@ -564,8 +564,32 @@ void setUpSettings() {
 
 } // namespace
 
+void testRestStepPolicy() {
+    scene::SkinnedMeshBuilder builder(scene::SkinnedMesh::SourceFormat::OTHER);
+    for (const char *name : {"idle", "walk", "sleep", "sleep_2", "lay", "lay_3", "sit", "die", "dead", "mine"}) {
+        auto &clip = builder.getAnimation(builder.addAnimation());
+        clip.name = name;
+    }
+    auto *mesh = std::move(builder).finalize();
+    scene::AnimSpec anim;
+    for (u16 track = 0; track < mesh->getTrackCount(); ++track) {
+        anim.tracks.clear();
+        anim.tracks[track] = {};
+        const bool standing = track < 2 || track == 9;
+        check(animationAllowsSteps(*mesh, anim, {0, 1}, true) == standing,
+                "stroke body releases foot planning for rest");
+        check(animationAllowsSteps(*mesh, anim, {0, 1}, false) == (track < 2),
+                "ordinary body plans only declared standing clips");
+    }
+    anim.tracks[0] = {};
+    anim.tracks[2] = {};
+    check(!animationAllowsSteps(*mesh, anim, {0, 1}, true), "sleep wins over a lingering idle track");
+    mesh->drop();
+}
+
 int main() {
     setUpSettings();
+    testRestStepPolicy();
     testOlderServerMessage();
     testTracksByNameAndNumber();
     testPriority();

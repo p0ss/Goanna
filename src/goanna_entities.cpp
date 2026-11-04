@@ -1380,6 +1380,10 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
                     Mesh::ARRAY_CUSTOM_RGBA_FLOAT << Mesh::ARRAY_FORMAT_CUSTOM0_SHIFT);
         }
         mi->set_mesh(am);
+        // Static cube furniture, including bedding, uses the nodes' light
+        // balance. Warm baked fill near real lanterns otherwise lights it
+        // twice, making pale cloth appear luminous beside its wooden frame.
+        mi->set_instance_shader_parameter("node_surface", 1.0f);
         // Through the entity shader with the texture's companions, the node
         // light and parallax, as a mesh visual's surfaces are. The plain
         // material gave a Mineclonia painting, a cube entity, none of the

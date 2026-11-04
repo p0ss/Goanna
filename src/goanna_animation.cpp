@@ -12,6 +12,23 @@
 
 namespace goanna {
 
+bool animationAllowsSteps(const scene::SkinnedMesh &mesh, const scene::AnimSpec &anim,
+        const std::vector<u16> &step_tracks, bool stroke_body) {
+    for (const auto &[track, spec] : anim.tracks) {
+        if (track >= mesh.getTrackCount())
+            continue;
+        const std::string &name = mesh.getAnimation(track).name;
+        for (const char *rest : {"sleep", "lay", "sit", "die", "dead"}) {
+            const std::string prefix(rest);
+            if (name == prefix || name.rfind(prefix + "_", 0) == 0)
+                return false;
+        }
+        if (!stroke_body && std::find(step_tracks.begin(), step_tracks.end(), track) == step_tracks.end())
+            return false;
+    }
+    return true;
+}
+
 JointTransforms animateTracks(const scene::SkinnedMesh &mesh, const scene::AnimSpec &anim,
         const OldJointTransforms &old_transforms) {
     const auto &joints = mesh.getAllJoints();
