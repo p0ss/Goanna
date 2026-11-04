@@ -63,6 +63,29 @@ int main() {
     const float at_start=first.pose(false);
     first.advance(.02);
     check(first.pose(false)>at_start,"the first motion is the downstroke, not a wind-up");
+    for (int fps : {15,60,240}) {
+        goanna::MiningCycle tree;
+        tree.reset(1.0, 4);
+        tree.advance(.2);
+        const float cut = tree.progress();
+        tree.retime(10.0);
+        check(tree.elapsed == .2, "late tree effort retains elapsed digging");
+        check(tree.progress() >= cut, "late effort never restores removed radial wood");
+        check(tree.blows > 20, "large tree gets many smaller bites in one continuous cut");
+        tree.retime(10.0);
+        check(tree.elapsed == .2, "unchanged inventory update does not restart digging");
+        float last = tree.progress();
+        while (!tree.complete()) {
+            tree.advance(1.0/fps);
+            check(tree.progress() >= last, "rescaled tree cut remains monotonic");
+            last = tree.progress();
+            if (tree.elapsed < 10.0 - 1e-5)
+                check(!tree.complete(), "large tree cannot finish at the old tool time");
+        }
+        check(std::abs(tree.elapsed - 10.0) < 1e-5, "one tree cut finishes at the scaled duration");
+        tree.reset(1.0);
+        check(tree.elapsed == 0 && tree.progress() == 0, "next target inherits no tree effort or damage");
+    }
     std::printf("Mining cycle: %d failures\n",failures);
     return failures?1:0;
 }

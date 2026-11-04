@@ -1163,8 +1163,8 @@ func _apply_view_bob(r: Dictionary, delta: float) -> void:
 	cam.position += basis.x * (cos(_bob_phase) * amp) + Vector3.UP * (sin(_bob_phase * 2.0) * amp * 0.5)
 
 # Third person, the vanilla client's F7 cycle: first person, behind the
-# player, in front of it looking back. Holding Alt turns the camera around
-# the player instead of turning the player, and Alt with the wheel brings it
+# player, in front of it looking back. In third person, holding Alt turns
+# the camera around the player, and Alt with the wheel brings it
 # in. It never goes further out than the vanilla camera's 2.75 nodes, and it
 # stops short of walkable nodes as that camera does (Camera::update), so it
 # reaches nothing a vanilla player's third person view cannot.
@@ -1193,10 +1193,15 @@ func _set_camera_mode(mode: int) -> void:
 	_third_drawn = camera_mode != CAMERA_FIRST
 	client.set_third_person(_third_drawn)
 	crosshair_hidden = camera_mode == CAMERA_FRONT
+	if ui != null:
+		var hints := ["First person. F7 changes camera.",
+				"Behind view. Press F7 twice for first person.",
+				"Front view. Press F7 for first person."]
+		ui.show_status_text(hints[camera_mode])
 
 # Alt with the wheel: in brings the camera closer and, past the closest,
-# back into the eyes; out from first person steps out behind, close. Alt
-# with the mouse steps out too, and there was no way back in but F7.
+# back into the eyes; out from first person deliberately steps out behind.
+# Alt with mouse motion never changes the camera mode.
 func _alt_wheel(towards: bool) -> void:
 	if camera_mode == CAMERA_FIRST:
 		if not towards:
@@ -1268,6 +1273,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# mouse motion turn the view at all.
 	if bench != null and bench.owns_input():
 		return
+	# Desktop window switching must not become a game camera command.
+	if event is InputEventKey and event.keycode == KEY_TAB and event.alt_pressed:
+		return
 	if event is InputEventMouseButton and pointer_captured(event):
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			dig_down = event.pressed
@@ -1275,7 +1283,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			place_down = event.pressed
 			if event.pressed:
 				place_pressed = true
-		elif event.pressed and Input.is_key_pressed(KEY_ALT) \
+		elif event.pressed and event.alt_pressed \
 				and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			_alt_wheel(event.button_index == MOUSE_BUTTON_WHEEL_UP)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -1294,17 +1302,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_wield(9)
 	if event is InputEventMouseMotion and pointer_captured(event):
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
-		if Input.is_key_pressed(KEY_ALT):
-			# Alt held turns the camera around the player, not the player;
-			# in first person it takes the hint and steps out behind first.
-			if camera_mode == CAMERA_FIRST:
-				_set_camera_mode(CAMERA_BEHIND)
-			orbit_yaw -= event.relative.x * mouse_sensitivity
-			orbit_pitch = clamp(orbit_pitch + dy, -80.0, 80.0)
+		# Front placement mirrors pitch to look back at the player. Compensate
+		# here so vertical mouse look and orbit still follow the camera view.
+		if camera_mode == CAMERA_FRONT:
+			dy = -dy
+		if event.alt_pressed:
+			# Alt can be held during window switching. Only orbit an already
+			# selected third-person camera; ignore stray first-person motion.
+			if camera_mode != CAMERA_FIRST:
+				orbit_yaw -= event.relative.x * mouse_sensitivity
+				orbit_pitch = clamp(orbit_pitch + dy, -80.0, 80.0)
 		else:
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch = clamp(pitch + dy, -89, 89)
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7 \
+			and not event.alt_pressed and not event.ctrl_pressed \
+			and not event.meta_pressed and not event.shift_pressed:
 		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())

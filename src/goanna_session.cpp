@@ -1392,7 +1392,10 @@ void GoannaSession::stepInteract(float dtime, const InteractInput &in) {
             }
             int cal = crackAnimationLength();
             const bool diggable = m_interact.dig_time_complete < 100000.0f;
-            if (diggable) m_interact.dig_time_complete = (float)m_mining_cycle.duration;
+            if (diggable) {
+                m_mining_cycle.retime(params.time);
+                m_interact.dig_time_complete = (float)m_mining_cycle.duration;
+            }
             m_interact.dig_impact = diggable && m_mining_cycle.advance(dtime);
             m_interact.dig_time = diggable ? (float)m_mining_cycle.elapsed : 0;
             m_interact.impact_progress = diggable ? m_mining_cycle.progress() : 0;

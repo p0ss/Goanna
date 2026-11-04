@@ -32,7 +32,13 @@ constexpr double kSwingLead = .62;
 struct MiningCycle {
     double elapsed = 0, duration = kSwingPeriod, period = kSwingPeriod;
     int blows = 1, landed = 0;
+    double requested_time = 0;
+    int minimum = 1;
+    float progress_floor = 0;
     void reset(double tool_time, int minimum_blows = 1) {
+        requested_time = tool_time;
+        minimum = minimum_blows;
+        progress_floor = 0;
         duration = std::max(.24, tool_time);
         // The swings are placed so the LAST blow lands exactly at the tool
         // time. The first swing is shorter by the lead, so blows less the
@@ -48,6 +54,18 @@ struct MiningCycle {
         landed = 0;
         elapsed = 0;
     }
+    // Standard inventory updates can change server tool capabilities after
+    // START_DIGGING. Keep the elapsed cut and its visible damage rather
+    // than completing on the old timer or making the cut grow back.
+    void retime(double tool_time) {
+        if (std::abs(tool_time - requested_time) < 1e-6) return;
+        const double spent = elapsed;
+        const float cut = progress();
+        reset(tool_time, minimum);
+        elapsed = std::min(spent, duration);
+        landed = std::min(blows, (int)std::floor(swings() + 1e-6));
+        progress_floor = cut;
+    }
     // Swing periods since the start, counted from the lead.
     double swings() const { return elapsed / period + kSwingLead; }
     bool advance(double dt) {
@@ -57,7 +75,7 @@ struct MiningCycle {
         landed = next;
         return contact; // skipped frames catch up damage, without a sound storm
     }
-    float progress() const { return (float)landed / blows; }
+    float progress() const { return std::max(progress_floor, (float)landed / blows); }
     bool complete() const { return landed == blows; }
     float pose(bool contact) const {
         if (contact || complete()) return 1;
