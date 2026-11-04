@@ -13,6 +13,7 @@
 // player or the active objects holds the session's map lock while it does.
 
 #include "goanna_client_internal.h"
+#include "goanna_player_steps.h"
 
 #include <godot_cpp/classes/camera3d.hpp>
 
@@ -552,13 +553,15 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (!p)
         return out;
     std::lock_guard<std::mutex> lk(m_session->mapLock());
-    // Mantling: Luanti's own autojump, which steps the player up a single
-    // block ledge it walks into (with clear headroom) using an ordinary jump,
-    // so the server sees nothing a vanilla client with autojump would not.
-    // Goanna defaults it on because it plays better; the toggle turns it off
-    // for strict vanilla parity.
+    const ObjectProperties *properties = nullptr;
+    for (const auto &entry : m_session->objects()) {
+        if (entry.second->isLocalPlayer()) {
+            properties = &entry.second->props();
+            break;
+        }
+    }
+    configurePlayerSteps(*p, properties, m_mantle);
     PlayerSettings &ps = p->getPlayerSettings();
-    ps.autojump = m_mantle;
     ps.aux1_descends = m_aux1_descends;
     ps.pitch_move = m_pitch_move;
     ps.always_fly_fast = m_always_fly_fast;
@@ -590,7 +593,7 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     // Autojump sets a flag on the player; the vanilla client feeds it back in
     // as a jump press on the next frame (game.cpp: isKeyDown(JUMP) ||
     // player->getAutojump()). Without this the flag was set and ignored.
-    c.jump = (bool)keys.get("jump", false) || p->getAutojump();
+    c.jump = playerJumpInput(*p, (bool)keys.get("jump", false));
     c.sneak = keys.get("sneak", false);
     c.aux1 = keys.get("aux1", false);
     c.pitch = -pitch_deg;

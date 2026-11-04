@@ -10,6 +10,7 @@
 // when it would be too late to notice.
 
 #include "goanna_animation.h"
+#include "goanna_player_steps.h"
 
 #include <cmath>
 #include <cstdio>
@@ -554,6 +555,38 @@ void testLocalPlayerAnimations() {
     mesh->drop();
 }
 
+// Received properties, including the engine-unit conversion, drive the
+// same step configuration and jump gate used by the real input path.
+void testPlayerSteps() {
+    TestGameDef gamedef;
+    LocalPlayer player(&gamedef, "steps");
+    ObjectProperties sent;
+    sent.stepheight = 1.05f * BS;
+    std::ostringstream os(std::ios::binary);
+    sent.serialize(os);
+    std::istringstream is(os.str(), std::ios::binary);
+    ObjectProperties received;
+    received.deSerialize(is);
+    configurePlayerSteps(player, &received, true);
+    check(nearf(player.step_height, 1.05f * BS), "server step height is not scaled twice");
+    check(!player.getPlayerSettings().autojump, "full-block grant does not inject autojump");
+    check(!playerJumpInput(player, false), "forward walking does not press jump");
+    check(playerJumpInput(player, true), "manual jump remains available");
+    received.stepheight = BS;
+    configurePlayerSteps(player, &received, true);
+    check(player.getPlayerSettings().autojump, "exact one-node limit retains autojump at strict collision boundary");
+    received.stepheight = 0.6f * BS;
+    configurePlayerSteps(player, &received, true);
+    check(player.getPlayerSettings().autojump, "ordinary server retains autojump");
+    configurePlayerSteps(player, &received, false);
+    check(!player.getPlayerSettings().autojump, "ordinary server retains autojump toggle");
+    received.stepheight = 0.0f;
+    configurePlayerSteps(player, &received, true);
+    check(player.step_height == 0, "zero server step height is respected");
+    configurePlayerSteps(player, nullptr, true);
+    check(nearf(player.step_height, 0.6f * BS), "missing object restores normal step height");
+}
+
 void setUpSettings() {
     Settings *defaults = Settings::createLayer(SL_DEFAULTS);
     for (const char *k : {"free_move", "pitch_move", "fast_move", "continuous_forward",
@@ -602,6 +635,7 @@ int main() {
     testQueueOrder();
     testQueueBound();
     testLocalPlayerAnimations();
+    testPlayerSteps();
     if (g_failures) {
         std::printf("%d animation check(s) failed\n", g_failures);
         return 1;
