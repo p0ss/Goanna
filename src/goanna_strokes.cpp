@@ -609,7 +609,7 @@ std::vector<StrokeBonePose> StrokeEvaluator::evaluate(float angle_deg, float t) 
     return out;
 }
 
-void StrokeEvaluator::evaluate(float angle_deg, float t_f, std::vector<StrokeBonePose> &result) const {
+void StrokeEvaluator::evaluate(float angle_deg, float t_f, std::vector<StrokeBonePose> &result, float pitch) const {
     result.clear();
     if (!valid_)
         return;
@@ -681,7 +681,8 @@ void StrokeEvaluator::evaluate(float angle_deg, float t_f, std::vector<StrokeBon
         e.p = add(bones_[pelvis_].translation, {0, clamp(s.drop[1], -0.2, 0) * hip_, 0});
     }
     setQ(pelvis_, pelvis);
-    setQ(chest_, product(inverse(pelvis), product(s.pelvis, s.chest)));
+    setQ(chest_, product(inverse(pelvis), product(axisAngle({1, 0, 0}, -pitch),
+            product(s.pelvis, s.chest))));
     if (head_ >= 0)
         setQ(head_, s.head);
     forward(w);

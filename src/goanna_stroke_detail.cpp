@@ -69,9 +69,11 @@ float StrokeLod::weight() const {
 }
 
 void StrokeLod::pose(const StrokeEvaluator &evaluator, float angle, float t, bool restart,
-        std::vector<StrokeBonePose> &out) {
+        std::vector<StrokeBonePose> &out, float pitch) {
+    restart = restart || std::fabs(pitch - m_pitch) > 1e-4f;
+    m_pitch = pitch;
     if (m_detail == StrokeDetail::Full) {
-        evaluator.evaluate(angle, t, out);
+        evaluator.evaluate(angle, t, out, pitch);
         ++m_evaluations;
         m_have = false;
         return;
@@ -82,17 +84,17 @@ void StrokeLod::pose(const StrokeEvaluator &evaluator, float angle, float t, boo
     if (restart || !m_have || t < m_ta - 1e-4f || t > m_tb + h) {
         // A new stroke, or the clock jumped (a phase change resets it to
         // the server's): start again from now.
-        evaluator.evaluate(angle, t, m_a);
+        evaluator.evaluate(angle, t, m_a, pitch);
         m_ta = t;
         m_tb = ahead(t);
-        evaluator.evaluate(angle, m_tb, m_b);
+        evaluator.evaluate(angle, m_tb, m_b, pitch);
         m_evaluations += 2;
         m_have = true;
     } else if (t >= m_tb) {
         std::swap(m_a, m_b);
         m_ta = m_tb;
         m_tb = ahead(t);
-        evaluator.evaluate(angle, m_tb, m_b);
+        evaluator.evaluate(angle, m_tb, m_b, pitch);
         ++m_evaluations;
     }
     const float span = m_tb - m_ta;

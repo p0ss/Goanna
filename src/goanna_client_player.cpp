@@ -749,6 +749,15 @@ Dictionary GoannaClient::wield_use_info() {
     };
     info["kind"] = group("food") == 3 || group("drink") > 0 ? "drink" :
             (group("food") > 0 || group("eatable") > 0 ? "eat" : "");
+    bool melee = false;
+    for (const auto &entry : m_session->objects()) {
+        if (entry.second->isLocalPlayer()) {
+            auto marker = entry.second->boneOverrides().find("kindred_melee");
+            melee = marker != entry.second->boneOverrides().end() && marker->second.scale.absolute && marker->second.scale.vector.X > 0;
+            break;
+        }
+    }
+    info["melee"] = melee;
     return info;
 }
 

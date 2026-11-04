@@ -334,6 +334,7 @@ var wield_dig_active := false
 const ConsumeUse := preload("res://game/consume_use.gd")
 var consume_use := ConsumeUse.new()
 var consume_active := false
+var combat_active := false
 var test_dig := false
 var test_plc_pressed := false
 var mob_target_id := -1
@@ -1881,6 +1882,7 @@ func _process(delta: float) -> void:
 				client.disconnect_from_server()
 				get_tree().quit()
 		var use_info: Dictionary = client.call("wield_use_info") if client.has_method("wield_use_info") else {}
+		combat_active = bool(use_info.get("melee", false)) and str(pointed.get("type", "nothing")) != "node"
 		var meal := _consume_controls(delta, dig, plc, plc_pressed, use_info)
 		dig = bool(meal.dig)
 		pointed = client.step_interact(delta, dig, plc, plc_pressed, keys["sneak"])
@@ -2773,7 +2775,7 @@ func _consume_controls(delta: float, primary: bool, secondary: bool,
 	return meal
 
 func _update_wield(delta: float) -> void:
-	if consume_active:
+	if consume_active or combat_active:
 		swing_t = 1.0
 		client.set_arm_swing(0.0)
 		return

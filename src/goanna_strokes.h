@@ -137,7 +137,7 @@ public:
     // planted: one entry for each bone the evaluator moves, in plan order.
     std::vector<StrokeBonePose> evaluate(float angle_deg, float t) const;
     // The same, filling `out` (resized) to save the allocation.
-    void evaluate(float angle_deg, float t, std::vector<StrokeBonePose> &out) const;
+    void evaluate(float angle_deg, float t, std::vector<StrokeBonePose> &out, float pitch = 0.0f) const;
 
 private:
     struct Bone {

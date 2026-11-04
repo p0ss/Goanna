@@ -2081,7 +2081,18 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 // exactly where the model and the server left it.
                 const auto &dig = session.interactState();
                 const bool mining = (dig.digging && dig.dig_time_complete < 100000) || dig.dig_impact;
-                const bool aimed = obj.boneOverrides().count(en.arm_bone) != 0;
+                const auto melee = obj.boneOverrides().find("kindred_melee");
+                const bool combat_pose = melee != obj.boneOverrides().end()
+                        && melee->second.scale.absolute && melee->second.scale.vector.X > 0 && !mining;
+                const auto arm = obj.boneOverrides().find(en.arm_bone);
+                // A cleared override stays in the map. Its identity values
+                // must not suppress ordinary arm motion after combat ends.
+                const bool aimed = arm != obj.boneOverrides().end()
+                        && (arm->second.rotation.absolute || arm->second.position.absolute
+                                || arm->second.scale.absolute
+                                || arm->second.rotation.next != core::quaternion()
+                                || arm->second.position.vector != v3f()
+                                || arm->second.scale.vector != v3f(1.0f));
                 float swing = aimed ? 0.0f : m_arm_swing * (A[0] + A[1] * pitch);
                 if (mining) {
                     // The game owns aiming/rest scales; we own the single
@@ -2089,7 +2100,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                     swing = (aimed ? 0.0f : dig.swing * (A[0] + A[1] * pitch))
                             + 90.0f + 45.0f * (1.0f - dig.swing);
                 }
-                en.animator->setJointRotationOverride(en.arm_bone, v3f(swing, 0, 0), mining);
+                en.animator->setJointRotationOverride(combat_pose ? "" : en.arm_bone, v3f(swing, 0, 0), mining);
             }
         }
         // The local player's own idle, walk and dig animations, which the

@@ -68,7 +68,7 @@ public:
     // fading out of Clip. restart is true for a new stroke, which drops
     // the evaluations kept for interpolation.
     void pose(const StrokeEvaluator &evaluator, float angle, float t, bool restart,
-            std::vector<StrokeBonePose> &out);
+            std::vector<StrokeBonePose> &out, float pitch = 0.0f);
     // Whether the feet should ask the map for the ground this step: every
     // step in Full, STROKE_REDUCED_RATE times a second in Reduced, never
     // in Clip.
@@ -83,7 +83,7 @@ private:
     float m_ground_clock = 0.0f;
     // Reduced: the evaluations either side of now and their stroke times.
     bool m_have = false;
-    float m_ta = 0.0f, m_tb = 0.0f;
+    float m_ta = 0.0f, m_tb = 0.0f, m_pitch = 0.0f;
     std::vector<StrokeBonePose> m_a, m_b;
     uint64_t m_evaluations = 0;
 };

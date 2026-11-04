@@ -757,6 +757,9 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     } else {
         m_melee.t += dt;
     }
+    if (phase == 3)
+        m_melee.t = std::min(evaluator->commit(), state.position.vector.Y
+                + state.dtime_passed * evaluator->commit() / 0.8f);
     // Ease towards the told angle the short way round, as the server does
     // (900 degrees a second).
     const float d = std::remainder(m_melee.told - m_melee.angle, 360.0f);
@@ -775,7 +778,10 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     scene::SkinnedMesh *mesh = m_model->skinned;
     ++g_stroke_poses;
     const uint64_t evaluated = m_stroke_lod.evaluations();
-    m_stroke_lod.pose(*evaluator, m_melee.angle, t, fresh, m_stroke_pose);
+    v3f weapon_aim;
+    state.rotation.next.toEuler(weapon_aim);
+    m_stroke_lod.pose(*evaluator, m_melee.angle, t, fresh, m_stroke_pose,
+            format == 1 ? weapon_aim.X : 0.0f);
     g_stroke_evaluations += m_stroke_lod.evaluations() - evaluated;
     for (const StrokeBonePose &b : m_stroke_pose) {
         auto jn = mesh->getJointNumber(b.bone);

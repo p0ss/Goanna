@@ -109,7 +109,7 @@ void checkBody(const std::string &path, std::shared_ptr<const StrokeFamily> fami
     int evaluations = 0;
     for (const Json::Value &c : cases) {
         double angle = c["angle"].asDouble(), t = c["t"].asDouble();
-        evaluator.evaluate(float(angle), float(t), out);
+        evaluator.evaluate(float(angle), float(t), out, float(c.get("pitch", 0.0).asDouble()));
         ++evaluations;
         char where[64];
         std::snprintf(where, sizeof where, "angle %g t %g", angle, t);
@@ -217,7 +217,8 @@ int main(int argc, char **argv) {
     }
 
     checkBody(dir + "/reference.json", family);
-    checkBody(dir + "/tentacle_arms.json", family);
+    if (argc < 3 || std::string(argv[2]) != "--reference-only")
+        checkBody(dir + "/tentacle_arms.json", family);
 
     if (g_failures) {
         std::cerr << "goanna_strokes_test: " << g_failures << " of " << g_checks << " checks failed\n";
