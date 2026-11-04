@@ -731,6 +731,24 @@ String GoannaClient::wield_item_name() {
     return String::utf8(goanna_wielded_item(m_session.get()).name.c_str());
 }
 
+// Public item groups describe the ordinary eat/drink controls. No inference
+// from item names and no client-authorised consumption.
+Dictionary GoannaClient::wield_use_info() {
+    Dictionary info;
+    if (!m_session)
+        return info;
+    std::lock_guard<std::mutex> lk(m_session->mapLock());
+    const ItemStack item = goanna_wielded_item(m_session.get());
+    const ItemDefinition &def = item.getDefinition(m_session->getItemDefManager());
+    const auto group = [&](const char *name) {
+        const auto it = def.groups.find(name);
+        return it == def.groups.end() ? 0 : it->second;
+    };
+    info["kind"] = group("food") == 3 || group("drink") > 0 ? "drink" :
+            (group("food") > 0 || group("eatable") > 0 ? "eat" : "");
+    return info;
+}
+
 Dictionary GoannaClient::wield_info() {
     Dictionary d;
     if (!m_session)

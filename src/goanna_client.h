@@ -351,6 +351,7 @@ public:
     godot::String wield_item_name();
     int wield_light();
     godot::Dictionary wield_info();
+    godot::Dictionary wield_use_info();
     // Mesh for an arbitrary item name: {name, mesh: ArrayMesh or null,
     // scale: Vector3}, for rendering 3D inventory icons. Node items get their
     // real node mesh (stairs, slabs, torches), so this is not cube-only.

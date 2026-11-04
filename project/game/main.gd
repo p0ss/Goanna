@@ -331,6 +331,9 @@ var _prune_timer := 2.0
 var last_move: Dictionary = {}   # last step_player result, read by the audio layer
 var swing_t := 1.0
 var wield_dig_active := false
+const ConsumeUse := preload("res://game/consume_use.gd")
+var consume_use := ConsumeUse.new()
+var consume_active := false
 var test_dig := false
 var test_plc_pressed := false
 var mob_target_id := -1
@@ -1235,10 +1238,9 @@ func _place_third_person(head: Vector3) -> void:
 			break
 		d += 0.1
 	cam.position = head + back * dist
-	# Pulled in this close, the camera is inside the head. Draw the body as
-	# first person does, head shrunk, so the view is out of the eyes rather
-	# than the inside of the skull.
-	var whole := dist >= THIRD_PERSON_INSIDE
+	# A selected third-person view keeps third-person body presentation even
+	# when a wall pulls the camera inside the usual first-person distance.
+	var whole := camera_mode != CAMERA_FIRST
 	if whole != _third_drawn:
 		_third_drawn = whole
 		client.set_third_person(whole)
@@ -1878,12 +1880,15 @@ func _process(delta: float) -> void:
 			if t > 12.0:
 				client.disconnect_from_server()
 				get_tree().quit()
+		var use_info: Dictionary = client.call("wield_use_info") if client.has_method("wield_use_info") else {}
+		var meal := _consume_controls(delta, dig, plc, plc_pressed, use_info)
+		dig = bool(meal.dig)
 		pointed = client.step_interact(delta, dig, plc, plc_pressed, keys["sneak"])
-		wield_dig_active = dig and str(pointed.get("type", "nothing")) != "nothing"
+		wield_dig_active = dig and not consume_active and str(pointed.get("type", "nothing")) != "nothing"
 		if dig and not _dig_was:
 			_strike_water()
 		_dig_was = dig
-		if plc_pressed:
+		if plc_pressed and not consume_active:
 			swing_t = 0.0
 		place_pressed = false
 		agent_place_pressed = false
@@ -2760,7 +2765,18 @@ func _shots(dir: String) -> void:
 # The wield arm's swing. Mining uses the session contact clock; place and
 # object punches retain their independent gesture. The renderer poses the
 # body's actual wield arm.
+func _consume_controls(delta: float, primary: bool, secondary: bool,
+		secondary_pressed: bool, info: Dictionary) -> Dictionary:
+	var meal := consume_use.step(delta, str(info.get("kind", "")), primary,
+			secondary, secondary_pressed)
+	consume_active = bool(meal.active)
+	return meal
+
 func _update_wield(delta: float) -> void:
+	if consume_active:
+		swing_t = 1.0
+		client.set_arm_swing(0.0)
+		return
 	if bool(pointed.get("mining_swing", false)):
 		swing_t = 1.0
 		client.set_arm_swing(float(pointed.get("swing", 0.0)))

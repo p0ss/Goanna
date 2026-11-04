@@ -824,6 +824,7 @@ void GoannaClient::_bind_methods() {
     ClassDB::bind_method(D_METHOD("wield_item_name"), &GoannaClient::wield_item_name);
     ClassDB::bind_method(D_METHOD("wield_light"), &GoannaClient::wield_light);
     ClassDB::bind_method(D_METHOD("wield_info"), &GoannaClient::wield_info);
+    ClassDB::bind_method(D_METHOD("wield_use_info"), &GoannaClient::wield_use_info);
     ClassDB::bind_method(D_METHOD("item_mesh", "item_name"), &GoannaClient::item_mesh);
     ClassDB::bind_method(D_METHOD("model_preview", "mesh_name", "textures", "frame_loop", "speed"),
             &GoannaClient::model_preview);
