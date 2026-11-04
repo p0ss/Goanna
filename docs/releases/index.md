@@ -7,7 +7,9 @@ downloaded release from 0.11.0 on updates itself; see
 
 | Version | Tagged | In brief |
 | --- | --- | --- |
-| [Unreleased](unreleased.md) | | Changes on main since 0.15.1 |
+| [Unreleased](unreleased.md) | | Changes on main since 0.17.0 |
+| [0.17.0-alpha](v0.17.0-alpha.md) | 2026-11-04 | A new menu built around Continue, LAN scan, overseer tables |
+| [0.16.0-alpha](v0.16.0-alpha.md) | 2026-10-31 | Houses in the DorfCraft overseer, Kindred Holdfast preview, `K` flies |
 | [0.15.1-alpha](v0.15.1-alpha.md) | 2026-10-15 | Shader packs on Start Game and Join Game, (i) icons in the menus |
 | [0.15.0-alpha](v0.15.0-alpha.md) | 2026-10-15 | Fewer stalls while terrain streams, server media cache, shader pack skies |
 | [0.14.0-alpha](v0.14.0-alpha.md) | 2026-10-13 | Shader packs, storms and settled snow, flames and portals |
