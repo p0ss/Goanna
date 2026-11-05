@@ -75,6 +75,19 @@ struct StrokeFormat {
 };
 StrokeFormat decodeStrokeFormat(float z);
 
+// Confirmed response phases: 4 hard recoil, 5 resisted follow-through.
+// Mirrors DorfCraft response.lua. These times never authorise damage.
+float strokeResponseTime(int phase, float contact, float age, float length);
+
+// Local preparation only, for a server-marked Kindred weapon. Release,
+// server state, mining or a 180 ms timeout always ends anticipation.
+struct StrokeDrawPreview {
+    bool active = false, previous_dig = false;
+    float age = 0, yaw = 0, pitch = 0, angle = 0;
+    bool step(float dt, bool enabled, bool dig, bool place, int phase,
+            float look_yaw, float look_pitch);
+};
+
 // False if the JSON does not parse or lacks a field the evaluator needs.
 // The object is a glTF's root extras "stroke_family", or the same as text.
 bool parseStrokeFamily(const Json::Value &json, StrokeFamily &out);

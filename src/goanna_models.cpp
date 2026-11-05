@@ -705,12 +705,14 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     // cut short.
     auto it = overrides.find(m_model->stroke_state);
     const StrokeFormat decoded =
-            it == overrides.end() ? StrokeFormat() : decodeStrokeFormat(it->second.scale.vector.Z);
+            it == overrides.end() || !it->second.scale.absolute ? StrokeFormat() :
+                    decodeStrokeFormat(it->second.scale.vector.Z);
     const int format = decoded.format;
     // One action at a time on the bone, of any kind; the format says which.
     const StrokeEvaluator *evaluator = nullptr;
     bool loops = false;
     switch (format) {
+    case 5: // confirmed contact recovery; older clients use server overrides
     case 1: // a stroke, of the weapon family the state names; a family
             // this body lacks shows the clip
         if (decoded.family == 0)
@@ -760,6 +762,9 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     if (phase == 3)
         m_melee.t = std::min(evaluator->commit(), state.position.vector.Y
                 + state.dtime_passed * evaluator->commit() / 0.8f);
+    if (format == 5 && (phase == 4 || phase == 5))
+        m_melee.t = strokeResponseTime(phase, state.position.vector.Y,
+                state.position.vector.Z + state.dtime_passed, evaluator->length());
     // Ease towards the told angle the short way round, as the server does
     // (900 degrees a second).
     const float d = std::remainder(m_melee.told - m_melee.angle, 360.0f);
@@ -781,7 +786,7 @@ void ModelAnimator::poseStroke(float dt, JointTransforms &locals,
     v3f weapon_aim;
     state.rotation.next.toEuler(weapon_aim);
     m_stroke_lod.pose(*evaluator, m_melee.angle, t, fresh, m_stroke_pose,
-            format == 1 ? weapon_aim.X : 0.0f);
+            (format == 1 || format == 5) ? weapon_aim.X : 0.0f);
     g_stroke_evaluations += m_stroke_lod.evaluations() - evaluated;
     for (const StrokeBonePose &b : m_stroke_pose) {
         auto jn = mesh->getJointNumber(b.bone);

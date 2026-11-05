@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "goanna_strokes.h"
+
 // Godot-side rendering of Goanna's active objects (players, mobs, items).
 // Sprites and upright sprites as billboards, cubes as textured boxes, meshes
 // through Luanti's own model loaders (goanna_models) with per-buffer textures,
@@ -165,6 +167,7 @@ private:
         godot::Skeleton3D *shadow_skeleton = nullptr;
         std::unique_ptr<ModelAnimator> animator;
         std::string arm_bone; // first-person arm, chosen by which side it shows on
+        StrokeDrawPreview draw_preview;
         // For the water strokes (goanna_limbs.h): where the body was last
         // sync and how fast it is going across, nodes a second, eased.
         v3f limb_last_pos;

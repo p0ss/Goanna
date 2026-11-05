@@ -178,6 +178,34 @@ void checkBody(const std::string &path, std::shared_ptr<const StrokeFamily> fami
 } // namespace
 
 int main(int argc, char **argv) {
+    StrokeDrawPreview preview;
+    expect(!preview.step(.016f, false, true, false, 0, 0, 0), "ordinary server never anticipates");
+    preview.step(.016f, true, false, false, 0, 0, 0);
+    expect(preview.step(.016f, true, true, false, 0, 0, 0), "marked weapon acknowledges press in one frame");
+    expect(preview.step(.016f, true, true, false, 0, -.1f, 0) && preview.angle < 1,
+            "local draw follows horizontal pull");
+    expect(!preview.step(.016f, true, true, false, 3, 0, 0), "server draw replaces anticipation");
+    preview.step(.016f, true, false, false, 0, 0, 0);
+    preview.step(.016f, true, true, false, 0, 0, 0);
+    expect(!preview.step(.2f, true, true, false, 0, 0, 0), "refused preparation times out");
+    expect(!preview.step(.016f, true, true, false, 0, 0, 0), "held refused press never retriggers");
+    preview.step(.016f, true, false, false, 0, 0, 0);
+    preview.step(.016f, true, true, false, 0, 0, 0);
+    expect(!preview.step(.016f, true, true, true, 0, 0, 0), "guard cancels speculative preparation");
+    preview.step(.016f, true, false, false, 0, 0, 0);
+    preview.step(.016f, true, true, false, 0, 0, 0);
+    expect(!preview.step(.016f, true, false, false, 0, 0, 0), "release never predicts a damaging strike");
+    if (argc > 2 && std::string(argv[1]) == "--response-only") {
+        Json::Value cases;
+        expect(readJson(argv[2], cases), "Lua response fixture parses");
+        for (const auto &c : cases) {
+            const float t = strokeResponseTime(c["phase"].asInt(), c["contact"].asFloat(),
+                    c["age"].asFloat(), c["length"].asFloat());
+            expect(std::fabs(t - c["value"].asFloat()) < 1e-6f, "native recovery agrees with Lua");
+        }
+        std::printf("goanna_strokes_test: %d response/anticipation checks, %d failures\n", g_checks, g_failures);
+        return g_failures ? 1 : 0;
+    }
     std::string dir = argc > 1 ? argv[1] : "tools/test/strokes";
     std::string text;
     if (!readFile(dir + "/family.json", text)) {

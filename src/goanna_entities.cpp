@@ -2294,7 +2294,51 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
             scene::AnimSpec none;
             scene::AnimSpec *anim = obj.meshAnimation();
-            en.animator->step(dt, anim ? *anim : none, obj.boneOverridesMut(), en.skeleton,
+            // Only the local server-marked weapon anticipates preparation.
+            // A private override copy cannot mutate received state or contacts.
+            auto *overrides = &obj.boneOverridesMut();
+            std::map<std::string, BoneOverride> anticipated;
+            if (is_self && session.player()) {
+                LocalPlayer *lp = session.player();
+                auto marker = overrides->find("kindred_melee");
+                auto state = overrides->find("kindred_stroke");
+                int phase = state == overrides->end() || !state->second.scale.absolute ? 0 :
+                        (int)std::lround(state->second.scale.vector.Y);
+                // A normal completed stroke need not receive an explicit stop.
+                // Its old wire phase must not prevent the next local draw.
+                if (state != overrides->end() && (phase == 1 || phase == 2)) {
+                    const auto format = decodeStrokeFormat(state->second.scale.vector.Z);
+                    const auto &model = en.animator->model();
+                    const StrokeEvaluator *family = format.family == 0 ? model.strokes.get() :
+                            (format.family < (int)model.stroke_families.size() ?
+                                    model.stroke_families[format.family].get() : nullptr);
+                    if (format.format == 1 && family && state->second.position.vector.Y
+                            + state->second.dtime_passed >= family->length())
+                        phase = 0;
+                }
+                const auto &interaction = session.interactState();
+                const bool enabled = marker != overrides->end() && marker->second.scale.absolute
+                        && marker->second.scale.vector.X > 0 && lp->hp > 0
+                        && !interaction.digging && !interaction.dig_impact;
+                const float pitch = lp->getPitch() * core::DEGTORAD;
+                if (en.draw_preview.step(dt, enabled, lp->control.dig, lp->control.place,
+                        phase, lp->getYaw() * core::DEGTORAD, pitch)) {
+                    anticipated = *overrides;
+                    BoneOverride preview;
+                    preview.position.vector = v3f(en.draw_preview.angle, 0, 0);
+                    preview.position.absolute = true;
+                    preview.scale.vector = v3f(-1, 3, 1 + 8 * std::max(0,
+                            (int)std::lround(marker->second.scale.vector.Z) - 1));
+                    preview.scale.absolute = true;
+                    preview.rotation.next = core::quaternion(v3f(
+                            std::clamp(pitch, -1.047197551f, 1.308996939f), 0, 0));
+                    preview.rotation.absolute = true;
+                    preview.dtime_passed = std::max(0.0f, en.draw_preview.age - dt);
+                    anticipated["kindred_stroke"] = preview;
+                    overrides = &anticipated;
+                }
+            }
+            en.animator->step(dt, anim ? *anim : none, *overrides, en.skeleton,
                     en.shadow_skeleton);
             // Hands and feet crossing the water's surface this step: the
             // splash of a stroke, a kick breaking the surface.

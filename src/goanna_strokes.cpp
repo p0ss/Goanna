@@ -17,6 +17,51 @@
 
 namespace goanna {
 
+float strokeResponseTime(int phase, float contact, float age, float length) {
+    const bool hard = phase == 4;
+    const float turn = hard ? 0.10f : 0.08f;
+    const float duration = hard ? 0.36f : 0.30f;
+    const float pivot = hard ? std::max(0.0f, contact - 0.12f) : std::min(length, contact + 0.045f);
+    const auto ease = [](float t) {
+        t = std::clamp(t, 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
+    };
+    age = std::max(0.0f, age);
+    if (age < turn)
+        return contact + (pivot - contact) * ease(age / turn);
+    const float finish = hard ? 0.0f : length;
+    return pivot + (finish - pivot) * ease((age - turn) / (duration - turn));
+}
+
+bool StrokeDrawPreview::step(float dt, bool enabled, bool dig, bool place, int phase,
+        float look_yaw, float look_pitch) {
+    const bool pressed = dig && !previous_dig;
+    previous_dig = dig;
+    if (!enabled || !dig || place || phase != 0) {
+        active = false;
+        return false;
+    }
+    if (pressed) {
+        active = true;
+        age = 0;
+        yaw = look_yaw;
+        pitch = look_pitch;
+        angle = 0;
+    }
+    if (!active)
+        return false;
+    age += std::max(0.0f, dt);
+    if (age > 0.18f) {
+        active = false;
+        return false;
+    }
+    const float right = -std::remainder(look_yaw - yaw, 6.283185307f);
+    const float up = -(look_pitch - pitch);
+    if (std::hypot(right, up) > 0.026179939f)
+        angle = std::fmod(std::atan2(up, right) * 57.295779513f + 360.0f, 360.0f);
+    return true;
+}
+
 namespace {
 
 using V = StrokeVec;
