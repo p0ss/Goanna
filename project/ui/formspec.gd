@@ -2766,39 +2766,10 @@ const SDL_MOUSE_NAMES := {1: "Left Click", 2: "Middle Click", 3: "Right Click", 
 
 # Keys as Luanti 5.17 knows them: [Godot physical key, SDL scancode (the USB
 # HID usage), Irrlicht key name as older settings wrote it, key name shown].
+# The table is input/key_bindings.gd's, which stores the player's own keys
+# in the same format.
 static func _key_table() -> Array:
-	var t: Array = []
-	for i in 26:
-		var ch := char(65 + i)
-		t.append([KEY_A + i, 4 + i, "KEY_KEY_" + ch, ch])
-	for i in 9:
-		t.append([KEY_1 + i, 30 + i, "KEY_KEY_%d" % (i + 1), str(i + 1)])
-	t.append([KEY_0, 39, "KEY_KEY_0", "0"])
-	t.append_array([[KEY_ENTER, 40, "KEY_RETURN", "Return"], [KEY_ESCAPE, 41, "KEY_ESCAPE", "Escape"],
-		[KEY_BACKSPACE, 42, "KEY_BACK", "Backspace"], [KEY_TAB, 43, "KEY_TAB", "Tab"],
-		[KEY_SPACE, 44, "KEY_SPACE", "Space"], [KEY_MINUS, 45, "KEY_MINUS", "-"],
-		[KEY_EQUAL, 46, "KEY_PLUS", "="], [KEY_BRACKETLEFT, 47, "KEY_OEM_4", "["],
-		[KEY_BRACKETRIGHT, 48, "KEY_OEM_6", "]"], [KEY_BACKSLASH, 49, "KEY_OEM_5", "\\"],
-		[KEY_SEMICOLON, 51, "KEY_OEM_1", ";"], [KEY_APOSTROPHE, 52, "KEY_OEM_7", "'"],
-		[KEY_QUOTELEFT, 53, "KEY_OEM_3", "`"], [KEY_COMMA, 54, "KEY_COMMA", ","],
-		[KEY_PERIOD, 55, "KEY_PERIOD", "."], [KEY_SLASH, 56, "KEY_OEM_2", "/"],
-		[KEY_CAPSLOCK, 57, "KEY_CAPITAL", "Caps Lock"]])
-	for i in 12:
-		t.append([KEY_F1 + i, 58 + i, "KEY_F%d" % (i + 1), "F%d" % (i + 1)])
-	t.append_array([[KEY_INSERT, 73, "KEY_INSERT", "Insert"], [KEY_HOME, 74, "KEY_HOME", "Home"],
-		[KEY_PAGEUP, 75, "KEY_PRIOR", "Page Up"], [KEY_DELETE, 76, "KEY_DELETE", "Delete"],
-		[KEY_END, 77, "KEY_END", "End"], [KEY_PAGEDOWN, 78, "KEY_NEXT", "Page Down"],
-		[KEY_RIGHT, 79, "KEY_RIGHT", "Right"], [KEY_LEFT, 80, "KEY_LEFT", "Left"],
-		[KEY_DOWN, 81, "KEY_DOWN", "Down"], [KEY_UP, 82, "KEY_UP", "Up"]])
-	for i in 9:
-		t.append([KEY_KP_1 + i, 89 + i, "KEY_NUMPAD%d" % (i + 1), "Keypad %d" % (i + 1)])
-	t.append([KEY_KP_0, 98, "KEY_NUMPAD0", "Keypad 0"])
-	# Modifiers: the right hand ones are told apart by location below.
-	t.append_array([[KEY_CTRL, 224, "KEY_LCONTROL", "Left Control"],
-		[KEY_SHIFT, 225, "KEY_LSHIFT", "Left Shift"], [KEY_ALT, 226, "KEY_LMENU", "Left Alt"],
-		[-1, 228, "KEY_RCONTROL", "Right Control"], [-1, 229, "KEY_RSHIFT", "Right Shift"],
-		[-1, 230, "KEY_RMENU", "Right Alt"]])
-	return t
+	return preload("res://input/key_bindings.gd").key_table()
 
 static func _key_sym_of_event(k: InputEventKey) -> String:
 	var key := k.physical_keycode if k.physical_keycode != KEY_NONE else k.keycode

@@ -33,18 +33,29 @@ var tree: SceneTree
 # The pointer as this driver last left it, for relative motion.
 var _pointer := Vector2(-1.0, -1.0)
 
-# Game actions by the name a test would use, as the keys Goanna binds them to
-# (main.gd and ui/game_ui.gd). dig and place are mouse buttons at the centre
-# of the screen, as with a captured pointer.
+# Game actions by the name a test would use. A fixed key, or the name of a
+# keyboard action in input/key_bindings.gd, which presses whatever key the
+# player has put that action on (its default if they left it unset), so a
+# test's action names keep working whatever the bindings are. dig and place
+# are mouse buttons at the centre of the screen, as with a captured pointer.
 const ACTIONS := {
-	"inventory": KEY_I, "menu": KEY_ESCAPE, "escape": KEY_ESCAPE, "chat": KEY_T,
-	"command": KEY_SLASH, "forward": KEY_W, "backward": KEY_S, "left": KEY_A,
-	"right": KEY_D, "jump": KEY_SPACE, "sneak": KEY_SHIFT, "aux1": KEY_E,
-	"use": KEY_E, "enter": KEY_ENTER,
-	"hotbar1": KEY_1, "hotbar2": KEY_2, "hotbar3": KEY_3, "hotbar4": KEY_4,
-	"hotbar5": KEY_5, "hotbar6": KEY_6, "hotbar7": KEY_7, "hotbar8": KEY_8,
-	"hotbar9": KEY_9, "hotbar10": KEY_0,
+	"inventory": "inventory", "menu": KEY_ESCAPE, "escape": KEY_ESCAPE, "chat": "chat",
+	"command": "cmd", "forward": "forward", "backward": "backward", "left": "left",
+	"right": "right", "jump": "jump", "sneak": "sneak", "aux1": "aux1",
+	"use": "aux1", "enter": KEY_ENTER, "drop": "drop", "fly": "freemove",
+	"camera": "camera_mode",
+	"hotbar1": "slot1", "hotbar2": "slot2", "hotbar3": "slot3", "hotbar4": "slot4",
+	"hotbar5": "slot5", "hotbar6": "slot6", "hotbar7": "slot7", "hotbar8": "slot8",
+	"hotbar9": "slot9", "hotbar10": "slot10",
 }
+const KeyBindings := preload("res://input/key_bindings.gd")
+
+## The key a test's action name or key name presses, KEY_NONE if neither.
+static func action_key(name: String) -> int:
+	if ACTIONS.has(name):
+		var v: Variant = ACTIONS[name]
+		return KeyBindings.key_or_default(v) if v is String else int(v)
+	return OS.find_keycode_from_string(name)
 const MOUSE_ACTIONS := {"dig": MOUSE_BUTTON_LEFT, "place": MOUSE_BUTTON_RIGHT,
 	"mouse_left": MOUSE_BUTTON_LEFT, "mouse_right": MOUSE_BUTTON_RIGHT,
 	"mouse_middle": MOUSE_BUTTON_MIDDLE}
@@ -662,9 +673,7 @@ func key(a: Dictionary) -> Variant:
 			_button(centre, button, false, a)
 		out["mouse_button"] = button
 	else:
-		var keycode: int = ACTIONS.get(name, KEY_NONE)
-		if keycode == KEY_NONE:
-			keycode = OS.find_keycode_from_string(name)
+		var keycode := action_key(name)
 		if keycode == KEY_NONE:
 			return _err("no key called '%s'" % name)
 		out["keycode"] = OS.get_keycode_string(keycode)

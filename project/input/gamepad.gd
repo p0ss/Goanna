@@ -98,14 +98,20 @@ const TRIGGERS := ["goanna_dig", "goanna_place"]
 # right behaviour: Escape opens the pause menu or closes a window, I opens
 # the inventory or closes it (ui/game_ui.gd), K toggles fly (game/main.gd).
 # Upstream's keymap_pause, keymap_inventory and keymap_freemove do the same
-# jobs.
-const PLAY_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_inventory": KEY_I,
-	"goanna_freemove": KEY_K}
+# jobs. A name is a keyboard action (input/key_bindings.gd), so the button
+# pushes whatever key the player has put that action on.
+const PLAY_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_inventory": "inventory",
+	"goanna_freemove": "freemove"}
 # Buttons that stand in for a key held down rather than tapped: the key goes
 # down with the button and up with it, so a hold is a hold.
-const HOLD_KEYS := {"goanna_talk": KEY_T}
+const HOLD_KEYS := {"goanna_talk": "chat"}
 const UI_KEYS := {"goanna_pause": KEY_ESCAPE, "goanna_ui_back": KEY_ESCAPE,
-	"goanna_inventory": KEY_I}
+	"goanna_inventory": "inventory"}
+const KeyBindings := preload("res://input/key_bindings.gd")
+
+# A stand in key: a fixed key, or the key a keyboard action is on now.
+static func stand_in_key(value: Variant) -> int:
+	return KeyBindings.key_or_default(value) if value is String else int(value)
 
 # A local player consumes only events forwarded into their viewport. Global
 # Input state still serves the single-player game and the main menu.
@@ -237,10 +243,12 @@ const LABELS := {
 	"back": {"keyboard": "Escape", "xbox": "B", "steam": "B", "playstation": "Circle", "nintendo": "B"},
 	"confirm": {"keyboard": "Enter", "xbox": "A", "steam": "A", "playstation": "Cross", "nintendo": "A"},
 	"menu": {"keyboard": "Escape", "xbox": "Start", "steam": "Menu", "playstation": "Options", "nintendo": "+"},
-	"talk": {"keyboard": "T", "xbox": "D-pad up", "steam": "D-pad up", "playstation": "D-pad up", "nintendo": "D-pad up"},
+	"talk": {"keyboard": "", "xbox": "D-pad up", "steam": "D-pad up", "playstation": "D-pad up", "nintendo": "D-pad up"},
 }
 
 static func label(control: String, device: String, family: String) -> String:
+	if control == "talk" and device == "keyboard":
+		return KeyBindings.name_of("chat")
 	var names: Dictionary = LABELS.get(control, {})
 	return str(names.get("keyboard" if device == "keyboard" else family, control))
 
@@ -643,8 +651,8 @@ func _hold_mapped(event: InputEvent) -> bool:
 		return false
 	for action in HOLD_KEYS:
 		if event.is_action(action):
-			_held_keys[action] = HOLD_KEYS[action]
-			_push_key(HOLD_KEYS[action], true)
+			_held_keys[action] = stand_in_key(HOLD_KEYS[action])
+			_push_key(_held_keys[action], true)
 			return true
 	return false
 
@@ -670,7 +678,7 @@ func _tap_mapped(event: InputEvent, table: Dictionary) -> void:
 		return
 	for action in table:
 		if event.is_action(action):
-			_tap_key(table[action])
+			_tap_key(stand_in_key(table[action]))
 			return
 
 func _first_focusable(node: Node) -> Control:

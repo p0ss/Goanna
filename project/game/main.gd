@@ -17,6 +17,7 @@ extends Node3D
 
 const PlayerContext := preload("res://game/player_context.gd")
 const RenderFeatures := preload("res://game/render_features.gd")
+const KeyBindings := preload("res://input/key_bindings.gd")
 const ShaderPacks := preload("res://game/shader_packs.gd")
 # The Shader pack setting's pack when this join loaded one from it, so its
 # result is noted for the settings row; "" when it came from
@@ -71,6 +72,14 @@ var connect_automatically := true
 # player reads Godot's Input directly.
 func _key_pressed(key: Key) -> bool:
 	return player_slot.key_pressed(key) if player_slot != null else Input.is_key_pressed(key)
+
+# Whether the key a game action is bound to (input/key_bindings.gd) is held,
+# by position as Luanti's scancodes are.
+func _action_held(id: String) -> bool:
+	var key := KeyBindings.key_of(id)
+	if key == KEY_NONE:
+		return false
+	return player_slot.key_pressed(key) if player_slot != null else Input.is_physical_key_pressed(key)
 
 var overseer: Node
 var client: GoannaClient
@@ -1198,9 +1207,10 @@ func _set_camera_mode(mode: int) -> void:
 	client.set_third_person(_third_drawn)
 	crosshair_hidden = camera_mode == CAMERA_FRONT
 	if ui != null:
-		var hints := ["First person. F7 changes camera.",
-				"Behind view. Press F7 twice for first person.",
-				"Front view. Press F7 for first person."]
+		var key := KeyBindings.name_of("camera_mode")
+		var hints := ["First person. %s changes camera." % key,
+				"Behind view. Press %s twice for first person." % key,
+				"Front view. Press %s for first person." % key]
 		ui.show_status_text(hints[camera_mode])
 
 # Alt with the wheel: in brings the camera closer and, past the closest,
@@ -1294,15 +1304,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_wield((wield + n - 1) % n)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_set_wield((wield + 1) % _hotbar_count())
-	# Slot keys 1 to 9, then 0 for the tenth, as Luanti's own keymap_slot1 to
-	# keymap_slot10 defaults do. A key past the end of the hotbar does nothing,
-	# which is what processItemSelection's loop over max_item amounts to.
-	if event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_9:
-		var slot: int = event.keycode - KEY_1
-		if slot < _hotbar_count():
-			_set_wield(slot)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_0 and _hotbar_count() > 9:
-		_set_wield(9)
+	# Slot keys, 1 to 9 then 0 for the tenth by default, as Luanti's own
+	# keymap_slot1 to keymap_slot10 are. A key past the end of the hotbar
+	# does nothing, which is what processItemSelection's loop over max_item
+	# amounts to.
+	if event is InputEventKey and event.pressed:
+		for slot in mini(10, _hotbar_count()):
+			if KeyBindings.matches("slot%d" % (slot + 1), event):
+				_set_wield(slot)
+				break
 	if event is InputEventMouseMotion and pointer_captured(event):
 		var dy: float = event.relative.y * mouse_sensitivity * (1.0 if invert_mouse else -1.0)
 		# Front placement mirrors pitch to look back at the player. Compensate
@@ -1318,17 +1328,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch = clamp(pitch + dy, -89, 89)
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F7 \
-			and not event.alt_pressed and not event.ctrl_pressed \
+	if KeyBindings.pressed("camera_mode", event) and not event.alt_pressed and not event.ctrl_pressed \
 			and not event.meta_pressed and not event.shift_pressed:
 		_cycle_camera_mode()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		set_pointer_captured(not pointer_captured())
-	# K is the vanilla client's fly key (keymap_freemove). It is upstream's
-	# free_move, which flies only with the server's fly privilege, keeps
-	# collision and moves the real player; not the development free camera.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_K \
-			and not fly_mode and ui != null and not ui.blocks_input():
+	# K by default, the vanilla client's fly key (keymap_freemove). It is
+	# upstream's free_move, which flies only with the server's fly privilege,
+	# keeps collision and moves the real player; not the development free
+	# camera.
+	if KeyBindings.pressed("freemove", event) and not fly_mode and ui != null and not ui.blocks_input():
 		var r: Dictionary = client.toggle_free_move()
 		if not r.is_empty():
 			if not bool(r["free_move"]):
@@ -1337,12 +1346,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				ui.show_status_text("Fly mode enabled")
 			else:
 				ui.show_status_text("Fly mode enabled (note: no 'fly' privilege)")
-	# E is dual purpose, as aux1 already is in Luanti's own default keymap:
-	# whatever it is pointed at, from the last frame's step_interact, decides
-	# whether it opens the inventory or uses that node or object. A held E
-	# also drives aux1 (climb/fly down) every frame below; this is only the
-	# discrete "just pressed" edge for the UI/use side of the key.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E and ui != null:
+	# Luanti's drop key (keymap_drop, Q by default): the wielded stack, or one
+	# item of it with sneak held, exactly as Game::processKeyInput does. Not
+	# while a window or chat is open, where upstream's game keys do nothing.
+	if KeyBindings.pressed("drop", event) and ui != null and not ui.blocks_input() \
+			and not (overseer != null and overseer.active):
+		_drop_wielded(_action_held("sneak") or (gamepad != null and gamepad.in_play()
+				and gamepad.held("goanna_sneak")))
+	# The aux1 key (E by default) is dual purpose, as aux1 already is in
+	# Luanti's own default keymap: whatever it is pointed at, from the last
+	# frame's step_interact, decides whether it opens the inventory or uses
+	# that node or object. A held aux1 also drives climb/fly down every frame
+	# below; this is only the discrete "just pressed" edge for the UI/use
+	# side of the key.
+	if KeyBindings.pressed("aux1", event) and ui != null:
 		if not ui.blocks_input() and pointed.get("type", "nothing") != "nothing":
 			place_pressed = true
 		else:
@@ -1739,10 +1756,10 @@ func _process(delta: float) -> void:
 	# server checks.
 	if placed and not fly_mode and not showcase_mode:
 		var keys := {
-			"up": _key_pressed(KEY_W), "down": _key_pressed(KEY_S),
-			"left": _key_pressed(KEY_A), "right": _key_pressed(KEY_D),
-			"jump": _key_pressed(KEY_SPACE), "sneak": _key_pressed(KEY_SHIFT),
-			"aux1": _key_pressed(KEY_E),
+			"up": _action_held("forward"), "down": _action_held("backward"),
+			"left": _action_held("left"), "right": _action_held("right"),
+			"jump": _action_held("jump"), "sneak": _action_held("sneak"),
+			"aux1": _action_held("aux1"),
 		}
 		var pad_play: bool = gamepad != null and gamepad.in_play()
 		if pad_play and not (overseer != null and overseer.active):
@@ -1922,12 +1939,12 @@ func _process(delta: float) -> void:
 		else:
 			var dir := Vector3.ZERO
 			var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0))
-			if _key_pressed(KEY_W): dir -= basis.z
-			if _key_pressed(KEY_S): dir += basis.z
-			if _key_pressed(KEY_A): dir -= basis.x
-			if _key_pressed(KEY_D): dir += basis.x
-			if _key_pressed(KEY_SPACE): dir += Vector3.UP
-			if _key_pressed(KEY_SHIFT): dir -= Vector3.UP
+			if _action_held("forward"): dir -= basis.z
+			if _action_held("backward"): dir += basis.z
+			if _action_held("left"): dir -= basis.x
+			if _action_held("right"): dir += basis.x
+			if _action_held("jump"): dir += Vector3.UP
+			if _action_held("sneak"): dir -= Vector3.UP
 			if gamepad != null and gamepad.in_play():
 				_gamepad_look(delta)
 				dir += basis.x * gamepad.move.x + basis.z * gamepad.move.y
@@ -4531,8 +4548,8 @@ func _gamepad_look(delta: float) -> void:
 
 # Luanti's drop key (Game::dropSelectedItem): the wielded stack, or one item
 # of it while sneaking, as the same inventory action the vanilla client
-# sends. The controller and the player agent (player_agent_channel.gd) call
-# this; the keyboard has no drop key yet.
+# sends. The drop key (keymap_drop), the controller and the player agent
+# (player_agent_channel.gd) call this.
 func _drop_wielded(single: bool) -> void:
 	if client.has_method("inventory_action"):
 		client.inventory_action("Drop %d current_player main %d" % [1 if single else 0, wield])

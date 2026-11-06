@@ -21,6 +21,7 @@ const PlayerContext := preload("res://game/player_context.gd")
 const FormspecScript := preload("res://ui/formspec.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 const PanelFit := preload("res://ui/panel_fit.gd")
+const KeyBindings := preload("res://input/key_bindings.gd")
 # Only to list the texture packs the detected Luanti install already carries,
 # for the Texture pack setting. The same read only borrowing the Content
 # screen does: Goanna does not install packs, it offers what is already there.
@@ -543,8 +544,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if client == null:
 		return
-	if event is InputEventKey and not event.pressed and event.keycode == KEY_T \
-			and voice_input != null:
+	if KeyBindings.matches("chat", event) and not event.pressed and voice_input != null:
 		if voice_input.key_up() and window == null and not chat_open:
 			_open_chat("")
 		return
@@ -566,7 +566,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if window != null:
 			if event.keycode == KEY_ESCAPE:
 				_close_window()
-			elif event.keycode == KEY_I and window == form and form_is_inventory:
+			elif KeyBindings.matches("inventory", event) and window == form and form_is_inventory:
 				_close_window()
 			elif event.keycode in [KEY_TAB, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]:
 				focus_first(window)
@@ -581,24 +581,24 @@ func _unhandled_input(event: InputEvent) -> void:
 				_chat_history(1)
 			get_viewport().set_input_as_handled()
 			return
-		match event.keycode:
-			KEY_I:
-				_open_inventory()
-				get_viewport().set_input_as_handled()
-			KEY_T:
-				# Held, T is voice typing (ui/voice_input.gd); a tap opens
-				# chat when it is let go.
-				if voice_input != null and voice_input.available():
-					voice_input.key_down()
-				else:
-					_open_chat("")
-				get_viewport().set_input_as_handled()
-			KEY_SLASH:
-				_open_chat("/")
-				get_viewport().set_input_as_handled()
-			KEY_ESCAPE:
-				_open_pause_menu()
-				get_viewport().set_input_as_handled()
+		# The keys are the player's (input/key_bindings.gd); Escape is fixed.
+		if KeyBindings.matches("inventory", event):
+			_open_inventory()
+			get_viewport().set_input_as_handled()
+		elif KeyBindings.matches("chat", event):
+			# Held, the chat key is voice typing (ui/voice_input.gd); a tap
+			# opens chat when it is let go.
+			if voice_input != null and voice_input.available():
+				voice_input.key_down()
+			else:
+				_open_chat("")
+			get_viewport().set_input_as_handled()
+		elif KeyBindings.matches("cmd", event):
+			_open_chat("/")
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_ESCAPE:
+			_open_pause_menu()
+			get_viewport().set_input_as_handled()
 	elif window != null and (event is InputEventMouseButton or event is InputEventKey):
 		get_viewport().set_input_as_handled()
 
