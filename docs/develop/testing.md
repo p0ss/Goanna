@@ -32,6 +32,16 @@ sends, and the shorter ones an older server sends, through the transplanted
 active object and checks the joints the tracks pose: by priority, by name
 and by number, blended, and back at rest once stopped.
 
+`goanna_object_collision_test` runs the transplanted `LocalPlayer::move` on
+a stone floor among objects made from the init and `AO_CMD_*` messages a
+server sends: a physical object with `collide_with_objects` stops the
+player at its face, can be stood on and, when lower than the step height,
+stepped onto; one that is not physical, or physical without
+`collide_with_objects`, is walked through; a moved object collides at the
+position the server sent, not where it is still drawn; the local player's
+own object and attached objects never block; and 1000 blocks around the
+player cost well under a millisecond a second of walking.
+
 `goanna_item_icon_test` builds node definitions with no server, runs them
 through upstream's node visuals and item mesh, and checks the inventory icons
 Goanna draws from them: a mesh node on a texture atlas keeps its outline with

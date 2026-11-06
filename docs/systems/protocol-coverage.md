@@ -13,7 +13,7 @@ transplanted from `Client::handleCommand_*` in
 | MEDIA_PUSH (+HAVE_MEDIA) | done: the file is asked for with REQUEST_MEDIA, loaded on the main thread, then acknowledged; remote media servers are not used | automatic; the file then resolves like any other media |
 | BLOCKDATA (+GOTBLOCKS acks and DELETEDBLOCKS on eviction) | done, meshed with Luanti's `content_mapblock`; resident mapblocks are bounded around the player | `poll_blocks(n)`, `resident_blocks()` |
 | ADDNODE / REMOVENODE | done, re-meshes affected blocks | automatic |
-| MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer` | `step_player(...)` |
+| MOVEMENT / PRIVILEGES / MOVE_PLAYER | done, applied to the transplanted `LocalPlayer`, which collides with nodes and with physical objects as the stock client does (see [object collision](#object-collision)) | `step_player(...)` |
 | TIME_OF_DAY (+speed), SET_SKY/SUN/MOON/STARS, CLOUD_PARAMS, SET_LIGHTING, OVERRIDE_DAY_NIGHT_RATIO | done | `sky_state()`, `set_time_of_day_override(t)` |
 | ACTIVE_OBJECT_REMOVE_ADD / ACTIVE_OBJECT_MESSAGES | done (GenericCAO state transplanted); visuals: sprites, cubes, meshes (B3D, X, OBJ, glTF through Luanti's own loaders) with skeletal animation (every animation track 5.17 plays, ordered by priority, addressed by number or by name, each with its own start frame, speed, loop and blend; a stopped track leaves its joints at rest; the pre-5.17 messages play on the first track), bone overrides and bone attachments; item and wielditem entities through the transplanted wield mesh; node entity visuals are still placeholders | `sync_entities(dt)`, `entity_count()`, `entity_positions()`, `entity_list()`, `entity_animation(id)` |
 | LOCAL_PLAYER_ANIMATIONS | done; the first-person body plays the game's idle, walk, dig and walk-while-digging ranges from the local controls, as the vanilla client plays them on a visible local player, and a server animation on the first track with one of those ranges does not interrupt them | automatic in `sync_entities(dt)` |
@@ -41,9 +41,43 @@ Luanti's `node_visuals` cuts: cube-like tiles from animation arrays whose
 frame the node shader picks, the rest by changing the frame on their one
 shared material. See [node animation](node-animation.md).
 
+## Object collision
+
+The local player collides with an active object when the object's
+properties set both `physical` and `collide_with_objects`, as in Luanti's
+`add_object_boxes` (`luanti/src/collision.cpp`), which takes an object only
+if `collideWithObjects()` is true and `getCollisionBox()` returns a box
+(`GenericCAO::getCollisionBox`, true only for `physical`). So a physical
+object with `collide_with_objects = false` can be walked through, in the
+stock client and in Goanna alike. The box is the object's `collisionbox`,
+axis aligned (its rotation plays no part), at the position the server last
+sent moved on by the object's velocity and acceleration, not at the
+interpolated position it is drawn at; a physical object's drawn position
+closes 80% of that gap each frame. Objects are looked for within the
+player's movement this step, plus the length of the player's box, plus
+1.5 nodes, of each object's drawn position, as upstream does. Step height
+applies to an object as to a node, so a box lower than the step height is
+walked onto, and the player stands on a box's top. Standing on a moving
+object does not carry the player: the stock client does not either. Autojump
+fires only against nodes, as upstream's does. The local player's own object
+and objects attached to it never collide.
+
+Where Goanna differs: objects attached to another object are left out,
+since Goanna has no scene node to give their true position and its session
+keeps them at their parent's origin. Physical objects that move on the
+client (with a velocity) collide with nodes only, where upstream also
+collides them with other objects and with the local player. The node
+collision code is Luanti 5.17.0's; 5.18.0 added a split at the top of a
+parabola and two small fixes there, not yet taken.
+
+The native check is `goanna_object_collision_test` (see
+[testing](../develop/testing.md)).
+
 ## Not yet
-- Node entity visuals and object collision. Item and wield-item visuals, the
-  local player's wield hand and skeletal entities are implemented.
+- Node entity visuals. Item and wield-item visuals, the local player's wield
+  hand and skeletal entities are implemented.
+- Collision of attached physical objects, and of client-moved physical
+  objects with other objects (see [object collision](#object-collision)).
 - An entity Goanna does not draw (one the server made invisible) does not
   advance its animation, where the vanilla client animates it anyway, so a
   bone attachment on an invisible parent does not follow the animation.
