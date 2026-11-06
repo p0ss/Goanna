@@ -602,8 +602,9 @@ TOOLS = [
             "action=type: name of a field (it is clicked first), text to type, clear to "
             "empty it first, enter to press Enter after, which submits a formspec field.\n"
             "action=key: key is a key name (Escape, I, E, 1, F5, Enter) or a game action "
-            "(inventory, menu, chat, forward, jump, sneak, aux1, hotbar1 to hotbar10, dig, "
-            "place); key_action is tap (default), press or release, with hold_ms between.",
+            "(inventory, menu, chat, command, forward, backward, left, right, jump, sneak, "
+            "aux1, use, drop, fly, camera, hotbar1 to hotbar10, dig, place), which presses "
+            "the key the player has bound it to; key_action is tap (default), press or release, with hold_ms between.",
         "inputSchema": {
             "type": "object",
             "properties": {

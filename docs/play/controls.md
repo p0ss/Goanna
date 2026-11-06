@@ -5,8 +5,14 @@ mouse buttons dig and place. Number keys select the hotbar. `I` opens the
 inventory; so does `E`, unless something is pointed, in which case `E` uses
 it instead, the same as a right click. `T` opens chat, and holding `T` lets
 you speak a chat line instead of typing it (see
-[accessibility](accessibility.md)). Escape opens the pause menu. The exact
-bindings and camera options can be changed in Settings.
+[accessibility](accessibility.md)). `Q` drops what you hold, the whole
+stack, or one item if you hold Shift (sneak) as you press it, as in the
+vanilla client. Escape opens the pause menu.
+
+These are the defaults, the same as Luanti's except the camera key (below).
+Every key here except Escape and `Ctrl+B` can be changed in Settings, Key
+bindings; see [settings](settings.md#key-bindings). Digging and placing stay
+on the mouse buttons.
 
 Held down, `E` is also Luanti's Aux1 key, which climbs down ladders and
 moves fast where the server grants it, as in Luanti's own default keymap.

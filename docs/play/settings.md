@@ -19,6 +19,33 @@ the text opens by itself while the focus is on that setting, and Read
 aloud reads it. Warnings, progress and anything that has gone wrong stay
 in view.
 
+## Key bindings
+
+Settings, Key bindings (a tab after Controls in the pause menu's settings,
+and a button under More settings in the main menu) lists every keyboard
+control in a table: what it does and the key it is on. Choose a key, then
+press the new key for it; Escape cancels. A change takes effect at once in
+a game, the drop key and the controller's stand in keys included, and is
+kept for the next.
+
+A key another control already has is refused, and the screen says which
+control has it, so change that one first. Escape cannot be taken, because
+it always opens the pause menu and closes windows. Reset to defaults puts
+every key back. Digging and placing (the mouse buttons), the pause menu
+(Escape) and Read aloud (`Ctrl+B`) are listed greyed; they cannot be
+changed yet, and pressing one says why. Keys are matched by where they are
+on the keyboard, as Luanti's are, not by the letter printed on them; the
+screen names each key by your layout's letter for that place. This has only
+been tried on a US layout.
+
+Changed keys are saved in the `[keymap]` section of `goanna.cfg`, under
+Luanti's own setting names and in its key format, for example
+`keymap_drop = "SYSTEM_SCANCODE_20"`. Only keys changed from the defaults
+are written. A `keymap_` line copied from a Luanti `minetest.conf`,
+including the older `KEY_KEY_Q` names, means the same key in Goanna, but
+Goanna does not read Luanti's own settings file. The camera key is the one
+default that differs: Goanna keeps it on F7, where Luanti now uses C.
+
 ## Graphics quality
 
 The graphics quality profile picks one of five tiers, Lowest, Low, Medium, High

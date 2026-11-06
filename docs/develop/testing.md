@@ -137,6 +137,19 @@ to the client and the cursor's pushed mouse events, is checked with:
 godot --headless --path project --script res://tests/gamepad.gd
 ```
 
+The keyboard bindings are checked with no server: Luanti's default keys and
+key format, saving and reading `[keymap]` in `goanna.cfg`, a key another
+control has being refused, a changed key taking effect in the game's own
+input handler (the drop key, whole stack and one item with sneak), the
+control channel's action names and the controller's stand in keys following
+the bindings, and the Key bindings table at 1280 by 720 and 640 by 360 and
+in the pause menu's settings. It rewrites `goanna.cfg`, so it needs a
+scratch profile:
+
+```sh
+XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/key_bindings.gd
+```
+
 The terrain world catalogue that the world picker is built from, including
 that every world has a usable hash, size, tile window and bundled preview, is
 checked with:

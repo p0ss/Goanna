@@ -35,14 +35,16 @@ maps them by position.
 
 Upstream puts zoom on D-pad up, screenshot on D-pad right and the minimap
 on Back. Goanna has no zoom, so D-pad up is voice typing instead, the same
-as holding `T`: the spoken line waits in the chat box, A sends it and B
-throws it away. Goanna has no screenshot or minimap key, so D-pad right and
-Back are unbound. The drop action is new to Goanna: the keyboard still has
-no drop key.
+as holding the chat key: the spoken line waits in the chat box, A sends it
+and B throws it away. Goanna has no screenshot or minimap key, so D-pad
+right and Back are unbound.
 
 The bindings are InputMap actions (`goanna_jump`, `goanna_dig` and so on),
-declared at startup in `project/input/gamepad.gd` from one table. They cannot be
-rebound from the settings screen yet.
+declared at startup in `project/input/gamepad.gd` from one table. They
+cannot be rebound from the settings screen yet; Settings, Key bindings
+changes only the keyboard. The buttons that stand in for a key (Y for the
+inventory, D-pad left for fly, D-pad up for chat) press whatever key that
+control is on, so they keep working after the key is changed.
 
 Movement is analogue: a stick part way over walks part speed, as upstream's
 does. A key held on the keyboard at the same time wins, which is upstream's

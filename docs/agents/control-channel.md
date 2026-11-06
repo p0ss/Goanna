@@ -248,9 +248,17 @@ is refused rather than clicked through. `ui_click` takes `button`, `double`,
 `ui_scroll` takes `amount` in wheel notches, negative for up. `ui_type`
 clicks the field named, types `text` a key at a time, and takes `clear` and
 `enter`. `key` takes a key name (`Escape`, `I`, `E`, `1`, `F5`, `Enter`) or a
-game action (`inventory`, `menu`, `chat`, `forward`, `jump`, `sneak`,
-`aux1`, `hotbar1` to `hotbar10`, `dig`, `place`), and `action` tap, press or
+game action (`inventory`, `menu`, `chat`, `command`, `forward`, `backward`,
+`left`, `right`, `jump`, `sneak`, `aux1`, `use`, `drop`, `fly`, `camera`,
+`hotbar1` to `hotbar10`, `dig`, `place`), and `action` tap, press or
 release, with `hold_ms` between.
+
+A game action presses whatever key the player has put it on in Settings,
+Key bindings (`project/input/key_bindings.gd`), or its default key if they
+left it unset, so the action names keep working on a profile with changed
+keys; the reply's `keycode` says which key was pressed. A key name is that
+key exactly, whatever it is bound to. `dig` and `place` are always the left
+and right mouse buttons, and `menu` and `escape` always Escape.
 
 Replies say what the pointer landed on (`hit`), which fields the form sent
 (`fields_sent`, read from the form's own signal), which slots it acted on,
