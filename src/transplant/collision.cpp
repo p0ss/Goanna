@@ -4,12 +4,16 @@
 //
 // Transplanted from luanti/src/collision.cpp.
 // Goanna changes 2026-09, against Luanti 5.17.0: takes a Map* instead of an
-// Environment*; object collision (which needed the client/server
-// environments) is stubbed until Goanna has its own active objects;
-// profiler names are fixed strings.
+// Environment*; profiler names are fixed strings. 2026-11: add_object_boxes
+// asks the CollisionObjectSource in scope (collision.h) for nearby objects
+// where upstream asks the ClientEnvironment (the server branch is dropped);
+// the rest of it is upstream's. The source is set only for the local
+// player, so the local player box upstream adds for other movers is not
+// added, and object movement collides with nodes only.
 
 #include "transplant/collision.h"
 #include <cmath>
+#include "activeobject.h"
 #include "irr_aabb3d.h"
 #include "mapblock.h"
 #include "map.h"
@@ -299,13 +303,50 @@ static bool add_area_node_boxes(const v3s16 min, const v3s16 max, IGameDef *game
 	return any_position_valid;
 }
 
+// Goanna: the source in scope, set by CollisionObjectSourceScope.
+static thread_local const CollisionObjectSource *g_collision_object_source = nullptr;
+
 static void add_object_boxes(Map *map,
 		const aabb3f &box_0, f32 dtime,
 		const v3f pos_f, const v3f speed_f, ActiveObject *self,
 		std::vector<NearbyCollisionInfo> &cinfo)
 {
-	// Goanna: object collision not yet available (no active objects yet).
-	(void)map; (void)box_0; (void)dtime; (void)pos_f; (void)speed_f; (void)self; (void)cinfo;
+	(void)map; (void)self;
+	auto process_object = [&cinfo] (ActiveObject *object) {
+		if (object && object->collideWithObjects()) {
+			aabb3f box{{0.0f, 0.0f, 0.0f}};
+			if (object->getCollisionBox(&box))
+				cinfo.emplace_back(object, 0, box);
+		}
+	};
+
+	constexpr f32 tolerance = 1.5f * BS;
+
+	// Goanna: the source stands in for the ClientEnvironment and has already
+	// left out the local player's object and its children (see collision.h).
+	const CollisionObjectSource *c_env = g_collision_object_source;
+	if (c_env) {
+		// Calculate distance by speed, add own extent and tolerance
+		const f32 distance = speed_f.getLength() * dtime +
+				box_0.getExtent().getLength() + tolerance;
+		thread_local std::vector<ActiveObject *> clientobjects;
+		clientobjects.clear();
+		c_env->getActiveObjects(pos_f, distance, clientobjects);
+
+		for (auto *clientobject : clientobjects)
+			process_object(clientobject);
+	}
+}
+
+CollisionObjectSourceScope::CollisionObjectSourceScope(const CollisionObjectSource *source) :
+	m_previous(g_collision_object_source)
+{
+	g_collision_object_source = source;
+}
+
+CollisionObjectSourceScope::~CollisionObjectSourceScope()
+{
+	g_collision_object_source = m_previous;
 }
 
 template <float v3f::*AX>

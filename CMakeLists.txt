@@ -113,6 +113,7 @@ add_library(goanna SHARED
     src/goanna_strokes.cpp
     src/goanna_steps.cpp
     src/goanna_climb.cpp
+    src/goanna_object_collision.cpp
     src/goanna_stroke_detail.cpp
     src/iris/iris_expr.cpp
     src/iris/iris_glsl.cpp
@@ -306,6 +307,18 @@ add_executable(goanna_animation_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_animation_test PRIVATE src)
 target_link_libraries(goanna_animation_test PRIVATE luanti_core)
 
+# The local player against physical active objects, on a stone floor.
+add_executable(goanna_object_collision_test EXCLUDE_FROM_ALL
+    src/goanna_object_collision_test.cpp
+    src/goanna_object_collision.cpp
+    src/goanna_animation.cpp
+    src/transplant/client/content_cao.cpp
+    src/transplant/collision.cpp
+    src/transplant/localplayer.cpp
+    src/luanti_shims.cpp)
+target_include_directories(goanna_object_collision_test PRIVATE src)
+target_link_libraries(goanna_object_collision_test PRIVATE luanti_core)
+
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(
@@ -462,6 +475,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_texture_threads_test
     goanna_tile_companion_test
     goanna_mining_cycle_test
+    goanna_object_collision_test
     goanna_radial_form_test
     goanna_ripples_test
     goanna_schedule_test

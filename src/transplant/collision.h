@@ -6,6 +6,9 @@
 // Goanna changes 2026-09, against Luanti 5.17.0: the forward declaration of
 // Environment becomes Map, and collisionMoveSimple and
 // collision_check_intersection take a Map* instead of an Environment*.
+// Goanna changes 2026-11: CollisionObjectSource and
+// CollisionObjectSourceScope stand in for the ClientEnvironment that
+// add_object_boxes asks for nearby active objects.
 
 #pragma once
 
@@ -52,6 +55,36 @@ struct CollisionMoveResult
 	bool touching_ground = false;
 	bool standing_on_object = false;
 	std::vector<CollisionInfo> collisions;
+};
+
+// Goanna: stands in for ClientEnvironment in add_object_boxes, which asks it
+// for the active objects near a moving box. The session sets one, through
+// CollisionObjectSourceScope, only around the local player's movement, so
+// the mover is always the local player: a source must leave out the local
+// player's own object and the objects attached directly to it, which is
+// upstream's `self` check with self being the local player's object.
+class CollisionObjectSource
+{
+public:
+	virtual ~CollisionObjectSource() = default;
+	// ClientEnvironment::getActiveObjects: every object whose position is
+	// within max_d of origin.
+	virtual void getActiveObjects(const v3f &origin, f32 max_d,
+			std::vector<ActiveObject *> &dest) const = 0;
+};
+
+// Goanna: makes source the one add_object_boxes uses on this thread for as
+// long as the scope lives. With none set, no object collides.
+class CollisionObjectSourceScope
+{
+public:
+	explicit CollisionObjectSourceScope(const CollisionObjectSource *source);
+	~CollisionObjectSourceScope();
+	CollisionObjectSourceScope(const CollisionObjectSourceScope &) = delete;
+	CollisionObjectSourceScope &operator=(const CollisionObjectSourceScope &) = delete;
+
+private:
+	const CollisionObjectSource *m_previous;
 };
 
 /// Status if any problems were ever encountered during collision detection.

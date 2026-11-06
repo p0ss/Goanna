@@ -79,6 +79,9 @@ private:
 class GoannaActiveObject {
 public:
     GoannaActiveObject(u16 id, u8 type);
+    // The collision stand-in below points back at this object.
+    GoannaActiveObject(const GoannaActiveObject &) = delete;
+    GoannaActiveObject &operator=(const GoannaActiveObject &) = delete;
 
     // GenericCAO::processInitData / processMessage, transplanted.
     void initialize(const std::string &data, LocalPlayer *local_player);
@@ -100,6 +103,16 @@ public:
     v3f position() const { return m_pos_translator.val_current; }
     v3f rotation() const { return m_rot_translator.val_current; }
     v3f rawPosition() const { return m_position; }
+    // GenericCAO::getCollisionBox and collideWithObjects, transplanted. As
+    // upstream, the box is axis aligned (the object's rotation plays no
+    // part) and sits at m_position, the position the server last sent moved
+    // on by velocity and acceleration, not at the interpolated position()
+    // the object is drawn at.
+    bool getCollisionBox(aabb3f *toset) const;
+    bool collideWithObjects() const;
+    // Goanna: GoannaActiveObject is not an ActiveObject, which the collision
+    // code holds objects as; this stand-in forwards the two calls above.
+    ActiveObject *collisionObject() { return &m_collision_object; }
     const ObjectProperties &props() const { return m_prop; }
     const std::string &textureModifier() const { return m_current_texture_modifier; }
     // Skeletal animation, by track (Luanti 5.17). processMessage runs on the
@@ -216,6 +229,23 @@ private:
     ItemGroupList m_armor_groups;
     uint32_t m_visual_version = 1;
     uint32_t m_anim_version = 1;
+
+    class CollisionObject final : public ActiveObject {
+    public:
+        explicit CollisionObject(const GoannaActiveObject *owner) :
+            ActiveObject(owner->m_id), m_owner(owner) {}
+        ActiveObjectType getType() const override
+        { return static_cast<ActiveObjectType>(m_owner->m_type); }
+        bool getCollisionBox(aabb3f *toset) const override
+        { return m_owner->getCollisionBox(toset); }
+        bool getSelectionBox(aabb3f *) const override { return false; }
+        bool collideWithObjects() const override { return m_owner->collideWithObjects(); }
+
+    private:
+        const GoannaActiveObject *m_owner;
+    };
+    // After m_id and m_type, which it reads.
+    CollisionObject m_collision_object{this};
 };
 
 } // namespace goanna

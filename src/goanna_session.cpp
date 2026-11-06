@@ -62,7 +62,7 @@
 #include "nodedef.h"
 #include "particles.h"
 #include "itemgroup.h"
-#include "collision.h"
+#include "transplant/collision.h"
 #include "porting.h"
 #include "serialization.h"
 #include "settings.h"
@@ -393,6 +393,11 @@ void GoannaSession::stepPlayer(float dtime) {
     u32 steps = std::ceil(dtime / dtime_max_increment);
     f32 dtime_part = dtime / steps;
     std::vector<CollisionInfo> player_collisions;
+    // ClientEnvironment hands collisionMoveSimple its active objects; here
+    // the session's physical objects are gathered once for this step and
+    // put in scope for the player's movement only (goanna_object_collision.h).
+    m_object_collision.gather(m_objects);
+    CollisionObjectSourceScope object_scope(&m_object_collision);
     for (; steps > 0; --steps) {
         lplayer->applyControl(dtime_part, map);
 

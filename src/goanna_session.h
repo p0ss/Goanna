@@ -54,6 +54,7 @@ struct ParticleParameters;
 #include "transplant/client/content_cao.h"
 #include "goanna_models.h"
 #include "goanna_mining_cycle.h"
+#include "goanna_object_collision.h"
 #include "hud_element.h"
 #include "inventory.h"
 #include "util/pointedthing.h"
@@ -733,6 +734,10 @@ private:
     // map lock.
     struct ObjectSteps { v3f last; float distance = 0.0f; bool seen = false; };
     std::unordered_map<u16, ObjectSteps> m_object_steps;
+    // The objects the local player collides with, gathered at the start of
+    // each stepPlayer (main thread, under the map lock); kept as a member
+    // only to reuse its storage.
+    goanna::ObjectCollisionSource m_object_collision;
     // Camera::m_digging_anim for the dig button: -1 when still, else the
     // fraction of the current swing. The punch sound plays 15% in.
     float m_swing = -1.0f;

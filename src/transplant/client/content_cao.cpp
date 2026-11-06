@@ -10,7 +10,9 @@
 // the class is goanna::GoannaActiveObject. SmoothTranslator and its wrapped
 // variants, the init data and AO_CMD_* message parsing, position and
 // rotation interpolation, animation, bone overrides, attachment and texture
-// modifier handling are upstream code. Animation tracks (5.17.0): resolving
+// modifier handling are upstream code. getCollisionBox and
+// collideWithObjects are upstream's (2026-11), and collisionObject is the
+// ActiveObject the transplanted collision code holds the object as. Animation tracks (5.17.0): resolving
 // a track id needs the mesh, which only the renderer has, on the main
 // thread. So processMessage reads AO_CMD_SET_ANIMATION,
 // AO_CMD_SET_ANIMATION_SPEED and AO_CMD_STOP_ANIMATION exactly as upstream
@@ -134,6 +136,30 @@ void SmoothTranslatorWrappedv3f::translate(f32 dtime)
 
 GoannaActiveObject::GoannaActiveObject(u16 id, u8 type) : m_id(id), m_type(type) {}
 
+// GenericCAO::getCollisionBox, transplanted.
+bool GoannaActiveObject::getCollisionBox(aabb3f *toset) const
+{
+	if (m_prop.physical)
+	{
+		//update collision box
+		toset->MinEdge = m_prop.collisionbox.MinEdge * BS;
+		toset->MaxEdge = m_prop.collisionbox.MaxEdge * BS;
+
+		toset->MinEdge += m_position;
+		toset->MaxEdge += m_position;
+
+		return true;
+	}
+
+	return false;
+}
+
+// GenericCAO::collideWithObjects, transplanted.
+bool GoannaActiveObject::collideWithObjects() const
+{
+	return m_prop.collideWithObjects;
+}
+
 // GenericCAO::processInitData, transplanted.
 void GoannaActiveObject::initialize(const std::string &data, LocalPlayer *local_player) {
 	std::istringstream is(data, std::ios::binary);
@@ -145,6 +171,7 @@ void GoannaActiveObject::initialize(const std::string &data, LocalPlayer *local_
 	m_name = deSerializeString16(is);
 	m_is_player = readU8(is);
 	m_id = readU16(is);
+	m_collision_object.setId(m_id); // Goanna
 	m_position = readV3F32(is);
 	m_rotation = readV3F32(is);
 	m_hp = readU16(is);
