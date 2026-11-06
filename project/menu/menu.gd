@@ -1509,6 +1509,7 @@ func _setup_failed(reason: String) -> void:
 # the same section it writes to itself.
 const GameUI := preload("res://ui/game_ui.gd")
 const ShaderPackRow := preload("res://ui/shader_pack_row.gd")
+const KeyBindingsPage := preload("res://ui/key_bindings_page.gd")
 
 var menu_groups_open := {}   # which Graphics groups are open, kept across reopens
 const GraphicsProfiles := preload("res://game/graphics_profiles.gd")
@@ -1525,7 +1526,7 @@ const SETTINGS_FRONT := {
 }
 # The pages behind the front page: GameUI's tab and the button's label.
 const SETTINGS_PAGES := [["Advanced", "Advanced graphics"], ["Controls", "Controls"],
-	["Appearance", "Appearance"], ["Audio", "Sound and speech"], ["Display", "Display"],
+	["Keys", "Key bindings"], ["Appearance", "Appearance"], ["Audio", "Sound and speech"], ["Display", "Display"],
 	["Updates", "Updates"]]
 
 func _show_settings() -> void:
@@ -1579,6 +1580,10 @@ func _show_settings_page(tab: String) -> void:
 				_settings_row(screen, row, cfg)
 		PanelFit.heading(screen, "Render switches")
 		_menu_graphics_page(screen, cfg, true)
+	elif tab == "Keys":
+		# The same table the pause menu's Key bindings tab shows, and the
+		# same file: a key changed here is the key in the next game.
+		screen.add_child(KeyBindingsPage.new())
 	else:
 		var last_group := ""
 		for row in GameUI.SETTINGS:

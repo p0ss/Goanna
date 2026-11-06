@@ -22,6 +22,7 @@ const FormspecScript := preload("res://ui/formspec.gd")
 const GlassStyle := preload("res://ui/glass_style.gd")
 const PanelFit := preload("res://ui/panel_fit.gd")
 const KeyBindings := preload("res://input/key_bindings.gd")
+const KeyBindingsPage := preload("res://ui/key_bindings_page.gd")
 # Only to list the texture packs the detected Luanti install already carries,
 # for the Texture pack setting. The same read only borrowing the Content
 # screen does: Goanna does not install packs, it offers what is already there.
@@ -1407,6 +1408,13 @@ func _build_settings() -> Control:
 			last_group[tab] = group
 			PanelFit.heading(pages[tab], group)
 		_build_setting_row(pages[tab], entry)
+	# Key bindings, a tab of its own after Controls: one table of what each
+	# key does (ui/key_bindings_page.gd). Its name is the tab's title.
+	var keys_page: VBoxContainer = new_page.call("Key bindings")
+	keys_page.add_child(KeyBindingsPage.new())
+	var keys_tab: Node = keys_page.get_parent().get_parent()
+	if pages.has("Controls"):
+		tabs.move_child(keys_tab, pages["Controls"].get_parent().get_parent().get_index() + 1)
 	var back := Button.new()
 	back.text = "Back"
 	back.custom_minimum_size = Vector2(0, 40)

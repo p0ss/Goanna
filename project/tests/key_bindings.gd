@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Copyright (C) 2026 the Goanna contributors
-## The keyboard bindings (input/key_bindings.gd): Luanti's defaults and key
-## format, saving and reading goanna.cfg's [keymap], a key another control
-## has being refused, a changed key taking effect in the game's own input
-## handler (the drop key above all, whole stack and one item with sneak),
-## and the control channel's action names and the controller's stand in
-## keys following the bindings. Headless, no server or GPU. It writes
-## user://goanna.cfg:
+## The keyboard bindings (input/key_bindings.gd) and their screen
+## (ui/key_bindings_page.gd): Luanti's defaults and key format, saving and
+## reading goanna.cfg's [keymap], a key another control has being refused,
+## a changed key taking effect in the game's own input handler (the drop
+## key above all, whole stack and one item with sneak), the control
+## channel's action names and the controller's stand in keys following the
+## bindings, and the screen's table at 1280 by 720 and 640 by 360. Headless,
+## no server or GPU. It writes user://goanna.cfg:
 ## XDG_DATA_HOME=$(mktemp -d) godot --headless --path project --script res://tests/key_bindings.gd
 extends SceneTree
 
 const KeyBindings := preload("res://input/key_bindings.gd")
+const KeyBindingsPage := preload("res://ui/key_bindings_page.gd")
 const ControlUI := preload("res://agents/control_ui.gd")
 const Pad := preload("res://input/gamepad.gd")
 
@@ -191,5 +193,99 @@ func _run() -> void:
 	check(Pad.label("talk", "keyboard", "xbox") == "Y", "the talk prompt names the chat key")
 	game.free()
 
+	print("the screen")
+	KeyBindings.reset()
+	for size in [Vector2i(1280, 720), Vector2i(640, 360)]:
+		root.size = size
+		var scroll := ScrollContainer.new()
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		# The width the settings panel gives its page (ui/panel_fit.gd).
+		var fit := preload("res://ui/panel_fit.gd").size_for(Vector2(size), true)
+		scroll.size = Vector2(fit.x - 56.0 - 38.0, fit.y)
+		root.add_child(scroll)
+		var page := KeyBindingsPage.new()
+		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(page)
+		await process_frame
+		await process_frame
+		var bad: Array = []
+		var keys := 0
+		for b in page.find_children("*", "Button", true, false):
+			var button := b as Button
+			if button.size.y < 39.5:
+				bad.append("%s is %.0f high" % [button.text, button.size.y])
+			if button.get_global_rect().end.x > scroll.get_global_rect().end.x + 0.5:
+				bad.append("%s runs off the side" % button.text)
+			var row := button.get_parent()
+			if row is HBoxContainer:
+				keys += 1
+				var label := row.get_child(0) as Label
+				if label.get_global_rect().end.x > button.get_global_rect().position.x:
+					bad.append("%s runs under its key" % label.text)
+				var font := button.get_theme_font("font")
+				var fs := button.get_theme_font_size("font_size")
+				var text_w := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+				if text_w > button.size.x - 8.0:
+					bad.append("key %s is squashed" % button.text)
+				if label.get_line_count() > 2:
+					bad.append("%s wraps to %d lines" % [label.text, label.get_line_count()])
+		check(keys == KeyBindings.ACTIONS.size() + KeyBindings.FIXED.size(),
+			"%dx%d: one row per control (%d)" % [size.x, size.y, keys])
+		check(bad.is_empty(), "%dx%d: rows fit, 40 px targets, nothing squashed %s" % [size.x, size.y, str(bad)])
+		scroll.free()
+	var page := KeyBindingsPage.new()
+	root.add_child(page)
+	await process_frame
+	var labels := page.find_children("*", "Label", true, false).map(func(l) -> String: return l.text)
+	check(not labels.any(func(t: String) -> bool: return t.begins_with("keymap_")), "no setting names on the screen")
+	var drop_button: Button = page._buttons["drop"]
+	drop_button.pressed.emit()
+	check(page.capturing == "drop" and drop_button.text == "Press a key", "choosing a key waits for one")
+	Input.parse_input_event(key(KEY_G))
+	Input.flush_buffered_events()
+	await process_frame
+	check(KeyBindings.key_of("drop") == KEY_G and drop_button.text == "G", "pressing G puts drop on G")
+	(page._buttons["jump"] as Button).pressed.emit()
+	Input.parse_input_event(key(KEY_G))
+	Input.flush_buffered_events()
+	await process_frame
+	check(KeyBindings.key_of("jump") == KEY_SPACE and page.status.visible and page.status.text.contains("Drop item"),
+		"G for jump is refused, naming Drop item: %s" % page.status.text)
+	(page._buttons["jump"] as Button).pressed.emit()
+	Input.parse_input_event(key(KEY_ESCAPE))
+	Input.flush_buffered_events()
+	await process_frame
+	check(page.capturing == "" and KeyBindings.key_of("jump") == KEY_SPACE, "Escape cancels")
+	var fixed: Array = page.find_children("*", "Button", true, false).filter(func(b) -> bool: return b.has_meta("fixed"))
+	check(fixed.size() == KeyBindings.FIXED.size(), "the fixed controls are listed")
+	(fixed[0] as Button).pressed.emit()
+	check(page.status.text == KeyBindings.FIXED[0][3], "pressing a fixed one says why")
+	page.reset_button.pressed.emit()
+	check(KeyBindings.key_of("drop") == KEY_Q and drop_button.text == "Q", "Reset to defaults puts drop back on Q")
+	page.free()
+	await process_frame
+
+	print("the in-game settings")
+	root.size = Vector2i(1280, 720)
+	OS.set_environment("GOANNA_NO_POINTER_CAPTURE", "1")
+	OS.set_environment("GOANNA_NO_STORE", "1")
+	var real := preload("res://game/main.tscn").instantiate()
+	real.connect_automatically = false
+	root.add_child(real)
+	await process_frame
+	await process_frame
+	var panel: Control = real.ui._build_settings()
+	panel.visible = true
+	await process_frame
+	var titles: Array = []
+	for tabs in panel.find_children("*", "TabContainer", true, false):
+		for i in tabs.get_tab_count():
+			titles.append(tabs.get_tab_title(i))
+	var at := titles.find("Key bindings")
+	check(at > 0 and titles[at - 1] == "Controls", "the pause menu's settings have a Key bindings tab after Controls: %s" % str(titles))
+	check(panel.find_children("KeyBindings", "", true, false).size() == 1, "holding the key table")
+	panel.queue_free()
+	real.queue_free()
+	await process_frame
 	print("key bindings: %d checks, %s" % [checks, "FAIL (%d)" % failures if failures else "PASS"])
 	quit(1 if failures else 0)

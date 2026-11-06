@@ -228,6 +228,15 @@ func _run() -> void:
 		seen[str(l.text)] = true
 	missing = missing.filter(func(m): return not seen.has(m))
 	check(missing.is_empty(), "every setting is on some page (missing %s)" % str(missing))
+	menu._show_settings()
+	await _settle()
+	check(_texts().has("Key bindings"), "Settings offers Key bindings among its further pages")
+	menu._show_settings_page("Keys")
+	await _settle()
+	check(menu._screen_title == "Key bindings" and menu._panel_box.find_children("KeyBindings", "", true, false).size() == 1,
+		"Key bindings is a screen of its own")
+	check(_small_targets().is_empty(), "every key on Key bindings is a 40 px target %s" % str(_small_targets()))
+	check(_accents().is_empty(), "Key bindings has no accent: it saves as you go")
 
 	print("content")
 	menu._show_content()
@@ -263,6 +272,14 @@ func _run() -> void:
 			var bottom: float = (b as Control).get_global_rect().end.y
 			check(bottom <= height + 0.5, "at 200 percent, %s on %s is inside the window (%.0f of %.0f)"
 				% [b.text, menu._screen_title, bottom, height])
+	menu._show_settings_page("Keys")
+	await _settle()
+	await _settle()
+	var width: float = menu.get_viewport().get_visible_rect().size.x
+	var wide: Array = _shown(menu._panel_box, "Button").filter(func(b) -> bool:
+		return (b as Control).get_global_rect().end.x > width + 0.5)
+	check(wide.is_empty(), "at 200 percent, no key on Key bindings runs off the window %s"
+		% str(wide.map(func(b): return b.text)))
 	root.content_scale_factor = 1.0
 
 	menu.free()
