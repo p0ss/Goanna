@@ -12,6 +12,22 @@ test reports"). Subsystems with logs of their own are listed in the
 
 ## Log since v0.8.0-alpha (2026-09-16)
 
+- Ease a step up on screen, 8 November 2026. A DorfCraft playtest on a
+  worn body (step height 1.05) found every step up snapped the view a node
+  in one frame. The stock camera eases a grounded rise of up to the step
+  height (`Camera::update`); Goanna placed the camera at the raw eye.
+  `goanna_step_ease.h` restates that rule and decay, step_player applies
+  it to the eye (and so the dig ray) and the renderer to the local body
+  and what rides on it. The position, collision and the server's copy are
+  unchanged. `goanna_step_ease_test` checks it on the transplanted
+  `LocalPlayer::move`; all native tests pass. Against a private Luanti
+  5.18.0 Mineclonia server with DorfCraft's mods, from Godot 4.5.1 under
+  `--headless` at 60 frames a second, a whole block, two slabs and a
+  stair each rose a third of the rise in the first frame and were within
+  5% after 0.133 s, with the body's root on the same offset, and no frame
+  moved forwards more than the walk. Not tried: a rendered frame, third
+  person, a slow or uneven frame rate on a real screen, or a person
+  feeling it.
 - Mirror starter games independently of ContentDB, 29 October 2026.
   Get ready to play and Content offer pinned Mineclonia 0.123.1,
   VoxeLibre 0.92.3 and Kindred Holdfast preview d6b6bceb32b0. The preview

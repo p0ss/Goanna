@@ -14,6 +14,7 @@
 
 #include "goanna_client_internal.h"
 #include "goanna_player_steps.h"
+#include "goanna_step_ease.h"
 
 #include <godot_cpp/classes/camera3d.hpp>
 
@@ -88,7 +89,9 @@ Dictionary GoannaClient::step_interact(double dt, bool dig, bool place, bool pla
     // while it walked, which the third person camera made plain.
     m_session->setPlayerKeys(p->control.getKeysPressed());
     // From the rendered camera (see set_view_offset); Godot Z is Luanti -Z.
-    in.eye_pos_bs = p->getPosition() + p->getEyeOffset()
+    // The camera is the eased eye (step_player), as the vanilla client
+    // points from its eased camera.
+    in.eye_pos_bs = p->getPosition() + p->getEyeOffset() + v3f(0, m_step_offset, 0)
             + v3f(m_view_offset.x, m_view_offset.y, -m_view_offset.z) * BS;
     // Luanti camera direction from pitch/yaw (Camera::update)
     float pitch = p->getPitch(), yaw = p->getYaw();
@@ -570,6 +573,8 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
     if (m_session->takeServerMove(spos, spitch, syaw)) {
         p->setPosition(spos);
         p->setSpeed(v3f(0, 0, 0));
+        // A move the server made is shown where it lands, never eased.
+        m_step_ease.reset();
         // TOCLIENT_MOVE_PLAYER carries the look as well as the position, and
         // the vanilla client turns to it (Client::handleCommand_MovePlayer
         // hands it to the camera). set_look_horizontal and
@@ -626,12 +631,22 @@ Dictionary GoannaClient::step_player(double dt, const Dictionary &keys, float pi
 
     v3f pos = p->getPosition();
     v3f eye = pos + p->getEyeOffset();
+    // A grounded step up rises over a few frames on screen, as the vanilla
+    // camera shows it (goanna_step_ease.h); the body is drawn with the same
+    // offset (EntityRenderer::setLocalStepOffset) so the two rise together.
+    // Only what is drawn moves: pos, the collision and what the server is
+    // sent stay where the physics put them.
+    m_step_offset = m_step_ease.update(pos.Y, p->step_height, p->touching_ground, (float)dt);
+    eye.Y += m_step_offset;
+    if (m_entities)
+        m_entities->setLocalStepOffset(m_step_offset / BS);
     // report to server (nodes) with real speed and input intent, so the
     // server's movement check does not reset us (which breaks item pickup)
     m_session->setPlayerPose(pos / BS, p->getPitch(), p->getYaw(), p->getSpeed() / BS,
             p->control.movement_speed, p->control.movement_direction);
     out["pos"] = Vector3(pos.X / BS, pos.Y / BS, -pos.Z / BS);
     out["eye_pos"] = Vector3(eye.X / BS, eye.Y / BS, -eye.Z / BS);
+    out["step_offset"] = m_step_offset / BS;
     out["pitch"] = -p->getPitch();
     out["yaw"] = p->getYaw();
     out["on_ground"] = p->touching_ground;

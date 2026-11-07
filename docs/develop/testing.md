@@ -42,6 +42,16 @@ position the server sent, not where it is still drawn; the local player's
 own object and attached objects never block; and 1000 blocks around the
 player cost well under a millisecond a second of walking.
 
+`goanna_step_ease_test` walks the same transplanted `LocalPlayer::move` at
+4 nodes a second, with a step height of 1.05 nodes, onto a whole block, a
+half slab and a stair of two blocks, at 60 and 20 frames a second. The
+physics still rises in one frame; the height shown
+(`goanna_step_ease.h`) rises no more than the stock camera's decay allows
+in a frame, is never above the player, is within 5% of the top after 0.08
+to 0.22 s, and is not eased on the flat, in a jump or in a fall. No frame
+moves the player further forwards than the walk. With
+`GOANNA_STEP_EASE_TRACE=<file>` it writes every frame as CSV.
+
 `goanna_item_icon_test` builds node definitions with no server, runs them
 through upstream's node visuals and item mesh, and checks the inventory icons
 Goanna draws from them: a mesh node on a texture atlas keeps its outline with

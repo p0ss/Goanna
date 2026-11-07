@@ -64,6 +64,7 @@
 #include <godot_cpp/classes/image_texture3d.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
 #include "goanna_schedule.h"
+#include "goanna_step_ease.h"
 #include "irrlichttypes_bloated.h"
 #include <SMaterial.h>
 
@@ -1432,6 +1433,10 @@ private:
     bool m_show_body = true;
     bool m_third_person = false;
     godot::Vector3 m_view_offset;
+    // The eased rise after a step up (goanna_step_ease.h): the offset the
+    // eye and the local body are drawn with, engine units, zero or negative.
+    goanna::StepEase m_step_ease;
+    float m_step_offset = 0.0f;
     // telemetry (EMA in milliseconds, plus last-frame counters)
     double m_ms_mesh = 0, m_ms_upload = 0, m_ms_lights = 0, m_ms_motes = 0, m_ms_entities = 0;
     int m_last_meshed = 0, m_last_queue = 0;

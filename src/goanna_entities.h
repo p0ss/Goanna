@@ -102,6 +102,9 @@ public:
     // Third person camera (main.gd): the whole body, head and all, is drawn
     // whatever show_body says, as the vanilla client draws it.
     void setThirdPerson(bool on) { m_third_person = on; }
+    // The local player's eased step rise, nodes (goanna_step_ease.h): the
+    // body is drawn this far below the player, as the camera is.
+    void setLocalStepOffset(float nodes) { m_local_step_offset = nodes; }
     // Jiggle bones (goanna_jiggle.h): simulated, or held at their target
     // pose. GoannaClient's "jiggle" material strength, off on the Lowest
     // graphics profile.
@@ -303,6 +306,7 @@ private:
     godot::Array m_stroke_events;
     bool m_show_body = true;
     bool m_third_person = false;
+    float m_local_step_offset = 0.0f;
     bool m_jiggle = true;
     float m_arm_swing = 0.0f;
     float m_auto_bump = 0.35f;

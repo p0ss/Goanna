@@ -2,6 +2,20 @@
 
 Changes on main since 0.17.0-alpha.
 
+- A step up eases on screen as the stock client's camera eases it: when
+  the player rises by no more than its step height while standing on the
+  ground, the eye and the player's own body rise over about 0.13 seconds
+  (a decay of exp(-23 dt) a frame) instead of in one frame. Falls, jumps,
+  rises past the step height and server moves still show at once, and the
+  player's position, its collision and what the server is sent are
+  unchanged. Before, a server granting a whole-block step (DorfCraft's worn
+  bodies, 1.05 nodes) lifted the camera a node in one frame. Seen on 8
+  November 2026 against a Luanti 5.18.0 server running Mineclonia with
+  DorfCraft's mods (a private host) from Godot 4.5.1 under `--headless`,
+  sampled every frame at 60 frames a second: a whole block rose 0.32 nodes
+  the first frame and was within 5% of the top after 0.133 s, and slabs
+  and a stair the same way, the body's root rising with the eye. Nobody
+  has yet played it on a screen.
 - The local player collides with active objects as the stock client does:
   an object whose properties set both `physical` and `collide_with_objects`
   blocks the player, can be stepped onto when lower than the step height,

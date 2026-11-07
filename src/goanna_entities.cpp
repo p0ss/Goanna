@@ -1912,6 +1912,9 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 v3f off = ap;
                 off.rotateXZBy(pit->second->rotation().Y);
                 gp = Vector3((pp.X + off.X) / BS, (pp.Y + off.Y) / BS, -(pp.Z + off.Z) / BS);
+                // Whatever rides on the local player rises with its body.
+                if (pit->second->isLocalPlayer())
+                    gp.y += m_local_step_offset;
                 rot = pit->second->rotation() + obj.attachmentRotation();
             }
         }
@@ -2036,8 +2039,10 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
                 // shrunk there is nothing at eye height to keep out, and the
                 // nudge only put the legs and the shadow 12 cm behind the
                 // feet, where a player looking down can see the mismatch.
+                // Lowered by the eased step rise, so it climbs with the
+                // camera instead of a node at once.
                 const v3f pp = lp->getPosition();
-                en.root->set_position(Vector3(pp.X / BS, pp.Y / BS, -pp.Z / BS));
+                en.root->set_position(Vector3(pp.X / BS, pp.Y / BS + m_local_step_offset, -pp.Z / BS));
                 // Unlike CAO rotations, the player yaw maps to Godot yaw
                 // directly; mirroring it made the body counter-rotate. No half
                 // turn: the model already faces the way the player looks, and

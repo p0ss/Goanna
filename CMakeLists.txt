@@ -319,6 +319,15 @@ add_executable(goanna_object_collision_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_object_collision_test PRIVATE src)
 target_link_libraries(goanna_object_collision_test PRIVATE luanti_core)
 
+# The eased step rise (goanna_step_ease.h) on the transplanted LocalPlayer.
+add_executable(goanna_step_ease_test EXCLUDE_FROM_ALL
+    src/goanna_step_ease_test.cpp
+    src/transplant/collision.cpp
+    src/transplant/localplayer.cpp
+    src/luanti_shims.cpp)
+target_include_directories(goanna_step_ease_test PRIVATE src)
+target_link_libraries(goanna_step_ease_test PRIVATE luanti_core)
+
 # transplanted client files use bare includes ("mapblock_mesh.h") that must
 # resolve to Luanti's originals; goanna's own headers come first.
 set_source_files_properties(
@@ -479,6 +488,7 @@ set(GOANNA_NATIVE_TESTS
     goanna_radial_form_test
     goanna_ripples_test
     goanna_schedule_test
+    goanna_step_ease_test
     goanna_steps_test
     goanna_stroke_detail_test
     goanna_strokes_test
