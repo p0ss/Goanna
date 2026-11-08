@@ -782,9 +782,13 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
             m_damage_stats.load_most_ms = std::max(m_damage_stats.load_most_ms, ms);
         }
         if (!model) {
+            // Not tried again: the body draws its base model until its
+            // next state builds a new one.
             ++m_damage_stats.failures;
             UtilityFunctions::push_warning("body damage: model ", String::utf8(damage_model.c_str()),
                     " does not load; drawing ", String::utf8(p.mesh.c_str()));
+            session.models().forget(damage_model);
+            m_damage_built.erase(en.damage_token);
             damage_textures = nullptr;
         }
     }

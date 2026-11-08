@@ -647,6 +647,12 @@ bool loadDamageBase(const std::string &text, DamageBase &out, std::string *error
     Json::Value rest = out.gltf;
     for (const char *k : {"accessors", "bufferViews", "buffers", "meshes"})
         rest.removeMember(k);
+    // An empty top-level array is invalid glTF and the loader refuses the
+    // whole model (a model with no clips was written with
+    // "animations": []); leave such arrays out.
+    for (const auto &k : rest.getMemberNames())
+        if (rest[k].isArray() && rest[k].empty())
+            rest.removeMember(k);
     out.rest = Json::writeString(w, rest);
     out.rest.pop_back();
     // Only the pieces are needed from here on.
