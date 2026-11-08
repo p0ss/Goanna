@@ -110,6 +110,7 @@ add_library(goanna SHARED
     src/goanna_natural.cpp
     src/goanna_limbs.cpp
     src/goanna_jiggle.cpp
+    src/goanna_body_damage.cpp
     src/goanna_strokes.cpp
     src/goanna_steps.cpp
     src/goanna_climb.cpp
@@ -413,6 +414,15 @@ add_executable(goanna_strokes_test EXCLUDE_FROM_ALL
 target_include_directories(goanna_strokes_test PRIVATE src)
 target_link_libraries(goanna_strokes_test PRIVATE jsoncpp)
 
+# Wounds cut on the client from the server's damage state, against
+# DorfCraft's server mesh for the same state (tools/test/body-damage).
+# Links only jsoncpp.
+add_executable(goanna_body_damage_test EXCLUDE_FROM_ALL
+    src/goanna_body_damage_test.cpp
+    src/goanna_body_damage.cpp)
+target_include_directories(goanna_body_damage_test PRIVATE src)
+target_link_libraries(goanna_body_damage_test PRIVATE jsoncpp)
+
 # Fliers in the air: wingbeat, bank, legs reaching for the floor, talons.
 add_executable(goanna_air_test EXCLUDE_FROM_ALL
     src/goanna_air_test.cpp
@@ -458,6 +468,7 @@ target_link_libraries(goanna_stroke_detail_test PRIVATE jsoncpp)
 set(GOANNA_NATIVE_TESTS
     goanna_allfaces_test
     goanna_air_test
+    goanna_body_damage_test
     goanna_natural_test
     goanna_attachment_test
     goanna_branch_rods_test
@@ -514,6 +525,7 @@ endforeach()
 # reference moved to tools/test/dig-review with the tools regrouping; the
 # binary's own default still names tools/dig-review.
 set(goanna_radial_form_test_ARGS tools/test/dig-review/reference_v3.json)
+set(goanna_body_damage_test_ARGS tools/test/body-damage tools/test/body-damage)
 
 set(_goanna_check_commands)
 foreach(_test IN LISTS GOANNA_NATIVE_TESTS)

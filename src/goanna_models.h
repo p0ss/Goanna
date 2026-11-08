@@ -87,8 +87,16 @@ public:
     // The node extras of a glTF model this cache has read (goanna_jiggle.h),
     // or null for one with none or not yet read.
     const ModelExtras *extras(const std::string &name) const;
+    // A model made on the client (goanna_body_damage.h: a wounded body cut
+    // from its base model), loaded by name like media. It takes the node
+    // extras of base, whose glTF it was made from (its own bytes are a
+    // binary glTF, which parseModelExtras does not read). forget drops it
+    // and any cached mesh of that name.
+    void putGenerated(const std::string &name, std::string bytes, const std::string &base);
+    void forget(const std::string &name);
 
 private:
+    std::map<std::string, std::pair<std::string, std::string>> m_generated; // name -> bytes, base
     // A model's stroke evaluator, from its extras and the family file they
     // name (each family read once).
     void buildStrokes(const std::string &name, ModelExtras &extras);

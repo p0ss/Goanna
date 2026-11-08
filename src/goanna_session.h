@@ -252,6 +252,15 @@ public:
     bool syncFieldChannel();
     bool fieldJoined() const;
     std::vector<std::string> takeField();
+    // The body damage channel (goanna_body_damage.h), granted the same way
+    // through a HUD element named kindred:damage: wounds cut here from the
+    // server's damage state instead of a whole model per wound. Main
+    // thread, each frame; true when the channel changed.
+    bool syncDamageChannel();
+    void sendDamage(const std::string &message);
+    std::vector<std::string> takeDamage();
+    // Bytes and packets received, by command, since connecting.
+    std::map<uint16_t, std::pair<uint64_t, uint64_t>> rxStats() const;
     std::mutex &mapLock() { return m_map_mutex; }
     const NodeDefManager *nodeDefs() const { return m_nodedef; }
     GoannaMap &map() { return *m_map; }
@@ -645,6 +654,10 @@ private:
     std::vector<std::string> m_overseer_messages;
     std::string m_field_channel; // under m_server_opts_mutex
     std::vector<std::string> m_field_messages;
+    mutable std::mutex m_rx_mutex;
+    std::map<uint16_t, std::pair<uint64_t, uint64_t>> m_rx; // under m_rx_mutex
+    std::string m_damage_channel; // under m_server_opts_mutex
+    std::vector<std::string> m_damage_messages;
     std::vector<std::string> m_surfaces;
     std::vector<std::string> m_fine_blocks;
     std::vector<std::string> m_far_summaries; // raw farsum messages, under m_server_opts_mutex

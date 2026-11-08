@@ -53,6 +53,9 @@
 #include "constants.h"
 #include "light.h"
 #include "nodedef.h"
+#include "serialization.h"
+#include <chrono>
+#include <sstream>
 
 using namespace godot;
 
@@ -763,9 +766,34 @@ static Skeleton3D *skinUnderSkeleton(const GodotModel &model,
 bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject &obj, EntityNode &en,
         scene::IAnimatedMesh **source) {
     const ObjectProperties &p = obj.props();
-    std::shared_ptr<GodotModel> model = modelFor(session, p.mesh);
+    // A wounded body cut here (goanna_body_damage.h) draws its generated
+    // model and the server's textures without the stock decals.
+    std::string damage_model;
+    const std::vector<std::string> *damage_textures = nullptr;
+    std::shared_ptr<GodotModel> model;
+    if (!en.damage_token.empty() && bodyDamageFor(obj, en.damage_token, damage_model, &damage_textures)) {
+        bool cached = m_models.count(damage_model) > 0;
+        auto t0 = std::chrono::steady_clock::now();
+        model = modelFor(session, damage_model);
+        if (!cached && model) {
+            double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            ++m_damage_stats.loads;
+            m_damage_stats.load_ms += ms;
+            m_damage_stats.load_most_ms = std::max(m_damage_stats.load_most_ms, ms);
+        }
+        if (!model) {
+            ++m_damage_stats.failures;
+            UtilityFunctions::push_warning("body damage: model ", String::utf8(damage_model.c_str()),
+                    " does not load; drawing ", String::utf8(p.mesh.c_str()));
+            damage_textures = nullptr;
+        }
+    }
+    en.damage_model = model ? damage_model : std::string();
+    if (!model)
+        model = modelFor(session, p.mesh);
     if (!model)
         return false;
+    const std::vector<std::string> &textures = damage_textures ? *damage_textures : p.textures;
     *source = model->source;
     Node3D *holder = memnew(Node3D);
     holder->set_scale(Vector3(p.visual_size.X, p.visual_size.Y, p.visual_size.Z) / BS);
@@ -775,8 +803,8 @@ bool EntityRenderer::buildMeshVisual(GoannaSession &session, GoannaActiveObject 
         for (int i = 0; i < (int)model->texture_slots.size(); ++i) {
             u32 slot = model->texture_slots[i];
             std::string tex;
-            if (slot < p.textures.size())
-                tex = p.textures[slot];
+            if (slot < textures.size())
+                tex = textures[slot];
             if (tex.empty())
                 continue; // upstream: empty string means leave the material alone
             tex += obj.textureModifier();
@@ -1275,6 +1303,7 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         en.visual->queue_free();
         en.visual = nullptr;
     }
+    en.damage_model.clear();
     en.skeleton = nullptr;
     en.shadow_skeleton = nullptr;
     // The new meshes start at node_light's default; sync sets it again.
@@ -1532,6 +1561,14 @@ Array EntityRenderer::list(GoannaSession &session) const {
         d["rotation_y"] = kv.second.root->get_rotation_degrees().y;
         d["visual"] = (int)obj.props().visual;
         d["mesh"] = String::utf8(obj.props().mesh.c_str());
+        // The wounded model cut here in its place (goanna_body_damage.h).
+        d["damage_model"] = String::utf8(kv.second.damage_model.c_str());
+        d["textures"] = [&] {
+            Array t;
+            for (const auto &x : obj.props().textures)
+                t.push_back(String::utf8(x.c_str()));
+            return t;
+        }();
         float frame = -1.0f;
         if (const scene::AnimSpec *anim = obj.meshAnimation(); anim && kv.second.animator) {
             auto track = anim->tracks.find(0);
@@ -1838,11 +1875,16 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
     Camera3D *camera = m_root->is_inside_tree() && m_root->get_viewport() ? m_root->get_viewport()->get_camera_3d()
                                                                           : nullptr;
     int stroke_tiers[3] = {};
+    syncBodyDamage(session);
+    std::vector<std::string> damage_drop;
+    int damage_loads = 0;
     // remove gone
     for (auto it = m_nodes.begin(); it != m_nodes.end();) {
         if (objects.find(it->first) == objects.end()) {
             if (it->second.root)
                 it->second.root->queue_free();
+            if (!it->second.damage_token.empty())
+                damage_drop.push_back(it->second.damage_token);
             it = m_nodes.erase(it);
         } else {
             ++it;
@@ -1867,10 +1909,45 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         en.root->set_visible(visible);
         if (!visible)
             continue;
+        // A wounded body's token (goanna_body_damage.h): ask for its state
+        // once, and redraw it when its cut model changes.
+        bool damage_changed = false;
+        {
+            std::string token;
+            auto bo = obj.boneOverrides().find("kindred_damage");
+            if (bo != obj.boneOverrides().end())
+                token = damageToken(bo->second.position.vector.X, bo->second.position.vector.Y);
+            if (token != en.damage_token) {
+                if (!en.damage_token.empty())
+                    damage_drop.push_back(en.damage_token);
+                en.damage_token = token;
+            }
+            std::string want_model;
+            const std::vector<std::string> *want_textures = nullptr;
+            if (!token.empty()) {
+                if (!m_damage.state(token)) {
+                    auto asked = m_damage_asked.find(token);
+                    if (asked == m_damage_asked.end() || m_damage_clock - asked->second > 5.0) {
+                        m_damage_asked[token] = m_damage_clock;
+                        m_damage_want.push_back(token);
+                    }
+                }
+                if (!bodyDamageFor(obj, token, want_model, &want_textures))
+                    want_model.clear();
+            }
+            damage_changed = want_model != en.damage_model && obj.props().visual == OBJECTVISUAL_MESH;
+            // A new cut model means loading it (tens of milliseconds for a
+            // person): one a frame, the rest next frame, so a battle's
+            // wounds do not land in one long frame.
+            if (damage_changed && damage_loads >= 1)
+                damage_changed = false;
+            if (damage_changed)
+                ++damage_loads;
+        }
         // An object the renderer has not added to the scene yet is rebuilt
         // even if its visual version matches the node's: a removed object's
         // id can come back as a new object before the next sync.
-        if (en.visual_version != obj.visualVersion() || !obj.addedToScene())
+        if (en.visual_version != obj.visualVersion() || !obj.addedToScene() || damage_changed)
             rebuildVisual(session, obj, en);
         // The animation commands processMessage queued, which needed the
         // mesh this visual was built from to resolve their tracks.
@@ -2416,6 +2493,165 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         }
     }
     setStrokeDetailCounts(stroke_tiers[0], stroke_tiers[1], stroke_tiers[2]);
+    // Bodies gone from view: the server stops sending their wounds.
+    for (const std::string &token : damage_drop) {
+        m_damage.forget(token);
+        m_damage_asked.erase(token);
+        auto b = m_damage_built.find(token);
+        if (b != m_damage_built.end()) {
+            session.models().forget(b->second.model);
+            m_models.erase(b->second.model);
+            m_damage_built.erase(b);
+        }
+    }
+    auto send = [&](const char *verb, std::vector<std::string> &tokens) {
+        std::string msg;
+        for (const std::string &t : tokens) {
+            if (msg.size() + t.size() + 1 > 1000) {
+                session.sendDamage(msg);
+                msg.clear();
+            }
+            msg += msg.empty() ? std::string(verb) + " " + t : " " + t;
+        }
+        if (!msg.empty())
+            session.sendDamage(msg);
+        tokens.clear();
+    };
+    send("drop", damage_drop);
+    send("want", m_damage_want);
+    m_damage_clock += dt;
+    buildBodyDamage(session);
+}
+
+void EntityRenderer::syncBodyDamage(GoannaSession &session) {
+    if (session.syncDamageChannel()) {
+        // A new or withdrawn grant: nothing from the old one stands.
+        for (auto &b : m_damage_built) {
+            session.models().forget(b.second.model);
+            m_models.erase(b.second.model);
+        }
+        m_damage_built.clear();
+        m_damage = DamageStore();
+        m_damage_asked.clear();
+    }
+    for (const std::string &m : session.takeDamage())
+        m_damage.message(m);
+    for (auto &f : m_damage.completed_forms) {
+        std::string z = damageBase64Decode(f.second);
+        std::istringstream is(z, std::ios::binary);
+        std::ostringstream os(std::ios::binary);
+        try {
+            decompressZstd(is, os);
+        } catch (std::exception &e) {
+            ++m_damage_stats.failures;
+            UtilityFunctions::push_warning("body damage: form ", String::utf8(f.first.c_str()), " does not decompress");
+            continue;
+        }
+        std::string err;
+        if (m_damage.addForm(os.str(), &err))
+            ++m_damage_stats.forms;
+        else {
+            ++m_damage_stats.failures;
+            UtilityFunctions::push_warning("body damage: form ", String::utf8(f.first.c_str()), ": ",
+                    String::utf8(err.c_str()));
+        }
+    }
+    m_damage.completed_forms.clear();
+}
+
+// At most four bodies' models a frame, and not past 8 ms: a battle's
+// wounds queue rather than stall the frame. Each body builds only its
+// latest state.
+void EntityRenderer::buildBodyDamage(GoannaSession &session) {
+    auto start = std::chrono::steady_clock::now();
+    int built = 0;
+    for (auto it = m_damage.dirty.begin(); it != m_damage.dirty.end() && built < 4;) {
+        if (std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count() > 8.0)
+            break;
+        const std::string token = *it;
+        it = m_damage.dirty.erase(it);
+        const DamageState *state = m_damage.state(token);
+        const DamageForm *form = state ? m_damage.form(state->key) : nullptr;
+        if (!form)
+            continue;
+        auto previous = m_damage_built.find(token);
+        if (state->parts.empty()) {
+            // Whole again: the base model.
+            if (previous != m_damage_built.end()) {
+                session.models().forget(previous->second.model);
+                m_models.erase(previous->second.model);
+                m_damage_built.erase(previous);
+            }
+            continue;
+        }
+        auto t0 = std::chrono::steady_clock::now();
+        std::shared_ptr<DamageBase> &base = m_damage_bases[form->key];
+        std::string err;
+        if (!base) {
+            std::string text;
+            auto b = std::make_shared<DamageBase>();
+            if (!session.getMedia(form->model, text) || !loadDamageBase(text, *b, &err)) {
+                ++m_damage_stats.failures;
+                UtilityFunctions::push_warning("body damage: base ", String::utf8(form->model.c_str()), " ",
+                        String::utf8(err.c_str()));
+                m_damage_bases.erase(form->key);
+                continue;
+            }
+            base = b;
+        }
+        DamageMesh mesh;
+        if (!buildDamageMesh(*form, *base, *state, mesh, &err)) {
+            ++m_damage_stats.failures;
+            UtilityFunctions::push_warning("body damage: ", String::utf8(token.c_str()), " ",
+                    String::utf8(err.c_str()));
+            continue;
+        }
+        std::string glb = damageGlb(*base, mesh);
+        const std::string name = "kindred_damage_" + token + "_" + std::to_string(++m_damage_serial) + ".glb";
+        m_damage_stats.glb_bytes += glb.size();
+        session.models().putGenerated(name, std::move(glb), form->model);
+        if (previous != m_damage_built.end()) {
+            session.models().forget(previous->second.model);
+            m_models.erase(previous->second.model);
+        }
+        m_damage_built[token] = DamageBuilt{name, form->model, state->revision};
+        double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+        ++m_damage_stats.builds;
+        m_damage_stats.build_ms += ms;
+        m_damage_stats.build_most_ms = std::max(m_damage_stats.build_most_ms, ms);
+        ++built;
+    }
+}
+
+bool EntityRenderer::bodyDamageFor(const GoannaActiveObject &obj, const std::string &token, std::string &model,
+        const std::vector<std::string> **textures) const {
+    auto b = m_damage_built.find(token);
+    if (b == m_damage_built.end() || b->second.base != obj.props().mesh)
+        return false;
+    model = b->second.model;
+    const DamageState *s = m_damage.state(token);
+    *textures = s && !s->textures.empty() ? &s->textures : nullptr;
+    return true;
+}
+
+Dictionary EntityRenderer::bodyDamageStats() const {
+    Dictionary d;
+    d["forms"] = (int64_t)m_damage.forms.size();
+    d["states"] = (int64_t)m_damage.states.size();
+    d["models"] = (int64_t)m_damage_built.size();
+    d["pending"] = (int64_t)m_damage.dirty.size();
+    d["messages"] = (int64_t)m_damage.messages;
+    d["bytes"] = (int64_t)m_damage.bytes;
+    d["rejected"] = (int64_t)m_damage.rejected;
+    d["builds"] = (int64_t)m_damage_stats.builds;
+    d["failures"] = (int64_t)m_damage_stats.failures;
+    d["build_ms_mean"] = m_damage_stats.builds ? m_damage_stats.build_ms / m_damage_stats.builds : 0.0;
+    d["build_ms_most"] = m_damage_stats.build_most_ms;
+    d["loads"] = (int64_t)m_damage_stats.loads;
+    d["load_ms_mean"] = m_damage_stats.loads ? m_damage_stats.load_ms / m_damage_stats.loads : 0.0;
+    d["load_ms_most"] = m_damage_stats.load_most_ms;
+    d["glb_bytes"] = (int64_t)m_damage_stats.glb_bytes;
+    return d;
 }
 
 } // namespace goanna

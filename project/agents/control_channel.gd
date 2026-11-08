@@ -464,6 +464,8 @@ func _inspect(a: Dictionary) -> Variant:
 			return diagnostics
 		"sky":
 			return _client().sky_state()
+		"body_damage":
+			return _client().body_damage_stats()
 		"entities":
 			var entities: Array = _client().entity_list()
 			var limit := clampi(int(a.get("limit", 100)), 1, 1000)

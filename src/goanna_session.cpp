@@ -766,6 +766,73 @@ std::vector<std::string> GoannaSession::takeField() {
     return out;
 }
 
+bool GoannaSession::syncDamageChannel() {
+    if (!connection()) return false;
+    // "kindred:d:" and 32 lower case hex, as DorfCraft's creature kit names it.
+    std::string granted;
+    {
+        std::lock_guard<std::mutex> lock(m_hud_mutex);
+        for (const auto &entry : m_hud)
+            if (entry.second.name == "kindred:damage") {
+                granted = entry.second.text;
+                break;
+            }
+    }
+    if (!granted.empty()) {
+        bool ok = granted.size() == 42 && granted.compare(0, 10, "kindred:d:") == 0;
+        for (size_t i = 10; ok && i < granted.size(); ++i)
+            ok = (granted[i] >= '0' && granted[i] <= '9') || (granted[i] >= 'a' && granted[i] <= 'f');
+        if (!ok) granted.clear();
+    }
+    std::string previous;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        if (granted == m_damage_channel) return false;
+        previous = m_damage_channel;
+        m_damage_channel = granted;
+        m_damage_messages.clear();
+    }
+    if (!previous.empty()) {
+        NetworkPacket pkt(TOSERVER_MODCHANNEL_LEAVE, 0);
+        pkt << previous;
+        send(pkt);
+    }
+    if (!granted.empty()) {
+        NetworkPacket join(TOSERVER_MODCHANNEL_JOIN, 0);
+        join << granted;
+        send(join);
+        NetworkPacket hello(TOSERVER_MODCHANNEL_MSG, 0);
+        hello << granted << std::string("hello 1");
+        send(hello);
+    }
+    return true;
+}
+
+std::map<uint16_t, std::pair<uint64_t, uint64_t>> GoannaSession::rxStats() const {
+    std::lock_guard<std::mutex> lock(m_rx_mutex);
+    return m_rx;
+}
+
+void GoannaSession::sendDamage(const std::string &message) {
+    if (!connection() || message.size() > 1024) return;
+    std::string channel;
+    {
+        std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+        channel = m_damage_channel;
+    }
+    if (channel.empty()) return;
+    NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 0);
+    pkt << channel << message;
+    send(pkt);
+}
+
+std::vector<std::string> GoannaSession::takeDamage() {
+    std::lock_guard<std::mutex> lock(m_server_opts_mutex);
+    std::vector<std::string> out;
+    out.swap(m_damage_messages);
+    return out;
+}
+
 void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
     std::string channel, sender, message;
     pkt >> channel >> sender >> message;
@@ -777,6 +844,13 @@ void GoannaSession::onModChannelMsg(NetworkPacket &pkt) {
             // for the next resend rather than grow the queue.
             if (sender.empty() && message.size() <= 65535 && m_field_messages.size() < 256)
                 m_field_messages.push_back(std::move(message));
+            return;
+        }
+        if (!m_damage_channel.empty() && channel == m_damage_channel) {
+            // Server-authored only. A battle's forms and states can burst;
+            // past the cap a body's state is asked for again when seen.
+            if (sender.empty() && message.size() <= 65535 && m_damage_messages.size() < 1024)
+                m_damage_messages.push_back(std::move(message));
             return;
         }
         if (!m_overseer_channel.empty() && channel == m_overseer_channel) {
@@ -2482,6 +2556,14 @@ bool GoannaSession::prepareContentIfReady() {
 // --- incoming ---
 
 void GoannaSession::handle(NetworkPacket &pkt) {
+    {
+        // Bytes received by command, for measuring what the server sends
+        // (inspect body_damage: rx).
+        std::lock_guard<std::mutex> lock(m_rx_mutex);
+        auto &c = m_rx[pkt.getCommand()];
+        c.first += pkt.getSize();
+        c.second += 1;
+    }
     switch (pkt.getCommand()) {
     case TOCLIENT_HELLO: onHello(pkt); break;
     case TOCLIENT_SRP_BYTES_S_B: onSrpBytesSB(pkt); break;

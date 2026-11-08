@@ -129,7 +129,7 @@ overlapping camera moves would each photograph the other's pose.
 | `ping` | Liveness, and how long the client has been up. |
 | `label <text>` | What this session is testing. Shown on screen; see below. |
 | `status` | Session state, camera pose, block, entity and media counts. |
-| `inspect target=<kind>` | Structured scene, render, material, sky, entity, inventory or node data. |
+| `inspect target=<kind>` | Structured scene, render, material, sky, entity, inventory, node or body damage data. |
 | `tp x y z` | Teleport through the server, then wait for the blocks to arrive. |
 | `pose x y z pitch= yaw=` | Place the camera. No server move, so use it for viewpoints, not for travel. |
 | `look x y z` | Aim the camera at a point. |

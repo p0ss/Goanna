@@ -285,6 +285,30 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         }
     }
     std::string bytes;
+    auto generated = m_generated.find(name);
+    if (generated != m_generated.end()) {
+        scene::IAnimatedMesh *mesh = m_loader.load(name, generated->second.first);
+        if (!mesh)
+            return nullptr;
+        // The base's extras, read from its own glTF.
+        const std::string &base = generated->second.second;
+        if (!m_extras.count(base)) {
+            if (scene::IAnimatedMesh *b = getMesh(base, true))
+                b->drop();
+        }
+        auto e = m_extras.find(base);
+        if (e != m_extras.end())
+            m_extras[name] = e->second;
+        else
+            m_extras.erase(name);
+        // The bytes are not needed once loaded and cached.
+        if (cache) {
+            mesh->grab();
+            m_cache[name] = mesh;
+            m_generated.erase(name);
+        }
+        return mesh;
+    }
     if (!m_media(name, bytes)) {
         errorstream << "Goanna: mesh not found in media: " << name << std::endl;
         return nullptr;
@@ -310,6 +334,21 @@ scene::IAnimatedMesh *ModelCache::getMesh(const std::string &name, bool cache) {
         m_cache[name] = mesh;
     }
     return mesh;
+}
+
+void ModelCache::putGenerated(const std::string &name, std::string bytes, const std::string &base) {
+    forget(name);
+    m_generated[name] = {std::move(bytes), base};
+}
+
+void ModelCache::forget(const std::string &name) {
+    m_generated.erase(name);
+    auto it = m_cache.find(name);
+    if (it != m_cache.end()) {
+        it->second->drop();
+        m_cache.erase(it);
+    }
+    m_extras.erase(name);
 }
 
 // ---- conversion ------------------------------------------------------------

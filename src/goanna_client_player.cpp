@@ -846,6 +846,24 @@ Dictionary GoannaClient::model_preview(const String &mesh_name, const PackedStri
     return d;
 }
 
+Dictionary GoannaClient::body_damage_stats() {
+    Dictionary d = m_entities ? m_entities->bodyDamageStats() : Dictionary();
+    if (m_session) {
+        // What the server sent, by command (hex), bytes and packets.
+        Dictionary rx;
+        for (const auto &kv : m_session->rxStats()) {
+            char name[8];
+            std::snprintf(name, sizeof(name), "0x%02x", (unsigned)kv.first);
+            Array v;
+            v.push_back((int64_t)kv.second.first);
+            v.push_back((int64_t)kv.second.second);
+            rx[String(name)] = v;
+        }
+        d["rx"] = rx;
+    }
+    return d;
+}
+
 Array GoannaClient::entity_list() {
     if (!m_session || !m_entities)
         return Array();

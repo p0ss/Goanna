@@ -393,6 +393,8 @@ public:
     // the field at a world position.
     void climate_inject(const godot::String &message);
     godot::Dictionary climate_stats() const;
+    // Client-side wounds (goanna_body_damage.h): counts and build timings.
+    godot::Dictionary body_damage_stats();
     godot::Dictionary climate_at(const godot::Vector3 &world) const;
     // Whether the shaders see the field. Off, the store still takes what
     // the server sends, so turning it back on shows the field at once: for

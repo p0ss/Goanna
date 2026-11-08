@@ -60,6 +60,8 @@ code disagree, the code is right.
   by the wearer's motion and gravity; the units games author against.
 - [Melee strokes](melee-strokes.md): whole-body strokes a server sends as
   an angle and a time, posed by Goanna from a plan the model declares.
+- [Body damage](body-damage.md): wounds and shield cuts a paired server
+  sends as damage state, cut into the base model on the client.
 - [Interface style](interface-style.md): the dark glass style and game
   theme for menus and server forms.
 - [Interface layout](interface-layout.md): regions, hierarchy and the

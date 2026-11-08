@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "goanna_body_damage.h"
 #include "goanna_strokes.h"
 
 // Godot-side rendering of Goanna's active objects (players, mobs, items).
@@ -154,6 +155,9 @@ public:
     // or holds no geometry; the caller owns the returned node. A non-zero
     // speed on an animated model registers the preview for stepping in sync().
     // Caller holds session.mapLock(); main thread.
+    // Client-side wounds (goanna_body_damage.h): counts and timings, for
+    // the control channel's inspect body_damage.
+    godot::Dictionary bodyDamageStats() const;
     godot::Node3D *buildModelPreview(GoannaSession &session, const std::string &mesh,
             const std::vector<std::string> &textures, float frame_begin, float frame_end,
             float speed, godot::AABB *out_aabb);
@@ -193,6 +197,9 @@ private:
         std::vector<char> limb_wet;
         std::vector<godot::Vector3> limb_last_end;
         uint32_t visual_version = 0;
+        // The client-cut wounded model this visual was built from, or "".
+        std::string damage_model;
+        std::string damage_token;
         std::string textures_key;
         float sprite_time = 0;
         int sprite_frame = 0;
@@ -277,6 +284,30 @@ private:
     // the ones whose skeleton has been freed with its formspec.
     void stepModelPreviews(float dt);
 
+    // Client-side wounds: the server's damage messages, the base models
+    // by form, each body's built model, and who has been asked for.
+    void syncBodyDamage(GoannaSession &session);
+    void buildBodyDamage(GoannaSession &session);
+    // The generated model and textures to draw obj with, or false.
+    bool bodyDamageFor(const GoannaActiveObject &obj, const std::string &token, std::string &model,
+            const std::vector<std::string> **textures) const;
+    DamageStore m_damage;
+    std::map<std::string, std::shared_ptr<DamageBase>> m_damage_bases;
+    struct DamageBuilt {
+        std::string model;   // generated model name
+        std::string base;    // the base model it was cut from
+        int revision = -1;
+    };
+    std::map<std::string, DamageBuilt> m_damage_built;
+    std::map<std::string, double> m_damage_asked; // token -> clock when asked
+    std::vector<std::string> m_damage_want;
+    double m_damage_clock = 0;
+    uint64_t m_damage_serial = 0;
+    struct {
+        uint64_t builds = 0, failures = 0, forms = 0, loads = 0;
+        double build_ms = 0, build_most_ms = 0, load_ms = 0, load_most_ms = 0;
+        uint64_t glb_bytes = 0;
+    } m_damage_stats;
     godot::Node3D *m_root;
     godot::Node3D *m_overseer_root = nullptr;
     godot::Dictionary m_overseer_layer;
