@@ -129,7 +129,32 @@ int main() {
         expect(near(a, b), "a child of a bone at zero scale is still drawn at its size");
     }
 
-    // 5. DorfCraft's tabard, where its checkout is.
+    // 5. An attachment turn is upstream's: content_cao.cpp sets it with
+    // Irrlicht's setRotationDegrees (R = Rz Ry Rx) in the joint's frame,
+    // in Irrlicht's handedness (Godot's z negated). Each turn is checked on
+    // a vertex off every axis; a z turn alone or an x turn alone came out
+    // mirrored when the basis was Godot's YXZ Euler of (x, -y, -z), which
+    // drew a held sword in a stroke (DorfCraft's grip, z -135) pointing the
+    // wrong way.
+    {
+        const v3f turns[] = {v3f(0, 0, -135), v3f(30, 0, 0), v3f(0, -90, 0), v3f(180, 90, 0),
+                v3f(144.7f, -30, -35.3f), v3f(-20, 50, 75)};
+        for (const v3f &r : turns) {
+            const Transform3D root = boneAttachmentTransform(Transform3D(), v3f(BS, BS, BS),
+                    Transform3D(), v3f(), r);
+            core::matrix4 m;
+            m.setRotationDegrees(r);
+            const v3f irr(0.3f, 0.5f, 0.7f);
+            const v3f up = m.transformVect(irr);
+            // The child's vertex in Godot space is (x, y, -z); drawn at BS.
+            const Vector3 at = root.xform(Vector3(irr.X, irr.Y, -irr.Z)) / BS;
+            const Vector3 want(up.X, up.Y, -up.Z);
+            expect(near(at, want), "attachment turn " + str(Vector3(r.X, r.Y, r.Z)) + " draws a vertex at "
+                    + str(at) + ", upstream at " + str(want));
+        }
+    }
+
+    // 6. DorfCraft's tabard, where its checkout is.
     const char *home = std::getenv("HOME");
     const std::string drape = std::string(home ? home : "")
             + "/Documents/Code/DorfCraft/mods/kindred_creatures/models/appearance/"

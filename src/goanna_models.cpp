@@ -346,8 +346,13 @@ Transform3D boneAttachmentTransform(const Transform3D &parent_root, const v3f &p
         const Transform3D &bone_global, const v3f &position, const v3f &rotation_deg) {
     Transform3D parent_scale;
     parent_scale.basis.scale(Vector3(parent_visual_size.X, parent_visual_size.Y, parent_visual_size.Z) / BS);
-    const Transform3D attach(Basis::from_euler(Vector3(Math::deg_to_rad(rotation_deg.X),
-            Math::deg_to_rad(-rotation_deg.Y), Math::deg_to_rad(-rotation_deg.Z))),
+    // Upstream turns the attachment with Irrlicht's setRotationDegrees
+    // (R = Rz Ry Rx) in its own handedness; with z negated that is Rz(z)
+    // Ry(-y) Rx(-x). Godot's default YXZ order of (x, -y, -z) agreed only
+    // for a turn about y alone and drew x and z turns mirrored
+    // (goanna_attachment_test, case 5).
+    const Transform3D attach(Basis::from_euler(Vector3(Math::deg_to_rad(-rotation_deg.X),
+            Math::deg_to_rad(-rotation_deg.Y), Math::deg_to_rad(rotation_deg.Z)), EulerOrder::EULER_ORDER_ZYX),
             Vector3(position.X, position.Y, -position.Z));
     // Until 2026-10-27 the basis was orthonormalised here, which threw the
     // inherited scale away: a drape at visual_size 1 on a DorfCraft body at
