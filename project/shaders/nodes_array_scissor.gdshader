@@ -60,8 +60,10 @@ void fragment() {
 	vec2 uv_dy = dFdy(UV);
 	// The world size of a pixel, which sizes and fades the rain splashes
 	// (weather_common.gdshaderinc); taken here, outside any branch, like
-	// the other derivatives.
-	float px = max(length(dFdx(v_world)), length(dFdy(v_world)));
+	// the other derivatives. From the view space position, whose lengths are
+	// the world ones: v_world's derivatives step in float32 far from the
+	// origin (the note on dpx in nodes_array.gdshader).
+	float px = max(length(dFdx(VERTEX)), length(dFdy(VERTEX)));
 	// The array layer, rounded rather than truncated; see the note on the
 	// same line in nodes_array.gdshader, which also explains the animation.
 	int layer = goanna_anim_layer(int(round(UV2.x)));

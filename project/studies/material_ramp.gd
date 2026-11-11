@@ -64,6 +64,11 @@ extends Node3D
 # sun is 0.53; main.gd leaves Godot's 0, a point, which is what makes the
 # smoothest steps lose the glint: the lobe is a needle that never lands).
 #
+# GOANNA_RAMP_ORIGIN="x,y,z" moves the whole stage there, for what only
+# shows far from the world's origin: on 2026-11-11 the parallax march took
+# its basis from world position derivatives, which float32 steps in
+# thousandths of a node near x 10000, and every hollow speckled.
+#
 # Run it as the header says, through tools/goanna-headless fixture.
 
 const STEPS := [0, 64, 128, 192, 230, 255]
@@ -414,6 +419,13 @@ func _ready() -> void:
 		for st in OS.get_environment("GOANNA_RAMP_STEMS").split(",", false):
 			var parts := st.strip_edges().split("+")
 			materials.append([parts[0], parts[0], parts[1] if parts.size() > 1 else ""])
+	# Read only when set: in 4.5.1 an empty String.split_floats crashes
+	# the engine (index out of bounds), as GOANNA_WALL_CAM below did.
+	var origin := PackedFloat64Array()
+	if OS.get_environment("GOANNA_RAMP_ORIGIN") != "":
+		origin = OS.get_environment("GOANNA_RAMP_ORIGIN").split_floats(",")
+	if origin.size() == 3:
+		position = Vector3(origin[0], origin[1], origin[2])
 	light_sun = _envf("GOANNA_SUN", light_sun)
 	strengths = _strengths()
 
@@ -516,7 +528,7 @@ func _ready() -> void:
 		cam.fov = 40
 		cam.position = Vector3(0.0, 3.4, 5.2)
 		add_child(cam)
-		cam.look_at(Vector3(0.0, 1.5, -0.8), Vector3.UP)
+		cam.look_at(to_global(Vector3(0.0, 1.5, -0.8)), Vector3.UP)
 		cam.current = true
 		_apply_gain()
 		await _run_cases()
@@ -543,7 +555,7 @@ func _ready() -> void:
 	cam.fov = 50
 	cam.position = Vector3(cx, 10.0, 20.0)
 	add_child(cam)
-	cam.look_at(Vector3(cx, 0.5, 0.0), Vector3.UP)
+	cam.look_at(to_global(Vector3(cx, 0.5, 0.0)), Vector3.UP)
 	cam.current = true
 	_apply_gain()
 	await _run_cases()
@@ -570,13 +582,15 @@ func _wall_cost(stem: String, mesh: ArrayMesh) -> void:
 		cam.position = Vector3(-8.0, 5.0, 2.2)
 		target = Vector3(0.0, 4.6, 0.0)
 	# GOANNA_WALL_CAM="px,py,pz,tx,ty,tz,fov" places the camera by hand.
-	var place := OS.get_environment("GOANNA_WALL_CAM").split_floats(",")
+	var place := PackedFloat64Array()
+	if OS.get_environment("GOANNA_WALL_CAM") != "":
+		place = OS.get_environment("GOANNA_WALL_CAM").split_floats(",")
 	if place.size() == 7:
 		cam.position = Vector3(place[0], place[1], place[2])
 		target = Vector3(place[3], place[4], place[5])
 		cam.fov = place[6]
 	add_child(cam)
-	cam.look_at(target, Vector3.UP)
+	cam.look_at(to_global(target), Vector3.UP)
 	cam.current = true
 	_apply_gain()
 	_apply_case(CASES["low"], Vector3.ZERO)

@@ -139,8 +139,18 @@ void fragment() {
 	vec2 tuv_dy = dFdy(tile_uv);
 	// Position derivatives here too, outside any branch: a derivative
 	// inside flow that not every pixel of the quad takes is undefined.
-	vec3 dpx = dFdx(v_world);
-	vec3 dpy = dFdy(v_world);
+	// Taken from the view space position and turned into world axes, not
+	// from v_world: a world coordinate near 10000 is stepped in float32 by
+	// about a thousandth of a node, which is a pixel's width a node or two
+	// from the eye, so dFdx(v_world) came back as one step or two, a
+	// different one per 2x2 quad. The march's basis below inherited the
+	// error and threw each quad's hit somewhere else in the hollows, which
+	// read as a grainy speckle in every recess near the camera, far from
+	// the world's origin (seen in DorfCraft at x -9821, 11 November 2026).
+	// VERTEX is small near the eye, so its derivatives are exact.
+	mat3 view_to_world = mat3(INV_VIEW_MATRIX);
+	vec3 dpx = view_to_world * dFdx(VERTEX);
+	vec3 dpy = view_to_world * dFdy(VERTEX);
 	// The world size of a pixel, which sizes and fades the rain splashes
 	// (weather_common.gdshaderinc).
 	float px = max(length(dpx), length(dpy));
@@ -161,7 +171,7 @@ void fragment() {
 	float march_shadow = 0.0;
 	bool short_march = parallax_short_strength > 0.5;
 	if (has_normal && parallax_strength > 0.001 && flatten < 0.999) {
-		float eye_dist = length(v_world - CAMERA_POSITION_WORLD);
+		float eye_dist = length(VERTEX);
 		float range = short_march ? min(parallax_range, parallax_short_range) : parallax_range;
 		pom = (1.0 - smoothstep(range * 0.5, range, eye_dist))
 				* (1.0 - flatten) * parallax_strength;
@@ -178,7 +188,8 @@ void fragment() {
 			vec3 d_tv = (dpy * tuv_dx.x - dpx * tuv_dy.x) / det;
 			float lu = max(dot(d_tu, d_tu), 1e-8);
 			float lv = max(dot(d_tv, d_tv), 1e-8);
-			vec3 view_w = normalize(CAMERA_POSITION_WORLD - v_world);
+			// The eye ray from view space too, for the same precision.
+			vec3 view_w = normalize(view_to_world * -VERTEX);
 			float vn = max(dot(view_w, v_wnormal), 0.08);
 			vec3 vt = view_w - v_wnormal * dot(view_w, v_wnormal);
 			// Tile units the visible point shifts per unit of normalised
