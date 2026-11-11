@@ -521,6 +521,45 @@ int main(int argc, char **argv) {
         expect(std::fabs(p.feet()[0].sole[0] - 4.9f) < 1e-4f, "a teleport did not reset the feet");
     }
 
+    // A stance crouch (a sneaking player's, DorfCraft's kindred_crouch):
+    // standing still on the floor, the body lowered by it with the feet
+    // planted where they stand; past STEP_STANCE_CROUCH_MOST it is held
+    // there; none, the body stands.
+    float stood = 0;
+    for (const float want : {0.0f, -0.15f, -0.5f}) {
+        std::vector<StepLeg> legs;
+        for (const BodyLeg &l : stocky.legs)
+            legs.push_back({l.length, l.ankle, l.group, l.slow_group, l.girdle});
+        StepPlanner planner(legs);
+        for (int f = 0; f < 120; ++f) {
+            StepInput in;
+            in.dt = 1.0f / 60.0f;
+            in.root = {0, 0, 0};
+            in.yaw = 0;
+            in.floor = floorAt;
+            in.stance_crouch = want;
+            for (const BodyLeg &l : stocky.legs) {
+                in.hips.push_back({l.x, l.y, l.z});
+                in.rest.push_back({l.x, 0, l.z});
+            }
+            planner.step(in);
+        }
+        const float most = STEP_STANCE_CROUCH_MOST * stocky.legs[0].length;
+        // The body's own drop standing (its legs do not quite reach the
+        // hips' height) holds until the crouch is deeper.
+        if (want == 0.0f)
+            stood = planner.drop();
+        const float expected = std::min(stood, std::max(want, -most));
+        expect(std::fabs(planner.drop() - expected) < 0.01f,
+                "stance crouch " + std::to_string(want) + ": drop " + std::to_string(planner.drop())
+                        + ", expected " + std::to_string(expected));
+        for (size_t i = 0; i < planner.feet().size(); ++i)
+            expect(planner.feet()[i].planted && std::fabs(planner.feet()[i].sole[1]) < 1e-4f,
+                    "stance crouch keeps the feet planted on the floor");
+    }
+    std::printf("stance crouch: stocky biped lowered up to %.3f nodes\n",
+            STEP_STANCE_CROUCH_MOST * stocky.legs[0].length);
+
     std::printf("goanna_steps_test: %d checks, %d failures\n", g_checks, g_failures);
     return g_failures ? 1 : 0;
 }

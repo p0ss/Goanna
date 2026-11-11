@@ -1455,6 +1455,7 @@ void ModelAnimator::planSteps() {
     // A task's feet stay planted throughout; a stroke's from its commit.
     in.hold = striking && (m_melee.loops || m_melee.phase >= 2 || m_melee.t >= shown->commit());
     in.crouch = striking ? m_crouch_request * scale : 0.0f;
+    in.stance_crouch = m_stance_crouch;
     for (const FootFit &f : m_feet) {
         in.hips.push_back(world(toGodotTransform(m_globals[f.hip]).origin));
         in.rest.push_back(world(striking ? toGodotTransform(m_globals[f.ankle]).origin : f.rest_ankle.origin));
@@ -1794,6 +1795,15 @@ void ModelAnimator::step(float dt, scene::AnimSpec &anim, std::map<std::string, 
     // animateJoints: local transforms for this frame, each track blending
     // from the pose shown last step.
     anim.advance(dt);
+    // A stance crouch the server declares on a bone no mesh has (DorfCraft's
+    // kindred_crouch: position y, nodes, zero or negative), the body
+    // lowered by bent legs: a sneaking player's eye is lowered, and its
+    // body with it, or the first-person camera sits inside its own chest.
+    {
+        const auto crouch = overrides.find("kindred_crouch");
+        m_stance_crouch = crouch != overrides.end() && crouch->second.position.absolute
+                ? std::min(0.0f, crouch->second.position.vector.Y) : 0.0f;
+    }
     if (fitsFeet()) {
         m_stroke_lod.step(dt, m_stroke_detail);
         if (!m_feet_found)

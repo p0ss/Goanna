@@ -60,6 +60,10 @@ struct StepInput {
     // A crouch the pose asks for (a stroke's pelvis drop), nodes, zero or
     // negative: honoured up to STEP_CROUCH_MOST, on top of the feet's own.
     float crouch = 0.0f;
+    // A crouch of the whole stance (a sneaking player's), nodes, zero or
+    // negative: honoured up to STEP_STANCE_CROUCH_MOST, on top of the
+    // pose's own and the feet's.
+    float stance_crouch = 0.0f;
     std::vector<StepVec> hips; // each hip now, before the body is lowered
     std::vector<StepVec> rest; // each sole's rest place now (y ignored)
     StepFloor floor;
@@ -99,6 +103,7 @@ constexpr float STEP_SWING_MAX = 0.36f; // longest
 constexpr float STEP_HOLD = 2.0f; // stride threshold scale while holding
 constexpr float STEP_HALF_STRIDE = 0.35f; // furthest ahead or behind rest, L
 constexpr float STEP_CROUCH_MOST = 0.2f; // most crouch honoured, L
+constexpr float STEP_STANCE_CROUCH_MOST = 0.5f; // most stance crouch, L
 constexpr float STEP_TWIST_MOST = 0.5f; // most pelvis twist to the feet, rad
 // Walk to trot and back, as Froude numbers (speed squared over gravity
 // times leg length): animals change gait near 0.5.

@@ -423,6 +423,8 @@ private:
     std::vector<u32> m_look_joints;
     godot::Transform3D m_bind_pelvis;
     float m_crouch_request = 0.0f, m_plan_dt = 0.0f, m_steps_scale = 0.0f;
+    // The stance crouch the server declared (kindred_crouch), nodes, <= 0.
+    float m_stance_crouch = 0.0f;
     // A four-legged body: its fore legs hang from the chest. And for a
     // model planned without strokes, the clips it is planned in (track
     // numbers): any other clip leaves its legs to the clip.

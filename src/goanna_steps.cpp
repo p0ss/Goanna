@@ -235,7 +235,8 @@ void StepPlanner::settleBody(const StepInput &in, bool at_once) {
         }
         if (!std::isfinite(shortest))
             return;
-        soft += std::clamp(in.crouch, -STEP_CROUCH_MOST * shortest, 0.0f);
+        soft += std::clamp(in.crouch, -STEP_CROUCH_MOST * shortest, 0.0f)
+                + std::clamp(in.stance_crouch, -STEP_STANCE_CROUCH_MOST * shortest, 0.0f);
         soft_drop = at_once ? soft : soft_drop + (soft - soft_drop) * ease(in.dt, 0.08f);
         // No deeper than a crouch below standing on the lowest planted foot: a
         // root that jumps up a step leaves the body where it was until the
