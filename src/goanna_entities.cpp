@@ -1480,15 +1480,23 @@ void EntityRenderer::rebuildVisual(GoannaSession &session, GoannaActiveObject &o
         if (!en.nametag) {
             en.nametag = memnew(Label3D);
             en.nametag->set_billboard_mode(BaseMaterial3D::BILLBOARD_ENABLED);
-            en.nametag->set_draw_flag(Label3D::FLAG_FIXED_SIZE, true);
-            en.nametag->set_pixel_size(0.004f);
-            en.nametag->set_font_size(24);
-            en.nametag->set_outline_size(8);
+            // Its size on screen and its distance fade are set each sync
+            // (styleNametag), since they follow the window and the camera.
+            en.nametag->set_visibility_range_end_margin(4.0f);
+            en.nametag->set_visibility_range_fade_mode(GeometryInstance3D::VISIBILITY_RANGE_FADE_SELF);
             en.root->add_child(en.nametag);
         }
         en.nametag->set_text(String::utf8(p.nametag.c_str()));
         en.nametag->set_modulate(Color(p.nametag_color.getRed() / 255.0f, p.nametag_color.getGreen() / 255.0f,
                 p.nametag_color.getBlue() / 255.0f, p.nametag_color.getAlpha() / 255.0f));
+        // Upstream draws a rectangle behind the text: nametag_bgcolor if the
+        // object sets one, else a faint one that contrasts with the text
+        // (Nametag::getBgColor). A Label3D has no background, so the outline
+        // carries that colour, kept opaque enough to read against the world.
+        video::SColor bg = p.nametag_bgcolor.value_or(p.nametag_color.getBrightness() > 186
+                ? video::SColor(255, 0, 0, 0) : video::SColor(255, 255, 255, 255));
+        en.nametag->set_outline_modulate(Color(bg.getRed() / 255.0f, bg.getGreen() / 255.0f, bg.getBlue() / 255.0f,
+                std::max(bg.getAlpha(), (u32)160) / 255.0f));
         en.nametag->set_position(Vector3(0, p.collisionbox.MaxEdge.Y + 0.3f, 0));
     } else if (en.nametag) {
         en.nametag->queue_free();
@@ -1866,6 +1874,59 @@ bool EntityRenderer::overseerVisible(GoannaSession &session, GoannaActiveObject 
     return true;
 }
 
+// What a fixed size Label3D's pixel_size means on screen. Godot scales a
+// fixed size billboard by its view depth, so a world unit of it covers
+// rows / scale pixels: scale is 2 tan(fov / 2) for a perspective camera
+// (vertical fov) and 2 for an orthogonal one.
+struct NametagView {
+    float rows = 1080.0f;
+    float scale = 1.453f; // 72 degrees, upstream's default fov
+};
+
+static NametagView nametagView(Camera3D *camera) {
+    NametagView v;
+    if (!camera || !camera->get_viewport())
+        return v;
+    const Vector2 size = camera->get_viewport()->get_visible_rect().size;
+    if (size.y > 0.0f)
+        v.rows = size.y;
+    if (camera->get_projection() == Camera3D::PROJECTION_ORTHOGONAL) {
+        v.scale = 2.0f;
+    } else {
+        float t = std::tan(Math::deg_to_rad(camera->get_fov()) * 0.5f);
+        if (camera->get_keep_aspect_mode() == Camera3D::KEEP_WIDTH && size.x > 0.0f)
+            t *= size.y / size.x;
+        v.scale = 2.0f * t;
+    }
+    return v;
+}
+
+// Nametags at about upstream's size (Camera::drawNametags): its font size,
+// 16 px or nametag_fontsize, here grown with the window from 768 rows, so
+// about 22 px at 1080. The text is rasterised at that size and pixel_size
+// maps one of its pixels to one on screen. With nametag_scale_z upstream
+// starts from 3.2 times the size and shrinks it with distance, about as
+// 4 nodes / distance; a label of world size does the same. Unlike
+// upstream, which draws every name in view, a name fades out past 24 m so
+// a crowd far off does not pile up; the overseer's camera is high above,
+// so there names stay.
+static void styleNametag(Label3D &tag, const ObjectProperties &p, const NametagView &v, bool overseer) {
+    const float grow = std::max(1.0f, v.rows / 768.0f);
+    const float base = (float)p.nametag_fontsize.value_or(p.nametag_scale_z ? 51 : 16);
+    const int font = std::clamp((int)std::lround(base * grow), 8, 256);
+    tag.set_font_size(font);
+    tag.set_outline_size(std::max(2, font / 6));
+    tag.set_draw_flag(Label3D::FLAG_FIXED_SIZE, !p.nametag_scale_z);
+    const float pixel = (p.nametag_scale_z ? 4.0f : 1.0f) * v.scale / v.rows;
+    tag.set_pixel_size(pixel);
+    // The overhead lift, kept at the screen height it had before (32 units
+    // of 0.004 at 24 px), so the head under the label stays in sight.
+    tag.set_offset(Vector2(0, overseer ? 0.128f / pixel : 0.0f));
+    const float range = overseer ? 0.0f : 24.0f;
+    if (tag.get_visibility_range_end() != range)
+        tag.set_visibility_range_end(range);
+}
+
 // Once a frame, from GoannaClient::sync_entities after the session has
 // stepped the objects, under the map lock: drop nodes for objects that went,
 // make nodes for new ones, rebuild changed visuals, then pose, light and
@@ -1878,6 +1939,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
     // tier this sync.
     Camera3D *camera = m_root->is_inside_tree() && m_root->get_viewport() ? m_root->get_viewport()->get_camera_3d()
                                                                           : nullptr;
+    const NametagView nametag_view = nametagView(camera);
     int stroke_tiers[3] = {};
     syncBodyDamage(session);
     std::vector<std::string> damage_drop;
@@ -1960,7 +2022,7 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
         // Offset the billboard in its own screen plane so the live model is
         // visible, then restore the ordinary label position on exit.
         if (en.nametag)
-            en.nametag->set_offset(Vector2(0, m_overseer_root ? 32.0f : 0.0f));
+            styleNametag(*en.nametag, obj.props(), nametag_view, m_overseer_root != nullptr);
         // "Show own body" hides the copy the camera sees, not the whole
         // entity: the shadow-only copy stays, so a player who does not want
         // to see their own legs still has a shadow to judge the sun by.
