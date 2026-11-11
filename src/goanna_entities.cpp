@@ -1692,6 +1692,24 @@ Dictionary EntityRenderer::animation(GoannaSession &session, u16 id) const {
     d["tracks"] = anim ? trackList(*anim) : Array();
     Array joints;
     auto nit = m_nodes.find(id);
+    // The own body's local clip and stroke preview, and the stroke shown.
+    if (nit != m_nodes.end()) {
+        const EntityNode &en = nit->second;
+        d["local_body_track"] = en.local_body.track();
+        d["stroke_preview"] = (int)en.stroke_preview.mode;
+        d["stroke_refused"] = en.stroke_preview.refused;
+        d["stroke_preview_clock"] = en.stroke_preview.start + en.stroke_preview.age;
+        d["stroke_preview_answer"] = en.stroke_preview.answered ? en.stroke_preview.answer : -1;
+        int action = 0, phase = 0;
+        float t = 0;
+        if (en.animator && en.animator->strokeShown(action, phase, t)) {
+            Dictionary sd;
+            sd["action"] = action;
+            sd["phase"] = phase;
+            sd["t"] = t;
+            d["stroke"] = sd;
+        }
+    }
     if (nit != m_nodes.end() && nit->second.animator && nit->second.animator->model().skinned) {
         const ModelAnimator &animator = *nit->second.animator;
         const auto &mesh_joints = animator.model().skinned->getAllJoints();
@@ -2442,52 +2460,115 @@ void EntityRenderer::sync(GoannaSession &session, float dt, const Vector3 &camer
             }
             scene::AnimSpec none;
             scene::AnimSpec *anim = obj.meshAnimation();
-            // Only the local server-marked weapon anticipates preparation.
-            // A private override copy cannot mutate received state or contacts.
+            // The own body's stroke, shown ahead of the server for a
+            // server-marked weapon (goanna_strokes.h, StrokePreview). A
+            // private copy of the overrides carries it; the received state
+            // and contacts are never changed.
             auto *overrides = &obj.boneOverridesMut();
             std::map<std::string, BoneOverride> anticipated;
             if (is_self && session.player()) {
                 LocalPlayer *lp = session.player();
+                const auto &model = en.animator->model();
+                auto family_of = [&](int index) -> const StrokeEvaluator * {
+                    return index == 0 ? model.strokes.get() :
+                            (index > 0 && index < (int)model.stroke_families.size() ?
+                                    model.stroke_families[index].get() : nullptr);
+                };
                 auto marker = overrides->find("kindred_melee");
                 auto state = overrides->find("kindred_stroke");
-                int phase = state == overrides->end() || !state->second.scale.absolute ? 0 :
-                        (int)std::lround(state->second.scale.vector.Y);
-                // A normal completed stroke need not receive an explicit stop.
-                // Its old wire phase must not prevent the next local draw.
-                if (state != overrides->end() && (phase == 1 || phase == 2)) {
-                    const auto format = decodeStrokeFormat(state->second.scale.vector.Z);
-                    const auto &model = en.animator->model();
-                    const StrokeEvaluator *family = format.family == 0 ? model.strokes.get() :
-                            (format.family < (int)model.stroke_families.size() ?
-                                    model.stroke_families[format.family].get() : nullptr);
-                    if (format.format == 1 && family && state->second.position.vector.Y
-                            + state->second.dtime_passed >= family->length())
-                        phase = 0;
+                StrokePreviewInput in;
+                in.dt = dt;
+                // sync's dt is capped for a slow frame; the server is not.
+                const uint64_t now_us = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                if (en.stroke_preview_us)
+                    in.real_dt = std::min(1.0f, (now_us - en.stroke_preview_us) * 1e-6f);
+                en.stroke_preview_us = now_us;
+                const bool marked = marker != overrides->end() && marker->second.scale.absolute
+                        && marker->second.scale.vector.X > 0;
+                in.family = marked ? std::max(0, (int)std::lround(marker->second.scale.vector.Z) - 1) : 0;
+                const StrokeEvaluator *mine = marked ? family_of(in.family) : nullptr;
+                in.armed = mine && mine->length() > 0.0f && lp->hp > 0;
+                if (mine) {
+                    in.commit = mine->commit();
+                    in.length = mine->length();
                 }
                 const auto &interaction = session.interactState();
-                const bool enabled = marker != overrides->end() && marker->second.scale.absolute
-                        && marker->second.scale.vector.X > 0 && lp->hp > 0
-                        && !interaction.digging && !interaction.dig_impact;
-                const float pitch = lp->getPitch() * core::DEGTORAD;
-                if (en.draw_preview.step(dt, enabled, lp->control.dig, lp->control.place,
-                        phase, lp->getYaw() * core::DEGTORAD, pitch)) {
+                in.digging = interaction.digging || interaction.dig_impact;
+                in.open = !in.digging && interaction.pointed.type != POINTEDTHING_NODE;
+                in.dig = lp->control.dig;
+                in.place = lp->control.place;
+                in.yaw = lp->getYaw() * core::DEGTORAD;
+                in.pitch = lp->getPitch() * core::DEGTORAD;
+                if (state != overrides->end() && state->second.scale.absolute) {
+                    const BoneOverride &o = state->second;
+                    const auto format = decodeStrokeFormat(o.scale.vector.Z);
+                    StrokeServerState &ss = in.server;
+                    ss.phase = (int)std::lround(o.scale.vector.Y);
+                    ss.present = format.format == 1 || format.format == 5;
+                    ss.serial = (int)std::lround(o.scale.vector.X);
+                    ss.format = format.format;
+                    ss.family = format.family;
+                    ss.told = o.position.vector.X;
+                    ss.t = o.position.vector.Y;
+                    v3f aim;
+                    o.rotation.next.toEuler(aim);
+                    ss.pitch = aim.X;
+                    const StrokeEvaluator *f = family_of(format.family);
+                    ss.length = f ? f->length() : 0.0f;
+                }
+                const StrokePreview::Out shown = en.stroke_preview.step(in);
+                if (shown.shown) {
                     anticipated = *overrides;
                     BoneOverride preview;
-                    preview.position.vector = v3f(en.draw_preview.angle, 0, 0);
+                    preview.position.vector = v3f(shown.angle, shown.t, 0);
                     preview.position.absolute = true;
-                    preview.scale.vector = v3f(-1, 3, 1 + 8 * std::max(0,
-                            (int)std::lround(marker->second.scale.vector.Z) - 1));
+                    preview.scale.vector = v3f((float)shown.serial, (float)shown.phase,
+                            (float)(1 + STROKE_FAMILY_STEP * shown.family));
                     preview.scale.absolute = true;
-                    preview.rotation.next = core::quaternion(v3f(
-                            std::clamp(pitch, -1.047197551f, 1.308996939f), 0, 0));
+                    preview.rotation.next = core::quaternion(v3f(shown.pitch, 0, 0));
                     preview.rotation.absolute = true;
-                    preview.dtime_passed = std::max(0.0f, en.draw_preview.age - dt);
+                    // The animator adds this step's dt before it reads it.
+                    preview.dtime_passed = std::max(0.0f, shown.since - dt);
                     anticipated["kindred_stroke"] = preview;
                     overrides = &anticipated;
                 }
             }
+            // The own body's idle, walk and dig clips, played from its own
+            // controls when the server declares them by track
+            // (goanna_animation.h, LocalBodyAnimation).
+            const bool local_body = is_self && anim && session.player() && en.animator->model().skinned;
+            if (local_body) {
+                LocalPlayer *lp = session.player();
+                LocalBodyTracks tracks;
+                const auto decl = obj.boneOverrides().find(LOCAL_BODY_BONE);
+                if (decl != obj.boneOverrides().end() && decl->second.position.absolute
+                        && !obj.localPlayerAnimationActive())
+                    decodeLocalBodyTracks(decl->second.position.vector, decl->second.scale.vector, tracks);
+                const PlayerControl &c = lp->getPlayerControl();
+                const PlayerSettings &ps = lp->getPlayerSettings();
+                LocalBodyInput li;
+                li.movement_speed = c.movement_speed;
+                // A press that is a stroke is not a dig: the stroke poses
+                // the body over an idle or walk.
+                li.dig = c.dig && !en.stroke_preview.active();
+                li.place = c.place && !en.stroke_preview.active();
+                li.sneak = c.sneak;
+                li.fast = ps.fast_move && lp->privileges.fast
+                        && (c.aux1 || (!lp->touching_ground && ps.free_move && lp->privileges.fly));
+                li.attached = obj.attachmentParent() != 0;
+                en.local_body.apply(tracks, li, *en.animator->model().skinned, obj.serverAnimation(), *anim);
+            }
             en.animator->step(dt, anim ? *anim : none, *overrides, en.skeleton,
                     en.shadow_skeleton);
+            if (local_body)
+                en.local_body.keep(*anim);
+            // The animator advanced the copy's clocks; the received ones
+            // must keep time too, as the server's clock is read from them.
+            if (overrides == &anticipated) {
+                for (auto &kv : obj.boneOverridesMut())
+                    kv.second.dtime_passed += dt;
+            }
             // Hands and feet crossing the water's surface this step: the
             // splash of a stroke, a kick breaking the surface.
             const size_t limbs = en.animator->limbCount();

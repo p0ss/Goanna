@@ -33,33 +33,143 @@ float strokeResponseTime(int phase, float contact, float age, float length) {
     return pivot + (finish - pivot) * ease((age - turn) / (duration - turn));
 }
 
-bool StrokeDrawPreview::step(float dt, bool enabled, bool dig, bool place, int phase,
-        float look_yaw, float look_pitch) {
-    const bool pressed = dig && !previous_dig;
-    previous_dig = dig;
-    if (!enabled || !dig || place || phase != 0) {
-        active = false;
-        return false;
+StrokePreview::Out StrokePreview::step(const StrokePreviewInput &in) {
+    const float dt = std::max(0.0f, in.dt);
+    const float real = in.real_dt < 0 ? dt : in.real_dt;
+    for (Look &l : looks)
+        l.age += dt;
+    looks.push_back({0.0f, in.yaw, in.pitch});
+    while (looks.size() > 1 && looks.front().age > LEAD + 0.2f)
+        looks.erase(looks.begin());
+    const bool pressed = in.dig && !previous_dig;
+    previous_dig = in.dig;
+    const StrokeServerState &s = in.server;
+    if (s.present != held_present || s.serial != held_serial || s.phase != held_phase
+            || s.told != held_told || s.t != held_t) {
+        held = 0;
+        held_present = s.present;
+        held_serial = s.serial;
+        held_phase = s.phase;
+        held_told = s.told;
+        held_t = s.t;
+    } else {
+        held += real;
     }
+    // A stroke of the server's own on the bone (not a draw, not none).
+    const bool stroke = s.present && s.phase != 0 && s.phase != 3;
+    // Over by its own clock: a stroke at its length, a recovery (at most
+    // 0.36 s) after 0.4 s. A normal stroke need not be told to stop.
+    const bool over = stroke && (s.format == 5 ? held >= 0.4f : (s.length <= 0 || s.t + held >= s.length));
+    Out out;
     if (pressed) {
-        active = true;
+        refused = !in.armed ? 1 : 0;
+    }
+    if (!in.armed) {
+        mode = Mode::Idle;
+        return out;
+    }
+    // The server is free for a new draw: no stroke of its own playing, or
+    // only the one this client has played (in real time) to its length.
+    const bool free = !stroke || over || (mode == Mode::Strike && start + real_age + real > in.length);
+    if (pressed)
+        refused = !in.open ? 2 : in.place ? 3 : !free ? 4 : (s.present && s.phase == 3) ? 5 : 0;
+    if (pressed && in.open && !in.place && free && !(s.present && s.phase == 3)) {
+        mode = Mode::Draw;
         age = 0;
-        yaw = look_yaw;
-        pitch = look_pitch;
+        real_age = 0;
+        // The pull counts from LEAD before the press (input.lua look_at).
+        const Look *base = &looks.back();
+        for (const Look &l : looks) {
+            if (l.age <= LEAD + 1e-4f) {
+                base = &l;
+                break;
+            }
+        }
+        yaw = base->yaw;
+        pitch = base->pitch;
         angle = 0;
+        family = in.family;
+        press_serial = s.present ? s.serial : 0;
+        answered = false;
+        saw_draw = false;
+    } else if (mode == Mode::Draw || mode == Mode::Strike) {
+        age += dt;
+        real_age += real;
     }
-    if (!active)
-        return false;
-    age += std::max(0.0f, dt);
-    if (age > 0.18f) {
-        active = false;
-        return false;
+    if (mode == Mode::Draw) {
+        if (s.present && s.phase == 3)
+            saw_draw = true;
+        // A guard cancels the draw on the server; a dig, the client's own.
+        if (in.place || in.digging || (stroke && s.serial != press_serial)) {
+            mode = Mode::Idle;
+            return out;
+        }
+        const float right = -std::remainder(in.yaw - yaw, 6.283185307f);
+        const float up = -(in.pitch - pitch);
+        if (std::hypot(right, up) > DEAD)
+            angle = std::fmod(std::atan2(up, right) * 57.295779513f + 360.0f, 360.0f);
+        if (!in.dig) {
+            // The release: the stroke from the drawn point, as strike()
+            // in players.lua starts it.
+            // The server draws in real time.
+            start = std::min(1.0f, real_age / FULL_DRAW) * in.commit;
+            mode = Mode::Strike;
+            age = 0;
+            real_age = 0;
+        } else {
+            out.shown = true;
+            out.serial = DRAW_SERIAL;
+            out.phase = 3;
+            out.family = family;
+            out.angle = angle;
+            out.t = 0;
+            out.since = age;
+            out.pitch = std::clamp(in.pitch, -1.047197551f, 1.308996939f);
+            return out;
+        }
     }
-    const float right = -std::remainder(look_yaw - yaw, 6.283185307f);
-    const float up = -(look_pitch - pitch);
-    if (std::hypot(right, up) > 0.026179939f)
-        angle = std::fmod(std::atan2(up, right) * 57.295779513f + 360.0f, 360.0f);
-    return true;
+    if (mode != Mode::Strike)
+        return out;
+    const float t = start + age;
+    if (s.present && s.phase == 3)
+        saw_draw = true;
+    // The answer: the first new serial after the press. A newer one while
+    // this stroke plays is taken in its place (the server missed a hold,
+    // so its strokes answer later presses than they seem to).
+    if (stroke && s.serial != press_serial && (!answered || s.serial != answer)) {
+        answered = true;
+        answer = s.serial;
+    }
+    if (answered) {
+        // The server's own recovery, another family (a thrust) or the
+        // answer cut short: the server's.
+        if (!stroke || s.format == 5 || s.family != family) {
+            mode = Mode::Idle;
+            return out;
+        }
+        out.angle = s.told;
+        out.phase = s.phase;
+        out.pitch = s.pitch;
+    } else {
+        // Put down on the server without a stroke.
+        if (s.present && s.phase == 0 && saw_draw && held <= real_age + 1e-4f) {
+            mode = Mode::Idle;
+            return out;
+        }
+        if (real_age > ANSWER) {
+            mode = Mode::Idle;
+            return out;
+        }
+        out.angle = angle;
+        out.phase = t < in.commit ? 1 : 2;
+        out.pitch = std::clamp(in.pitch, -1.047197551f, 1.308996939f);
+    }
+    out.shown = true;
+    out.serial = STRIKE_SERIAL;
+    out.family = family;
+    out.t = start;
+    out.since = age;
+    return out;
 }
 
 namespace {

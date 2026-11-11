@@ -150,6 +150,19 @@ its walk range (frames 168 to 187) while W is held and its dig
 range (189 to 198) while digging. Mineclonia sets none, so its body plays
 what the server sends.
 
+Local animations are frame ranges of the model's first track, so they
+cannot name the clips of a glTF body that keeps each clip as a track of its
+own. A DorfCraft server declares such a body's idle, walk, dig and
+walk-while-digging tracks on a bone no mesh has, `kindred_local_anim`
+(position x, y, z and scale x the tracks counted from 1, scale y their
+speed, scale z the version, 1), which a vanilla client ignores.
+`LocalBodyAnimation` (`goanna_animation.h`) then chooses the clip from the
+controls as upstream does and plays it in place of the server's for those
+tracks, at the server's speed for the same track when the server plays it.
+While the server plays a clip it did not declare (sitting, lying, swimming,
+dying, a guard), or the player is attached, the body shows the server's
+animation. Other players' bodies are not affected.
+
 ## A model that fails to load
 
 Goanna has one flat magenta, `Color(0.8, 0.3, 0.8)`, used for an entity

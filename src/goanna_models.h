@@ -236,6 +236,14 @@ public:
     // it, the body lowered for the lower foot, the leg bent to suit. The
     // renderer says where the model stands each frame.
     // A flier (an air plan) takes the same frame for the floor under it.
+    // The stroke the state bone has this body posed in: its action serial,
+    // phase and clock (seconds), or false when it shows none. For tests.
+    bool strokeShown(int &action, int &phase, float &t) const {
+        action = m_melee.action;
+        phase = m_melee.phase;
+        t = m_melee.t;
+        return m_melee.active && m_melee.evaluator && (m_melee.loops || m_melee.t <= m_melee.evaluator->length());
+    }
     bool fitsFeet() const { return m_model->strokes != nullptr || m_model->steps || m_model->air != nullptr; }
     void setGround(GroundFrame frame) { m_ground = std::move(frame); }
     // How much of the stroke and foot fitting to work out from the next

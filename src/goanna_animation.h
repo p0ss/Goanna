@@ -14,7 +14,8 @@
 //
 // Pure functions with no state of their own; ModelAnimator calls them on the
 // main thread. Main functions: animateTracks and keepOldTransforms, over
-// the JointTransforms and OldJointTransforms types.
+// the JointTransforms and OldJointTransforms types. LocalBodyAnimation, at
+// the end, keeps the one piece of state: the own body's local clip.
 
 #include <optional>
 #include <vector>
@@ -52,5 +53,64 @@ bool animationAllowsSteps(const scene::SkinnedMesh &mesh, const scene::AnimSpec 
 // AnimatedMeshSceneNode::copyOldTransforms: records transforms as the pose to
 // blend from next frame.
 void keepOldTransforms(const JointTransforms &transforms, OldJointTransforms &old_transforms);
+
+// The own body's idle, walk and dig clips played by the client from its
+// own controls, on a body whose clips are separate named tracks. Upstream's
+// set_local_animation does this for a model whose clips are frame ranges
+// of its first track (character.b3d), and Goanna plays that as upstream
+// does (content_cao's stepLocalPlayerAnimation); a glTF body with one
+// track a clip cannot be described by frame ranges. A Kindred server
+// declares the tracks on a bone no mesh has (LOCAL_BODY_BONE), which stock
+// clients ignore: position x, y, z the idle, walk and dig tracks and scale
+// x the walk while digging, each a track number counted from 1 (0 none),
+// scale y the clips' speed and scale z the declaration's version (1).
+//
+// The client chooses the clip as upstream does (walking from the movement
+// input, digging from dig or place; attached: none) and plays it in place
+// of the server's: declared tracks the server plays are not shown, as
+// upstream ignores a server animation with a local range. A dig's speed is
+// the server's for the same track when the server plays it (kept in time
+// with the block); otherwise, and for idle and walk always, the declared
+// speed scaled as upstream scales it.
+// While the server shows a clip of its own that is not declared (a
+// priority 0 track with a range: sit, lay, swim, die, a guard), the
+// client defers to it entirely.
+constexpr const char *LOCAL_BODY_BONE = "kindred_local_anim";
+
+struct LocalBodyTracks {
+    int idle = -1, walk = -1, dig = -1, walk_dig = -1; // track numbers from 0; -1 none
+    float speed = 1.0f;
+    bool any() const { return idle >= 0 || walk >= 0 || dig >= 0 || walk_dig >= 0; }
+};
+// False, and out left with no tracks, unless the values are a version 1
+// declaration.
+bool decodeLocalBodyTracks(const core::vector3df &position, const core::vector3df &scale, LocalBodyTracks &out);
+
+struct LocalBodyInput {
+    float movement_speed = 0; // PlayerControl's, 0 to 1
+    bool dig = false, place = false, sneak = false;
+    bool fast = false; // fast movement in use, as upstream reckons it
+    bool attached = false;
+};
+
+class LocalBodyAnimation {
+public:
+    // Before the mesh animation advances: lay the local clip over it (the
+    // mesh's own animation, which the renderer advances), or give the
+    // declared tracks back to the server's animation when deferring.
+    void apply(const LocalBodyTracks &tracks, const LocalBodyInput &in, const scene::SkinnedMesh &mesh,
+            const scene::AnimSpec &server, scene::AnimSpec &shown);
+    // After it advanced: keep the local clip's progress.
+    void keep(const scene::AnimSpec &shown);
+    bool active() const { return m_active; }
+    int track() const { return m_active ? m_track : -1; }
+
+private:
+    void restore(const scene::AnimSpec &server, scene::AnimSpec &shown);
+    bool m_active = false;
+    int m_track = -1;
+    scene::TrackAnimSpec m_spec;
+    std::vector<int> m_declared;
+};
 
 } // namespace goanna

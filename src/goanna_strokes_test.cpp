@@ -177,24 +177,194 @@ void checkBody(const std::string &path, std::shared_ptr<const StrokeFamily> fami
 
 } // namespace
 
+// The own body's stroke ahead of the server (StrokePreview): a frame a
+// 60th of a second, a sword family committing at 0.5 s of 1.85.
+StrokePreviewInput frame(bool dig, float yaw = 0) {
+    StrokePreviewInput in;
+    in.dt = 1.0f / 60;
+    in.armed = true;
+    in.open = true;
+    in.dig = dig;
+    in.commit = 0.5f;
+    in.length = 1.85f;
+    in.yaw = yaw;
+    return in;
+}
+
+StrokeServerState server(int serial, int phase, float told = 0, float t = 0) {
+    StrokeServerState s;
+    s.present = true;
+    s.serial = serial;
+    s.phase = phase;
+    s.format = 1;
+    s.told = told;
+    s.t = t;
+    s.length = 1.85f;
+    return s;
+}
+
+void checkPreview() {
+    {
+        StrokePreview p;
+        auto in = frame(true);
+        in.armed = false;
+        expect(!p.step(in).shown, "an ordinary server never anticipates");
+    }
+    {
+        StrokePreview p;
+        p.step(frame(false));
+        auto out = p.step(frame(true));
+        expect(out.shown && out.phase == 3 && out.serial == StrokePreview::DRAW_SERIAL,
+                "a press on a marked weapon draws in the same frame");
+        for (int i = 0; i < 60; ++i)
+            out = p.step(frame(true, i * -0.002f));
+        expect(out.shown && out.phase == 3 && out.angle < 1, "a long hold keeps drawing, pulled right");
+        out = p.step(frame(false, -0.12f));
+        expect(out.shown && out.serial == StrokePreview::STRIKE_SERIAL && out.phase == 2,
+                "the release strikes at once, from the full draw's commit");
+        expect(std::fabs(out.t - 0.5f) < 1e-4f && out.since == 0, "the strike starts at the drawn point");
+        for (int i = 0; i < 6; ++i)
+            out = p.step(frame(false));
+        expect(out.shown && std::fabs(out.since - 0.1f) < 1e-4f, "and runs on the client's clock");
+        // The server's answer: its angle on the client's clock, not restarted.
+        auto in = frame(false);
+        in.server = server(7, 2, 30, 0.55f);
+        out = p.step(in);
+        expect(out.shown && out.serial == StrokePreview::STRIKE_SERIAL && out.angle == 30
+                && std::fabs(out.t - 0.5f) < 1e-4f, "the answer is shown on the client's clock");
+        for (int i = 0; i < 120; ++i)
+            out = p.step(in);
+        expect(out.shown && out.t + out.since > 1.85f, "a stroke played through stays over");
+        out = p.step(in);
+        expect(out.shown, "and is not replayed while the server's own clock runs on");
+        auto press = frame(true);
+        press.server = in.server;
+        out = p.step(press);
+        expect(out.shown && out.phase == 3, "a press after the local end draws again");
+    }
+    {
+        StrokePreview p;
+        p.step(frame(false));
+        p.step(frame(true));
+        auto out = p.step(frame(false));
+        auto in = frame(false);
+        in.server = server(4, 1);
+        in.server.format = 5;
+        out = p.step(in);
+        expect(!out.shown && !p.active(), "a confirmed recovery replaces the prediction");
+    }
+    {
+        StrokePreview p;
+        p.step(frame(false));
+        p.step(frame(true));
+        auto in = frame(true);
+        in.server = server(0, 3, 0, 0.1f);
+        p.step(in);
+        p.step(frame(false));
+        in = frame(false);
+        in.server = server(0, 0, 0, 0);
+        auto out = p.step(in);
+        expect(!out.shown && !p.active(), "a draw put down on the server ends the predicted strike");
+    }
+    {
+        StrokePreview p;
+        auto idle = frame(false);
+        idle.server = server(3, 2, 0, 0.6f);
+        p.step(idle);
+        auto in = frame(true);
+        in.server = idle.server;
+        expect(!p.step(in).shown, "no draw while the server's stroke plays");
+        // Resent unchanged (every override is resent when any is set):
+        // the same state, still ageing.
+        for (int i = 0; i < 80; ++i)
+            p.step(idle);
+        expect(p.step(in).shown, "a draw once it is over by its clock, through resends");
+        auto other = frame(false);
+        other.server = idle.server;
+        auto out = p.step(other);
+        expect(out.shown && out.phase == 1 && std::fabs(out.t) < 0.03f,
+                "a short tap strikes from near the start, the stale stroke not taken as the answer");
+        other.server = server(4, 1, 0, 0.0f);
+        other.server.family = 2;
+        out = p.step(other);
+        expect(!out.shown, "an answer of another family (a thrust) is the server's");
+    }
+    {
+        StrokePreview p;
+        p.step(frame(false));
+        p.step(frame(true));
+        auto in = frame(true);
+        in.place = true;
+        expect(!p.step(in).shown, "the guard cancels the local draw");
+        p.step(frame(false));
+        in = frame(true);
+        in.open = false;
+        expect(!p.step(in).shown, "a press on a node is a dig, not a draw");
+        p.step(frame(false));
+        p.step(frame(true));
+        in = frame(true);
+        in.digging = true;
+        expect(!p.step(in).shown, "the client digging ends the draw");
+    }
+    {
+        // The server never saw the first hold: its first strike answers
+        // the second, and a third press after that stroke's length draws.
+        StrokePreview p;
+        auto at = [&](bool dig, const StrokeServerState &s, int frames) {
+            StrokePreview::Out o;
+            for (int i = 0; i < frames; ++i) {
+                auto in = frame(dig);
+                in.server = s;
+                o = p.step(in);
+            }
+            return o;
+        };
+        StrokeServerState none;
+        at(true, none, 30);
+        at(false, none, 150);
+        at(true, none, 20);
+        at(true, server(0, 3, 0, 0.1f), 10);
+        at(false, server(0, 3, 0, 0.1f), 60);
+        auto out = at(false, server(1, 1, 0, 0.3f), 60);
+        expect(out.shown && p.answered && p.answer == 1, "its strike is taken as the second press's answer");
+        out = at(true, server(1, 1, 0, 0.3f), 1);
+        expect(out.shown && out.phase == 3, "a press after a missed hold's successor draws");
+    }
+    {
+        // A slow client: the renderer caps its step at 0.1 s of frames
+        // 0.17 s long. The server's clock and the gate keep real time.
+        StrokePreview p;
+        auto slow = [](bool dig, const StrokeServerState &s) {
+            auto in = frame(dig);
+            in.dt = 0.1f;
+            in.real_dt = 0.17f;
+            in.server = s;
+            return in;
+        };
+        StrokeServerState none;
+        p.step(slow(false, none));
+        for (int i = 0; i < 3; ++i)
+            p.step(slow(true, none));
+        auto out = p.step(slow(false, none));
+        expect(out.shown && std::fabs(out.t - 0.51f * 0.5f / 0.8f) < 1e-3f, "the strike starts from the real draw");
+        for (int i = 0; i < 12; ++i)
+            out = p.step(slow(false, server(1, 1, 0, 0.3f)));
+        out = p.step(slow(true, server(1, 1, 0, 0.3f)));
+        expect(out.shown && out.phase == 3, "a press 2.2 s after the release draws on a slow client");
+    }
+    {
+        StrokePreview p;
+        p.step(frame(false));
+        p.step(frame(true));
+        auto out = p.step(frame(false));
+        for (int i = 0; i < 300; ++i)
+            out = p.step(frame(false));
+        expect(!out.shown && !p.active(), "an unanswered stroke is let go");
+    }
+}
+
 int main(int argc, char **argv) {
-    StrokeDrawPreview preview;
-    expect(!preview.step(.016f, false, true, false, 0, 0, 0), "ordinary server never anticipates");
-    preview.step(.016f, true, false, false, 0, 0, 0);
-    expect(preview.step(.016f, true, true, false, 0, 0, 0), "marked weapon acknowledges press in one frame");
-    expect(preview.step(.016f, true, true, false, 0, -.1f, 0) && preview.angle < 1,
-            "local draw follows horizontal pull");
-    expect(!preview.step(.016f, true, true, false, 3, 0, 0), "server draw replaces anticipation");
-    preview.step(.016f, true, false, false, 0, 0, 0);
-    preview.step(.016f, true, true, false, 0, 0, 0);
-    expect(!preview.step(.2f, true, true, false, 0, 0, 0), "refused preparation times out");
-    expect(!preview.step(.016f, true, true, false, 0, 0, 0), "held refused press never retriggers");
-    preview.step(.016f, true, false, false, 0, 0, 0);
-    preview.step(.016f, true, true, false, 0, 0, 0);
-    expect(!preview.step(.016f, true, true, true, 0, 0, 0), "guard cancels speculative preparation");
-    preview.step(.016f, true, false, false, 0, 0, 0);
-    preview.step(.016f, true, true, false, 0, 0, 0);
-    expect(!preview.step(.016f, true, false, false, 0, 0, 0), "release never predicts a damaging strike");
+    checkPreview();
     if (argc > 2 && std::string(argv[1]) == "--response-only") {
         Json::Value cases;
         expect(readJson(argv[2], cases), "Lua response fixture parses");

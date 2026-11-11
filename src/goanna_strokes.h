@@ -79,13 +79,96 @@ StrokeFormat decodeStrokeFormat(float z);
 // Mirrors DorfCraft response.lua. These times never authorise damage.
 float strokeResponseTime(int phase, float contact, float age, float length);
 
-// Local preparation only, for a server-marked Kindred weapon. Release,
-// server state, mining or a 180 ms timeout always ends anticipation.
-struct StrokeDrawPreview {
-    bool active = false, previous_dig = false;
-    float age = 0, yaw = 0, pitch = 0, angle = 0;
-    bool step(float dt, bool enabled, bool dig, bool place, int phase,
-            float look_yaw, float look_pitch);
+// The own body's stroke shown ahead of the server, for a server-marked
+// Kindred weapon (DorfCraft's docs/tasks/first-person-melee-combat.md,
+// "Client prediction"). Presentation only: it sends nothing, and contact,
+// damage, guard and recovery stay the server's.
+//
+// A press, when the server shows no stroke and nothing but air or a
+// fighter is under the crosshair, draws at once, as the server's input
+// machine will (DorfCraft's input.lua): the angle is the look's pull since
+// LEAD seconds before the press, the draw grows over FULL_DRAW seconds. The
+// release strikes at once from the drawn point (draw x commit) on the
+// client's own clock. The server's answer is the first stroke state with
+// an action serial other than the one the bone held at the press: from
+// then its angle, phase and pitch are shown on the client's clock, which
+// runs ahead by about the round trip, so the stroke is neither restarted
+// nor rewound. Corrections replace the prediction at once: a confirmed
+// recovery (format 5), a family other than the one predicted (a thrust),
+// the answer cut short, or a phase 0 after the server had shown the draw
+// (no stroke: a feint, exhaustion, a stagger). A newer serial while the
+// stroke plays replaces the answer (the server missed an earlier hold, so
+// its strokes answer later presses). A stroke the client has played
+// through is not played again when a late answer arrives, and a press
+// after it has run its length draws at once.
+struct StrokeServerState {
+    bool present = false; // a stroke state (format 1 or 5) on the bone
+    int serial = 0, phase = 0, format = 0, family = 0;
+    float told = 0, t = 0;
+    float length = 0; // its family's stroke length, seconds; 0 unknown
+    float pitch = 0; // its accepted weapon elevation, radians
+};
+
+struct StrokePreviewInput {
+    float dt = 0; // the animator's step, which the shown clock keeps
+    // The real time since the last step, which the renderer's dt may fall
+    // short of (it caps a slow frame): the server's clock is real time.
+    // Negative: the same as dt.
+    float real_dt = -1;
+    bool armed = false; // a server-marked Kindred weapon, alive
+    bool open = false; // a press may draw: no node pointed
+    bool digging = false; // the client is digging a node
+    bool dig = false, place = false;
+    int family = 0; // the marker's stroke family
+    float commit = 0, length = 0; // that family's timing, seconds
+    float yaw = 0, pitch = 0; // the look, radians
+    StrokeServerState server;
+};
+
+struct StrokePreview {
+    // input.lua's FULL_DRAW and LEAD, and its DEAD in radians.
+    static constexpr float FULL_DRAW = 0.8f, LEAD = 0.15f, DEAD = 0.026179939f;
+    // An unanswered stroke is let go this long after its release.
+    static constexpr float ANSWER = 4.0f;
+    // The serials the anticipated state carries, never the server's, so
+    // the animator takes a draw, a strike and the server's own state as
+    // three actions.
+    static constexpr int DRAW_SERIAL = -1, STRIKE_SERIAL = -2;
+
+    enum class Mode { Idle, Draw, Strike };
+    Mode mode = Mode::Idle;
+    bool previous_dig = false;
+    float age = 0; // Draw: since the press; Strike: since the release
+    float real_age = 0; // the same, in real time
+    float start = 0; // the strike's clock at the release, seconds
+    float angle = 0, yaw = 0, pitch = 0; // drawn angle (degrees), the look pulled from
+    int family = 0;
+    int press_serial = 0; // the server's serial on the bone at the press
+    int answer = 0; // the server's serial for this stroke, once answered
+    bool answered = false, saw_draw = false;
+    // How long the bone has held the same state. Not its dtime_passed:
+    // Luanti resends every override whenever any one is set, and each
+    // resend starts that again.
+    float held = 0;
+    bool held_present = false;
+    int held_serial = 0, held_phase = 0;
+    float held_told = 0, held_t = 0;
+    struct Look { float age, yaw, pitch; };
+    std::vector<Look> looks; // the look over the last LEAD and a little
+
+    // What to show in place of the server's state, when shown: the state
+    // bone's fields as the server would set them.
+    struct Out {
+        bool shown = false;
+        int serial = 0, phase = 0, family = 0;
+        float angle = 0, t = 0, since = 0, pitch = 0;
+    };
+    Out step(const StrokePreviewInput &in);
+    bool active() const { return mode != Mode::Idle; }
+    // Why the last press did not draw, for tests: 0 it drew (or none yet),
+    // 1 not armed, 2 a node under the crosshair, 3 guarding, 4 the
+    // server's stroke still playing, 5 the server still drawing.
+    int refused = 0;
 };
 
 // False if the JSON does not parse or lacks a field the evaluator needs.

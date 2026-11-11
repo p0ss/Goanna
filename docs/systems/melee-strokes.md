@@ -61,6 +61,39 @@ The evaluated pose is applied exactly as an absolute Luanti bone override
 with the same numbers would be, after the server's own overrides and
 before Goanna's knees, elbows and jiggle bones.
 
+## The own stroke ahead of the server
+
+For a weapon the server marks (the `kindred_melee` bone's scale x above 0,
+its z the stroke family plus 1), Goanna shows the player's own draw and
+strike before the server's state arrives (`StrokePreview`). It passes the
+animator a private copy of the overrides with a state of its own; the
+received state, which the server's clock is read from, keeps its time. The
+contract, what the client may predict and how the server confirms or
+corrects it, is DorfCraft's (`docs/tasks/first-person-melee-combat.md`,
+"Client prediction"). In short:
+
+- A press with no stroke of the server's playing and no node under the
+  crosshair draws at once (phase 3), the angle pulled from the look as
+  the server pulls it, from 0.15 s before the press.
+- The release strikes at once from the drawn point, on the client's
+  clock (serial -2, so the animator takes it as a new action).
+- The server's first state with a new serial is its answer (a newer one
+  while the stroke plays replaces it): its angle, phase and pitch are
+  shown on the client's clock, which stays ahead by about the round trip,
+  and a stroke played through is not played again.
+- A recovery (format 5), another family, the answer cut short, or a phase
+  0 after the server showed the draw hands the body to the server's state
+  at once. An answer that never comes is let go 4 s after the release.
+- The server's own stroke is over by its clock as the bone has held it,
+  not by `dtime_passed`: every override is resent whenever any is set, and
+  a resend starts `dtime_passed` again. That clock, the draw a strike
+  starts from and the gate for the next press keep real time; the entity
+  step caps a slow frame at 0.1 s, which would slow them (a 6 frames a
+  second client ran them at 60% of real time). The shown pose keeps the
+  animator's step.
+
+Nothing is sent: contact, damage and the blade sweep stay on the server.
+
 ## Feet on the ground
 
 A model with a stroke plan whose legs can be planned plans its steps

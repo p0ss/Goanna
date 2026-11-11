@@ -555,6 +555,70 @@ void testLocalPlayerAnimations() {
     mesh->drop();
 }
 
+// A Kindred server's declared own-body tracks (LocalBodyAnimation): the
+// client plays idle, walk and dig from its controls in place of the
+// server's, keeps the server's speed for the same clip, and stands aside
+// for a clip of the server's own or while attached.
+void testLocalBodyTracks() {
+    LocalBodyTracks none;
+    check(!decodeLocalBodyTracks(v3f(1, 2, 3), v3f(3, 1, 2), none) && !none.any(),
+            "only a version 1 declaration is read");
+    LocalBodyTracks t;
+    check(decodeLocalBodyTracks(v3f(1, 2, 3), v3f(3, 1, 1), t) && t.idle == 0 && t.walk == 1 && t.dig == 2
+            && t.walk_dig == 2 && nearf(t.speed, 1), "tracks are counted from 1 on the wire");
+    scene::SkinnedMesh *mesh = buildMesh();
+    Rig r(mesh);
+    r.attach();
+    LocalBodyAnimation local;
+    LocalBodyInput in;
+    auto frame = [&](float dt) {
+        r.apply();
+        local.apply(t, in, *mesh, r.obj.serverAnimation(), *r.obj.meshAnimation());
+        r.step(dt);
+        local.keep(*r.obj.meshAnimation());
+    };
+    // The server's dig clip, arriving after the player let go.
+    r.send(setAnimation({0, 2, 0.5f, 0, true, 0, 0}, num(3)));
+    frame(0.1f);
+    check(local.track() == 0 && r.track(0) && !r.track(2), "let go, the body idles at once, the late dig unshown");
+    in.dig = true;
+    frame(0.1f);
+    check(local.track() == 2 && r.track(2) && !r.track(0), "held, it digs at once");
+    check(nearf(r.track(2)->fps, 0.5f), "at the server's speed for the same clip");
+    const float at = r.track(2)->cur_frame;
+    r.send(setAnimation({0, 2, 0.5f, 0, true, 0, 1.5f}, num(3)));
+    frame(0.1f);
+    check(nearf(r.track(2)->cur_frame, at + 0.05f), "a resent server dig does not restart the local one");
+    in.dig = false;
+    in.movement_speed = 0.5f;
+    r.send(stopAnimation(num(3)));
+    r.send(setAnimation({0, 4, 30, 0, true, 0, 0}, num(2)));
+    frame(0.1f);
+    check(local.track() == 1 && r.track(1) && nearf(r.track(1)->fps, 0.5f),
+            "walking scales the declared speed, not the server's for the walk");
+    r.send(stopAnimation(num(2)));
+    in.movement_speed = 0;
+    LocalBodyTracks partial = t;
+    partial.walk = -1;
+    t = partial;
+    r.send(setAnimation({0, 4, 1, 0, true, 0, 0}, num(2)));
+    frame(0.1f);
+    check(!local.active() && r.track(1) && r.track(1)->max_frame > 0,
+            "a clip of the server's own (undeclared) is shown as the server sent it");
+    r.send(stopAnimation(num(2)));
+    frame(0.1f);
+    check(local.track() == 0, "and the local idle resumes when it stops");
+    in.attached = true;
+    frame(0.1f);
+    check(!local.active(), "attached, the server's animation is shown");
+    in.attached = false;
+    frame(0.1f);
+    t = LocalBodyTracks();
+    frame(0.1f);
+    check(!local.active() && !r.track(0), "a withdrawn declaration gives the tracks back to the server");
+    mesh->drop();
+}
+
 // Received properties, including the engine-unit conversion, drive the
 // same step configuration and jump gate used by the real input path.
 void testPlayerSteps() {
@@ -635,6 +699,7 @@ int main() {
     testQueueOrder();
     testQueueBound();
     testLocalPlayerAnimations();
+    testLocalBodyTracks();
     testPlayerSteps();
     if (g_failures) {
         std::printf("%d animation check(s) failed\n", g_failures);

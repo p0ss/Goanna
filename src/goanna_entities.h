@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "goanna_animation.h"
 #include "goanna_body_damage.h"
 #include "goanna_strokes.h"
 
@@ -174,7 +175,9 @@ private:
         godot::Skeleton3D *shadow_skeleton = nullptr;
         std::unique_ptr<ModelAnimator> animator;
         std::string arm_bone; // first-person arm, chosen by which side it shows on
-        StrokeDrawPreview draw_preview;
+        StrokePreview stroke_preview;
+        uint64_t stroke_preview_us = 0; // when it last stepped, steady clock
+        LocalBodyAnimation local_body; // own body only
         // For the water strokes (goanna_limbs.h): where the body was last
         // sync and how fast it is going across, nodes a second, eased.
         v3f limb_last_pos;
