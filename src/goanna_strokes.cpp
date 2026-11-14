@@ -88,6 +88,7 @@ StrokePreview::Out StrokePreview::step(const StrokePreviewInput &in) {
         yaw = base->yaw;
         pitch = base->pitch;
         angle = 0;
+        reach = DEAD;
         family = in.family;
         press_serial = s.present ? s.serial : 0;
         answered = false;
@@ -106,8 +107,11 @@ StrokePreview::Out StrokePreview::step(const StrokePreviewInput &in) {
         }
         const float right = -std::remainder(in.yaw - yaw, 6.283185307f);
         const float up = -(in.pitch - pitch);
-        if (std::hypot(right, up) > DEAD)
+        // The pull's furthest point aims, as input.lua's draw_step does.
+        if (std::hypot(right, up) > reach) {
+            reach = std::hypot(right, up);
             angle = std::fmod(std::atan2(up, right) * 57.295779513f + 360.0f, 360.0f);
+        }
         if (!in.dig) {
             // The release: the stroke from the drawn point, as strike()
             // in players.lua starts it.

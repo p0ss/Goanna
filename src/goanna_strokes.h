@@ -127,7 +127,7 @@ struct StrokePreviewInput {
 
 struct StrokePreview {
     // input.lua's FULL_DRAW and LEAD, and its DEAD in radians.
-    static constexpr float FULL_DRAW = 0.8f, LEAD = 0.15f, DEAD = 0.026179939f;
+    static constexpr float FULL_DRAW = 0.8f, LEAD = 0.15f, DEAD = 0.052359878f;
     // An unanswered stroke is let go this long after its release.
     static constexpr float ANSWER = 4.0f;
     // The serials the anticipated state carries, never the server's, so
@@ -142,6 +142,7 @@ struct StrokePreview {
     float real_age = 0; // the same, in real time
     float start = 0; // the strike's clock at the release, seconds
     float angle = 0, yaw = 0, pitch = 0; // drawn angle (degrees), the look pulled from
+    float reach = 0; // the pull's furthest point so far (input.lua m.reach)
     int family = 0;
     int press_serial = 0; // the server's serial on the bone at the press
     int answer = 0; // the server's serial for this stroke, once answered
