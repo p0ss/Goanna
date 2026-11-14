@@ -135,6 +135,7 @@ func _run() -> void:
 	_test_slot_input_events()
 	_test_drag_to_distribute()
 	_test_double_click_to_collect()
+	_test_shift_double_click_moves_kind()
 	_test_click_and_craft_paths()
 	_test_partial_elements()
 	_test_scroll_container()
@@ -525,6 +526,37 @@ func _test_double_click_to_collect() -> void:
 	_equal(ui.client.actions, ["Move 5 current_player main 1 current_player main 0"],
 		"a collect takes only up to the stack maximum and then stops")
 	_equal(ui.selected.get("amount", 0), 8, "the cursor ends holding a full stack")
+	_discard_inventory_ui(ui)
+
+
+# Shift and double click moves every stack of that item to the next list in
+# the ring, one MoveSomewhere each; a plain double click after it does not.
+func _test_shift_double_click_moves_kind() -> void:
+	var ui := _new_inventory_ui({"main": [
+		_stack("default:stone", 1), _stack("default:apple", 3), _stack("default:stone", 1),
+		_stack("default:stone", 1)]})
+	ui._on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, true)
+	ui._on_slot_released("current_player", "main", 0, MOUSE_BUTTON_LEFT)
+	ui._on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, true)
+	ui._on_slot_double_clicked("current_player", "main", 0)
+	ui._on_slot_released("current_player", "main", 0, MOUSE_BUTTON_LEFT)
+	_equal(ui.client.actions, [
+		"MoveSomewhere 1 current_player main 0 current_player craft",
+		"MoveSomewhere 1 current_player main 0 current_player craft",
+		"MoveSomewhere 1 current_player main 2 current_player craft",
+		"MoveSomewhere 1 current_player main 3 current_player craft"],
+		"a shift double click moves every stone and leaves the apples")
+	_discard_inventory_ui(ui)
+
+	# A shift click and then a plain double click is a shift click and a
+	# collect attempt, not a move of the kind.
+	ui = _new_inventory_ui({"main": [_stack("default:stone", 1), {}, _stack("default:stone", 1)]})
+	ui._on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, true)
+	ui._on_slot_released("current_player", "main", 0, MOUSE_BUTTON_LEFT)
+	ui._on_slot_clicked("current_player", "main", 0, MOUSE_BUTTON_LEFT, false)
+	ui._on_slot_double_clicked("current_player", "main", 0)
+	_equal(ui.client.actions.filter(func(a: String) -> bool: return a.begins_with("MoveSomewhere") and a.contains(" main 2 ")), [],
+		"without shift on the second press, the other stone stays")
 	_discard_inventory_ui(ui)
 
 

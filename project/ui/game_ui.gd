@@ -88,6 +88,7 @@ var pending_craft := false
 var craft_drop_target := {}             # release before the craft reply arrived
 var craft_location := "current_player"
 var shift_craft_location := ""         # non-empty: a shift-crafted stack is due a ring move
+var shift_kind := {}                   # the last shift click, for a shift double click
 var chat_printed := 0
 var hud_scale := 1.0
 var gui_scale := 1.0           # user interface-scale multiplier (Display settings)
@@ -2130,7 +2131,16 @@ func _on_slot_dragged(location: String, listname: String, index: int, button: in
 # maximum. The press that came with it started a left drag, and collecting
 # cancels that drag, as upstream does.
 func _on_slot_double_clicked(location: String, listname: String, index: int) -> void:
-	if selected.is_empty() or not client.has_method("inventory_action"):
+	if not client.has_method("inventory_action"):
+		return
+	if not shift_kind.is_empty():
+		var kind: Dictionary = shift_kind
+		shift_kind = {}
+		var loc := form_context if location == "context" else location
+		if kind["location"] == loc and kind["listname"] == listname and kind["index"] == index:
+			_move_kind(kind)
+		return
+	if selected.is_empty():
 		return
 	if location == "context":
 		if form_context == "":
@@ -2168,6 +2178,24 @@ func _on_slot_double_clicked(location: String, listname: String, index: int) -> 
 		selected["amount"] = int(selected["amount"]) + collected
 		drag_slots = []
 		hud.queue_redraw()
+
+# Shift and double click: every other stack of the item the shift click just
+# moved goes the same way, one ordinary MoveSomewhere each, as if each had
+# been shift clicked in turn. The press that shifted the first one already
+# sent it, so its own slot is left out.
+func _move_kind(kind: Dictionary) -> void:
+	var loc: String = kind["location"]
+	var lname: String = kind["listname"]
+	for i in _list_size(loc, lname):
+		if i == int(kind["index"]):
+			continue
+		var other := get_list_item(loc, lname, i)
+		var n: int = int(other.get("count", 0))
+		if n == 0 or String(other.get("name", "")) != kind["name"] \
+				or int(other.get("wear", 0)) != int(kind["wear"]):
+			continue
+		client.inventory_action("MoveSomewhere %d %s %s %d %s %s" % [n, loc, lname, i,
+			kind["dst"], kind["dst_list"]])
 
 # A mouse button came up. The slot named is the one under the pointer, which
 # Godot does not otherwise tell the slot that took the press; an empty
@@ -2228,6 +2256,8 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		drag_picked = false
 		drag_slots = []
 		drag_amount = 0
+	if press and not shift:
+		shift_kind = {}
 	var item := get_list_item(location, listname, index)
 	var count: int = item.get("count", 0)
 	if shift and button == MOUSE_BUTTON_LEFT and count > 0 and selected.is_empty() and listname != "craftpreview":
@@ -2237,6 +2267,9 @@ func _on_slot_clicked(location: String, listname: String, index: int, button: in
 		if not nxt.is_empty():
 			var dst: String = form_context if nxt["location"] == "context" else nxt["location"]
 			client.inventory_action("MoveSomewhere %d %s %s %d %s %s" % [count, location, listname, index, dst, nxt["listname"]])
+			shift_kind = {"location": location, "listname": listname, "index": index,
+				"name": String(item.get("name", "")), "wear": int(item.get("wear", 0)),
+				"dst": dst, "dst_list": nxt["listname"]}
 		return
 	if listname == "craftpreview":
 		# The preview only shows what the grid would make; the real item is in
