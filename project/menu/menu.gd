@@ -845,6 +845,14 @@ func _show_main() -> void:
 	more.add_child(_quieter(_button("Local players", _show_local_players)))
 	more.add_child(_quieter(_button("About", _show_about)))
 	more.add_child(_quieter(_button("Quit", func() -> void: get_tree().quit())))
+	# Which Goanna this is, at a glance: a device that updates itself gave
+	# no sign of the version short of opening About (maintainer, 2026-11-15).
+	var own := Updater.installed_version()
+	var which := Label.new()
+	which.name = "Version"
+	which.text = "Goanna %s" % own if own != "" else "Goanna, source checkout"
+	GlassStyle.tint_text(which, Color(1, 1, 1, 0.45))
+	screen.add_child(which)
 	if updater != null and updater.state == "idle":
 		updater.check.call_deferred()
 
